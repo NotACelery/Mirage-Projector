@@ -1,0 +1,152 @@
+{
+  "render_type": "minecraft:translucent",
+  "ambientocclusion": false,
+  "textures": {
+    "obsidian": "minecraft:block/obsidian",
+    "glass": "minecraft:block/glass",
+    "glass_pane_top": "minecraft:block/glass_pane_top",
+    "particle": "minecraft:block/obsidian"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        1,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#obsidian",
+          "uv": [
+            0,
+            15,
+            16,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#obsidian",
+          "uv": [
+            0,
+            15,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#obsidian",
+          "uv": [
+            0,
+            15,
+            16,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#obsidian",
+          "uv": [
+            0,
+            15,
+            16,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#obsidian",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#obsidian",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        1,
+        2
+      ],
+      "to": [
+        14,
+        2,
+        14
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass_pane_top",
+          "uv": [
+            7,
+            4,
+            8,
+            16
+          ],
+          "rotation": 90
+        },
+        "east": {
+          "texture": "#glass_pane_top",
+          "uv": [
+            8,
+            4,
+            9,
+            16
+          ],
+          "rotation": 90
+        },
+        "south": {
+          "texture": "#glass_pane_top",
+          "uv": [
+            8,
+            0,
+            9,
+            12
+          ],
+          "rotation": 90
+        },
+        "west": {
+          "texture": "#glass_pane_top",
+          "uv": [
+            7,
+            0,
+            8,
+            12
+          ],
+          "rotation": 90
+        },
+        "up": {
+          "texture": "#glass",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#glass",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      }
+    }
+  ]
+}

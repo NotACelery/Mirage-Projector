@@ -1,0 +1,17 @@
+{
+  "itemGroup.mirage_projector": "Mirage Projector",
+  "block.mirage_projector.mirage_projector": "Mirage Projector",
+  "container.mirage_projector.projector": "Mirage Projector",
+  "gui.mirage_projector.import": "Import image...",
+  "gui.mirage_projector.import_replace": "Replace image...",
+  "gui.mirage_projector.import_front": "Import front image...",
+  "gui.mirage_projector.replace_front": "Replace front image...",
+  "gui.mirage_projector.import_back": "Import back image...",
+  "gui.mirage_projector.replace_back": "Replace back image...",
+  "gui.mirage_projector.apply": "Apply",
+  "gui.mirage_projector.cancel": "Cancel",
+  "gui.mirage_projector.status.ready": "Ready",
+  "gui.mirage_projector.status.selecting": "Choose a PNG/JPG/JPEG file...",
+  "gui.mirage_projector.status.processing": "Normalizing image...",
+  "gui.mirage_projector.status.cancelled": "Import cancelled"
+}

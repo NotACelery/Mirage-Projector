@@ -14,7 +14,15 @@ public final class ModBlockEntities {
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MirageProjectorBlockEntity>> MIRAGE_PROJECTOR =
             BLOCK_ENTITY_TYPES.register("mirage_projector", () ->
-                    BlockEntityType.Builder.of(MirageProjectorBlockEntity::new, ModBlocks.MIRAGE_PROJECTOR.get()).build(null));
+                    BlockEntityType.Builder.of(
+                            MirageProjectorBlockEntity::new,
+                            ModBlocks.MIRAGE_PROJECTOR.get(),
+                            ModBlocks.MIRAGE_DISPLAY.get(),
+                            ModBlocks.WIDE_MIRAGE_PROJECTOR.get(),
+                            ModBlocks.TALL_MIRAGE_PROJECTOR.get(),
+                            ModBlocks.MIRAGE_FIELD_PROJECTOR.get(),
+                            ModBlocks.MIRAGE_PRISM.get()
+                    ).build(null));
 
     private ModBlockEntities() {
     }

@@ -17,6 +17,9 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.MIRAGE_PROJECTOR.get(), MirageProjectorScreen::new);
+        event.register(ModMenus.ENTITY_PROJECTOR.get(), EntityProjectorScreen::new);
+        event.register(ModMenus.IMAGE_PROJECTOR.get(), ImageProjectorScreen::new);
+        event.register(ModMenus.ITEM_PROJECTOR.get(), ItemProjectorScreen::new);
     }
 
     @SubscribeEvent

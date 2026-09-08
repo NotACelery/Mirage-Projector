@@ -16,7 +16,16 @@ public final class ModCreativeTabs {
             CREATIVE_TABS.register("mirage_projector", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.mirage_projector"))
                     .icon(() -> ModItems.MIRAGE_PROJECTOR.get().getDefaultInstance())
-                    .displayItems((parameters, output) -> output.accept(ModItems.MIRAGE_PROJECTOR.get()))
+                    .displayItems((parameters, output) -> {
+                        output.accept(ModItems.MIRAGE_PROJECTOR.get());
+                        output.accept(ModItems.MIRAGE_DISPLAY.get());
+                        output.accept(ModItems.WIDE_MIRAGE_PROJECTOR.get());
+                        output.accept(ModItems.TALL_MIRAGE_PROJECTOR.get());
+                        output.accept(ModItems.MIRAGE_FIELD_PROJECTOR.get());
+                        output.accept(ModItems.MIRAGE_PRISM.get());
+                        output.accept(ModItems.ENTITY_SCAN_CARD.get());
+                        output.accept(ModItems.DEBUG_HANDBOOK.get());
+                    })
                     .build());
 
     private ModCreativeTabs() {

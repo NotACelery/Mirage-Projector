@@ -15,5 +15,6 @@ public final class ClientRuntimeEvents {
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         ProjectionTextureCache.clear();
         ClientAssetTransport.resetSession();
+        ProjectionClearancePreviewRenderer.clear();
     }
 }

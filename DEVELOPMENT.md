@@ -1,4 +1,155 @@
-# Development notes — 0.1.0-dev.8
+
+## Estado `0.1.0-dev.22`
+
+Dev.22 cierra la primera pasada funcional de **poses Humanoid** sobre la base acumulativa de dev.21. El projector persiste una pose separada de Entity Scan y de los snapshots de equipment; cambiarla no recaptura ni mueve objetos. El Entity Workspace expone ocho presets: Standing, Guard, Hero, Combat, Raised Main Hand, Raised Off Hand, Dual Wield y Display.
+
+El renderer enlaza únicamente las entidades temporales de Mirage a un hook client-only de `HumanoidModel` y aplica las rotaciones después del frame vanilla. Armor layers y Main/Off Hand heredan así la postura del rig sin convertirlo en Armor Stand ni entidad tickeada. Preview, clearance y render bounds reservan espacio adicional según el preset. Esta pasada sigue siendo conservadora: **no equivale aún a bounds exactos por especie o por mesh** para Horse/Generic. Protocolo de red: `10`. Build Windows/QA real siguen pendientes.
+
+Dev.21 permanece acumulado: **Mirage Prism** físico con cuatro fuentes Image North/East/South/West, renderer lateral, Same Source on All Faces y Power/Clearance propios. Dev.20 permanece acumulado: prioridad temprana de Entity Scan y Capture Equipped Loadout.
+
+## dev.22 — Humanoid pose presets + pose-aware conservative bounds
+
+### Implemented
+
+- Eight persistent Humanoid pose presets stored in `EntityProjectionState`.
+- Pose state stays independent from body scan UUIDs and the six virtual equipment snapshot channels.
+- Humanoid Entity Workspace pose-cycle control with translated labels/status/tooltips.
+- Client-only `HumanoidModel` post-`setupAnim` pose hook bound only to temporary Mirage render entities.
+- Armor and hand item layers inherit arm/body rotations from the same rig.
+- Main/off-hand raised presets respect the scanned/render entity's main-arm handedness.
+- Pose-aware GUI preview auto-fit.
+- Conservative pose-aware world clearance and BlockEntity render bounding box.
+- Debug Handbook updated and `docs/HUMANOID-POSES-dev22.md` added.
+- Network protocol bumped from 9 to **10**.
+
+### QA / build status
+
+- Source/resource/static validation in the assistant environment only.
+- **Do not mark build-clean until the user's Windows `build.bat` succeeds.**
+- Priority live QA: Player, Zombie, Skeleton, bodyless equipment rig, handedness, all presets, armor/trims/dye/glint, shield/tools, Ghost/Tint, reload/multiplayer and clearance visualization.
+- Exact species/model-part bounds are intentionally not claimed by this pass.
+
+### Waiting list
+
+- Banner source/editor and banner 3D preview, including Banner on Prism faces.
+- Exact species/entity/model-part bounds for Horse/Generic and special renderers.
+- Multi-source layouts for Wide/Tall/Field beyond Prism's dedicated four-face bank.
+- Special-layer Ghost/Tint QA and fallback hardening.
+- Final chassis models/crafts after power/geometry stabilization.
+- Optional accessory/backpack/artifact compatibility adapters: explicitly outside base scope.
+- Entity Scan catalog/binder: long-term idea only.
+
+## dev.21 — Prism four-face static-image pass
+
+### Implemented
+
+- Registered physical `mirage_prism` block/item and BlockEntity support.
+- Four persistent Image assets: North, East, South and West.
+- Four independent preview/import/clear controls in Image Workspace.
+- `Same Source on All Faces` copies North's asset reference/dimensions to the other faces without duplicating files.
+- Plane remains Front/Back and keeps Mirrored/Readable/Independent semantics unchanged.
+- Four independent lateral world-render quads; no top or bottom quad.
+- Global Scale/Lift/Rotation/Floating/Lighting/Ghost/Tint/Scanlines apply coherently to the Prism assembly.
+- Prism-aware Power, clearance envelope and BlockEntity render bounds.
+- Network protocol bumped from 8 to **9**.
+- Added `docs/PRISM-FOUR-FACE-dev21.md`.
+
+### QA / build status
+
+- Source/JSON/static validation in the assistant environment only.
+- **Do not mark build-clean until the user's Windows `build.bat` succeeds.**
+- Priority live QA: one/two/four populated faces, mixed aspect ratios, Same Source, reload persistence, multiplayer asset transfer, Rotation on/off, Flip/Scanlines/Tint/Ghost and obstruction checks.
+
+### Historical dev.21 waiting list
+
+- Banner source/editor and banner 3D preview, including Banner on Prism faces.
+- Humanoid pose presets and pose-cycle control. **Completed in dev.22.**
+- Pose-aware conservative Humanoid clearance. **Completed in dev.22; exact species/model-part bounds remain pending.**
+- Multi-source layouts for Wide/Tall/Field beyond Prism's dedicated four-face bank.
+- Special-layer Ghost/Tint QA and fallback hardening.
+- Optional accessory/backpack/artifact compatibility adapters: explicitly outside base scope.
+- Entity Scan catalog/binder: long-term idea only.
+
+# dev.19 — GUI separation / Core UX / temporary handbook
+
+## Implemented
+
+- Primary GUI rewritten around sections instead of one dense control grid.
+- Primary GUI owns only global presentation, Core/Power, clearance and inventory.
+- New dedicated `ImageProjectorMenu` + `ImageProjectorScreen`.
+- New dedicated `ItemProjectorMenu` + `ItemProjectorScreen`.
+- Entity/Humanoid remains one card-adaptive workspace by design.
+- Source activation moved into source-specific actions; the primary source label is read-only.
+- New `UpdateImageWorkspacePayload` merges image-only fields instead of overwriting global presentation from a stale workspace copy.
+- New source-workspace open payloads and `SetProjectionSourcePayload`.
+- Network protocol bumped from 6 to **7** because dev.19 adds mandatory workspace payload registrations.
+- Core slot moved into a dedicated visible section with empty-slot accepted-Core tooltip and live capability/power summary.
+- Provisional Core curve raised to 16 / 32 / 96 / 192 / 384 PU.
+- Temporary `Mirage Debug Handbook` added. It opens a custom non-pausing screen whose text uses translatable components so the active client language controls the manual.
+- Handbook included in Mirage creative tab; no survival recipe is frozen while it remains a debug/development aid.
+- Image Workspace uses large face cards. Plane = Front/Back. Prism layout = North/East/South/West cards, with East/West visibly reserved until the Prism source-bank persistence pass.
+
+## Architecture decisions frozen
+
+- Never put file import, entity equipment staging and global presentation back into one screen.
+- Previews live beside the source editor that understands them.
+- Entity/Humanoid stays one dynamic state model even if later skins/layouts visually diverge.
+- Core and chassis are separate constraints. Core power buffs do not bypass chassis geometry.
+- Empty Core tooltip must remain ordered weakest→strongest and explain capabilities.
+
+## QA / build status
+
+- dev.18 Windows build output was authoritative and used to repair the 1.21.1 equipment API assumptions.
+- dev.19 has only source/static validation in the assistant environment at packaging time.
+- **Do not mark build-clean until the user's Windows `build.bat` succeeds.**
+
+Priority live QA:
+
+1. Primary GUI at GUI scale 2/3/4 and smaller window sizes.
+2. Core slot insertion/removal + tooltip + live power bar.
+3. Image Workspace Front/Back import, Mirror/Readable/Independent, Flip and Scanlines.
+4. Return from Image Workspace preserves presentation settings.
+5. Item Workspace capture does not consume the item and activates ITEM.
+6. Entity Workspace still keeps Humanoid slots when the card is removed.
+7. Source transitions do not erase another source's stored snapshot/assets.
+8. Debug Handbook opens, does not pause, and changes language with Minecraft locale after reopening.
+
+## Waiting list at dev.19 (historical)
+
+- Prism East/West persistent source bank + four active import controls. **Completed in dev.21.**
+- Banner source/editor and banner 3D preview.
+- Humanoid pose presets and pose-cycle control. **Completed in dev.22.**
+- Conservative Humanoid pose-aware clearance. **Completed in dev.22; exact species/entity bounds remain pending.**
+- Special-layer Ghost/Tint QA and fallback hardening.
+- Optional accessory/backpack/artifact compatibility adapters: explicitly outside base scope.
+- Entity Scan catalog/binder: long-term idea only.
+
+# Development notes — 0.1.0-dev.19
+
+## dev.18 — first Windows compile repair pass
+
+The dev.17 Windows build is now the authoritative compile baseline for the Entity/Humanoid stack. It reached `:compileJava` and failed with 13 errors. dev.18 addresses all three root causes in one wave:
+
+1. missing `Player` import in `MirageProjectorBlockEntity`;
+2. incorrect static use of the 1.21.1 instance method `LivingEntity#getEquipmentSlotForItem`;
+3. incorrect model of saddle as `EquipmentSlot.SADDLE`, which does not exist in 1.21.1.
+
+### Equipment resolution invariant
+
+`EquipmentSnapshotRules` is now the single static resolver used by staging and standalone armor detection. Resolution order intentionally mirrors NeoForge's 1.21.1 behavior: stack-provided equipment slot first, then vanilla `Equipable`, otherwise Main Hand. Humanoid hand rows continue to accept arbitrary items by design.
+
+### Horse invariant
+
+Mirage has two **virtual horse channels**, `SADDLE` and `BODY`, but only Body maps to a vanilla `EquipmentSlot`. Saddle is stored/captured independently from vanilla `SaddleItem` data and accepted only from Saddle items. Do not reintroduce `EquipmentSlot.SADDLE` in future code.
+
+The client reconstruction writes the saddle snapshot through `AbstractHorse` slot access. Because vanilla `HorseModel` gates saddle geometry through `isSaddled()` and a client-only reconstructed horse does not receive the normal server-synced saddle flag, dev.18 also uses a projection-only `MirageProjectionHorse` subclass whose `isSaddled()` reads the virtual saddle inventory slot directly. This keeps the renderer correct without inventing an `EquipmentSlot.SADDLE`. Runtime QA must still verify the visual result.
+
+### Build status
+
+- dev.17: Windows build **FAILED** at `:compileJava` with 13 errors.
+- dev.18: source repaired and statically checked; **Windows NeoForge rebuild pending**.
+- The six deprecation warnings for `EventBusSubscriber.Bus` are warnings only and are not part of this compile blocker. They remain a cleanup item after build correctness.
+
 
 ## Target fijo
 
@@ -9,137 +160,507 @@
 - Gradle 9.2.1
 - Parchment 2024.11.17
 
-NeoForge 21.1.244 es baseline deliberado. No actualizarlo automáticamente.
+**No mover NeoForge desde 21.1.244** por seguir automáticamente el MDK o una revisión más nueva.
 
-## Build de Windows
+## Windows / snapshot invariant
 
-Sólo existe `build.bat`. Busca Java 21, instala Gradle localmente en `.gradle-dist/` si falta y ejecuta `clean build --stacktrace`. No incluir `.gradle-dist`, `build`, `run` ni caches en snapshots.
-
-## Baselines acumulados
-
-- dev.4: build/run limpio en 21.1.244.
-- dev.5: selector nativo + primera proyección de imagen real.
-- dev.6: Plane renderer grande/transparente; culling y aislamiento Front/Back corregidos.
-- dev.7: asset transport multiplayer + Item Mode + clearance; el usuario reportó que el proyecto sigue avanzando muy bien.
-- dev.8: Core/Power source preparado; build/QA Windows pendiente.
-
-## dev.8 — Core / Power
-
-### Core Socket
-
-El BlockEntity tiene ahora dos handlers independientes:
+La única ruta de build soportada por el proyecto sigue siendo:
 
 ```text
-Projection Item [slot 0]
-Projection Core [slot 1]
+build.bat
 ```
 
-El Core acepta material real, no un item custom obligatorio:
+`build.bat` busca Java 21, instala Gradle 9.2.1 localmente bajo `.gradle-dist/` si falta y ejecuta `clean build --stacktrace`.
+
+Snapshots de desarrollo:
+
+- siempre entregar snapshot recuperable aunque QA quede pendiente;
+- excluir `.gradle-dist`, `.gradle`, `build`, `run` y caches/pesos generados;
+- conservar `src`, `docs`, raíz, build files y scripts necesarios.
+
+## Política de URLs en descripciones — permanente
+
+No volver a hardcodear URLs de GitHub/repository dentro de descripciones de mods, incluyendo `neoforge.mods.toml`, textos de CurseForge/Modrinth y copy equivalente.
+
+Motivo: el repository puede cambiar de cuenta/nombre y deja una descripción vieja o engañosa. Los links externos, si la plataforma los soporta, se mantienen en campos separados. Los scripts técnicos pueden seguir conteniendo URLs necesarias (ej. descarga oficial de Gradle).
+
+Easy Farmer's Delight queda anotado como metadata a limpiar en su próxima pasada porque su descripción pública mantiene un GitHub desactualizado. No mezclar esa corrección con el source de Mirage.
+
+## Baseline de trabajo
+
+- dev.4: build/run limpio en NeoForge 21.1.244.
+- dev.5: selector nativo + primera imagen real proyectada.
+- dev.6: Plane grande/transparente con culling/Front-Back corregido.
+- dev.7: transporte multiplayer + Item Mode + clearance.
+- dev.8: Core/Power, Core visual dinámico y debug chassis; el usuario lo subió al repositorio canónico y lo usa como baseline de esta oleada.
+- dev.9: Image completeness/presentation/chassis contracts; build/QA Windows no quedó confirmado explícitamente en el chat.
+- dev.10: Ghost Effect + Display/Wide/Tall/Field físicos; build/QA Windows no confirmado todavía.
+- dev.11: render-family contract + miniaturas Front/Back; build/QA Windows no confirmado todavía.
+- dev.12: Virtual Item Snapshot foundation + UUID por captura + contrato de ownership 3D; build/QA Windows pendiente.
+- dev.13: Entity Scan Card foundation + contrato final Humanoid Entity/Entity GUI.
+- dev.14: Empty Scan Template + primera implementación real del Entity Workspace (card staging, incoming/projected por canal, conflicto, Horse, retorno de staging); build/QA Windows pendiente.
+- dev.15: preview 3D real client-only con auto-fit/clipping, composición desde Projected/Active y teardown coherente del body al retirar la card; build/QA Windows pendiente.
+- dev.16: primer renderer Entity/Humanoid in-world, nameplate bajo la proyección, maniquí humanoide bodyless, snapshot de skin de Player, pieza de armadura standalone como geometría equipada y primer adaptador visual seguro para Ender Dragon; build/QA Windows pendiente.
+- dev.17: buffer local de presentación 3D para Tint/Ghost en Item/Entity/Humanoid, remapeo translúcido de capas opacas/cutout comunes y preview Item verdaderamente 3D FIXED; build Windows ejecutado y falló en `:compileJava` por API de equipment.
+- dev.18: corrige los 13 errores reportados por ese build; rebuild/QA Windows pendiente.
+- dev.19: reorganización mayor de GUI, workspaces Image/Item dedicados, Core UX/potencia y Debug Handbook traducible; build/QA Windows pendiente.
+- dev.20: prioridad temprana de Entity Scan + Capture Equipped Loadout; build/QA Windows pendiente.
+- dev.21: Mirage Prism funcional con cuatro caras Image persistentes y geometría/Power/Clearance dedicados; build/QA Windows pendiente.
+- dev.22: presets de pose Humanoid persistentes + hook de rig + preview/clearance/render bounds conservadores por pose; **source actual**, build/QA Windows pendiente.
+
+
+
+## dev.16 — Entity/Humanoid world renderer + equipped geometry
+
+### 1. Estado implementado
+
+`ProjectionSettings.SourceMode` incluye ya `ENTITY` y el protocol registrar es `6`. El renderer del BlockEntity consume el mismo `EntityProjectionState` que la GUI: no spawnea una entidad real, no conserva AI y no depende de que el sujeto original siga cargado.
+
+- body escaneado -> reconstrucción client-only desde `EntityType` + `EntityData` sanitizado;
+- Player -> `RemotePlayer` de render con GameProfile congelado;
+- Humanoid equipment -> sólo `Projected / Active`; Incoming nunca se muestra como aceptado;
+- Horse -> sólo los overrides Saddle/BODY del contexto Horse;
+- Scale/Rotation/Lift/Floating transforman el **modelo 3D completo**;
+- nameplate selectivo se renderiza en la separación vertical entre base física y punto inferior del holograma.
+
+### 2. Maniquí humanoide sin body
+
+Si no existe Entity body activo pero sí alguno de `Head/Chest/Legs/Feet/Main/Off`, GUI y world renderer crean un `RemotePlayer` puramente client-side e invisible. Vanilla 1.21.1 omite el base model invisible pero sigue ejecutando las equipment render layers, por lo que armor/manos pueden existir como holograma sin Player ni Armor Stand visible.
+
+No convertir este rig en entidad del mundo ni hacerlo lootable/interactuable. Es infraestructura de render exclusivamente.
+
+### 3. Player skin congelada
+
+Desde Entity Scan data version 3, los scans de Player conservan el `GameProfile` visual mínimo necesario: Name + packed `textures` property (value/signature cuando existen). El `MirageRemotePlayer` resuelve su `PlayerSkin` mediante `SkinManager` desde esa propiedad congelada, en vez de depender únicamente del PlayerInfo actual.
+
+Esto debe probarse con Player online -> escaneo -> logout/desconexión -> reapertura. Si un servidor/mod de skins no expone una textures property estándar, su compatibilidad será un adapter posterior y no una excusa para volver a un lookup vivo obligatorio.
+
+### 4. Item Mode: armor standalone equipada
+
+`ItemProjectionPreviewRenderer` y `MirageProjectorRenderer` detectan snapshots cuyo `LivingEntity.getEquipmentSlotForItem` devuelve Head/Chest/Legs/Feet. Esos snapshots ya no usan el icon/modelo de inventario como representación principal: se equipan sobre el mismo rig bodyless y se renderizan mediante las layers vanilla.
+
+Items no-equipment, herramientas y bloques continúan por el ItemRenderer 3D normal. El tamaño/alineación de casco/peto/pantalones/botas sobre el rig todavía requiere QA visual in-game.
+
+### 5. Reloj visual seguro / Ender Dragon
+
+Las entidades de preview/proyección **no ejecutan `tick()` ni `aiStep()`**. Hacerlo podría reproducir sonidos, partículas, AI, movimiento o consultas de mundo. `prepareVisualFrame` sólo actualiza clocks de render seguros.
+
+Ender Dragon necesita además historial de latencia para su renderer; dev.16 inicializa de forma side-effect-free su ring de posiciones y `flapTime`, sin fase/AI/cristal ni lógica de combate. Esto da una primera animación visual base segura, pero no equivale aún a un sistema general de animation presets por especie.
+
+### 6. P0 de QA / siguientes cambios
+
+1. `build.bat` real en Windows contra NeoForge 21.1.244;
+2. bodyless armor + ambas manos: trims, dye, glint, escudos/bloques/tools, armor modded;
+3. Player frozen skin después de que el Player original deje la sesión;
+4. Item Mode standalone armor: escala/posición por Head/Chest/Legs/Feet;
+5. Entity world: Chicken/Baby Zombie/Horse/Player/Ender Dragon, Scale/Lift/Rotation/Floating y nameplate;
+6. Ghost Effect/Tint 3D: validar la ruta dev.17 y refinar sólo glint/custom RenderTypes que muestren residuos;
+7. pose presets Humanoid;
+8. clearance basado en bounds/pose reales;
+9. adapters especiales de animación sólo donde el renderer vanilla lo requiera.
+
+### 7. Riesgos compile-sensitive
+
+Hasta Windows QA no declarar build-clean. Revisar especialmente `Property(name,value,signature)`, `GameProfile#getProperties`, `SkinManager#lookupInsecure`, override de `RemotePlayer#getSkin`, `EntityType#create(ClientLevel)`, `InventoryScreen.renderEntityInInventoryFollowsMouse`, acceso visual de EnderDragon y signatures del `EntityRenderDispatcher`.
+
+
+## dev.15 — Entity preview real + regla de snapshot prioritaria
+
+### 1. Invariante de recuperación
+
+La snapshot no es un release ni depende de compilar. **Antes de seguir acumulando cambios arriesgados debe existir un ZIP recuperable del estado actual.** Si una oleada queda a medio implementar, se entrega ese WIP/safety snapshot de todas formas y se indica qué QA falta.
+
+Para esta transición se conserva además `Mirage-Projector-0.1.0-dev.14-SAFETY-SNAPSHOT-20260908-1218.zip` como punto de rescate previo a dev.15.
+
+### 2. Preview client-only
+
+`EntityProjectionPreviewRenderer` reconstruye una `LivingEntity` sólo para render de GUI. No se agrega al `ClientLevel`, no tiene AI/world ownership y se invalida al cerrar la pantalla, cambiar de nivel, cambiar `ScanId` o cambiar los UUID de snapshots Projected/Active.
+
+- Mob normal: resolver `EntityType` -> `type.create(clientLevel)` -> cargar `EntityData` sanitizado.
+- Player: crear `RemotePlayer(clientLevel, GameProfile(sourceUuid, name))`. En 1.21.1 vanilla, `AbstractClientPlayer#getSkin()` consulta `PlayerInfo` por UUID; por ello el player online puede resolver su skin actual, pero **skin exacta congelada/offline aún no está cerrada** y no se debe declarar completa.
+- Equipamiento: aplicar sólo `humanoidProjected` o `horseProjected`. Incoming no se dibuja como si ya hubiera sido aceptado.
+
+### 3. Auto-fit y viewport
+
+El tamaño sale de `getBbWidth()/getBbHeight()` y del área disponible. Se usa el renderer vanilla de inventario, que ya hace scissor y restauración de rotaciones del entity. El panel exterior prefiere 150 px de ancho y baja hasta un ancho compacto cuando la pantalla no permite el layout completo.
+
+### 4. Retiro de Scan Card
+
+La card central es la fuente del **body**. Al retirarla, el body importado se limpia. Las seis capas Humanoid Incoming/Projected no se limpian: quedan disponibles como maniquí virtual sin cuerpo. Horse es contextual: al retirar su card se limpian body + Saddle/Body Armor virtuales, después de obligar a devolver cualquier staging físico real.
+
+### 5. QA prioritaria dev.15
+
+1. `build.bat`;
+2. escanear Chicken, Baby Zombie, Player, Horse y una entidad grande;
+3. comprobar que todos quedan dentro del panel de preview y que el cursor no saca el modelo del viewport;
+4. Baby Zombie con armor escaneada: antes de aceptar los ✓ la preview no debe fingir que esa armor ya está Projected;
+5. aplicar Head/Chest/Legs/Feet/Main/Off individualmente y comprobar update de preview;
+6. right-click en slot derecho y comprobar eliminación inmediata del layer;
+7. retirar Zombie/Player card: body desaparece, seis canales Humanoid permanecen;
+8. retirar Horse card: se limpia body y estado Horse; staging físico debe haberse devuelto primero;
+9. Player online: revisar skin; Player desconectado/offline queda como caso pendiente de snapshot de skin exacta;
+10. confirmar que Image/Item workspace no sufrió regresión.
+
+### 6. Siguiente línea directa
+
+- activar SourceMode Entity/Humanoid en el renderer in-world;
+- compartir la reconstrucción/composición con GUI sin spawnear entidades reales;
+- nameplate in-world entre base y punto inferior del holograma;
+- renderer de armor equipada/pose, incluida armadura standalone de Item Mode;
+- Ghost Effect alpha-safe para entidad + equipment + glint;
+- clearance basado en bounds/pose;
+- luego Banner/multi-source/Prism según roadmap.
+
+
+## dev.12 — Virtual Item Snapshots + Armor/Effigy ownership contract
+
+### 1. El projector deja de almacenar el item proyectado
+
+La ranura de Item Mode pasa a ser un **Virtual Snapshot Slot**. El usuario puede hacer click o shift-click con un ItemStack y el servidor copia exactamente una unidad como dato de render, sin mover ni reducir el stack original.
+
+Estado persistente nuevo en BlockEntity:
 
 ```text
-Glass          -> Glass Core
-Quartz         -> Quartz Core
-Amethyst Shard -> Amethyst Core
-Diamond        -> Diamond Core
-Netherite Ingot-> Netherite Core
+ProjectionSnapshot              ItemStack copy (count=1)
+ProjectionSnapshotId            UUID generado al capturar
 ```
 
-Los block forms equivalentes también son válidos.
+El snapshot es deliberadamente no-obtenible. No se usa como inventario, no se dropea y no puede convertirse en duplicado físico.
 
-Un mundo viejo sin `CoreItem` migra a Glass Core. Si el jugador retira el Core después, el slot vacío se preserva como vacío y el Mirage queda apagado.
+### 2. Semántica de click del slot virtual
 
-### Curva provisional
+- cursor con item + click -> captura copia; cursor no cambia;
+- cursor vacío + click -> limpia snapshot;
+- shift-click de item normal desde inventario -> captura sin consumir;
+- number key/offhand swap sobre slot -> captura ese stack;
+- clone/drag/pickup-all -> ignorados para el snapshot;
+- `mayPickup=false`, `isFake=true`;
+- `canDragTo` rechaza el slot virtual.
 
-| Core | Power | Scale max | Lift max | Float max | Future source cap |
-|---|---:|---:|---:|---:|---:|
-| Glass | 8 | 10 px | 16 px | 1 px | 1 |
-| Quartz | 16 | 16 px | 32 px | 2 px | 1 |
-| Amethyst | 48 | 48 px | 64 px | 8 px | 2 |
-| Diamond | 96 | 80 px | 96 px | 16 px | 4 |
-| Netherite | 192 | 160 px dev ceiling | 160 px | 32 px | 8 |
+Core Slot permanece completamente físico.
 
-No son números de release; son la primera curva jugable para medir sensación y coste.
+### 3. Identidad
 
-### Power cost actual
+No asumir que un ItemStack arbitrario posee UUID propio. Mirage genera un **snapshot UUID** nuevo por captura. El renderer usa la copia serializada; no busca el objeto original en inventarios.
 
-`ProjectionPower` consume presupuesto por:
+### 4. Migración dev.11
 
-- estabilización base;
-- área de imagen;
-- tamaño de Item projection + surcharge 3D;
-- Projection Lift;
-- rotation;
-- floating amplitude;
-- rotation-synced floating;
-- Independent Back image.
+Dev.11 guardaba un ItemStack físico. Al cargar NBT viejo:
 
-GIF, Prism, Banner, Effigy y múltiples slots agregarán sus propios costes después.
+1. se crea snapshot visual;
+2. el viejo item real se conserva como `LegacyProjectionReturnItem`;
+3. al romper el projector ese item legacy se devuelve exactamente una vez;
+4. capturas dev.12 nuevas no crean legacy return items.
 
-### Regla de no pérdida
+Esto evita perder equipamiento en mundos de testing sin mantener el diseño viejo para nuevas capturas.
 
-No sanitizar settings contra el Core al guardar. Ejemplo:
+### 5. Armor/Effigy
+
+Queda congelado que Armor Mode tendrá seis canales virtuales:
 
 ```text
-Diamond Core -> Mirage 70 px
-retirar Diamond / poner Glass
-=> Mirage OFF, settings 70 px se conservan
-volver a Diamond
-=> Mirage vuelve sin reconfigurar
+HEAD / CHEST / LEGS / FEET / MAIN_HAND / OFF_HAND
 ```
 
-### Doble límite
+Cada canal tendrá snapshot UUID + ItemStack copy. El usuario nunca deja su armor/tools dentro del projector.
 
-Core y chassis son independientes. Compact normal:
+La GUI Effigy debe incluir `Capture Equipped Loadout`: leer Head/Chest/Legs/Feet/Main Hand/Off Hand actuales del jugador y generar seis snapshots en una sola operación, sin desequipar, mover ni reducir los ItemStacks reales.
+
+No activar todavía los seis slots porque faltan:
+
+1. renderer de pieza equipada (trims/dye/modded hooks);
+2. rig humanoide invisible;
+3. transforms correctos de manos;
+4. pose presets;
+5. Ghost Effect alpha-safe para 3D/glint/layers modded.
+
+Contrato completo: `docs/ITEM-ARMOR-SNAPSHOT-CONTRACT.md`.
+
+### 6. QA prioritaria dev.12
+
+1. `build.bat`;
+2. poner espada/bloque/tool en Snapshot Slot y comprobar que el item original no se mueve ni reduce;
+3. shift-click de un item normal debe capturarlo sin moverlo;
+4. cambiar/limpiar snapshot no debe entregar ningún item;
+5. romper projector nuevo: sólo Core real debe dropear, nunca el snapshot;
+6. save/reload mantiene stack visual + snapshot UUID;
+7. abrir el mismo projector desde otro cliente no permite robar la fuente, sólo ver/reemplazar el snapshot;
+8. comprobar render 3D/glint del snapshot;
+9. migrar un projector dev.11 con item real y confirmar que el render continúa y el item legacy vuelve al romper el block;
+10. confirmar que Image Mode/Front/Back thumbnails no sufrieron regresión.
+
+## dev.10 — Ghost Effect + physical chassis family
+
+### 1. Ghost Effect / Transparency
+
+La GUI ya no presenta `Opacity`, porque para el usuario ese control era conceptualmente al revés de lo que quiere ajustar. Desde dev.10 se expone:
 
 ```text
-scale <= 10 px
-lift  <= 32 px
-float <= 4 px
+Ghost effect: 0% .. 90%
 ```
 
-`Debug chassis: ON` sólo puede ser aplicado por Creative y salta esos límites de Compact para stress-test, pero NO salta límites del Core ni la regla física `floatAmplitude <= lift`.
+Semántica:
 
-### Core visual
+- 0% = sin transparencia adicional;
+- 50% = holograma notablemente translúcido;
+- 90% = extremadamente fantasma, todavía visible;
+- 100% no se permite para evitar una proyección invisible.
 
-El cubo de diamante hardcodeado fue removido del JSON. El BER dibuja un bloque de material escalado a 2x3x2 px en el mismo volumen de referencia. Esto permite cambio visual inmediato al swap del Core sin crear cinco blocks/modelos distintos.
+Compatibilidad:
 
-### GUI
+- `ProjectionSettings` conserva `OpacityPercent` en wire/NBT;
+- `transparencyPercent()` devuelve `100 - opacityPercent`;
+- al aplicar la GUI se vuelve a guardar `100 - transparency`;
+- por ello dev.9 no necesita migración destructiva ni protocol bump.
 
-Añadido:
+El preview 2D aplica Tint y alpha actual usando `RenderSystem.setShaderColor`, hace flush antes/después y restaura `(1,1,1,1)` inmediatamente. Item Mode continúa opaco por ahora.
 
-- Core slot;
-- Core profile + límites;
-- Power bar;
-- reason de fallo;
-- Debug chassis;
-- tooltips de sliders.
+### 2. Chassis registrados
 
-La GUI crece a 416x466 para mantener inventario y status sin pisarse. Revisar GUI Scale bajo en QA.
+Bloques reales en dev.10:
 
-## QA solicitado para dev.8
+| Registry ID | Perfil | Envelope W×H | Physical top | Sources futuras |
+|---|---|---:|---:|---:|
+| `mirage_projector` | Compact | 10×10 px | 5 px | 1 |
+| `mirage_display` | Display | 16×16 px | 6 px | 1 |
+| `wide_mirage_projector` | Wide | 80×32 px | 6 px | 4 |
+| `tall_mirage_projector` | Tall | 32×80 px | 8 px | 4 |
+| `mirage_field_projector` | Field | 80×80 px | 7 px | 9 |
 
-1. `build.bat`.
-2. Abrir projector viejo de dev.7: debe aparecer Glass Core por migración.
-3. Sacar Core: Mirage se apaga, settings no cambian.
-4. Reinsertar Glass: vuelve sólo si configuración entra en Glass.
-5. Probar Quartz / Amethyst / Diamond / Netherite y mirar color/material físico del pilar.
-6. Usar Scale 80 + Diamond con Debug ON; usar Scale 160 + Netherite.
-7. Desactivar Debug: Compact debe rechazar >10 px sin borrar el valor.
-8. Float > Lift debe apagar el Mirage con reason físico.
-9. Shift-click de Core debe ir al Core slot; un item común al Projection Item slot.
-10. Romper el block: Projected Item y Core deben dropear una sola vez.
-11. Verificar que Image/Item/multiplayer de dev.7 no regresaron.
+Todos usan:
 
-## Siguiente oleada sugerida
+```text
+MirageProjectorBlock
+MirageProjectorBlockEntity
+MirageProjectorMenu
+MirageProjectorRenderer
+ProjectionSettings
+ProjectionPower
+ServerAssetStore / transport
+```
 
-Con Core/Power estabilizado, atacar Image completeness / feedback:
+No crear subclasses por tier/chassis salvo que una geometría futura (Prism/Effigy) realmente requiera un contrato de render distinto.
 
-- world-space clearance overlay;
-- preview GUI;
-- optional opacity/scanline/tint presentation;
-- transfer progress;
-- evaluar WebP sin introducir una dependencia absurda;
-- después comenzar Mirage Display / Wide / Tall usando el mismo BlockEntity/Core architecture.
+### 3. Envelope aspect-aware
+
+`ProjectionPower.dimensions()` calcula el ancho/alto real de Image Mode preservando aspect ratio. El chassis valida ese par contra `maxWidthPixels/maxHeightPixels`.
+
+Ejemplo Wide:
+
+```text
+max = 80×32 px
+source = 16:9
+Scale = 80 px
+actual = 80×45 px
+=> inválido por altura
+```
+
+El usuario puede bajar Scale hasta entrar en 80×32. Una pasada posterior puede hacer que el slider muestre dinámicamente el máximo válido para el ratio actual sin destruir valores guardados.
+
+### 4. Modelos dev.10
+
+Display/Wide/Tall/Field tienen modelos JSON y VoxelShapes distintos para probar identidad y physical top, pero son **prototipos funcionales**, no arte final.
+
+- material común: obsidian + glass + Core material dinámico;
+- no existe Core material hardcodeado en los JSON;
+- el BER posiciona/escala el Core según `ProjectionChassisProfile`;
+- no congelar recipes hasta aprobar modelos.
+
+### 5. Core defaults
+
+- Compact nuevo/migrado conserva Glass Core para compatibilidad histórica.
+- Display/Wide/Tall/Field nacen con socket vacío.
+- todos devuelven el Core físico al romperse; desde dev.12 el Item source es snapshot virtual y no dropea.
+
+### 6. QA prioritaria dev.10
+
+1. build con `build.bat`;
+2. creative tab contiene los cinco blocks;
+3. cada block abre la misma GUI pero muestra su nombre/perfil correcto;
+4. Core dinámico queda centrado y con altura correcta en cada modelo;
+5. Wide 5×2 y Tall 2×5 rechazan ratios que exceden el eje corto;
+6. Debug chassis permite stress-test sin saltarse Core Power;
+7. Ghost 0/25/50/75/90% se ve progresivo y el resto de la GUI no queda teñido/transparente;
+8. clearance comienza sobre la altura correcta de cada emitter;
+9. romper cada chassis devuelve el Core exactamente una vez y ningún snapshot virtual;
+10. save/reload conserva source/settings/Core.
+
+## dev.9 — Image completeness + preview + presentation + chassis contracts
+
+Esta oleada deliberadamente termina casi todo el bloque pendiente del **Plane/Image foundation** antes de empezar a registrar nuevos chassis físicos.
+
+### 1. WebP real, sin dependencia manual del usuario
+
+Se agrega `org.sejda.imageio:webp-imageio:0.1.6` como dependencia **Jar-in-Jar**.
+
+Pipeline:
+
+```text
+PNG / JPG / JPEG / WebP local
+  -> ImageIO decode
+  -> ARGB
+  -> resize si excede 2048 px
+  -> PNG normalizado <= 4 MiB
+  -> SHA-256
+  -> cache local
+  -> upload/download multiplayer del PNG normalizado
+```
+
+Reglas:
+
+- el formato original nunca viaja al server;
+- la ruta local nunca viaja al server;
+- WebP no cambia el protocolo de almacenamiento: el world asset store sigue conteniendo PNG normalizado;
+- el decoder viaja dentro del JAR del mod;
+- `ImageIO.scanForPlugins()` fuerza el descubrimiento del provider antes del primer decode.
+
+### 2. Presentation settings para Image Mode
+
+Nuevos settings persistentes y sincronizados:
+
+```text
+Fullbright
+OpacityPercent
+TintRgb
+Scanlines
+```
+
+Defaults:
+
+```text
+Fullbright ON
+Opacity 100%
+Tint #FFFFFF
+Scanlines OFF
+```
+
+GUI:
+
+- `Lighting: Fullbright / World Light`;
+- Opacity 10-100%;
+- Tint presets: White/Cyan/Amethyst/Rose/Amber/Green/Red;
+- `Scanlines ON/OFF`.
+
+El formato interno guarda RGB directo, no el ordinal del preset, para poder agregar selector libre de color sin migrar NBT/networking otra vez.
+
+### 3. Scanlines sin shader obligatorio
+
+El renderer no altera el PNG ni crea una textura derivada. Divide la cara en tiras horizontales visibles separadas por pequeños huecos transparentes:
+
+- entre 8 y 64 segmentos según altura proyectada;
+- máximo 64 segmentos por cara;
+- sólo Image Mode;
+- cuesta +1 Projection Power;
+- OFF por default.
+
+Esto evita convertir un simple efecto visual en dependencia de shader.
+
+### 4. Preview dentro de GUI
+
+La GUI ahora tiene un panel de preview:
+
+- Image Mode muestra la DynamicTexture actual conservando aspect ratio;
+- conserva el aspect ratio y muestra el source real;
+- simula scanlines en el preview 2D y muestra un swatch del Tint actual;
+- el preview de dev.9 no recolorea todavía sus píxeles ni aplica alpha: Tint/Opacity se validan en el renderer del mundo;
+- Item Mode muestra el ItemStack del slot;
+
+El preview no pretende reemplazar el renderer del mundo; sólo da feedback rápido de source/aspect/presentation.
+
+### 5. Clearance world overlay
+
+`ProjectionClearance.Result` ahora contiene:
+
+- blocked count;
+- checked count;
+- hasta 128 `BlockPos` obstructores;
+- AABB envelope.
+
+Mientras `MirageProjectorScreen` esté abierto:
+
+- se dibuja el envelope conservador del Mirage;
+- amber/green-ish cuando está libre;
+- red cuando hay interferencias;
+- cada bloque capturado que obstruye recibe outline rojo;
+- la lista de outlines se limita a 128 para no inundar vértices durante stress-test gigantes.
+- una imagen sin rotación usa un AABB alineado con su `rotationOffset`; una imagen que rota conserva el envelope barrido conservador para no perder colisiones futuras.
+
+El preview se limpia al cerrar GUI y al logout.
+
+### 6. Transfer progress + ACK real de upload
+
+Nueva respuesta S2C final `AssetUploadAckPayload`:
+
+```text
+assetId
+accepted: true / false
+message
+```
+
+El cliente calcula el porcentaje de **envío** mientras despacha sus chunks, muestra `awaiting server` al terminar de enviarlos y sólo marca `Upload complete` cuando llega el ACK positivo. Un rechazo quita el asset del set de enviados de la sesión para permitir reintento. El progreso de download se deriva de los chunks recibidos.
+
+La GUI incluye además un botón `↻` para reintentar explícitamente la sincronización de Front/Back. Esto corrige una limitación de dev.7: antes el cliente podía enviar todos los chunks pero no tenía confirmación explícita de que el server hubiera almacenado el asset.
+
+### 7. ProjectionChassisProfile
+
+Se separan definitivamente los **hard physical limits** del Compact de `ProjectionPower`.
+
+Contratos provisionales dev.9:
+
+| Chassis | Scale | Lift | Float | Sources | Geometry |
+|---|---:|---:|---:|---:|---|
+| Compact | 10 | 32 | 4 | 1 | Plane |
+| Display | 16 | 48 | 6 | 1 | Plane |
+| Wide | 80 | 64 | 8 | 4 | Plane |
+| Tall | 80 | 96 | 12 | 4 | Plane |
+| Field | 80 | 96 | 16 | 9 | Plane |
+| Prism | 48 | 96 | 12 | 4 | Prism |
+| Effigy | 96 | 128 | 16 | 8 | Effigy |
+| Colossal | 160 | 160 | 32 | 16 | Volumetric |
+
+Sólo **Compact** está registrado como block en dev.9. Los demás son contratos de arquitectura, no contenido jugable todavía.
+
+`Debug chassis` salta sólo este contrato físico en Creative. No salta Core limits, Power budget ni `floatAmplitude <= lift`.
+
+### 8. Networking/settings cleanup
+
+- `ProjectionSettings` centraliza directamente su serialización de red y NBT para menu, payload y BlockEntity;
+- protocol registrar pasa de dev.8 protocol `3` a dev.9 protocol `4`;
+- settings de presentation viajan en menu/payload y persisten en NBT;
+- mundos antiguos usan defaults sanos si los nuevos tags no existen.
+
+## QA solicitado para dev.9
+
+1. Ejecutar `build.bat` y comprobar que WebP Jar-in-Jar resuelve correctamente.
+2. Abrir mundo dev.8: imágenes/cores/settings deben sobrevivir.
+3. Importar PNG, JPG y WebP.
+4. Revisar preview GUI con imagen horizontal, vertical, cuadrada y transparencia.
+5. Probar Fullbright vs World Light de día/noche/interior oscuro.
+6. Probar opacity, cada tint y Scanlines por ambas caras.
+7. Verificar Mirrored / Readable / Independent después de la nueva presentación.
+8. Cambiar Scale/Lift/Float con GUI abierta y mirar el envelope actualizarse en mundo.
+9. Poner bloques alrededor: deben salir outlines rojos correctos; con Rotation OFF, +90°/+180° debe rotar también el envelope delgado sin marcar bloques que quedan fuera del plano.
+10. Probar Item Mode para confirmar que presentation controls no alteran items.
+11. Multiplayer: importar en cliente A, confirmar porcentaje `Upload sent`, estado `awaiting server` y ACK final; probar también el botón `↻`. Entrar con cliente B sin cache y confirmar download + aparición.
+12. Reiniciar world/server y confirmar que el server asset store sigue resolviendo la imagen.
+13. Probar GUI Scale bajo: el panel de 416x518 no debe quedar fuera de pantalla de forma inutilizable.
+14. Romper projector con Item + Core: ambos deben dropear una sola vez.
+
+## Próxima prioridad después de dev.10
+
+Con Display/Wide/Tall/Field ya registrados físicamente en dev.10, la siguiente oleada debe validar y pulir esta familia antes de ampliar la geometría del sistema:
+
+1. build/QA real de los cinco chassis sobre NeoForge 21.1.244;
+2. ajustar modelos, hitboxes, Core alignment y envelopes según feedback in-game;
+3. definir crafts finales sólo cuando los cuerpos físicos y la curva de Power estén aprobados;
+4. implementar multi-source layout para Wide/Tall/Field reutilizando el mismo BlockEntity/menu/networking;
+5. implementar Banner como source type con tela sin poste;
+6. implementar Mirage Prism de cuatro caras;
+7. implementar Effigy/equipment rig;
+8. implementar Colossal + LOD/culling;
+9. GIF queda al final del pipeline de imágenes estáticas.
+
+Video, YouTube, browser, streaming y audio siguen explícitamente fuera de alcance.
 
 ---
 
@@ -342,3 +863,203 @@ Best test with two clients against one server/integrated LAN if practical:
 - dynamic core visual.
 
 Después de eso conviene hacer WebP + preview avanzado antes de multiplicar chassis.
+
+
+## dev.11 — render-family contract + source thumbnails
+
+### Permanent render-family rule
+
+Do not collapse all sources into the same "quad" abstraction.
+
+- **Image/Banner**: face-based 2D geometry. Plane front/back and future Prism N/E/S/W are physical faces. Rotation exposes edges and then the next face.
+- **Item**: one volumetric 3D object. `ItemRenderer.renderStatic(..., ItemDisplayContext.FIXED, ...)` remains the generic baseline for blocks/items. A block must render as its 3D model; tools/weapons as their complete item model. Face-count from Plane/Prism must not cause item sprite switching.
+- **Armor/Effigy**: one posed 3D equipment rig. Up to Head/Chest/Legs/Feet + Main/Off Hand move as one assembled figure.
+
+### Standalone armor prerequisite
+
+A single armor piece placed in Item Mode should eventually render using its **equipped armor geometry**, not the inventory/hand model. This requires the same reusable humanoid/equipment path as Effigy and must honor NeoForge armor-model hooks for compatible modded equipment.
+
+Dev.11 deliberately does **not** expose Armor Mode yet. The current generic ItemRenderer is not sufficient for fitted armor geometry.
+
+### 3D Ghost Effect prerequisite
+
+Image Ghost Effect already writes alpha per projection vertex. Generic Item/Effigy rendering can contain several RenderTypes (base model, glint, trim/equipment layers, hand items). Do not implement 3D transparency by leaving a global shader color active across shared batches.
+
+Required solution: alpha/tint-aware buffer/vertex-consumer path (or another render-isolated equivalent) that can multiply alpha while preserving glint and modded layers, then restore with no shared render-state leakage.
+
+### Armor / Effigy waitlist
+
+1. equipped-piece renderer for a single armor item;
+2. invisible humanoid rig;
+3. 4 armor/equipment slots + Main Hand + Off Hand;
+4. compatible slot validation while allowing any renderable ItemStack in hands;
+5. pose data model and preset cycle button, inspired by armor-stand pose changes but without rendering the stand;
+6. hand-item transforms driven by arm pose;
+7. Elytra/shield/trident and modded equipment validation;
+8. Ghost Effect for every 3D layer;
+9. uniform Scale/Lift/Rotation/Floating on the complete rig;
+10. conservative pose-aware 3D clearance;
+11. Effigy GUI preview.
+
+### dev.11 GUI image thumbnails
+
+Image Mode now reserves two simultaneous preview cards:
+
+- Front;
+- effective Back.
+
+Back preview reflects Mirrored / Readable / Independent semantics. Independent with no dedicated Back asset visibly falls back to Front. Hover tooltips expose face role, dimensions and short SHA-256 id.
+
+Future multi-source/Prism UI must generalize this same component to one thumbnail per source/face rather than relying on filenames. Filenames are not network identity and may be meaningless; SHA-256 remains technical identity, thumbnail remains human visual identity.
+
+## dev.13 — Entity Scan / Humanoid Entity implementation boundary
+
+### Implemented in source
+
+- `EntityScanCardItem` registered as a non-stackable Mirage item.
+- `EntityScanData` provides the first frozen scan-card data format.
+- card scanning captures one LivingEntity without consuming/moving the entity or its equipment;
+- independent scan UUID and source UUID metadata;
+- Humanoid/Horse/Generic classification foundation;
+- six humanoid equipment snapshots extracted separately;
+- Horse `SADDLE` + `BODY` snapshots extracted separately;
+- common runtime/nonvisual NBT is stripped from the copied entity tag;
+- scan NBT has a 256 KiB safety ceiling;
+- passenger/vehicle scan rejection prevents v1 jockey/composite capture;
+- sneak-use overwrite guard.
+
+### Not yet implemented; next wave
+
+Do not claim Entity Mode is functional in the projector yet. The following remain pending:
+
+1. BlockEntity entity-snapshot storage separate from the physical card;
+2. Entity Scan Card staging/import slot in projector menus;
+3. dedicated Entity/Humanoid editor screen;
+4. effective layout resolver: Humanoid / Horse / Generic;
+5. Humanoid incoming staging handlers: Head/Chest/Legs/Feet/Main/Off;
+6. Humanoid active virtual snapshot handlers: same six channels;
+7. one ✓ Apply action per paired slot and conflict confirmation;
+8. safe return-to-player logic for real staging equipment;
+9. Horse incoming/active Saddle + BODY channels with dynamic teardown;
+10. GUI reconstruction/preview of scanned entities with automatic viewport fit;
+11. world Entity renderer;
+12. equipped-piece armor renderer shared by standalone Item Mode and Humanoid Entity Mode;
+13. pose controls;
+14. alpha-safe Ghost Effect across entity/equipment/glint render layers.
+
+### GUI invariants
+
+- Player inventory sits below the entity editor.
+- Humanoid mode keeps all six equipment rows visible even if no card is inserted.
+- Emptying the humanoid card slot cannot erase active equipment snapshots.
+- Scanned humanoid gear enters LEFT incoming rows; it never silently replaces RIGHT active rows.
+- Main Hand and Off Hand exist on both left and right.
+- Generic entity layouts do not fake editable equipment support.
+- Horse-only fields must not leak into non-Horse contexts.
+- External accessory/backpack/artifact slots are future compatibility adapters, not base scope.
+
+See `docs/ENTITY-PROJECTION-CONTRACT.md` for the normative UX/data contract.
+
+
+## dev.14 — Entity workspace / scan implementation boundary
+
+### Implementado en esta oleada
+
+- `Empty Scan Template` no stackeable, visualmente papel.
+- Recipe 3x3: 8 Iron Nuggets alrededor de 1 Paper.
+- Scan sólo con Shift + clic derecho sobre `LivingEntity`/Player.
+- Snapshot independiente del origen: `ScanId` Mirage + `SourceUuid` sólo como procedencia.
+- Snapshot congelado de body/variant data con límite y sanitización.
+- Separación de equipo editable: Humanoid = Head/Chest/Legs/Feet/Main/Off; Horse = Saddle/Body.
+- Nameplate metadata: Player siempre; mob sólo si tiene Custom Name.
+- Estado Entity persistente dentro del BlockEntity, separado del item físico que inició la importación.
+- Menu/Screen dedicado `Mirage Entity Workspace`.
+- Slot central físico de scan poblado.
+- Humanoid: seis slots físicos de staging a la izquierda y seis snapshots virtuales projected a la derecha.
+- Equipo proveniente de card aparece como incoming virtual si no hay una fuente física ocupando ese staging row.
+- ✓ por canal; conflictos son locales al slot; Replace/Cancel explícito.
+- Click derecho en el snapshot derecho = borrar sólo esa pieza holográfica.
+- `Return inserted gear` devuelve fuentes físicas sin tocar snapshots virtuales.
+- Horse: Saddle/Body dinámicos y guard de retiro de card mientras exista staging físico.
+- Generic: sin slots inventados para armor visual no equipable.
+- Botón para volver al editor principal.
+- Protocol v5 para abrir/cerrar workspace y acciones.
+
+### Prerequisitos todavía pendientes
+
+1. reconstrucción client-side segura de una entidad desde el snapshot;
+2. preview 3D real con scissor + auto-fit por bounding box;
+3. preview Humanoid alimentado por el lado **Projected/Active**, no por Incoming;
+4. renderer equipado real compartido con Item Mode (armor geometry, trim, dye, glint, modded hooks);
+5. world Entity/Humanoid renderer;
+6. nameplate real entre el punto inferior de la proyección y el pedestal;
+7. pose presets para Humanoid;
+8. Ghost Effect alpha-safe sobre body + armor + hands + layers;
+9. entity idle/base animation y freeze control;
+10. clearance calculado desde el modelo/pose real.
+
+### QA obligatorio para dev.14
+
+- Craft del Empty Scan Template con 8 nuggets + paper.
+- Verificar que no stackea.
+- Click derecho normal en Villager/Horse/etc. no escanea ni rompe su interacción.
+- Shift + clic derecho escanea y el item cambia de nombre.
+- Repetir Shift + clic derecho reemplaza el scan.
+- Intentar scanear rider/passenger se rechaza.
+- Player scan conserva nombre para futuro nameplate.
+- Horse sin nombre no crea nameplate; Horse renombrado sí.
+- Abrir Entity Workspace desde el projector y volver al editor principal.
+- Card Humanoid: sus seis piezas/manos aparecen incoming sin pisar el lado right.
+- Conflicto por slot: Replace cambia sólo esa fila.
+- Right-click en right borra sólo esa pieza.
+- Staging físico permanece físico hasta `Return inserted gear`; con inventario lleno no debe borrarse.
+- Horse con staging físico no debe permitir retirar la scan card hasta devolver el gear.
+- Romper projector devuelve Core, scan card y staging físicos una vez; snapshots virtuales no dropean.
+
+### Lista de espera ordenada después de dev.14
+
+**P0 — renderer/preview que desbloquea Entity Mode:** reconstrucción de entidad, auto-fit, preview 3D real, equipment overlay.
+
+**P1 — world projection:** Entity/Humanoid BER path, nameplate, poses, Ghost Effect 3D, animation/clearance.
+
+**P2 — contenido de proyección:** multi-source, Banner, Prism y geometrías posteriores sobre la infraestructura ya estabilizada.
+
+**Fuera del alcance base:** backpacks/accessories/artifacts/trinkets; sólo adapters opcionales cuando el renderer base esté cerrado. Entity Catalog/Scan Binder permanece idea de futuro lejano.
+
+
+## dev.17 — projection-local 3D presentation buffer
+
+### Implemented
+
+- `ProjectionRenderBuffers` wraps only the current Mirage render call.
+- Tint RGB multiplies Item/Entity/Humanoid vertex colour.
+- Ghost Effect multiplies vertex alpha and remaps common opaque/cutout textured entity layers to translucent equivalents.
+- Unknown/special RenderTypes fail closed to their original shader/state rather than being forced through an incompatible format.
+- Entity Workspace preview uses the same local presentation path while retaining vanilla inventory-style cursor tracking, auto-fit and scissor.
+- Ordinary Item preview now uses full `ItemDisplayContext.FIXED` 3D geometry.
+- Standalone armor preview/world render remains equipped geometry on the invisible Humanoid rig.
+- Base nameplate follows projection Tint/Ghost.
+
+### QA required
+
+1. `build.bat` on Windows/NeoForge 21.1.244.
+2. Item Mode: stone block, glass, sword/tool, shield, enchanted item at Ghost 0/25/50/90.
+3. Standalone armor: vanilla, dyed leather, trim, glint.
+4. Humanoid scan: body + six projected channels with Tint presets and Ghost range.
+5. Bodyless mannequin: full armor + two hands.
+6. Generic entities: Chicken/Creeper/Blaze/Ender Dragon.
+7. Special layers: charged Creeper, glowing eyes, dragon eyes, enchanted layers.
+8. At least one modded entity with a custom RenderType and one modded armor model.
+9. Two nearby projectors with different Tint/Ghost values: verify no render-state contamination between them.
+10. Reopen both GUIs repeatedly and verify subsequent text/items/world rendering are not tinted.
+
+### Known boundary
+
+Glint/custom shaders with no vertex colour channel may not fade with exactly the same curve as the base translucent model. Do not solve that by reintroducing persistent `RenderSystem.setShaderColor`; if QA exposes residue, add a dedicated glint-aware projection path.
+
+### Next direct work after QA/static cleanup
+
+- Humanoid pose data/presets and a GUI cycle control.
+- Pose/model-aware clearance instead of the current conservative square for Entity.
+- Species-specific visual animation adapters only where vanilla renderer history requires them.
+- Banner/multi-source/Prism after the 3D baseline is stable.

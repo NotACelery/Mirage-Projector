@@ -32,6 +32,11 @@ public final class MirageProjector {
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(ModItems.MIRAGE_PROJECTOR.get());
+            event.accept(ModItems.MIRAGE_DISPLAY.get());
+            event.accept(ModItems.WIDE_MIRAGE_PROJECTOR.get());
+            event.accept(ModItems.TALL_MIRAGE_PROJECTOR.get());
+            event.accept(ModItems.MIRAGE_FIELD_PROJECTOR.get());
+            event.accept(ModItems.MIRAGE_PRISM.get());
         }
     }
 }

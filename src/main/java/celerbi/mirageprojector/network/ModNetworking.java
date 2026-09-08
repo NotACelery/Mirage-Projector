@@ -8,12 +8,47 @@ public final class ModNetworking {
     }
 
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("3");
+        PayloadRegistrar registrar = event.registrar("10");
 
         registrar.playToServer(
                 UpdateProjectorPayload.TYPE,
                 UpdateProjectorPayload.STREAM_CODEC,
                 UpdateProjectorPayload::handle
+        );
+        registrar.playToServer(
+                OpenEntityWorkspacePayload.TYPE,
+                OpenEntityWorkspacePayload.STREAM_CODEC,
+                OpenEntityWorkspacePayload::handle
+        );
+        registrar.playToServer(
+                OpenImageWorkspacePayload.TYPE,
+                OpenImageWorkspacePayload.STREAM_CODEC,
+                OpenImageWorkspacePayload::handle
+        );
+        registrar.playToServer(
+                OpenItemWorkspacePayload.TYPE,
+                OpenItemWorkspacePayload.STREAM_CODEC,
+                OpenItemWorkspacePayload::handle
+        );
+        registrar.playToServer(
+                UpdateImageWorkspacePayload.TYPE,
+                UpdateImageWorkspacePayload.STREAM_CODEC,
+                UpdateImageWorkspacePayload::handle
+        );
+        registrar.playToServer(
+                SetProjectionSourcePayload.TYPE,
+                SetProjectionSourcePayload.STREAM_CODEC,
+                SetProjectionSourcePayload::handle
+        );
+        registrar.playToServer(
+                OpenProjectorWorkspacePayload.TYPE,
+                OpenProjectorWorkspacePayload.STREAM_CODEC,
+                OpenProjectorWorkspacePayload::handle
+        );
+        registrar.playToServer(
+                EntityWorkspaceActionPayload.TYPE,
+                EntityWorkspaceActionPayload.STREAM_CODEC,
+                EntityWorkspaceActionPayload::handle
         );
         registrar.playToServer(
                 UploadAssetChunkPayload.TYPE,
@@ -29,6 +64,16 @@ public final class ModNetworking {
                 DownloadAssetChunkPayload.TYPE,
                 DownloadAssetChunkPayload.STREAM_CODEC,
                 DownloadAssetChunkPayload::handle
+        );
+        registrar.playToClient(
+                AssetUploadAckPayload.TYPE,
+                AssetUploadAckPayload.STREAM_CODEC,
+                AssetUploadAckPayload::handle
+        );
+        registrar.playToClient(
+                OpenDebugHandbookPayload.TYPE,
+                OpenDebugHandbookPayload.STREAM_CODEC,
+                OpenDebugHandbookPayload::handle
         );
     }
 }

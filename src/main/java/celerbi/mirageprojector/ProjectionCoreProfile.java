@@ -9,16 +9,16 @@ import net.minecraft.world.level.block.Blocks;
  * Material profile for the removable Projection Core socket.
  *
  * <p>These numbers are intentionally provisional during the 0.1.0 development line.
- * The point of dev.8 is to establish the data/validation architecture so later chassis
- * can reuse the same core without duplicating BlockEntity/Menu types.</p>
+ * The data/validation architecture is shared by every chassis. dev.19 raises the provisional
+ * power curve without allowing a Core to bypass the physical geometry limits of its chassis.</p>
  */
 public enum ProjectionCoreProfile {
     NONE("None", 0, 0, 0, 0, 0),
-    GLASS("Glass", 8, 10, 16, 1, 1),
-    QUARTZ("Quartz", 16, 16, 32, 2, 1),
-    AMETHYST("Amethyst", 48, 48, 64, 8, 2),
-    DIAMOND("Diamond", 96, 80, 96, 16, 4),
-    NETHERITE("Netherite", 192, 160, 160, 32, 8);
+    GLASS("Glass", 16, 16, 32, 2, 1),
+    QUARTZ("Quartz", 32, 32, 64, 4, 1),
+    AMETHYST("Amethyst", 96, 80, 96, 12, 4),
+    DIAMOND("Diamond", 192, 128, 128, 24, 8),
+    NETHERITE("Netherite", 384, 160, 160, 32, 16);
 
     private final String displayName;
     private final int power;
@@ -48,7 +48,9 @@ public enum ProjectionCoreProfile {
     }
 
     public Component displayComponent() {
-        return Component.literal(displayName + " Core");
+        return this == NONE
+                ? Component.translatable("gui.mirage_projector.core.none")
+                : Component.translatable("gui.mirage_projector.core.named", Component.translatable("gui.mirage_projector.core." + name().toLowerCase()));
     }
 
     public int power() {

@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "mirage_projector:block/mirage_display"
+    }
+  }
+}

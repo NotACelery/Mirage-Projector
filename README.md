@@ -1,5 +1,8 @@
 # Mirage Projector
 
+> **Development baseline: `0.1.0-dev.22`.** Mirage Prism remains a functional four-face static-image chassis and Humanoid Entity Mode now has eight persistent pose presets with pose-aware preview fitting, conservative clearance and render bounds. dev.20 Entity Scan priority/Capture Equipped Loadout and dev.21 Prism remain cumulative. Windows NeoForge build/in-game QA remain pending.
+
+
 > Documento maestro de diseño y alcance para **Mirage Projector**, un mod de decoración y exhibición para Minecraft 1.21.1 / NeoForge.
 
 ## 1. Visión general
@@ -88,7 +91,7 @@ Un núcleo muy potente no convierte un projector compacto en un projector gigant
 
 ### Estado actual
 
-La línea de desarrollo ya superó el prototipo visual mínimo y en `0.1.0-dev.8` posee cinco pilares funcionales: **Image Mode**, **Item Mode**, transporte de assets cliente/servidor, clearance y la primera arquitectura real de **Projection Core / Power**.
+La línea de desarrollo ya superó el prototipo visual mínimo y en `0.1.0-dev.22` posee los pilares funcionales previos, la primera base real de Entity Scan y el primer chassis multi-face funcional: **Image Mode**, **Item Mode**, transporte de assets cliente/servidor, clearance/preview, **Projection Core / Power**, una primera capa completa de presentación visual para imágenes y una **familia inicial de chassis físicos**.
 
 Estado acumulado actual:
 
@@ -99,15 +102,73 @@ Estado acumulado actual:
 5. Rotación, dirección, offset, float temporal/rotation-synced, amplitud y Projection Lift.
 6. Escala de debug hasta 10 bloques para stress-test del renderer.
 7. Selector nativo de archivos mediante LWJGL/TinyFileDialogs.
-8. Creative tab propio y modelo físico compacto con obsidiana, vidrio y núcleo visual de diamante.
+8. Creative tab propio y modelo físico compacto con obsidiana/vidrio; el pilar central se renderiza dinámicamente según el Projection Core instalado.
 9. Corrección de frustum/culling de proyecciones grandes durante la etapa debug.
 10. Aislamiento real de caras: sólo se dibuja la cara físicamente visible del plano.
 11. **Multiplayer asset transport dev.7**: la imagen normalizada se divide en chunks, se sube al servidor, se valida por SHA-256 y se guarda dentro del mundo; otros clientes la solicitan automáticamente si no está en su cache.
-12. **Item Mode dev.7**: slot dedicado, ItemStack real persistente, render 3D con ItemRenderer vanilla, glint/modelos modded y devolución del item al romper el projector.
-13. **Clearance warning dev.7**: la GUI escanea un envelope conservador de la proyección y avisa cuántos bloques intersectan el volumen previsto.
+12. **Item Mode dev.7→dev.12**: renderer 3D con ItemRenderer vanilla; desde dev.12 el antiguo slot físico se reemplaza por un **Virtual Snapshot Slot** que copia el estado visual del ItemStack sin consumir, almacenar ni devolver el objeto real.
+13. **Clearance dev.7→dev.9**: la GUI escanea el volumen de proyección; dev.9 añade overlay in-world, outline de obstructores y un envelope delgado orientado para Planes estáticas.
 14. Botones para limpiar Front/Back sin tener que reemplazar el asset.
+15. **Core / Power dev.8**: Glass, Quartz, Amethyst, Diamond y Netherite como núcleos físicos intercambiables, con presupuesto de potencia, límites de Scale/Lift/Float y core visual dinámico.
+16. **Image completeness dev.9→dev.10**: WebP local mediante decoder embebido, preview dentro de la GUI, Fullbright/World Light, Ghost Effect/Transparency, Tint y Scanlines.
+17. **Clearance preview dev.9**: envelope del Mirage y bloques obstructores dibujados directamente en el mundo mientras la GUI está abierta.
+18. **Transfer feedback dev.9**: progreso de download, porcentaje de envío de upload, ACK final del servidor, estados locales de fallo y reintento manual desde la GUI.
+19. **Physical chassis dev.10→dev.21**: Compact, Display, Wide, Tall y Field comparten BlockEntity/GUI/renderer/Core/Power; dev.21 añade Mirage Prism como bloque físico funcional. Effigy y Colossal siguen como contratos futuros.
+20. **Render-family contract + source thumbnails dev.11**: Image/Banner queda definido como geometría de caras 2D, Item como objeto 3D único y Armor/Effigy como rig 3D posable; Front/Back ahora muestran miniaturas simultáneas con semántica real Mirrored/Readable/Independent.
+21. **Virtual display snapshots dev.12**: Item Mode deja de ser inventario físico. Cada captura recibe un UUID de snapshot, conserva una copia serializada de un solo ItemStack para render y permite que el objeto real siga equipado/en inventario. El mismo contrato queda fijado para los seis canales de Humanoid Entity Mode.
+22. **Entity Workspace dev.14**: Empty Scan Template, Shift + clic derecho, snapshot de entidad/equipment, seis canales Humanoid Incoming/Projected, Horse Saddle/Body, resolución de conflicto por ✓ y clear por click derecho.
+23. **Live Entity Preview dev.15**: reconstrucción client-only de la entidad escaneada, equipment tomado sólo desde Projected/Active, auto-fit por bounds, scissor vanilla, seguimiento del cursor y panel derecho responsive.
+24. **Entity/Humanoid Render dev.16**: world renderer volumétrico, nameplate de base, maniquí humanoide sin body, Player skin congelada y armor standalone de Item Mode renderizada como geometría equipada.
+25. **3D Ghost/Tint dev.17**: Item/Entity/Humanoid usan un buffer local de proyección que multiplica Tint/alpha por vértice y rerutea las capas opacas/cutout comunes a RenderTypes translúcidos sin tocar shader color global; la preview de Entity comparte el mismo efecto y la preview de Item pasa a modelo FIXED 3D.
+26. **NeoForge equipment API repair dev.18**: corrige el primer build Windows de la línea Entity/Humanoid, centraliza resolución de equipment y separa correctamente Saddle (inventario de caballo) de `EquipmentSlot.BODY`/slots humanoides.
+27. **GUI architecture dev.19**: la pantalla primaria queda limitada a presentación global + Core/Power; Image e Item reciben workspaces dedicados, Entity/Humanoid mantiene su workspace dinámico, se añade el manual temporal traducible y se aumenta la curva provisional de potencia de Cores.
+28. **Entity interaction/loadout dev.20**: Entity Scan toma prioridad en la interacción temprana para no perder el gesto ante Horse/Villager/etc.; Humanoid añade Capture Equipped Loadout no consumible hacia Incoming.
+29. **Mirage Prism dev.21**: bloque/chassis Prism funcional para Image Mode con cuatro fuentes persistentes North/East/South/West, previews/import independientes, Same Source on All Faces, renderer de cuatro quads abiertos y Power/Clearance/bounds conscientes de la geometría Prism.
+30. **Humanoid poses dev.22**: ocho presets persistentes separados de los snapshots, botón de ciclo en Entity Workspace, aplicación al rig vanilla después de `setupAnim` y primera pasada de preview/clearance/render bounds conscientes de la pose.
 
-La build sigue siendo de desarrollo: Core/Power ya tiene una primera implementación, pero todavía faltan WebP, Prism, Banner, Effigy, chassis mayores y optimizaciones finales de red/render.
+### 3.1A. Arquitectura de GUI desde dev.19
+
+La GUI principal usa bandas visuales independientes; **Appearance y Core no pueden volver a compartir coordenadas**. El Core tiene slot físico, visual de material, potencia/limitaciones y tooltip de tiers; el inventario queda debajo. Las previews pertenecen exclusivamente al workspace de su fuente.
+
+La captura/importación de contenido ya no comparte panel con los controles globales. La regla permanente es:
+
+> **La GUI principal define cómo se presenta la proyección; cada Workspace define qué se proyecta.**
+
+- **Projection Settings**: Scale, Lift, Rotation, Floating, Lighting, Ghost, Tint, Core, Power, Clearance e inventario.
+- **Image Workspace**: previews/import de caras, Back mode, Vertical Flip y Scanlines.
+- **Item Snapshot Workspace**: slot virtual + preview 3D + activación del snapshot.
+- **Entity/Humanoid Workspace**: sigue siendo dinámico según la card: Humanoid, Horse o Generic.
+
+La pantalla principal ya no contiene previews diminutas ni botones de importación. Esto evita solapamientos y deja espacio real a cada fuente. El contrato detallado vive en `docs/GUI-ARCHITECTURE-dev19.md`.
+
+El **Mirage Debug Handbook** temporal usa componentes traducibles y sirve como manual in-game mientras la documentación/jugabilidad todavía cambia rápido.
+
+La curva provisional de Core sube en dev.19 a 16/32/96/192/384 PU (Glass→Netherite), manteniendo límites físicos independientes por chassis.
+
+### 3.2. Dependencias embebidas y notices
+
+La dependencia usada para WebP se documenta en `THIRD_PARTY_NOTICES.md`. El mod no requiere que el jugador instale ese decoder por separado.
+
+### 3.3. Semántica exacta de sincronización dev.9
+
+El porcentaje de upload mostrado por el cliente significa **chunks despachados hacia el servidor**, no chunks ya persistidos. Al llegar a 100% el estado pasa a `awaiting server`. La transferencia sólo se considera completada después de recibir `AssetUploadAckPayload(accepted=true)`. Si el servidor rechaza el asset, o falla la cache/hash/I/O local, el estado queda visible y el botón `↻` permite reintentar Front y Back sin reimportar la imagen.
+
+El download calcula su porcentaje a partir de chunks realmente recibidos. Al completar, el cliente vuelve a verificar SHA-256 antes de hacer el reemplazo atómico del PNG cacheado y de invalidar la DynamicTexture anterior.
+
+La build sigue siendo de desarrollo. Desde dev.12 el Item source usa snapshots virtuales no robables; dev.13 agregó la base de Entity Scan y dev.14 agrega el **Empty Scan Template** y el primer Entity Workspace funcional; dev.15 añade reconstrucción y **preview 3D real client-only**, auto-fit/clipping y composición sólo desde Projected/Active. dev.16 ya incorpora el primer **world Entity/Humanoid renderer**, nameplate de base, maniquí bodyless, skin congelada de Player y geometría equipada para armor standalone. dev.17 conecta **Ghost Effect/Tint al pipeline 3D** mediante buffers locales y lleva la preview de Item a geometría FIXED 3D. El primer build Windows de dev.17 alcanzó `:compileJava` y expuso 13 incompatibilidades de API de equipment; dev.18 corrige ese bloque, incluyendo la distinción real entre Saddle y `EquipmentSlot.BODY`. Los presets de pose Humanoid ya están implementados en dev.22; siguen pendientes la validación fina de glint/custom RenderTypes, QA de equipment modded y bounds exactos por especie/renderer antes de cerrar Entity Mode.
+
+## 3.1. Política permanente de URLs y descripciones
+
+Las descripciones públicas del mod deben permanecer válidas aunque el repositorio cambie de cuenta, organización o nombre. Por ello:
+
+- **No hardcodear URLs de GitHub/repository en la descripción del mod** (`neoforge.mods.toml`, descripción de CurseForge, descripción de Modrinth u otros textos equivalentes).
+- No usar una URL de repositorio como parte de la explicación funcional o del marketing del mod.
+- Si una plataforma tiene campos de links externos, esos links se mantienen como metadata independiente de la descripción y se pueden actualizar sin reescribirla.
+- La documentación de desarrollo puede referirse al "repositorio canónico" o al repositorio que contiene este README sin depender de una URL absoluta.
+- Los scripts de toolchain sí pueden contener URLs técnicas estables necesarias para funcionar (por ejemplo la distribución oficial de Gradle); esta regla apunta a **descripciones/repository links del mod**, no a dependencias técnicas.
+- Cuando se detecte una descripción antigua con una URL de repositorio obsoleta en otro mod del mismo autor, debe eliminarse/corregirse en su siguiente pasada de metadata. Easy Farmer's Delight queda explícitamente identificado como uno de esos casos pendientes.
+
+Esta política es deliberadamente transversal a los proyectos del autor, no exclusiva de Mirage Projector.
 
 ---
 
@@ -337,7 +398,20 @@ Aunque Diamond tenga energía sobrante, no puede superar el envelope físico del
 
 # 7. Familias de Projectors previstas
 
-Los nombres y medidas exactas pueden cambiar durante desarrollo.
+Los nombres y medidas exactas pueden cambiar durante desarrollo. Desde dev.9 `ProjectionChassisProfile` actúa como contrato central para que el cálculo de Power/limits no vuelva a hardcodear Compact. Desde **dev.10 Compact, Display, Wide, Tall y Field son bloques registrados** que comparten la misma arquitectura; **dev.21 convierte Prism en bloque/chassis funcional para imágenes estáticas de cuatro caras**. Effigy/Colossal siguen siendo contratos hasta sus oleadas dedicadas.
+
+| Chassis profile dev.10 | Envelope W×H | Lift máx. | Float máx. | Sources físicas | Geometry |
+|---|---:|---:|---:|---:|---|
+| Compact | 10×10 px | 32 px | 4 px | 1 | Plane |
+| Display | 16×16 px | 48 px | 6 px | 1 | Plane |
+| Wide | 80×32 px | 64 px | 8 px | 4 | Plane |
+| Tall | 32×80 px | 96 px | 12 px | 4 | Plane |
+| Field | 80×80 px | 96 px | 16 px | 9 | Plane |
+| Prism | 48×48 px | 96 px | 12 px | 4 | Prism |
+| Effigy | 96×160 px | 128 px | 16 px | 8 | Effigy |
+| Colossal | 160×160 px | 160 px | 32 px | 16 | Volumetric |
+
+Estos valores **no son todavía balance final**. Sirven para separar arquitectura de geometría desde ahora y pueden ajustarse cuando existan los modelos/crafts. El Debug Chassis Override de Creative sólo salta los límites del chassis; nunca salta el Core ni el Power Budget.
 
 ## 7.1. Compact Mirage Projector
 
@@ -359,9 +433,9 @@ Core previsto de entrada:
 
 - Glass o núcleo equivalente de baja potencia.
 
-## 7.2. Mirage Display
+## 7.2. Mirage Display — bloque funcional desde dev.10
 
-Projector general de aproximadamente 1 × 1.
+Projector general de aproximadamente 1 × 1. El modelo actual es un prototipo funcional propio con base de obsidiana, óptica de vidrio y Core dinámico; el arte final puede cambiar.
 
 Objetivo:
 
@@ -371,12 +445,12 @@ Objetivo:
 - Mayor margen vertical.
 - Mayor libertad de posicionamiento.
 
-## 7.3. Wide Mirage Projector
+## 7.3. Wide Mirage Projector — bloque funcional desde dev.10
 
-Envelope orientativo:
+Envelope implementado para Plane/Image Mode:
 
-- hasta aproximadamente 5 bloques de ancho;
-- aproximadamente 2 bloques de alto.
+- hasta **80 px / 5 bloques de ancho**;
+- hasta **32 px / 2 bloques de alto**.
 
 Pero el usuario no elige arbitrariamente 5 × 2 deformando la imagen.
 
@@ -386,7 +460,7 @@ Ejemplo:
 
 - envelope 5 × 2;
 - imagen 16:9;
-- si el ancho seleccionado excede lo que permite la altura, el ancho efectivo se limita automáticamente.
+- si el Scale elegido produce más de 32 px de alto, la configuración queda marcada inválida hasta bajar Scale o activar Debug Chassis en Creative. Una futura pasada puede convertir ese límite en un máximo dinámico del slider sin destruir el valor guardado.
 
 Uso:
 
@@ -396,11 +470,12 @@ Uso:
 - panoramas;
 - varias imágenes en fila.
 
-## 7.4. Tall Mirage Projector
+## 7.4. Tall Mirage Projector — bloque funcional desde dev.10
 
-Envelope orientativo:
+Envelope implementado:
 
-- aproximadamente 2 × 5.
+- **32 px / 2 bloques de ancho**;
+- **80 px / 5 bloques de alto**.
 
 Uso:
 
@@ -410,11 +485,11 @@ Uso:
 - estatuas planas;
 - decoraciones altas.
 
-## 7.5. Mirage Field Projector
+## 7.5. Mirage Field Projector — bloque funcional desde dev.10
 
-Envelope orientativo:
+Envelope inicial implementado:
 
-- aproximadamente 3 × 3 o 5 × 5 según versión.
+- **80×80 px / hasta 5×5 bloques** para Plane/Image Mode.
 
 Uso:
 
@@ -1186,43 +1261,165 @@ Objetivo final: ambos.
 
 # 21. Item Mode
 
-El projector tendrá un slot dedicado.
+Item Mode is a **3D source family**, not a textured Plane.
 
-Concepto:
+The projector has a dedicated **Virtual Snapshot Slot**:
 
 ```text
-[ Item Slot ] [✓ Project Item]
+[ Virtual Snapshot Slot ]  <- click / shift-click a real item here
+             |
+             +--> serialized one-count render snapshot + snapshot UUID
+
+real item -> stays in the player's inventory/equipment
 ```
 
-Debe aceptar un `ItemStack`.
+The slot does **not** accept ownership of the real item. It captures a one-count copy of the ItemStack state for rendering, assigns that capture its own projection UUID, and leaves the source stack untouched. The world renderer must draw the **complete object floating in space** from that non-obtainable snapshot.
 
-Render:
+There is no universal UUID attached to every Minecraft ItemStack, so Mirage Projector must not pretend the source item already has one. The stable identifier is a **Mirage snapshot UUID generated at capture time**. Re-capturing the same physical object intentionally creates a new snapshot identity.
 
-- usar el renderer normal de Minecraft;
-- conservar componentes;
+## 21.1. Core rendering contract
+
+For ordinary items the current baseline uses the normal Minecraft/NeoForge item renderer. The intent is to preserve:
+
+- the complete item model rather than a cropped inventory icon;
 - enchantment glint;
-- custom model;
-- damage state;
-- trim si aplica a un render equipable específico;
-- modelos proporcionados por otros mods cuando usen APIs vanilla/NeoForge compatibles.
+- custom model data/components;
+- damage-state model changes;
+- vanilla and modded block models;
+- ordinary custom item models supplied through the normal item rendering pipeline.
 
-Ejemplos:
+Examples:
 
-- espada encantada;
-- herramienta;
-- bloque;
-- comida;
-- cabeza;
-- reliquia;
-- Create wrench;
-- objeto modded.
+- a stone block must appear as a full 3D cube, not as a 2D inventory square;
+- a sword, pickaxe, wrench or gun-like item must appear as its complete model;
+- a modded BlockItem should use its normal 3D baked block/item model when available;
+- a shield/trident/tool should rotate as the object itself, not as an image pasted onto a plane.
 
-El item debe poder:
+The current dev renderer uses `ItemRenderer.renderStatic` with `ItemDisplayContext.FIXED`. That is the baseline for generic Item Mode and is already enough for ordinary blocks/items whose standard baked model is the desired display.
 
-- rotar;
-- flotar;
-- cambiar escala;
-- elevarse.
+## 21.1.1. Snapshot ownership and immutability contract
+
+An Item snapshot is **render data, not an inventory**. This rule is permanent.
+
+Capture behavior:
+
+1. the player clicks or shift-clicks a source ItemStack into the virtual slot;
+2. Mirage copies exactly one unit of that stack, including the serialized ItemStack component state needed to reproduce its appearance;
+3. Mirage generates a new snapshot UUID;
+4. the source stack is not shrunk, moved, locked or stored by the projector;
+5. the copied stack cannot be extracted, cloned through the slot, dropped by the projector, piped out or used for crafting;
+6. clearing/replacing the snapshot destroys only the virtual reference.
+
+This means a player can capture a fully enchanted/trimmed Netherite item, immediately equip/use the original again, and the projector keeps showing the captured appearance. If the real object is later repaired, renamed, re-trimmed or otherwise changed, the old projection does **not** update automatically: the player must capture it again to create a new snapshot.
+
+The snapshot should preserve every ItemStack component that survives normal ItemStack serialization. Vanilla enchantments, trim data, dye, custom name, damage state and custom model data therefore travel with the copy. A mod whose renderer depends on external runtime state that is not serializable inside the ItemStack may require a compatibility fallback.
+
+Security consequence: opening another player's projector no longer exposes a physical sword/armor/tool to theft, because no such item exists inside the projector. Access control is a separate future concern: another player may still be able to **replace the visual snapshot** unless ownership/permissions are added, but they cannot take the original equipment from it.
+
+### dev.11 migration
+
+dev.11 and older development worlds used a real stored ItemStack. dev.12 migrates that old stack into two roles:
+
+- a non-obtainable virtual snapshot used for rendering from then on;
+- a hidden legacy return copy representing the real pre-dev.12 stored item, which is dropped when the projector is broken so test worlds do not silently lose equipment during the transition.
+
+New captures never create this legacy return item.
+
+## 21.2. Item Mode is not image geometry
+
+This distinction is permanent:
+
+### Image source
+
+An image lives on one or more **2D faces**.
+
+When a two-face Plane rotates:
+
+```text
+front image -> edge -> back image -> edge -> front image
+```
+
+When a future four-face Prism rotates:
+
+```text
+North -> East -> South -> West -> North
+```
+
+The faces belong to the rotating projector geometry.
+
+### Item source
+
+An item is a **single 3D object at the projection origin**.
+
+It does not have North/East/South/West image faces and it must not switch to a different sprite every 90 degrees. The entire model rotates continuously around its own projection axis.
+
+This remains true even when Item Mode is hosted by a Prism-capable chassis: the Prism's face count is an Image/Banner geometry concept. A 3D Item source remains one volumetric object unless a future explicit Multi-Item layout is selected.
+
+## 21.3. Standalone armor-piece rule
+
+A piece of equippable armor is a special case.
+
+If a helmet/chestplate/leggings/boots item is placed in ordinary Item Mode, the **final intended presentation is the equipped armor geometry for that one piece**, not the flat inventory/hand representation.
+
+Examples:
+
+- Netherite Helmet -> helmet shell floating in the shape it has when worn;
+- trimmed chestplate -> equipped chest/arm armor geometry with trim;
+- dyed leather leggings -> equipped leggings geometry with dye;
+- modded diving helmet -> its equipped model when the mod exposes a compatible NeoForge equipment/armor renderer.
+
+This is not yet considered complete in dev.12. Generic 3D Item Mode and virtual capture exist; equipped-piece armor rendering needs the same humanoid/equipment pipeline that Effigy Mode will use. Until that pipeline lands, armor items use the generic ItemRenderer fallback.
+
+The implementation target is to reuse NeoForge's armor/equipment hooks instead of rebuilding vanilla armor textures manually, so trims, dyes and compatible modded armor remain correct.
+
+## 21.4. Shared transforms for 3D sources
+
+Item Mode must support the same global presentation controls as image projection where they make physical sense:
+
+- Scale;
+- Projection Lift;
+- Rotation ON/OFF;
+- rotation period;
+- clockwise/counter-clockwise;
+- orientation offset;
+- Floating ON/OFF;
+- float amplitude;
+- Time / Rotation-synced float modes;
+- Fullbright / World Light where the renderer supports it;
+- Tint only where applying tint does not destroy the source renderer's own colors/material logic;
+- **Ghost Effect / Transparency**.
+
+Rotation and floating act on the complete 3D model.
+
+Ghost Effect for generic ItemRenderer content is a required feature, but dev.11 still keeps Item Mode opaque until there is a safe alpha-aware buffer path that preserves glint and modded render layers without contaminating shared render state.
+
+Scanlines are currently an Image-only presentation effect. They are not implicitly applied to 3D items/armor unless a future dedicated volumetric hologram shader makes that visually and technically correct.
+
+## 21.5. Item compatibility fallback
+
+Compatibility order should be:
+
+1. use the normal vanilla/NeoForge render path appropriate to the item;
+2. if the item has a compatible custom model/equipment hook, use it;
+3. for standalone armor, prefer equipped-piece geometry once the equipment renderer exists;
+4. if a mod uses an inaccessible/nonstandard renderer, fall back to its ordinary item model;
+5. never crash the projector because one modded item cannot provide a specialized display.
+
+A fallback should be visible and usable, even if it is less faithful than the equipped model.
+
+---
+
+# 21A. Projection source families — permanent distinction
+
+Mirage Projector must keep three rendering families conceptually separate even if they share Scale/Lift/Rotation/Floating settings:
+
+| Family | Geometry | Multiple faces? | Typical source |
+|---|---|---|---|
+| Image / Banner | 2D face geometry | yes | PNG/JPG/WebP, banner cloth |
+| Item | one 3D object | no face switching | block, tool, weapon, single armor piece |
+| Armor / Effigy | one posed 3D humanoid equipment rig | no face switching | 1-4 armor pieces + two hands |
+
+This prevents future Prism/multi-face work from accidentally treating a 3D sword, block or armor set like a texture card.
 
 ---
 
@@ -1329,71 +1526,209 @@ Esto evita que parezca un bloque sólido.
 
 ---
 
-# 25. Effigy Mode en detalle
+# 25. Effigy / Armor Mode en detalle
+
+Armor Mode (también llamado **Effigy Mode** en los chassis dedicados) no es una variante visual de Item Mode: es un renderer 3D compuesto y posable.
 
 ## 25.1. Slots
 
+El rig objetivo tiene seis slots:
+
 ```text
-Head
-Chest
-Legs
-Feet
-Main Hand
-Off Hand
+        [ Head ]
+
+       [ Chest ]
+
+        [ Legs ]
+
+        [ Feet ]
+
+[ Main Hand ]   [ Off Hand ]
 ```
 
-## 25.2. Compatibilidad
+Reglas:
 
-Objetivo:
+- Head/Chest/Legs/Feet aceptan equipables compatibles con ese slot;
+- Main Hand y Off Hand aceptan cualquier `ItemStack` renderizable;
+- las manos pueden contener dos espadas, dos escudos, espada+escudo, dos bloques, tridente+totem, herramientas modded, etc.;
+- Chest puede aceptar chestplate o alternativas equipables como Elytra cuando el pipeline vanilla/modded lo permita;
+- no se requiere llenar los cuatro slots de armadura: 1, 2, 3 o 4 piezas son válidas.
 
-- vanilla armor;
-- armor trims;
-- leather tint;
-- elytra;
-- shields;
-- tridents;
-- hand-held models;
-- armaduras modded;
-- Create diving equipment si usa un pipeline compatible;
-- otros equipables.
+## 25.2. Qué se renderiza
 
-Si un mod usa un renderer completamente custom que no puede reutilizarse:
+No debe aparecer:
 
-- fallback;
-- advertencia;
-- soporte específico opcional.
+- armor stand de madera;
+- poste;
+- placa de piedra;
+- cuerpo/skin de jugador visible.
 
-## 25.3. Pose
+Debe existir un **rig humanoide invisible** utilizado sólo como estructura de pose y como contexto para los renderers de equipamiento.
 
-No usar un armor stand visible.
+Sobre ese rig se dibujan:
 
-Crear una figura virtual/humanoid render.
+- las piezas de armor/equipment usando su geometría equipada;
+- trims;
+- dyes;
+- enchantment glint;
+- Elytra y equipables especiales compatibles;
+- Main Hand / Off Hand con su contexto de tercera persona correspondiente.
 
-Poses:
+La meta de compatibilidad NeoForge es reutilizar los hooks de armor/equipment del item para que una armadura modded pueda devolver su propio `HumanoidModel` cuando corresponda. Un mod que use un renderer totalmente privado/no reutilizable recibe fallback seguro.
 
-- Standing.
-- Guard.
-- Hero.
-- Combat.
-- Raised Weapon.
-- Custom future.
+## 25.2.1. Armor/Effigy uses six virtual snapshot channels
 
-## 25.4. Escala monumental
+Armor Mode must never become a six-slot chest. Its future GUI slots are virtual capture targets that reuse the same dev.12 snapshot contract as Item Mode.
 
-En chassis adecuados:
+Logical channels:
 
-- 2×;
-- 4×;
-- varios bloques;
-- potencialmente 10 bloques.
+```text
+HEAD       -> snapshot UUID + ItemStack copy
+CHEST      -> snapshot UUID + ItemStack copy
+LEGS       -> snapshot UUID + ItemStack copy
+FEET       -> snapshot UUID + ItemStack copy
+MAIN_HAND  -> snapshot UUID + ItemStack copy
+OFF_HAND   -> snapshot UUID + ItemStack copy
+```
 
-Debe revisarse:
+A player can therefore capture, for example:
 
-- culling;
-- render distance;
-- bounding box;
-- iluminación;
-- impacto FPS.
+- four pieces of fully enchanted/trimmed Netherite armor;
+- a Netherite Hoe in Main Hand;
+- a Netherite Block, shield, second weapon, tool or any other renderable ItemStack in Off Hand;
+
+and then immediately put all six real objects back on the player or into normal storage. The Effigy continues to display the frozen visual state of the snapshots.
+
+Each channel has its own snapshot UUID because each capture can be replaced independently. A future compound Effigy UUID may identify the whole pose/loadout preset, but it must not replace the per-slot identities.
+
+Armor/Effigy should additionally expose **Capture Equipped Loadout**: snapshot Head, Chest, Legs, Feet, Main Hand and Off Hand directly from the player in one operation without unequipping or consuming anything. This is the canonical "flex the gear I am actually wearing" workflow; the same real armor/tools remain immediately usable after capture.
+
+Pose is **not** stored inside the item snapshots. Armor/tool appearance snapshots and rig pose are separate data domains: changing Neutral -> Guard -> Hero changes the virtual mannequin transform without re-capturing any item.
+
+The UI must make these channels visually unmistakable with equipped-style slot icons, item thumbnails and short snapshot IDs. No future armor GUI may require the real equipment to remain inserted after capture.
+
+## 25.3. Standalone armor vs Armor Mode
+
+Hay dos casos distintos:
+
+### Item Mode + una pieza de armadura
+
+Renderizar **sólo esa pieza** con su forma equipada y un anchor neutral del slot correspondiente.
+
+No inventar el resto del cuerpo.
+
+### Armor Mode / Effigy
+
+Renderizar un conjunto coherente de hasta cuatro piezas + dos manos sobre el mismo rig y pose.
+
+Así un casco solo puede ser un objeto decorativo independiente, mientras que casco+peto+pantalones+botas+espada+escudo forman una estatua/figura completa.
+
+## 25.4. Poses
+
+La GUI debe mostrar un botón de pose cuando Armor Mode esté activo.
+
+Comportamiento objetivo:
+
+```text
+Pose: Standing
+[ Change Pose ]
+```
+
+Cada click avanza al siguiente preset y actualiza preview + mundo.
+
+La idea visual toma como referencia las poses configurables del armor stand vanilla/redstone, pero el rig no es un armor stand visible.
+
+Presets iniciales candidatos:
+
+- Standing / Neutral;
+- Guard;
+- Hero;
+- Combat;
+- Raised Main Hand;
+- Raised Off Hand / Shield;
+- Dual Wield;
+- Crossed / Display;
+- custom pose editor futuro.
+
+Cada preset almacena rotaciones independientes para:
+
+- head;
+- body;
+- left arm;
+- right arm;
+- left leg;
+- right leg.
+
+Los items de mano siguen las transformaciones de los brazos/manos; no flotan independientemente del rig salvo que un futuro modo lo pida explícitamente.
+
+## 25.5. Transformaciones globales
+
+Después de construir la pose local, todo el Effigy recibe las transformaciones del Mirage como una unidad:
+
+1. Scale;
+2. Projection Lift;
+3. Float/bobbing;
+4. Rotation/orientation;
+5. Lighting;
+6. Ghost Effect / Transparency.
+
+Por lo tanto, si el Effigy gira, **giran juntos** casco, armor, Elytra, espada, escudo y cualquier otro item equipado.
+
+La rotación nunca debe reinterpretar el Effigy como una secuencia de caras 2D.
+
+## 25.6. Ghost Effect en Armor Mode
+
+Ghost Effect debe afectar al conjunto completo:
+
+- armor base;
+- trim layers;
+- leather dyes;
+- glint;
+- Elytra;
+- hand items;
+- renderers de equipamiento modded compatibles.
+
+Esto exige un pipeline alpha-aware por buffers/vertex consumers; no basta con cambiar un shader global y restaurarlo después, porque múltiples capas pueden dibujarse en batches distintos. La implementación queda bloqueada hasta tener esa ruta común de transparencia para 3D Item/Effigy.
+
+## 25.7. Escala y volumen
+
+Effigy usa una relación 3D propia hardcodeada por el rig humanoide. El usuario controla **Scale uniforme**, no Width/Height independientes.
+
+El chassis limita:
+
+- escala máxima;
+- lift;
+- amplitud de float;
+- volumen barrido al rotar;
+- potencia necesaria.
+
+En chassis adecuados debe ser posible pasar desde una figura cercana al tamaño de un jugador hasta una estatua monumental de varios bloques de altura. El objetivo extremo Colossal sigue siendo aproximadamente una figura de ~10 bloques si Power, chassis y performance lo permiten.
+
+## 25.8. Clearance para Effigy
+
+Clearance no puede usar el AABB plano de Image Mode.
+
+Debe considerar:
+
+- ancho del rig;
+- altura escalada;
+- profundidad real;
+- armas largas;
+- escudos/Elytra;
+- pose seleccionada;
+- volumen barrido por rotación;
+- amplitud de bobbing.
+
+Primera implementación puede ser conservadora; después puede usar bounds por parte/pose para reducir falsos positivos.
+
+## 25.9. Estado de implementación
+
+Dev.12 deja este contrato **documentado y en lista de espera**. El almacenamiento virtual ya está resuelto por Item Mode, pero faltan dos prerequisitos 3D que deben resolverse bien antes de activar Armor Mode:
+
+1. renderer de armor-piece equipado que reutilice correctamente hooks vanilla/NeoForge y modded;
+2. transparencia alpha-safe para ItemRenderer/armor/glint/múltiples render layers.
+
+No se agregan slots de Armor Mode a la GUI hasta que el renderer pueda mostrar lo que el jugador puso ahí; evitamos crear un modo seleccionable que todavía sólo enseñe iconos o fallbacks incorrectos. El contrato de captura/seguridad también se mantiene resumido en `docs/ITEM-ARMOR-SNAPSHOT-CONTRACT.md`.
 
 ---
 
@@ -2113,7 +2448,7 @@ Estas opciones deben quedar claramente marcadas como debug o ser recortadas en r
 
 - Upload real multiplayer de bytes.
 - Descarga de assets.
-- WebP final si el decoder no se integra aún.
+- WebP (pendiente en dev.1; implementado en dev.9 mediante provider ImageIO embebido).
 - Item slot.
 - Core slot.
 - power budget real.
@@ -2168,16 +2503,18 @@ Ventajas:
 
 # 58. WebP
 
-WebP es requisito de alcance final.
+WebP es requisito del alcance base y desde dev.9 forma parte del importador real.
 
-Opciones técnicas:
+Implementación dev.9:
 
-- ImageIO plugin empaquetado Jar-in-Jar.
-- Decoder dedicado.
+- proveedor ImageIO WebP empaquetado **Jar-in-Jar** dentro del mod;
+- el usuario no instala dependencias adicionales;
+- `ImageIO.scanForPlugins()` fuerza el descubrimiento del provider antes del primer decode;
+- el WebP seleccionado se decodifica en cliente y pasa inmediatamente por el mismo pipeline que PNG/JPEG;
+- el resultado se convierte a RGBA/PNG normalizado;
+- sólo ese PNG normalizado participa en SHA-256, cache, upload, server store y download.
 
-Se debe evitar exigir al usuario instalar una librería aparte.
-
-El mod final debe llevar su decoder si NeoForge/Minecraft no lo provee.
+Por lo tanto el servidor y otros clientes no necesitan conocer el formato original ni conservar `.webp`. El archivo de origen sigue siendo privado del cliente importador.
 
 ---
 
@@ -2289,36 +2626,59 @@ Todos pueden descargar el asset necesario para verlo, pero no necesariamente edi
 
 ---
 
-# 65. Hologram color/tint
+# 65. Hologram color/tint / presentation — dev.9→dev.10
 
-Idea futura:
+Image Mode posee una capa de presentación no destructiva. Los bytes normalizados/cacheados **no se modifican** al cambiar estas opciones; se aplican durante render y persisten como settings del projector.
 
-- global tint;
-- alpha;
-- brightness.
+Controles actuales:
 
-No debe destruir los colores originales.
+- `Light: Fullbright / World`;
+- `Ghost effect: 0-90%` (**transparencia**, no opacidad);
+- Tint RGB;
+- presets GUI: White, Cyan, Amethyst, Rose, Amber, Green y Red.
 
-Default:
+Semántica del Ghost Effect:
 
-- `#FFFFFF`;
-- alpha 100%.
+- `0%` = imagen completamente visible / sin efecto fantasma;
+- aumentar el porcentaje aumenta la transparencia;
+- `90%` = proyección extremadamente tenue pero todavía visible;
+- no se permite `100%` para evitar dejar accidentalmente un Mirage totalmente invisible e imposible de diagnosticar visualmente.
+
+Defaults:
+
+- Fullbright: ON;
+- Tint: `#FFFFFF` / Neutral;
+- Ghost effect / Transparency: `0%`.
+
+La implementación conserva internamente el campo legado `OpacityPercent` por compatibilidad de NBT/network con dev.9. La GUI convierte de forma reversible `Transparency = 100 - Opacity`; **el concepto presentado al jugador desde dev.10 es siempre transparencia**.
+
+El preview de GUI aplica ya Tint y Ghost Effect a la DynamicTexture, además de simular Scanlines. `World Light` usa la iluminación que NeoForge entrega al BlockEntityRenderer. Fullbright conserva el comportamiento holográfico luminoso original.
+
+La infraestructura guarda RGB directo y no sólo el índice del preset, de modo que una GUI futura puede ofrecer color completamente libre sin cambiar el formato de datos.
+
+Por ahora el alpha configurable se aplica al Plane/Image renderer. Item Mode conserva el alpha del renderer vanilla hasta implementar una ruta segura que no contamine buffers/render state compartido.
 
 ---
 
 # 66. Scanline / hologram effects
 
-Idea opcional futura, no requisito:
+### Implementado en dev.9
 
-- subtle scanlines;
+- Scanlines ON/OFF para Image Mode.
+- Se renderizan dividiendo el quad en bandas horizontales equivalentes aproximadamente a un pixel de proyección.
+- Bandas alternas reducen multiplicativamente el brillo, sin modificar el PNG original.
+- Máximo interno de 64 bandas por cara para que una proyección gigante no multiplique vértices sin límite.
+- El efecto consume una pequeña cantidad adicional de Projection Power.
+- OFF sigue siendo el default: la imagen normal limpia continúa siendo la presentación base.
+
+### Efectos todavía opcionales/futuros
+
 - flicker;
 - chromatic separation;
 - particles;
-- no forced shader.
+- ruido/glitch muy sutil.
 
-Deben ser toggles.
-
-La imagen normal limpia debe seguir siendo opción.
+No se planea obligar a usar shaders para la presentación básica.
 
 ---
 
@@ -2764,7 +3124,7 @@ Filtros:
 - PNG
 - JPG
 - JPEG
-- WebP final
+- WebP
 - GIF futuro.
 
 La GUI no debe almacenar la ruta.
@@ -2878,15 +3238,14 @@ La numeración original de milestones dejó de coincidir con los `dev.N` reales 
 - client-side hash verification before cache write;
 - retry throttling and stale session cleanup.
 
-### Item Mode — first pass
-- dedicated projector ItemStack slot;
-- normal inventory/hotbar access in GUI;
+### Item Mode — historical dev.7 first pass (superseded by dev.12)
+- dev.7 originally used a dedicated physical projector ItemStack slot;
 - Image/Item source toggle;
-- server-authoritative persisted ItemStack;
 - fullbright vanilla ItemRenderer projection;
 - enchantment glint and ordinary modded item model path preserved;
-- scale/lift/rotation/float shared with Image Mode;
-- stored item drops when the projector is destroyed.
+- scale/lift/rotation/float shared with Image Mode.
+
+> **Superseded:** since dev.12 the projected object is a non-obtainable virtual snapshot. New captures never transfer ownership of the real ItemStack to the projector and therefore never drop a captured item when the projector is destroyed. The one exception is the hidden migration-return stack for a real item that was already physically stored by dev.11 or older.
 
 ### Projection clearance — first pass
 - conservative projection envelope scan;
@@ -2905,31 +3264,120 @@ La numeración original de milestones dejó de coincidir con los `dev.N` reales 
 - Creative-only debug chassis override;
 - non-destructive invalid configuration behavior.
 
-## Siguiente — Image completeness / preview
+## Oleada completada en dev.9 — Image completeness / preview / presentation
 
-- WebP;
-- better in-GUI projection preview;
-- world-space obstruction overlay instead of warning text only;
-- optional fullbright/tint/scanline presentation settings;
-- transfer progress/feedback for large assets.
+Estado actual adicional de clearance: una Plane estática usa un AABB delgado orientado según su offset; una Plane con rotación usa el volumen barrido conservador. El overlay in-world dibuja envelope y hasta 128 bloques obstructores.
 
-## More chassis
 
-- Mirage Display;
-- Wide;
-- Tall;
-- Field;
-- models;
-- recipes;
-- chassis-specific envelopes.
+- WebP local mediante proveedor ImageIO embebido;
+- toda imagen, incluido WebP, sigue normalizándose a PNG antes de hash/cache/red;
+- preview de la fuente dentro de la GUI, conservando aspect ratio; dev.10 aplica Tint + Ghost Effect también al preview; las scanlines se simulan en el mismo panel;
+- preview de Item Mode dentro de la misma zona;
+- world-space projection envelope mientras se edita;
+- outline rojo de bloques que intersectan el envelope;
+- Fullbright / World Light para imágenes;
+- Ghost Effect / Transparency de 0-90% (almacenamiento legacy como `OpacityPercent` para compatibilidad);
+- presets de Tint con soporte RGB persistente en settings;
+- Scanlines opcionales renderizadas como tiras horizontales separadas por huecos transparentes (8-64 segmentos);
+- feedback de download;
+- progreso de envío + ACK final de upload servidor -> cliente, con reintento manual desde la GUI;
+- `ProjectionChassisProfile` centraliza los contratos provisionales de Compact/Display/Wide/Tall/Field/Prism/Effigy/Colossal;
+- settings/networking/NBT extendidos sin destruir configuraciones antiguas.
+
+## Oleada completada en dev.10 — Ghost Effect + first physical chassis family
+
+### Ghost Effect / Transparency
+
+- la GUI deja de exponer el concepto inverso `Opacity`;
+- slider `Ghost effect: 0-90%` donde aumentar el valor hace la proyección más transparente;
+- 0% es totalmente visible y 90% es el máximo fantasma permitido;
+- el renderer sigue usando alpha internamente, pero NBT/network conservan `OpacityPercent` para no romper mundos dev.9;
+- el preview 2D aplica Tint y transparencia reales mediante el render state de 1.21.1 y restaura el shader color inmediatamente después;
+- Item Mode sigue opaco deliberadamente hasta disponer de un alpha path seguro para ItemRenderer.
+
+### Chassis físicos compartidos
+
+Dev.10 registra como contenido jugable/de prueba, además de Compact:
+
+| Chassis | Envelope Plane | Lift | Float | Sources futuras | Estado de modelo dev |
+|---|---:|---:|---:|---:|---|
+| Compact | 10×10 px | 32 px | 4 px | 1 | modelo original |
+| Mirage Display | 16×16 px | 48 px | 6 px | 1 | modelo provisional propio |
+| Wide | 80×32 px (5×2 bloques) | 64 px | 8 px | 4 | modelo horizontal provisional |
+| Tall | 32×80 px (2×5 bloques) | 96 px | 12 px | 4 | modelo vertical provisional |
+| Field | 80×80 px (5×5 bloques) | 96 px | 16 px | 9 | modelo de campo provisional |
+
+Reglas implementadas:
+
+- todos usan el **mismo** `MirageProjectorBlockEntity`, menu, networking, asset store, renderer y Core Socket;
+- el tipo de chassis se deriva del block colocado, no de subclasses por tier;
+- el envelope ahora valida **ancho y alto reales tras preservar aspect ratio**, no sólo la dimensión más grande;
+- Wide puede rechazar una imagen muy alta aunque su Scale nominal quepa; Tall hace lo equivalente con imágenes demasiado anchas;
+- `Debug chassis` sigue saltándose sólo el envelope del cuerpo y nunca los límites/power del Core;
+- cada chassis tiene `physicalTopPixels` y dimensiones/posición propias para el Core visual, por lo que Lift/clearance/render comienzan desde la altura física correcta;
+- los nuevos chassis aparecen en la Creative tab propia y Functional Blocks;
+- Display/Wide/Tall/Field nacen con Core Socket vacío; Compact conserva Glass como default/migración histórica para no romper saves de dev.7;
+- al romper cualquier chassis se devuelven Core e Item almacenado exactamente como en Compact.
+
+Los modelos dev.10 son deliberadamente **provisionales** y distintos entre sí; fijan footprint, emitter height y lenguaje obsidian/glass/core para QA, pero no congelan el arte final. Los crafts continúan sin congelarse hasta aprobar modelos y curva final de Power.
+
+### Pendiente de pulido del Plane, no bloqueante para nuevos chassis
+
+- optimizar el `shouldRenderOffScreen` temporal con culling/LOD real;
+- preview 3D más fiel a rotación/bobbing dentro de GUI si aporta valor;
+- límites/configuración de servidor para admins;
+- QA multiplayer con latencia real y archivos cercanos al máximo de 4 MiB.
+
+## Oleada completada en dev.11 — Render-family contract + per-face thumbnails
+
+Esta pasada congela la semántica de los tres tipos de render para que futuras expansiones no mezclen geometría 2D y 3D:
+
+- Image/Banner = caras 2D que cambian según la orientación física de Plane/Prism;
+- Item = un objeto 3D único que gira como modelo completo;
+- Armor/Effigy = un rig humanoide 3D posable con hasta cuatro piezas y dos manos.
+
+También cambia la GUI de Image Mode:
+
+- Front y Back poseen **miniaturas simultáneas**;
+- Back muestra el resultado efectivo de Mirrored / Readable / Independent;
+- cada miniatura conserva aspect ratio, Tint, Ghost Effect, Vertical Flip y scanlines del preview;
+- hover muestra rol de la cara, resolución y hash corto del asset;
+- si Independent no tiene Back propio, la miniatura deja explícito que Front actúa como fallback;
+- los futuros N/E/S/W de Prism y slots multi-source deben reutilizar el mismo patrón de thumbnail por source.
+
+El filename local nunca se usa como identidad de red. La identidad técnica sigue siendo SHA-256; la miniatura es la identidad visual humana en la GUI, por lo que nombres ambiguos como `3j5hk4h6hj35k34h52h3i53hj4j3.png` dejan de ser un problema de orientación.
+
+### Lista de espera 3D creada en dev.11
+
+Antes de activar Armor Mode deben completarse:
+
+- equipped-piece renderer para una sola pieza en Item Mode;
+- rig invisible de Effigy;
+- 4 armor slots + Main/Off Hand;
+- pose presets y botón `Change Pose`;
+- Ghost/Tint 3D local implementado en dev.17; queda QA/refinamiento de glint y custom/modded RenderTypes;
+- compatibility fallback para equipables modded;
+- bounds/clearance 3D por pose;
+- preview 3D del Effigy.
+
+Mientras eso se desarrolla, generic Item Mode conserva su renderer `FIXED` para bloques/items normales y ArmorItem usa fallback de item model.
+
+## Siguiente — Chassis polish + Banner / Entity bounds
+
+- QA in-game de Display/Wide/Tall/Field/Prism;
+- modelos finales (los chassis actuales siguen siendo prototipos funcionales);
+- crafts una vez congelados modelos/power curve;
+- markers/rangos visuales dinámicos de sliders según Core + chassis;
+- Banner renderer without pole;
+- Humanoid pose presets + clearance conservador: **implementado en dev.22**; bounds exactos por especie/renderer siguen pendientes.
 
 ## Banner + Prism
 
-- banner renderer without pole;
-- Mirage Prism;
-- four independent lateral faces;
-- Prism rotation;
-- banner scale and Projection Lift.
+- Prism static Image N/E/S/W: **implementado en dev.21**;
+- banner renderer without pole: pendiente;
+- Banner como fuente para caras Prism: pendiente;
+- Prism rotation global: reutiliza Rotation existente desde dev.21;
+- banner scale and Projection Lift: pendiente del renderer Banner.
 
 ## Effigy
 
@@ -3534,3 +3982,280 @@ Regla nueva confirmada por arquitectura:
 > **Cambiar a un Core insuficiente apaga la proyección; jamás borra la configuración.**
 
 Compact mantiene `10 px` como envelope normal de Plane. Para stress-test de desarrollo, Creative puede activar `Debug chassis`, que salta sólo el envelope del chassis; el Core sigue mandando. Esto permite seguir probando imágenes de 3, 5, 8 o 10 bloques sin convertir accidentalmente el Compact final en un projector monumental.
+
+# 110. Estado concreto de 0.1.0-dev.13 — Entity Scan foundation + Humanoid Entity GUI contract
+
+`0.1.0-dev.13` freezes the entity-projection architecture before the dedicated renderer/UI is wired into the projector.
+
+## 110.1. Armor Mode is renamed to Humanoid Entity Mode
+
+The old working name **Armor Mode / Effigy Mode** is no longer expressive enough. The mode is formally **Humanoid Entity Mode** because its primary object is a humanoid render rig, not an armor inventory.
+
+It supports the design target of:
+
+- invisible mannequin with equipment only;
+- scanned Player body with or without armor;
+- Zombie/Baby Zombie/Husk/Drowned;
+- Skeleton/Stray/Wither Skeleton;
+- Piglin-family humanoids;
+- later compatible modded humanoids;
+- four armor snapshots + Main Hand + Off Hand;
+- pose changes independent from captured equipment.
+
+## 110.2. Entity Scan Card foundation now exists
+
+Dev.13 adds the first real `Entity Scan Card` item.
+
+The card is non-stackable and scans a single `LivingEntity` by interaction. The scan is frozen and self-contained: the source UUID is metadata/provenance and is not required to render the projection later.
+
+The first data format records:
+
+- independent Mirage scan UUID;
+- source entity UUID;
+- entity type;
+- display name;
+- bounded/sanitized entity visual NBT;
+- classification as Humanoid / Horse / Generic;
+- explicit six-slot humanoid equipment snapshots when applicable;
+- explicit Horse Saddle/BODY snapshots when applicable.
+
+Mounted/composite entities are rejected in this first pass so jockeys/passenger compositions are not accidentally serialized as one entity.
+
+A populated card requires sneak-use to overwrite, preventing accidental rescans.
+
+**Important implementation boundary:** dev.13 creates/scans the card data but the projector-side Entity/Humanoid screen, entity import state and world entity renderer are still the next implementation block.
+
+## 110.3. Humanoid editor layout is frozen
+
+The dedicated Humanoid Entity GUI must use paired incoming/active channels:
+
+```text
+INCOMING / STAGING                  PROJECTED / ACTIVE
+
+Head       [✓]                      Head
+Chest      [✓]                      Chest
+Legs       [✓]                      Legs
+Feet       [✓]                      Feet
+Main Hand  [✓]                      Main Hand
+Off Hand   [✓]                      Off Hand
+```
+
+Both hands exist on **both sides**.
+
+The left side receives either:
+
+- equipment snapshots extracted from a scanned humanoid card; or
+- temporary physical items supplied by the player for snapshot capture.
+
+The right side is always render-only snapshot state.
+
+If a projected slot is already occupied, its matching ✓ action resolves that one conflict explicitly instead of silently overwriting the entire loadout.
+
+Removing a humanoid card does not remove those six rows and does not erase already-projected equipment, because they belong to Humanoid Entity Mode itself, not to card presence.
+
+A `Return inserted gear` action returns physical staging inputs. Card-derived incoming snapshots are virtual and therefore have nothing physical to return.
+
+## 110.4. Horse and Generic Entity layouts are dynamic
+
+Horse scans receive dedicated Saddle and Body Armor incoming/projected rows instead of the six humanoid rows.
+
+Those fields exist only in Horse context and must be cleared when Horse context is replaced by an unrelated Entity context.
+
+Generic Entity scans do not automatically expose editable armor slots. If a modded/non-humanoid mob's visible armor is part of its private model/entity state rather than a supported equipment channel, it remains inside the frozen entity snapshot.
+
+## 110.5. Preview contract
+
+The entity editor places player inventory below the entity controls and reserves a clipped, auto-fitted **live 3D preview panel** to the right of the main GUI.
+
+Preview scale must be derived from the entity/model bounds so a Chicken, Baby Zombie, Horse and Ender Dragon all remain inside the same reasonable viewport.
+
+Humanoids should follow the cursor in the spirit of the vanilla inventory player preview when technically compatible. Non-humanoids may yaw toward the cursor without forcing unsupported head transforms.
+
+The preview always represents the active projected/right-hand state. Incoming equipment must not look applied until accepted.
+
+The same broader preview policy applies to all Mirage modes:
+
+- Image/multi-face: individual face thumbnails plus composed plane/prism preview;
+- Banner: per-face identification plus real 3D banner preview where appropriate;
+- Item: real 3D item/block preview;
+- Humanoid Entity: body + active armor/hands + pose;
+- Entity: complete scanned entity.
+
+The complete normative specification is in `docs/ENTITY-PROJECTION-CONTRACT.md`.
+
+## 110.6. Compatibility boundary
+
+Backpack/back-slot, accessory, artifact, trinket and other external equipment systems are **not baseline scope**.
+
+After Humanoid Entity Mode is complete, optional compatibility adapters may add extra staging/projected rows and renderer contributions without turning those mods into hard dependencies.
+
+A future Entity Catalog / Scan Binder is recorded only as a long-term idea and does not belong to the current implementation queue.
+
+
+# 114. Estado concreto de `0.1.0-dev.14` — Empty Scan Template + Entity Workspace
+
+## 114.1 Empty Scan Template
+
+El medio de escaneo vacío se presenta al jugador como **Empty Scan Template**. Es un item no stackeable con apariencia de papel. Su receta queda fijada como ocho pepitas de hierro rodeando un papel:
+
+```text
+N N N
+N P N
+N N N
+
+N = Iron Nugget
+P = Paper
+```
+
+El escaneo requiere **Shift + clic derecho** sobre una sola entidad viva o Player. Un clic derecho normal no debe secuestrar la interacción propia de Villager, Horse, etc. Repetir Shift + clic derecho sobre otra entidad reemplaza deliberadamente el contenido de la misma plantilla. Jockeys/passengers/vehicles siguen fuera del alcance inicial.
+
+La tarjeta escaneada conserva un `ScanId` propio de Mirage y el UUID original sólo como procedencia. El origen puede morir, descargarse o desconectarse sin invalidar el snapshot.
+
+## 114.2 Política definitiva de nombre bajo la proyección
+
+El nombre no es el nombre genérico del tipo de mob. Mirage guarda un nameplate sólo en dos casos:
+
+- source Player: siempre el nombre del jugador, por ejemplo `Haku`;
+- source no-Player: solamente `CustomName`, si la entidad fue renombrada.
+
+Por tanto:
+
+- Horse sin nombre → sin texto;
+- Horse llamado `Aurelio` → `Aurelio`;
+- Zombie normal → sin texto;
+- Zombie llamado `Steve` → `Steve`;
+- Player `Haku` → `Haku`.
+
+Ese texto se renderizará entre el punto más bajo de la proyección y la base. Dev.14 ya conserva la metadata correcta; el dibujo in-world entra junto al renderer Entity/Humanoid.
+
+## 114.3 Entity Workspace funcional
+
+El projector ya posee un editor dedicado accesible desde el GUI principal. La organización normativa es:
+
+```text
+INCOMING / STAGING         ENTITY SOURCE        PROJECTED / ACTIVE
+
+[Head]      [✓]                               [Head]
+[Chest]     [✓]          [ scanned card ]      [Chest]
+[Legs]      [✓]                               [Legs]
+[Feet]      [✓]                               [Feet]
+[Main Hand] [✓]                               [Main Hand]
+[Off Hand]  [✓]                               [Off Hand]
+
+[Return inserted gear]
+---------------------------------------------------------------
+                      PLAYER INVENTORY
+```
+
+En Humanoid Entity Mode las seis filas pertenecen al modo, no a la presencia de una tarjeta. La entidad base, el incoming equipment y el projected equipment son estados separados.
+
+La izquierda acepta dos orígenes: un item físico puesto temporalmente por el jugador o el snapshot incoming extraído de la entidad escaneada. La derecha nunca es inventario: contiene snapshots render-only.
+
+Cada ✓ afecta sólo a su canal. Si el destino está ocupado por otra pieza, el GUI pide Replace/Cancel para esa fila. Click derecho en una celda derecha borra sólo esa pieza holográfica, permitiendo vestir luego la entidad con otro snapshot.
+
+## 114.4 Horse y Generic
+
+Una Horse scan habilita únicamente `Saddle` y `Body Armor`. Esos overrides son contextuales. Si hay gear físico en staging, Mirage bloquea el retiro normal de la Horse card hasta devolverlo, evitando ocultar o perder items reales.
+
+Una entidad Generic no recibe slots de armadura inventados. Si su supuesto armor es parte de su modelo/variant data, permanece congelado dentro del entity snapshot.
+
+## 114.5 Preview 3D: frontera exacta de dev.14
+
+La nueva pantalla reserva el panel exterior derecho y ya expone allí el entity/nameplate activo, pero **dev.14 todavía no reconstruye/renderiza la entidad 3D dentro de ese panel**. La siguiente implementación debe:
+
+1. reconstruir una entidad client-side sin spawnearla en el mundo;
+2. aplicar el body snapshot;
+3. aplicar únicamente el equipment `Projected / Active`;
+4. derivar escala de width/height/bounds para auto-fit;
+5. clippear el render al viewport;
+6. seguir el cursor cuando el renderer/modelo lo soporte;
+7. reutilizar el mismo pipeline para el world hologram.
+
+No se simula una preview falsa antes de resolver correctamente ese pipeline.
+
+## 114.6 Compatibilidad externa
+
+Backpacks, accesorios, Artifacts/Curios/Trinkets y slots equivalentes permanecen fuera del baseline. Después de cerrar el renderer base se podrán añadir adapters opcionales que aporten canales y layers adicionales sin convertirlos en dependencias obligatorias.
+
+El Entity Catalog / Scan Binder queda registrado únicamente como idea de futuro lejano.
+
+# 115. Estado concreto de `0.1.0-dev.15` — Live Entity Preview
+
+## 115.1 Preview reconstruida, no entidad spawneada
+
+El Entity Workspace ya no usa un placeholder textual. `EntityProjectionPreviewRenderer` crea una entidad **sólo del lado cliente y sólo como objeto de render**, sin agregarla al mundo. Para mobs se reconstruye el `EntityType` y se carga el `EntityData` sanitizado del scan; para Player se usa un `RemotePlayer` con UUID/nombre de origen.
+
+La preview equipa exclusivamente el estado **Projected / Active**. El equipamiento Incoming de la izquierda no aparece sobre el cuerpo hasta que el usuario lo acepta mediante su ✓ correspondiente. Esto mantiene visualmente honesta la resolución de conflictos.
+
+## 115.2 Auto-fit, clipping y cursor
+
+El viewport obtiene `getBbWidth()`/`getBbHeight()` de la entidad reconstruida y deriva una escala ajustada al ancho/alto disponible. El render usa el pipeline vanilla `InventoryScreen.renderEntityInInventoryFollowsMouse`, que limita el dibujo con scissor y restaura las rotaciones temporales del modelo. Chicken, Baby Zombie, Player, Horse y entidades grandes comparten así una sola región de preview sin una tabla rígida de escalas por mob.
+
+El panel prefiere 150 px a la derecha. Si la resolución lógica es más estrecha, el main panel se desplaza y la preview se reduce hasta un mínimo usable en vez de sacar controles fuera de pantalla. Si ni siquiera cabe ese mínimo, el editor principal conserva prioridad.
+
+## 115.3 Card/body vs equipment persistente
+
+La tarjeta central define el **body actual**. Al retirarla, ese body desaparece. En Humanoid Entity Mode los seis canales Incoming/Projected siguen intactos, porque pertenecen al maniquí virtual y no a la card. Esto permite quitar una Zombie/Player card y conservar armor/manos previamente configuradas.
+
+Horse sigue siendo contextual: retirar/reemplazar su card elimina el body Horse y limpia Saddle/Body Armor virtuales. El retiro continúa bloqueado mientras haya staging físico Horse que deba devolverse al inventario.
+
+## 115.4 Nameplate en preview y pendiente in-world
+
+La preview respeta la política congelada: Player siempre muestra su nombre; un mob sólo muestra texto si tenía CustomName. Ese texto aparece en la franja inferior del panel, separado del nombre/tipo técnico de inspección. El **nameplate in-world**, entre base y punto inferior de la proyección, continúa como siguiente tarea junto al renderer Entity/Humanoid del mundo.
+
+## 115.5 Límite conocido de skin de Player
+
+En Minecraft 1.21.1 `RemotePlayer` resuelve su skin mediante el `PlayerInfo` cliente del UUID. Por eso el preview puede resolver correctamente a un Player presente en la sesión, pero una **skin congelada exacta y autocontenida para Player offline** todavía requiere un canal explícito de snapshot/transfer de skin. No se considera cerrado hasta resolver eso sin depender de que el jugador siga conectado.
+
+## 115.6 Próximo bloque
+
+1. SourceMode Entity/Humanoid in-world;
+2. renderer world reutilizando la misma composición body + Projected/Active;
+3. nameplate bajo la proyección;
+4. armor equipada/poses y modelo humanoide sin body;
+5. Ghost Effect 3D alpha-safe;
+6. clearance por entity bounds/pose.
+
+El proyecto mantiene la regla operacional de que **cada oleada entrega snapshot recuperable aunque build/QA esté incompleto**.
+
+
+
+# 116. Estado concreto de `0.1.0-dev.16` — Entity/Humanoid in-world + virtual mannequin
+
+## 116.1 Un Entity snapshot ya es una proyección 3D real
+
+`SourceMode.ENTITY` renderiza el body congelado como un `LivingEntity` client-only. No se agrega al level como entidad jugable, no tiene IA, hitbox interactiva ni ownership de mundo. Scale, Lift, Rotation y Floating afectan al objeto 3D completo; no existen caras N/E/S/W como en Image/Prism.
+
+La misma composición se usa en GUI y mundo: body snapshot opcional + exclusivamente equipment `Projected / Active`. Incoming nunca aparece antes del ✓ correspondiente.
+
+## 116.2 Humanoid sin tarjeta = maniquí virtual invisible
+
+Los seis canales Humanoid pertenecen al modo, no a la card. Si se retira el Player/Zombie/Skeleton body y todavía existe Head/Chest/Legs/Feet/Main/Off proyectado, Mirage crea sólo para render un rig humanoide invisible. El base model no se ve; las layers de armor y manos siguen renderizándose.
+
+Por tanto un conjunto de God Armor + Netherite Hoe + Netherite Block puede permanecer como holograma después de retirar la tarjeta corporal, sin dejar ninguno de esos items reales dentro del projector.
+
+## 116.3 Armor standalone en Item Mode
+
+Un snapshot Item que corresponde a Head/Chest/Legs/Feet pasa por geometría **equipada**: casco como casco tridimensional alrededor de una cabeza invisible, chestplate como chestplate equipado, etc. No se usa la textura plana del inventario como representación del holograma. Herramientas/bloques/items normales continúan como objeto 3D individual completo.
+
+La preview de Item Mode usa la misma regla para armor. El ajuste fino de escala por slot necesita QA in-game antes de considerarlo final.
+
+## 116.4 Player scan autocontenido
+
+Entity Scan data version 3 guarda, cuando existe, la propiedad packed `textures` del GameProfile del Player junto al UUID/nombre de origen. El `RemotePlayer` de Mirage resuelve su skin a partir de esa propiedad congelada. El UUID original sigue siendo provenance, no una dependencia de lookup vivo.
+
+Esto debe permitir que `Haku` siga viéndose como Haku después de desconectarse; servidores/mods de skins con formatos no estándar quedan para compat adapters posteriores.
+
+## 116.5 Nameplate bajo la proyección
+
+El renderer in-world usa únicamente `NameplateText` capturado: Player siempre; mob sólo CustomName. El texto se sitúa en el gap entre el top físico del chassis y el bottom del modelo. No se añade un segundo nametag encima de la cabeza ni un caption genérico `Zombie/Horse`.
+
+## 116.6 Animación sin AI
+
+Los clones visuales no ejecutan `tick()`/`aiStep()`. Mirage alimenta sólo relojes/estado estrictamente visual. Ender Dragon es el primer caso especial: su renderer necesita historial de posiciones además de `tickCount`, así que se inicializa un historial estable y flap clock sin fase, combate, cristal, sonido ni movimiento real.
+
+## 116.7 Frontera restante
+
+Aún no declarar terminado: el **primer** Ghost Effect/Tint 3D ya existe en dev.17 mediante buffers locales, pero falta QA/refinamiento de glint y RenderTypes custom/modded; siguen pendientes pose presets, clearance dependiente de pose/bounds, adapters de animación específicos donde sean necesarios, QA de armor/equipment modded y build real de NeoForge 21.1.244.
+
+La regla operacional continúa siendo absoluta: **cada avance sustancial se preserva primero en snapshot recuperable, aunque build/QA todavía esté pendiente**.

@@ -2,6 +2,7 @@ package celerbi.mirageprojector.server;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.ProjectionAssetRules;
+import celerbi.mirageprojector.network.AssetUploadAckPayload;
 import celerbi.mirageprojector.network.DownloadAssetChunkPayload;
 import celerbi.mirageprojector.network.UploadAssetChunkPayload;
 import net.minecraft.server.MinecraftServer;
@@ -32,6 +33,7 @@ public final class ServerAssetTransfer {
 
         if (ServerAssetStore.exists(server, payload.assetId())) {
             UPLOADS.remove(new UploadKey(player.getUUID(), payload.assetId()));
+            sendUploadAck(player, payload.assetId(), true, "Already stored");
             return;
         }
 
@@ -42,6 +44,7 @@ public final class ServerAssetTransfer {
                     .filter(existing -> existing.playerId().equals(player.getUUID()))
                     .count();
             if (playerSessions >= MAX_ACTIVE_UPLOADS_PER_PLAYER || UPLOADS.size() >= MAX_ACTIVE_UPLOADS_GLOBAL) {
+                sendUploadAck(player, payload.assetId(), false, "Too many active uploads");
                 return;
             }
         }
@@ -50,11 +53,13 @@ public final class ServerAssetTransfer {
 
         if (!session.matches(payload.totalChunks(), payload.totalBytes())) {
             UPLOADS.remove(key);
+            sendUploadAck(player, payload.assetId(), false, "Upload envelope changed during transfer");
             return;
         }
 
         if (!session.accept(payload.chunkIndex(), payload.data())) {
             UPLOADS.remove(key);
+            sendUploadAck(player, payload.assetId(), false, "Conflicting upload chunk");
             return;
         }
 
@@ -66,7 +71,9 @@ public final class ServerAssetTransfer {
         try {
             byte[] bytes = session.assemble();
             ServerAssetStore.store(server, payload.assetId(), bytes);
+            sendUploadAck(player, payload.assetId(), true, "Stored on server");
         } catch (IOException exception) {
+            sendUploadAck(player, payload.assetId(), false, "Server rejected the normalized image");
             MirageProjector.LOGGER.warn("Rejected Mirage asset upload {} from {}", payload.assetId(), player.getGameProfile().getName(), exception);
         }
     }
@@ -93,6 +100,10 @@ public final class ServerAssetTransfer {
                 ));
             }
         });
+    }
+
+    private static void sendUploadAck(ServerPlayer player, String assetId, boolean accepted, String message) {
+        PacketDistributor.sendToPlayer(player, new AssetUploadAckPayload(assetId, accepted, message));
     }
 
     private static boolean validEnvelope(String assetId, int index, int totalChunks, int totalBytes, byte[] data) {

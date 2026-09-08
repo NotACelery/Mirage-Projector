@@ -2,6 +2,7 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.ProjectionAssetRules;
+import celerbi.mirageprojector.network.AssetUploadAckPayload;
 import celerbi.mirageprojector.network.DownloadAssetChunkPayload;
 import celerbi.mirageprojector.network.RequestAssetPayload;
 import celerbi.mirageprojector.network.UploadAssetChunkPayload;
@@ -24,6 +25,7 @@ public final class ClientAssetTransport {
     private static final long SESSION_TIMEOUT_MS = 30_000L;
     private static final Map<String, Long> REQUESTED = new HashMap<>();
     private static final Set<String> UPLOADED_THIS_SESSION = new HashSet<>();
+    private static final Map<String, String> UPLOAD_STATUS = new HashMap<>();
     private static final Map<String, DownloadSession> DOWNLOADS = new HashMap<>();
 
     private ClientAssetTransport() {
@@ -36,6 +38,7 @@ public final class ClientAssetTransport {
 
         Path path = cachePath(assetId);
         if (!Files.isRegularFile(path)) {
+            UPLOAD_STATUS.put(assetId, "Upload failed · local cache file missing");
             MirageProjector.LOGGER.warn("Cannot upload Mirage asset {} because it is missing from the local cache", assetId);
             return;
         }
@@ -43,16 +46,19 @@ public final class ClientAssetTransport {
         try {
             byte[] bytes = Files.readAllBytes(path);
             if (bytes.length <= 0 || bytes.length > ProjectionAssetRules.MAX_NORMALIZED_BYTES) {
+                UPLOAD_STATUS.put(assetId, "Upload failed · invalid normalized size");
                 MirageProjector.LOGGER.warn("Cannot upload Mirage asset {} because its size is invalid", assetId);
                 return;
             }
             if (!ProjectionAssetRules.sha256(bytes).equals(assetId)) {
+                UPLOAD_STATUS.put(assetId, "Upload failed · local SHA-256 mismatch");
                 MirageProjector.LOGGER.warn("Cannot upload Mirage asset {} because its local SHA-256 does not match", assetId);
                 return;
             }
 
             int totalChunks = (bytes.length + ProjectionAssetRules.NETWORK_CHUNK_BYTES - 1)
                     / ProjectionAssetRules.NETWORK_CHUNK_BYTES;
+            UPLOAD_STATUS.put(assetId, "Uploading 0%");
             for (int index = 0; index < totalChunks; index++) {
                 int start = index * ProjectionAssetRules.NETWORK_CHUNK_BYTES;
                 int end = Math.min(bytes.length, start + ProjectionAssetRules.NETWORK_CHUNK_BYTES);
@@ -63,11 +69,48 @@ public final class ClientAssetTransport {
                         bytes.length,
                         Arrays.copyOfRange(bytes, start, end)
                 ));
+                int percent = Math.round((index + 1) * 100.0F / totalChunks);
+                UPLOAD_STATUS.put(assetId, "Upload sent " + percent + "% · awaiting server");
             }
             UPLOADED_THIS_SESSION.add(assetId);
         } catch (IOException exception) {
+            UPLOAD_STATUS.put(assetId, "Upload failed · local I/O error");
             MirageProjector.LOGGER.warn("Could not upload Mirage asset {}", assetId, exception);
         }
+    }
+
+    public static void receiveUploadAck(AssetUploadAckPayload payload) {
+        if (!ProjectionAssetRules.isValidAssetId(payload.assetId())) {
+            return;
+        }
+        if (payload.accepted()) {
+            UPLOADED_THIS_SESSION.add(payload.assetId());
+            UPLOAD_STATUS.put(payload.assetId(), "Upload complete · " + payload.message());
+        } else {
+            UPLOADED_THIS_SESSION.remove(payload.assetId());
+            UPLOAD_STATUS.put(payload.assetId(), "Upload failed · " + payload.message());
+        }
+    }
+
+    public static String statusSummary(String assetId) {
+        if (!ProjectionAssetRules.isValidAssetId(assetId)) {
+            return "";
+        }
+        DownloadSession download = DOWNLOADS.get(assetId);
+        if (download != null && download.chunks.length > 0) {
+            int percent = Math.round(download.receivedCount * 100.0F / download.chunks.length);
+            return "Download " + percent + "%";
+        }
+        return UPLOAD_STATUS.getOrDefault(assetId, "");
+    }
+
+    public static void retryUpload(String assetId) {
+        if (!ProjectionAssetRules.isValidAssetId(assetId)) {
+            return;
+        }
+        UPLOADED_THIS_SESSION.remove(assetId);
+        UPLOAD_STATUS.remove(assetId);
+        uploadIfPresent(assetId);
     }
 
     public static void requestIfMissing(String assetId) {
@@ -134,6 +177,7 @@ public final class ClientAssetTransport {
         REQUESTED.clear();
         DOWNLOADS.clear();
         UPLOADED_THIS_SESSION.clear();
+        UPLOAD_STATUS.clear();
     }
 
     public static Path cachePath(String assetId) {

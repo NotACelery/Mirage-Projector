@@ -8,8 +8,11 @@ version="${mod_version}"
 displayName="${mod_name}"
 authors="NotACelery"
 description='''
-Decorative projection system for floating images and, in future versions, items, banners, equipment and large Mirage displays.
+Decorative Mirage projection system for floating images and items with configurable animation, presentation, removable Projection Cores and multiplayer image synchronization.
 '''
+
+[[mixins]]
+config="${mod_id}.mixins.json"
 
 [[dependencies.${mod_id}]]
 modId="neoforge"

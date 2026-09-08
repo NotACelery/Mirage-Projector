@@ -19,6 +19,7 @@ public final class ImageImporter {
     public static final int MAX_DIMENSION = 2048;
     public static final long MAX_NORMALIZED_BYTES = ProjectionAssetRules.MAX_NORMALIZED_BYTES;
     public static final long MAX_SOURCE_BYTES = 32L * 1024L * 1024L;
+    private static volatile boolean imageIoPluginsScanned;
 
     private ImageImporter() {
     }
@@ -31,9 +32,10 @@ public final class ImageImporter {
             throw new IOException("Source file is larger than 32 MiB.");
         }
 
+        ensureImageIoPlugins();
         BufferedImage decoded = ImageIO.read(source.toFile());
         if (decoded == null || decoded.getWidth() <= 0 || decoded.getHeight() <= 0) {
-            throw new IOException("Unsupported or invalid image. Mirage currently supports PNG/JPG/JPEG.");
+            throw new IOException("Unsupported or invalid image. Mirage supports PNG/JPG/JPEG/WebP.");
         }
 
         BufferedImage normalized = toArgb(decoded);
@@ -63,6 +65,19 @@ public final class ImageImporter {
         }
 
         return new ImportedImage(hash, normalized.getWidth(), normalized.getHeight(), target, png.length);
+    }
+
+    /** Discover embedded ImageIO providers (notably WebP) once per client process. */
+    private static void ensureImageIoPlugins() {
+        if (imageIoPluginsScanned) {
+            return;
+        }
+        synchronized (ImageImporter.class) {
+            if (!imageIoPluginsScanned) {
+                ImageIO.scanForPlugins();
+                imageIoPluginsScanned = true;
+            }
+        }
     }
 
     private static BufferedImage toArgb(BufferedImage source) {

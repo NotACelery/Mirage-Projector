@@ -19,6 +19,7 @@ sourceSets.main.resources {
 }
 
 repositories {
+    mavenCentral()
 }
 
 base {
@@ -71,8 +72,14 @@ configurations {
 }
 
 dependencies {
-    // WebP support will be added after the PNG/JPEG renderer pipeline is validated.
-    // Final design target: org.sejda.imageio:webp-imageio (jar-in-jar).
+    // Client-side WebP decoder. It is embedded into the final mod JAR so users and
+    // modpacks do not need to install a second dependency manually.
+    jarJar(implementation("org.sejda.imageio:webp-imageio:0.1.6")) {
+        version {
+            strictly '[0.1.6,0.2)'
+            prefer '0.1.6'
+        }
+    }
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

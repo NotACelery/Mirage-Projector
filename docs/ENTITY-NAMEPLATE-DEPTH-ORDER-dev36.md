@@ -1,3 +1,5 @@
+> **HISTORICAL QA-FAILED RENDER PASS.** dev.36 is retained for diagnosis/history; its deferred render ordering failed live QA and must not be restored as the current solution. See later render-order docs and `CURRENT-IMPLEMENTATION-AUDIT-dev41.md`.
+
 # dev.36 — Entity base nameplate + block-entity render ordering
 
 ## Problems fixed

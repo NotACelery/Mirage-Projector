@@ -14,10 +14,16 @@ import java.util.Arrays;
  * no local filename is persisted or sent over the network.</p>
  */
 public final class ImageSourceBank {
-    /** Nine slots are retained on disk/wire only to recover dev.33-dev.37 worlds.
-     * Current Wide/Tall MULTI layouts expose slots 0-3; Field no longer uses this bank. */
-    public static final int MAX_SLOTS = 9;
-    private final Asset[] slots = new Asset[MAX_SLOTS];
+    /** Active Wide/Tall MULTI layouts use exactly four slots. */
+    public static final int ACTIVE_MULTI_SLOTS = 4;
+
+    /**
+     * Nine slots remain serialized only for dev.33-dev.37 migration compatibility.
+     * Slots 4-8 are never active gameplay sources in the current chassis contract.
+     */
+    public static final int PERSISTED_COMPAT_SLOTS = 9;
+
+    private final Asset[] slots = new Asset[PERSISTED_COMPAT_SLOTS];
 
     public ImageSourceBank() {
         Arrays.fill(slots, Asset.EMPTY);
@@ -56,7 +62,7 @@ public final class ImageSourceBank {
     }
 
     public int countPresent(int limit) {
-        int safeLimit = Math.max(0, Math.min(limit, MAX_SLOTS));
+        int safeLimit = Math.max(0, Math.min(limit, PERSISTED_COMPAT_SLOTS));
         int count = 0;
         for (int i = 0; i < safeLimit; i++) {
             if (slots[i].present()) count++;
@@ -67,7 +73,7 @@ public final class ImageSourceBank {
     public void copySlotToEmpty(int source, int limit) {
         Asset asset = get(source);
         if (!asset.present()) return;
-        int safeLimit = Math.max(0, Math.min(limit, MAX_SLOTS));
+        int safeLimit = Math.max(0, Math.min(limit, PERSISTED_COMPAT_SLOTS));
         for (int i = 0; i < safeLimit; i++) {
             if (!slots[i].present()) slots[i] = asset;
         }
@@ -75,7 +81,7 @@ public final class ImageSourceBank {
 
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
-        for (int i = 0; i < MAX_SLOTS; i++) {
+        for (int i = 0; i < PERSISTED_COMPAT_SLOTS; i++) {
             Asset asset = slots[i];
             if (!asset.present()) continue;
             CompoundTag entry = new CompoundTag();
@@ -90,7 +96,7 @@ public final class ImageSourceBank {
     public void load(CompoundTag tag) {
         clearAll();
         if (tag == null) return;
-        for (int i = 0; i < MAX_SLOTS; i++) {
+        for (int i = 0; i < PERSISTED_COMPAT_SLOTS; i++) {
             String key = "Slot" + i;
             if (!tag.contains(key)) continue;
             CompoundTag entry = tag.getCompound(key);
@@ -99,7 +105,7 @@ public final class ImageSourceBank {
     }
 
     public void write(RegistryFriendlyByteBuf buffer) {
-        for (int i = 0; i < MAX_SLOTS; i++) {
+        for (int i = 0; i < PERSISTED_COMPAT_SLOTS; i++) {
             Asset asset = slots[i];
             buffer.writeUtf(asset.id(), 128);
             buffer.writeVarInt(asset.width());
@@ -109,7 +115,7 @@ public final class ImageSourceBank {
 
     public static ImageSourceBank read(RegistryFriendlyByteBuf buffer) {
         ImageSourceBank bank = new ImageSourceBank();
-        for (int i = 0; i < MAX_SLOTS; i++) {
+        for (int i = 0; i < PERSISTED_COMPAT_SLOTS; i++) {
             bank.set(i, buffer.readUtf(128), buffer.readVarInt(), buffer.readVarInt());
         }
         return bank;
@@ -124,7 +130,7 @@ public final class ImageSourceBank {
     }
 
     private static boolean validSlot(int slot) {
-        return slot >= 0 && slot < MAX_SLOTS;
+        return slot >= 0 && slot < PERSISTED_COMPAT_SLOTS;
     }
 
     public record Asset(String id, int width, int height) {

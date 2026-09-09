@@ -21,28 +21,19 @@ import net.minecraft.world.level.block.Blocks;
  * The field is deliberately present now so improved cores can be added without another power-model rewrite.</p>
  */
 public enum ProjectionCoreProfile {
-    NONE("None", 0, 0.0F),
-    GLASS("Glass", 32, 1.0F),
-    QUARTZ("Quartz", 48, 1.0F),
-    AMETHYST("Amethyst", 64, 1.0F),
-    DIAMOND("Diamond", 96, 1.0F),
-    NETHERITE("Netherite", 128, 1.0F);
+    NONE(0, 0.0F),
+    GLASS(32, 1.0F),
+    QUARTZ(48, 1.0F),
+    AMETHYST(64, 1.0F),
+    DIAMOND(96, 1.0F),
+    NETHERITE(128, 1.0F);
 
-    /** Design target reserved for the first purpose-built improved-core tier. */
-    public static final float PLANNED_IMPROVED_AMPLIFICATION = 1.50F;
-
-    private final String displayName;
     private final int basePower;
     private final float amplificationMultiplier;
 
-    ProjectionCoreProfile(String displayName, int basePower, float amplificationMultiplier) {
-        this.displayName = displayName;
+    ProjectionCoreProfile(int basePower, float amplificationMultiplier) {
         this.basePower = basePower;
         this.amplificationMultiplier = amplificationMultiplier;
-    }
-
-    public String displayName() {
-        return displayName;
     }
 
     public Component displayComponent() {
@@ -97,11 +88,12 @@ public enum ProjectionCoreProfile {
     }
 
     /**
-     * Full block visual used by the BER for the tiny core column.
-     * The raw socket item is represented by its material block so the core remains
-     * readable from several blocks away.
+     * Temporary dev.40-era BER visual. The raw socket item is represented by its material
+     * block only until the dev.41+ Core Chamber redesign is implemented. Final design renders
+     * the actual installed item inside a small glass chamber; do not build new mechanics around
+     * this block substitution.
      */
-    public ItemStack visualStack() {
+    public ItemStack legacyBlockVisualStack() {
         return switch (this) {
             case GLASS -> new ItemStack(Blocks.GLASS);
             case QUARTZ -> new ItemStack(Blocks.QUARTZ_BLOCK);

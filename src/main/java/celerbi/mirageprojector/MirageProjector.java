@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 @Mod(MirageProjector.MOD_ID)
 public final class MirageProjector {
     public static final String MOD_ID = "mirage_projector";
+    /** Network compatibility token for the current packet/schema family. */
+    public static final String NETWORK_PROTOCOL = "18";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public MirageProjector(IEventBus modEventBus) {

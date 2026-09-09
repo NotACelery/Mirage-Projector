@@ -1,3 +1,44 @@
+# Mirage Projector 0.1.0-dev.41
+
+## Consolidation / documentation authority
+
+- Adds `docs/CORES-AND-UPGRADES-dev41.md` as the authoritative planned progression contract for Cut Obsidian Shards, natural Crying Obsidian conversion, Obsidian Spike, chassis upgrade crafting, Improved Cores, Beacon relay behavior and the deferred 1.1.0 Scan Codex.
+- Adds `docs/DOCUMENTATION-AUTHORITY-dev41.md` so historical dev notes cannot silently override current contracts.
+- Adds `docs/CURRENT-IMPLEMENTATION-AUDIT-dev41.md`, `docs/CODE-QUALITY-AUDIT-dev41.md` and `docs/DEV41-CONSOLIDATION-QA.md`.
+- Rewrites README and DEVELOPMENT as current-state documents instead of embedding full duplicate histories; chronology remains in CHANGELOG and historical focused docs.
+- Records user QA that dev.40 ran in-game and the Piglin dimension-shake correction is confirmed.
+
+## Code/deprecation cleanup
+
+- Removes unused `EFFIGY` and `COLOSSAL` placeholder values from the active `ProjectionChassisProfile`; the enum now represents exactly the six registered gameplay chassis. The six existing ordinals remain unchanged.
+- Splits ImageSourceBank terminology into `ACTIVE_MULTI_SLOTS = 4` and `PERSISTED_COMPAT_SLOTS = 9`, preserving old wire/NBT data while making it explicit that Field does not have nine active sources.
+- Removes the unused `ProjectionChassisProfile#sourceCapacity` field; active source capacity is already expressed by real Wide/Tall layout methods and Prism face rules.
+- Removes the unused raw-English `ProjectionCoreProfile.displayName`; Core UI already uses translated components.
+- Removes the unused `PLANNED_IMPROVED_AMPLIFICATION` code constant; x1.50 remains a design/balance target in docs until Improved Core gameplay is implemented.
+- Renames the temporary Core material-block visual helper to `legacyBlockVisualStack()` and the old per-chassis Core sizing accessors to `legacyCore...`; the agreed universal Core Chamber + real ItemStack renderer supersedes both as final design.
+- Centralizes network protocol `18` as `MirageProjector.NETWORK_PROTOCOL`; payload shape/protocol is otherwise unchanged.
+
+## Newly frozen progression design (not implemented yet)
+
+- `1 Crying Obsidian -> 4 Cut Obsidian Shards` via Stonecutter.
+- `8 shards + Fire Charge` or `8 shards + Magma Cream` may re-form one Crying Obsidian.
+- Shards are planned as small rare loot in Ruined Portals, Mineshaft chest minecarts, smith-related village chests and other reviewed Obsidian/Crying-Obsidian structure pools.
+- Natural Obsidian -> Crying Obsidian conversion uses lava source above, Obsidian target, downward Pointed Dripstone and Cauldron below; two non-obtainable intermediate visual states; full process targets roughly twice vanilla lava-cauldron time; breaking intermediates returns normal Obsidian; optional Jade progress presents both intermediates as Obsidian.
+- Obsidian Spike: 3 shards + 2 String + 1 Stick, half-block-ish cluster, 9 tips, 2.0 damage per successful bush-like hurt event plus movement hindrance.
+- Broad Glass/Glass-Pane chassis layers are deprecated as final art; Cut-Obsidian emitter material replaces them and actual Glass is reserved for the small Core Chamber.
+- Craft progression becomes Mirage Projector -> Mirage Display -> Wide/Tall/Prism/Field, with state-preserving custom upgrade recipes.
+- Base Mirage recipe target: `SSS / SGS / OOO`; Display upgrade: `QSA / SMS / ASQ`; Prism upgrade from Display: `SGS / GDG / SGS`.
+- Five Improved Cores (Glass/Quartz/Amethyst/Diamond/Netherite) remain same-base-PU cores with amplification target around x1.50, double as decorative nested-shell blocks, and gain material-specific Beacon-beam relay effects.
+- Improved Core block art requires three nested dark-purple shells with the middle shell genuinely rotated.
+- Beacon relay begins at block mid-plane (`Y+0.5`), preserves stained-glass color, widens the outgoing beam, combines material effects, caps at four effective cores and approximately 2x vanilla width.
+
+## Status
+
+- dev.41 intentionally changes no Power formula, Image/GIF pipeline, Entity persistence or payload schema.
+- Windows build + regression QA required before build-clean.
+
+---
+
 # Mirage Projector 0.1.0-dev.40
 
 ## Power / Capacity GUI repair

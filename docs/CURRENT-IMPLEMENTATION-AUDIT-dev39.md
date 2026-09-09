@@ -1,3 +1,5 @@
+> **HISTORICAL SNAPSHOT.** This describes dev.39 only. Current source inventory is `CURRENT-IMPLEMENTATION-AUDIT-dev41.md`.
+
 # Current implementation audit — Mirage Projector 0.1.0-dev.39
 
 Status: source-candidate audit. Windows build and in-game QA pending.

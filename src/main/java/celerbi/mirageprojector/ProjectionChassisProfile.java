@@ -1,7 +1,11 @@
 package celerbi.mirageprojector;
 
 /**
- * Physical/efficiency contract for each Mirage Projector body.
+ * Physical/efficiency contract for the six currently implemented Mirage Projector bodies.
+ *
+ * <p>Future chassis must not be added here as placeholder enum values. Add a profile only when
+ * a real registered block/menu/render contract exists; this keeps ordinal-based menu transport
+ * aligned with actual gameplay chassis.</p>
  *
  * <p>Since dev.38 the geometry values are <strong>nominal efficiency targets</strong>,
  * not absolute hard caps. A sufficiently strong Core may overdrive a chassis beyond
@@ -10,15 +14,12 @@ package celerbi.mirageprojector;
  * materially more efficient for large projections.</p>
  */
 public enum ProjectionChassisProfile {
-    COMPACT("Compact", Geometry.PLANE, 10, 10, 32, 4, 1, 1.00F, 5, 3.5F, 2, 3, 2),
-    DISPLAY("Display", Geometry.PLANE, 32, 32, 48, 12, 1, 1.50F, 6, 4.5F, 4, 3, 4),
-    WIDE("Wide", Geometry.PLANE, 80, 32, 64, 12, 4, 2.00F, 6, 4.5F, 4, 3, 4),
-    TALL("Tall", Geometry.PLANE, 32, 80, 96, 16, 4, 2.00F, 8, 5.5F, 4, 5, 4),
-    FIELD("Field", Geometry.PLANE, 128, 128, 144, 24, 1, 4.00F, 7, 5.0F, 4, 4, 4),
-    PRISM("Prism", Geometry.PRISM, 48, 48, 96, 12, 4, 2.00F, 7, 5.0F, 4, 4, 4),
-    // Future chassis values are provisional architecture targets only.
-    EFFIGY("Effigy", Geometry.EFFIGY, 96, 160, 128, 16, 8, 3.00F, 8, 5.5F, 4, 5, 4),
-    COLOSSAL("Colossal", Geometry.VOLUMETRIC, 160, 160, 160, 32, 16, 5.00F, 10, 7.0F, 6, 6, 6);
+    COMPACT("Compact", Geometry.PLANE, 10, 10, 32, 4, 1.00F, 5, 3.5F, 2, 3, 2),
+    DISPLAY("Display", Geometry.PLANE, 32, 32, 48, 12, 1.50F, 6, 4.5F, 4, 3, 4),
+    WIDE("Wide", Geometry.PLANE, 80, 32, 64, 12, 2.00F, 6, 4.5F, 4, 3, 4),
+    TALL("Tall", Geometry.PLANE, 32, 80, 96, 16, 2.00F, 8, 5.5F, 4, 5, 4),
+    FIELD("Field", Geometry.PLANE, 128, 128, 144, 24, 4.00F, 7, 5.0F, 4, 4, 4),
+    PRISM("Prism", Geometry.PRISM, 48, 48, 96, 12, 2.00F, 7, 5.0F, 4, 4, 4);
 
     private final String displayName;
     private final Geometry geometry;
@@ -26,13 +27,13 @@ public enum ProjectionChassisProfile {
     private final int nominalHeightPixels;
     private final int nominalLiftPixels;
     private final int nominalFloatPixels;
-    private final int sourceCapacity;
     private final float powerMultiplier;
     private final int physicalTopPixels;
-    private final float coreCenterYPixels;
-    private final int coreWidthPixels;
-    private final int coreHeightPixels;
-    private final int coreDepthPixels;
+    // Temporary dimensions for the dev.40 material-block Core visual. Remove when Core Chamber lands.
+    private final float legacyCoreCenterYPixels;
+    private final int legacyCoreWidthPixels;
+    private final int legacyCoreHeightPixels;
+    private final int legacyCoreDepthPixels;
 
     ProjectionChassisProfile(
             String displayName,
@@ -41,13 +42,12 @@ public enum ProjectionChassisProfile {
             int nominalHeightPixels,
             int nominalLiftPixels,
             int nominalFloatPixels,
-            int sourceCapacity,
             float powerMultiplier,
             int physicalTopPixels,
-            float coreCenterYPixels,
-            int coreWidthPixels,
-            int coreHeightPixels,
-            int coreDepthPixels
+            float legacyCoreCenterYPixels,
+            int legacyCoreWidthPixels,
+            int legacyCoreHeightPixels,
+            int legacyCoreDepthPixels
     ) {
         this.displayName = displayName;
         this.geometry = geometry;
@@ -55,13 +55,12 @@ public enum ProjectionChassisProfile {
         this.nominalHeightPixels = nominalHeightPixels;
         this.nominalLiftPixels = nominalLiftPixels;
         this.nominalFloatPixels = nominalFloatPixels;
-        this.sourceCapacity = sourceCapacity;
         this.powerMultiplier = powerMultiplier;
         this.physicalTopPixels = physicalTopPixels;
-        this.coreCenterYPixels = coreCenterYPixels;
-        this.coreWidthPixels = coreWidthPixels;
-        this.coreHeightPixels = coreHeightPixels;
-        this.coreDepthPixels = coreDepthPixels;
+        this.legacyCoreCenterYPixels = legacyCoreCenterYPixels;
+        this.legacyCoreWidthPixels = legacyCoreWidthPixels;
+        this.legacyCoreHeightPixels = legacyCoreHeightPixels;
+        this.legacyCoreDepthPixels = legacyCoreDepthPixels;
     }
 
     public String displayName() {
@@ -91,10 +90,6 @@ public enum ProjectionChassisProfile {
 
     public int nominalFloatPixels() {
         return nominalFloatPixels;
-    }
-
-    public int sourceCapacity() {
-        return sourceCapacity;
     }
 
     /** Multiplies Core base PU before projection costs are validated. */
@@ -129,26 +124,24 @@ public enum ProjectionChassisProfile {
         return physicalTopPixels;
     }
 
-    public float coreCenterYPixels() {
-        return coreCenterYPixels;
+    public float legacyCoreCenterYPixels() {
+        return legacyCoreCenterYPixels;
     }
 
-    public int coreWidthPixels() {
-        return coreWidthPixels;
+    public int legacyCoreWidthPixels() {
+        return legacyCoreWidthPixels;
     }
 
-    public int coreHeightPixels() {
-        return coreHeightPixels;
+    public int legacyCoreHeightPixels() {
+        return legacyCoreHeightPixels;
     }
 
-    public int coreDepthPixels() {
-        return coreDepthPixels;
+    public int legacyCoreDepthPixels() {
+        return legacyCoreDepthPixels;
     }
 
     public enum Geometry {
         PLANE,
-        PRISM,
-        EFFIGY,
-        VOLUMETRIC
+        PRISM
     }
 }

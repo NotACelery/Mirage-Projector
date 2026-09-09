@@ -1,3 +1,5 @@
+> **HISTORICAL SNAPSHOT.** This describes dev.38 only. Current source inventory is `CURRENT-IMPLEMENTATION-AUDIT-dev41.md`.
+
 # Current implementation audit — Mirage Projector 0.1.0-dev.38
 
 > **Purpose:** one recovery document describing what the source actually implements after the dev.38 power/chassis rework, what is authoritative, what is historical, and what remains QA/future work. If a historical dev.N document conflicts with this file, the dev.38 authoritative documents win.

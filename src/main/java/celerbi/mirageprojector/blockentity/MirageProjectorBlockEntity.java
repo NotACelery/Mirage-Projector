@@ -219,7 +219,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             // longer consumes every slot. Rendering/Power only inspect the active
             // Wide/Tall 0-3 range; keeping 4-8 prevents dev.33 Field data from
             // being destroyed merely by opening/applying the corrected workspace.
-            for (int i = 0; i < ImageSourceBank.MAX_SLOTS; i++) {
+            for (int i = 0; i < ImageSourceBank.PERSISTED_COMPAT_SLOTS; i++) {
                 imageSourceBank.set(i, bank.get(i));
             }
         }

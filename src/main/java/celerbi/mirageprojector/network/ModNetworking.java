@@ -1,5 +1,6 @@
 package celerbi.mirageprojector.network;
 
+import celerbi.mirageprojector.MirageProjector;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
@@ -8,7 +9,7 @@ public final class ModNetworking {
     }
 
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("18");
+        PayloadRegistrar registrar = event.registrar(MirageProjector.NETWORK_PROTOCOL);
 
         registrar.playToServer(
                 UpdateProjectorPayload.TYPE,

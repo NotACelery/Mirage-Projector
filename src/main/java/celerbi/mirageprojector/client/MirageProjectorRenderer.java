@@ -616,14 +616,14 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
 
         ProjectionChassisProfile chassis = blockEntity.chassisProfile();
         poseStack.pushPose();
-        poseStack.translate(0.5D, chassis.coreCenterYPixels() * PIXEL, 0.5D);
+        poseStack.translate(0.5D, chassis.legacyCoreCenterYPixels() * PIXEL, 0.5D);
         poseStack.scale(
-                chassis.coreWidthPixels() * PIXEL,
-                chassis.coreHeightPixels() * PIXEL,
-                chassis.coreDepthPixels() * PIXEL
+                chassis.legacyCoreWidthPixels() * PIXEL,
+                chassis.legacyCoreHeightPixels() * PIXEL,
+                chassis.legacyCoreDepthPixels() * PIXEL
         );
         Minecraft.getInstance().getItemRenderer().renderStatic(
-                core.visualStack(),
+                core.legacyBlockVisualStack(),
                 ItemDisplayContext.NONE,
                 packedLight,
                 OverlayTexture.NO_OVERLAY,
@@ -738,7 +738,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         ProjectionChassisProfile chassis = blockEntity.chassisProfile();
         int columns = Math.max(1, chassis.imageLayoutColumns());
         int rows = Math.max(1, chassis.imageLayoutRows());
-        int slots = Math.min(chassis.imageLayoutSlots(), ImageSourceBank.MAX_SLOTS);
+        int slots = Math.min(chassis.imageLayoutSlots(), ImageSourceBank.ACTIVE_MULTI_SLOTS);
         ProjectionPower.Dimensions layout = ProjectionPower.dimensions(settings, true, chassis);
         float layoutWidth = Math.max(PIXEL, layout.widthPixels() * PIXEL);
         float layoutHeight = Math.max(PIXEL, layout.heightPixels() * PIXEL);

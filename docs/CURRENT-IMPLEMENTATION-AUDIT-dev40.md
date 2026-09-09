@@ -1,3 +1,5 @@
+> **HISTORICAL SNAPSHOT.** This describes dev.40 only. Current source inventory is `CURRENT-IMPLEMENTATION-AUDIT-dev41.md`. User QA later confirmed the Piglin shaking fix works in-game.
+
 # Current implementation audit — Mirage Projector 0.1.0-dev.40
 
 ## dev.40 delta — Power UI / dimension-neutral entity clones

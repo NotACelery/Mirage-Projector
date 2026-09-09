@@ -24,7 +24,8 @@ import java.util.Optional;
 public final class ProjectionTextureCache {
     private static final Map<String, CachedAsset> REGISTERED = new HashMap<>();
 
-    private ProjectionTextureCache() {}
+    private ProjectionTextureCache() {
+    }
 
     public static Optional<ResourceLocation> get(String imageId) {
         return get(imageId, (System.nanoTime() / 1_000_000L));
@@ -85,7 +86,11 @@ public final class ProjectionTextureCache {
             return loaded;
         } catch (IOException | RuntimeException exception) {
             MirageProjector.LOGGER.warn("Could not load Mirage image {} from local cache", imageId, exception);
-            try { Files.deleteIfExists(file); } catch (IOException ignored) {}
+            try {
+                Files.deleteIfExists(file);
+            } catch (IOException ignored) {
+                // Best-effort cache cleanup. The subsequent server request can still recover the asset.
+            }
             ClientAssetTransport.requestIfMissing(imageId);
             return null;
         }
@@ -93,18 +98,24 @@ public final class ProjectionTextureCache {
 
     private static NativeImage toNative(BufferedImage frame) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        if (!ImageIO.write(frame, "PNG", out)) throw new IOException("No PNG encoder for GIF frame texture");
+        if (!ImageIO.write(frame, "PNG", out)) {
+            throw new IOException("No PNG encoder for GIF frame texture");
+        }
         return NativeImage.read(new ByteArrayInputStream(out.toByteArray()));
     }
 
     public static void clear() {
-        for (CachedAsset asset : REGISTERED.values()) asset.release();
+        for (CachedAsset asset : REGISTERED.values()) {
+            asset.release();
+        }
         REGISTERED.clear();
     }
 
     public static void invalidate(String imageId) {
         CachedAsset asset = REGISTERED.remove(imageId);
-        if (asset != null) asset.release();
+        if (asset != null) {
+            asset.release();
+        }
     }
 
     private interface CachedAsset {
@@ -114,25 +125,54 @@ public final class ProjectionTextureCache {
     }
 
     private record StaticAsset(ResourceLocation location) implements CachedAsset {
-        @Override public ResourceLocation textureAt(long sampleTimeMs) { return location; }
-        @Override public boolean animated() { return false; }
-        @Override public void release() { Minecraft.getInstance().getTextureManager().release(location); }
+        @Override
+        public ResourceLocation textureAt(long sampleTimeMs) {
+            return location;
+        }
+
+        @Override
+        public boolean animated() {
+            return false;
+        }
+
+        @Override
+        public void release() {
+            Minecraft.getInstance().getTextureManager().release(location);
+        }
     }
 
     private record AnimatedAsset(List<ResourceLocation> frames, int[] delays, long loopDurationMs) implements CachedAsset {
-        @Override public ResourceLocation textureAt(long sampleTimeMs) {
-            if (frames.isEmpty() || loopDurationMs <= 0) return frames.getFirst();
+        private AnimatedAsset {
+            if (frames.isEmpty()) {
+                throw new IllegalArgumentException("Animated Mirage asset must contain at least one frame");
+            }
+        }
+
+        @Override
+        public ResourceLocation textureAt(long sampleTimeMs) {
+            if (frames.size() == 1 || loopDurationMs <= 0) {
+                return frames.getFirst();
+            }
             long cursor = Math.floorMod(sampleTimeMs, loopDurationMs);
             long elapsed = 0L;
             for (int i = 0; i < delays.length; i++) {
                 elapsed += delays[i];
-                if (cursor < elapsed) return frames.get(Math.min(i, frames.size() - 1));
+                if (cursor < elapsed) {
+                    return frames.get(Math.min(i, frames.size() - 1));
+                }
             }
             return frames.getLast();
         }
-        @Override public boolean animated() { return true; }
-        @Override public void release() {
-            for (ResourceLocation frame : frames) Minecraft.getInstance().getTextureManager().release(frame);
+        @Override
+        public boolean animated() {
+            return true;
+        }
+
+        @Override
+        public void release() {
+            for (ResourceLocation frame : frames) {
+                Minecraft.getInstance().getTextureManager().release(frame);
+            }
         }
     }
 }

@@ -1,3 +1,5 @@
+> **HISTORICAL.** Entity pose notes may remain relevant, but Power/limit UI described here predates the dev.38 Power rework. Do not use this file as current Power authority. See `POWER-SYSTEM-REWORK-dev38.md` and `DOCUMENTATION-AUTHORITY-dev41.md`.
+
 # dev.29 — Power / limits UX + contextual generic sitting pose
 
 ## Entity workspace

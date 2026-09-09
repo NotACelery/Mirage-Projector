@@ -1,3 +1,5 @@
+> **dev.38 amendment — authoritative lifetime rule.** Removing a Humanoid card by itself still preserves the six virtual channels for the bodyless mannequin. However, when another card kind becomes active and the GUI changes equipment family, every virtual Incoming/Projected snapshot belonging to rows that disappear is cleared immediately. Humanoid -> Horse/Generic clears the six Humanoid channels; Horse -> Humanoid/Generic clears Saddle/Body; Generic keeps no editable equipment workspace. See `ENTITY-WORKSPACE-LIFETIME-dev38.md`.
+
 # Mirage Projector — Entity / Humanoid Entity Projection Contract
 
 Status: **design frozen; dev.17 implements Empty Scan Template + Entity Workspace + client-only 3D preview + in-world Entity/Humanoid renderer, bodyless Humanoid mannequin, frozen Player skin property, projector-base nameplate and projection-local 3D Tint/Ghost handling. Pose presets, pose-aware clearance and final glint/custom-RenderType QA remain pending.**
@@ -113,7 +115,7 @@ The effective profile is selected from:
 2. otherwise the active imported entity snapshot/context;
 3. otherwise the explicitly selected mode.
 
-Humanoid is intentionally different from Horse/Generic: the six humanoid equipment channels are intrinsic to Humanoid Entity Mode and therefore do not disappear merely because the card slot becomes empty.
+Humanoid is intentionally different from Horse/Generic: the six humanoid equipment channels are intrinsic to Humanoid Entity Mode and therefore do not disappear merely because the card slot becomes empty. **This persistence ends when a non-Humanoid card becomes active and the GUI switches away from Humanoid rows; dev.38 clears those now-incompatible virtual snapshots instead of hiding them.**
 
 ---
 
@@ -208,6 +210,16 @@ Humanoid equipment is mode state, not card-presence state.
 This preserves the original equipment-display use case: Humanoid Entity Mode can still behave as an invisible virtual mannequin with no body card inserted.
 
 The base scanned humanoid entity and the six projected equipment channels are separate data domains. Removing the physical Humanoid card clears the card-supplied **body** but leaves Humanoid Incoming/Projected equipment intact, so the workspace becomes a bodyless virtual mannequin instead of losing its configured loadout.
+
+### 5.4 Card-kind transition invalidation (dev.38)
+
+Bodyless Humanoid persistence is not permission to retain equipment behind an unrelated GUI. When a new card becomes active:
+
+- `HUMANOID`: keep Humanoid, clear Horse virtual state;
+- `HORSE`: keep Horse, clear all six Humanoid virtual channels;
+- `GENERIC`: clear Humanoid and Horse virtual channels.
+
+The cleanup applies to both Incoming and Projected snapshots and resets the incompatible workspace pose. It does **not** delete real physical staging items; those remain under the established return/drop safety path. The invariant is simple: **a slot family that disappears from the GUI cannot keep invisible virtual inventory in projector NBT.**
 
 ---
 
@@ -632,11 +644,12 @@ It is **not** part of the current implementation queue and must not delay:
 5. Scanned humanoid equipment enters on the LEFT and never silently overwrites the RIGHT.
 6. Every incoming humanoid channel has its own ✓ Apply action.
 7. Horse-specific channels are dynamic and must not leak into unrelated entity contexts.
-8. Generic/non-editable entity armor stays part of the entity snapshot unless an explicit adapter exists.
-9. Player inventory is below the entity editor.
-10. Preview is clipped and auto-fitted so Dragon/Horse/Chicken scale differences cannot break the GUI.
-11. External backpack/accessory/artifact slot systems are future optional integrations, not baseline scope.
-12. Composite/jockey scans remain unsupported until deliberately implemented.
+8. Changing active card kind clears every virtual equipment family whose GUI rows disappear; invisible snapshots must not survive a context switch.
+9. Generic/non-editable entity armor stays part of the entity snapshot unless an explicit adapter exists.
+10. Player inventory is below the entity editor.
+11. Preview is clipped and auto-fitted so Dragon/Horse/Chicken scale differences cannot break the GUI.
+12. External backpack/accessory/artifact slot systems are future optional integrations, not baseline scope.
+13. Composite/jockey scans remain unsupported until deliberately implemented.
 
 
 ## 21. Empty Scan Template — exact gameplay contract

@@ -1,7 +1,19 @@
 {
   "variants": {
-    "": {
+    "facing=north": {
       "model": "mirage_projector:block/mirage_field_projector"
+    },
+    "facing=east": {
+      "model": "mirage_projector:block/mirage_field_projector",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mirage_projector:block/mirage_field_projector",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mirage_projector:block/mirage_field_projector",
+      "y": 270
     }
   }
 }

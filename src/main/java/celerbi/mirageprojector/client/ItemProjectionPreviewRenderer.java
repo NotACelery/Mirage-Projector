@@ -44,8 +44,6 @@ public final class ItemProjectionPreviewRenderer {
         ProjectionSettings safeSettings = settings == null ? ProjectionSettings.DEFAULT : settings;
         graphics.fill(x, y, x + width, y + height, 0xFF4B4453);
         graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, 0xFF0D1015);
-        graphics.drawString(Minecraft.getInstance().font, "ITEM SNAPSHOT", x + 4, y + 4, 0xFFAFA7BC, false);
-
         if (stack == null || stack.isEmpty()) {
             graphics.drawCenteredString(
                     Minecraft.getInstance().font,
@@ -66,9 +64,9 @@ public final class ItemProjectionPreviewRenderer {
                         equipped,
                         safeSettings,
                         x + 3,
-                        y + 14,
+                        y + 3,
                         width - 6,
-                        height - 17,
+                        height - 6,
                         mouseX,
                         mouseY
                 );
@@ -83,9 +81,9 @@ public final class ItemProjectionPreviewRenderer {
                 stack,
                 safeSettings,
                 x + 3,
-                y + 14,
+                y + 3,
                 width - 6,
-                height - 17,
+                height - 6,
                 mouseX,
                 mouseY
         );

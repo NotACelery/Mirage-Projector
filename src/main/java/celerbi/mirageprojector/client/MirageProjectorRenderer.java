@@ -3,8 +3,10 @@ package celerbi.mirageprojector.client;
 import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
+import celerbi.mirageprojector.ProjectionImageSizing;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
+import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -87,21 +89,33 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         ProjectionCoreProfile core = blockEntity.coreProfile();
         renderCore(blockEntity, core, poseStack, bufferSource, packedLight);
 
+        double gameTime = blockEntity.getLevel() == null ? 0.0D : blockEntity.getLevel().getGameTime() + partialTick;
+        float angle = projectionBaseAngle(blockEntity, settings) + rotationAngle(settings, gameTime);
+        float bob = bobOffset(settings, gameTime);
+        int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
+
+        // Idle identity marker: every current chassis shows the same floating
+        // vanilla book when there is no renderable source configured. This must
+        // not depend on having a Core installed; otherwise only Compact (which
+        // historically starts with Glass) gets the idle book while the other five
+        // chassis appear dead/unfinished.
+        boolean hasProjectedContent = blockEntity.hasProjectedSourceContent();
+        if (!hasProjectedContent) {
+            equippedItemCache.remove(blockEntity);
+            renderBook(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
+            return;
+        }
+
         ProjectionPower.Status power = ProjectionPower.evaluate(
                 settings,
                 core,
                 blockEntity.chassisProfile(),
-                blockEntity.hasProjectedSourceContent(),
+                true,
                 blockEntity.projectedSourceCount()
         );
         if (!power.active()) {
             return;
         }
-
-        double gameTime = blockEntity.getLevel() == null ? 0.0D : blockEntity.getLevel().getGameTime() + partialTick;
-        float angle = rotationAngle(settings, gameTime);
-        float bob = bobOffset(settings, gameTime);
-        int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
 
         if (settings.sourceMode() == ProjectionSettings.SourceMode.BANNER) {
             renderProjectedBanners(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight, gameTime);
@@ -138,7 +152,8 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             return;
         }
 
-        if (blockEntity.chassisProfile().hasMultiSourceImageLayout()) {
+        if (blockEntity.chassisProfile().supportsMultiSourceImageLayout()
+                && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
             if (!blockEntity.imageSourceBank().hasAny(blockEntity.chassisProfile().imageLayoutSlots())) {
                 return;
             }
@@ -474,7 +489,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         double gameTime = blockEntity.getLevel() == null
                 ? 0.0D
                 : blockEntity.getLevel().getGameTime() + partialTick;
-        float angle = rotationAngle(settings, gameTime);
+        float angle = blockFacingAngle(blockEntity) + rotationAngle(settings, gameTime);
         float bob = bobOffset(settings, gameTime);
         int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
 
@@ -707,8 +722,9 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
 
     /**
      * Multi-source Plane layouts are one physical surface divided into virtual cells.
-     * Wide = 4x1, Tall = 1x4, Field = 3x3. Each source preserves its own aspect
-     * ratio inside the cell while global Scale controls the complete layout envelope.
+     * Wide = 4x1 and Tall = 1x4. Field is deliberately a single continuous Plane.
+     * Each source preserves its own aspect ratio inside the cell while global Scale
+     * controls the complete layout envelope.
      */
     private static void renderMultiSourceImageLayout(
             MirageProjectorBlockEntity blockEntity,
@@ -733,7 +749,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         float bottomV = settings.flipVertical() ? 0.0F : 1.0F;
         boolean viewingFront = isCameraOnFrontSide(blockEntity, angle);
         ProjectionSettings.BackFaceMode planeMode = settings.backFaceMode();
-        // Wide/Tall/Field currently have one source bank. FRONT is the new
+        // Wide/Tall MULTI currently have one source bank. FRONT is the new
         // one-sided default; MIRRORED/READABLE may reuse that bank on the rear.
         // BACK/INDEPENDENT require a real rear bank and therefore render no
         // fabricated fallback here.
@@ -748,11 +764,12 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         poseStack.pushPose();
         poseStack.translate(0.5D, bottom, 0.5D);
         poseStack.mulPose(Axis.YP.rotationDegrees(angle));
+        long animationSampleMs = (System.nanoTime() / 1_000_000L);
 
         for (int slot = 0; slot < slots; slot++) {
             ImageSourceBank.Asset asset = blockEntity.imageSourceBank().get(slot);
             if (!asset.present()) continue;
-            var texture = ProjectionTextureCache.get(asset.id());
+            var texture = ProjectionTextureCache.get(asset.id(), animationSampleMs);
             if (texture.isEmpty()) continue;
 
             int column = slot % columns;
@@ -816,26 +833,27 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         poseStack.pushPose();
         poseStack.translate(0.5D, bottom, 0.5D);
         poseStack.mulPose(Axis.YP.rotationDegrees(angle));
+        long animationSampleMs = (System.nanoTime() / 1_000_000L);
 
         boolean rendered = false;
         rendered |= renderPrismFace(
                 poseStack,
-                settings.imageId(), settings.imageWidth(), settings.imageHeight(), settings.hasImage(),
+                settings.imageId(), settings.imageWidth(), settings.imageHeight(), settings.hasImage(), animationSampleMs,
                 180.0F, radius, topV, bottomV, settings, bufferSource, projectionLight
         );
         rendered |= renderPrismFace(
                 poseStack,
-                settings.eastImageId(), settings.eastImageWidth(), settings.eastImageHeight(), settings.hasEastImage(),
+                settings.eastImageId(), settings.eastImageWidth(), settings.eastImageHeight(), settings.hasEastImage(), animationSampleMs,
                 90.0F, radius, topV, bottomV, settings, bufferSource, projectionLight
         );
         rendered |= renderPrismFace(
                 poseStack,
-                settings.backImageId(), settings.backImageWidth(), settings.backImageHeight(), settings.hasBackImage(),
+                settings.backImageId(), settings.backImageWidth(), settings.backImageHeight(), settings.hasBackImage(), animationSampleMs,
                 0.0F, radius, topV, bottomV, settings, bufferSource, projectionLight
         );
         rendered |= renderPrismFace(
                 poseStack,
-                settings.westImageId(), settings.westImageWidth(), settings.westImageHeight(), settings.hasWestImage(),
+                settings.westImageId(), settings.westImageWidth(), settings.westImageHeight(), settings.hasWestImage(), animationSampleMs,
                 -90.0F, radius, topV, bottomV, settings, bufferSource, projectionLight
         );
 
@@ -849,6 +867,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             int imageWidth,
             int imageHeight,
             boolean present,
+            long animationSampleMs,
             float faceRotationDegrees,
             float radius,
             float topV,
@@ -860,7 +879,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         if (!present) {
             return false;
         }
-        var texture = ProjectionTextureCache.get(assetId);
+        var texture = ProjectionTextureCache.get(assetId, animationSampleMs);
         if (texture.isEmpty()) {
             return false;
         }
@@ -1007,11 +1026,8 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     }
 
     private static FaceSize faceSize(int imageWidth, int imageHeight, int scalePixels) {
-        float largest = scalePixels * PIXEL;
-        if (imageWidth >= imageHeight) {
-            return new FaceSize(largest, largest * imageHeight / (float) imageWidth);
-        }
-        return new FaceSize(largest * imageWidth / (float) imageHeight, largest);
+        ProjectionImageSizing.Size size = ProjectionImageSizing.size(imageWidth, imageHeight, scalePixels);
+        return new FaceSize(size.widthPixels() * PIXEL, size.heightPixels() * PIXEL);
     }
 
     private static void renderFrontFace(
@@ -1194,6 +1210,34 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                 .setNormal(pose, nx, ny, nz);
     }
 
+    /**
+     * Plane-like projections inherit the furnace-style placement facing. Prism Image/Banner
+     * assignments are true world-cardinal North/East/South/West, so rotating the physical
+     * symmetric Prism block on placement must not remap those four source slots.
+     */
+    private static float projectionBaseAngle(MirageProjectorBlockEntity blockEntity, ProjectionSettings settings) {
+        if (blockEntity != null
+                && blockEntity.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM
+                && (settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
+                || settings.sourceMode() == ProjectionSettings.SourceMode.BANNER)) {
+            return 0.0F;
+        }
+        return blockFacingAngle(blockEntity);
+    }
+
+    private static float blockFacingAngle(MirageProjectorBlockEntity blockEntity) {
+        if (blockEntity == null || !blockEntity.getBlockState().hasProperty(MirageProjectorBlock.FACING)) {
+            return 0.0F;
+        }
+        return switch (blockEntity.getBlockState().getValue(MirageProjectorBlock.FACING)) {
+            case SOUTH -> 0.0F;
+            case EAST -> 90.0F;
+            case NORTH -> 180.0F;
+            case WEST -> 270.0F;
+            default -> 0.0F;
+        };
+    }
+
     private static float rotationAngle(ProjectionSettings settings, double gameTime) {
         if (!settings.rotationEnabled()) {
             return settings.rotationOffsetDegrees();
@@ -1245,7 +1289,8 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                 && (blockEntity.entityProjectionState().hasActiveEntity()
                 || blockEntity.entityProjectionState().hasProjectedHumanoidEquipment());
         boolean imageProjection = settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
-                && (blockEntity.chassisProfile().hasMultiSourceImageLayout()
+                && (blockEntity.chassisProfile().supportsMultiSourceImageLayout()
+                && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI
                 ? blockEntity.imageSourceBank().hasAny(blockEntity.chassisProfile().imageLayoutSlots())
                 : blockEntity.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM
                 ? settings.hasAnyImage()

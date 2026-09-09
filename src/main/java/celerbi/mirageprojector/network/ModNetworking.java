@@ -8,7 +8,7 @@ public final class ModNetworking {
     }
 
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("16");
+        PayloadRegistrar registrar = event.registrar("18");
 
         registrar.playToServer(
                 UpdateProjectorPayload.TYPE,

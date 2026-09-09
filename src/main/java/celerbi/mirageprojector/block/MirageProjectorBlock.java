@@ -5,18 +5,22 @@ import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.registry.ModBlocks;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -25,6 +29,7 @@ import net.neoforged.neoforge.common.extensions.IPlayerExtension;
 import org.jetbrains.annotations.Nullable;
 
 public final class MirageProjectorBlock extends BaseEntityBlock {
+    public static final net.minecraft.world.level.block.state.properties.DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final MapCodec<MirageProjectorBlock> CODEC = simpleCodec(MirageProjectorBlock::new);
 
     private static final VoxelShape COMPACT_BASE_SHAPE = Shapes.or(
@@ -77,6 +82,20 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
 
     public MirageProjectorBlock(BlockBehaviour.Properties properties) {
         super(properties);
+        // SOUTH preserves the historical pre-facing projection orientation for
+        // worlds upgraded from older dev builds. Newly placed blocks face the player.
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.SOUTH));
+    }
+
+    @Nullable
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState> builder) {
+        builder.add(FACING);
     }
 
     @Override
@@ -108,7 +127,7 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
         };
 
         if (!(level.getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) || projector.coreStack().isEmpty()) {
-            return base;
+            return orientShape(profile, state, base);
         }
 
         VoxelShape core = switch (profile) {
@@ -119,7 +138,23 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
             case PRISM -> PRISM_CORE_SHAPE;
             default -> COMPACT_CORE_SHAPE;
         };
-        return Shapes.or(base, core);
+        VoxelShape combined = Shapes.or(base, core);
+        return orientShape(profile, state, combined);
+    }
+
+    private static VoxelShape orientShape(ProjectionChassisProfile profile, BlockState state, VoxelShape shape) {
+        if ((profile != ProjectionChassisProfile.WIDE && profile != ProjectionChassisProfile.TALL)
+                || !state.hasProperty(FACING)
+                || state.getValue(FACING).getAxis() != Direction.Axis.X) {
+            return shape;
+        }
+        VoxelShape[] rotated = {Shapes.empty()};
+        shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
+                rotated[0] = Shapes.or(rotated[0], Shapes.box(
+                        1.0D - maxZ, minY, minX,
+                        1.0D - minZ, maxY, maxX
+                )));
+        return rotated[0];
     }
 
     public static ProjectionChassisProfile chassisProfile(BlockState state) {

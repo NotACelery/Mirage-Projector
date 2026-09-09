@@ -1,3 +1,5 @@
+> **Historical dev.37 note — image-layout portions superseded by dev.38:** render-order/handbook findings remain useful, but any reference here to Field 3x3 or mandatory Wide/Tall multi-source is not current design. Field is one continuous Plane; Wide/Tall use optional SINGLE/MULTI.
+
 # dev.37 — Render-order recovery and tabbed handbook
 
 ## Why dev.36 regressed

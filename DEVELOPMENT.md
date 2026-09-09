@@ -1,3 +1,237 @@
+## Estado `0.1.0-dev.40` — Power UI repair + dimension-neutral entity clones
+
+> **Autoridad incremental.** dev.40 no reemplaza las fórmulas Power dev.38 ni el pipeline GIF/Image dev.39. Corrige presentación del Power panel y normaliza estados ambientales de entidades reconstruidas. Protocol **18** sin cambios.
+
+### Power / Capacity GUI
+
+- Core slot conserva `CORE_SLOT_X/Y`, pero el texto Power empieza a la derecha del slot.
+- Effective load dispone otra vez de barra visible, calculada como `used / available` y limitada visualmente a 100%; un estado sobrecapacidad puede señalarse con fill de error sin ampliar el rango del control.
+- El breakdown de PU deja de usar todo el rectángulo Power como hitbox. Sólo el pequeño `?` del header dispara el tooltip.
+- El cálculo Power no cambia en esta oleada.
+
+### Piglin/Hoglin shake fix
+
+- Reproducción confirmada: Piglin escaneado/proyectado en Overworld tiembla tanto en preview como in-world.
+- La entidad Mirage se crea dentro del `ClientLevel` actual. `AbstractPiglin#isConverting()` depende de si la dimensión es piglin-safe y el vanilla renderer usa ese estado para el shake de conversión. No hace falta que Mirage llame `tick()` para que el renderer vea ese estado.
+- Después de `living.load(scan.entityData())`, `normalizeForProjection` fuerza `setImmuneToZombification(true)` sólo en clones `AbstractPiglin` y `Hoglin`.
+- El scan congelado no se reescribe. La entidad original no cambia. No se introduce AI/ticking.
+- Como preview y world projection usan `EntityProjectionClientEntityFactory`, un solo fix cubre ambos.
+- Documento: `docs/ENTITY-DIMENSION-NORMALIZATION-dev40.md`.
+
+### QA dev.40
+
+Usar `docs/DEV40-UI-ENTITY-QA.md`. Prioridad: Core slot limpio, barra de capacidad, tooltip sólo en `?`, Piglin/Hoglin estables en Overworld y regresión rápida de GIF/Wide/Tall/Field/Prism.
+
+### Próxima oleada
+
+Improved Cores no se deben implementar por intuición. Antes de recipes/assets, crear una matriz por **material × variant** que defina: Base PU heredada, amplifier, efecto especial, coste/penalización si existe, materiales de receta, propósito, chassis donde destaca y por qué no vuelve obsoleto al resto. Las familias candidatas discutidas hasta ahora son Standard/Amplified como base y posibles especializaciones Focused/Stabilized/Resonant; todavía no son contrato jugable.
+
+---
+
+## Estado `0.1.0-dev.39` — GIF / Animated Image + Wide/Tall SINGLE aspect authority
+
+### dev.39 import failsafe / Prism addendum
+
+- Import identifica PNG/JPEG/WebP/BMP/GIF por contenido; la extensión no selecciona decoder. Animated WebP/APNG se detectan y rechazan temporalmente incluso renombrados.
+- Prism conserva N/E/S/W, una fuente por cara y cero stacking. Cada cara usa nominal adaptativo 80x32 horizontal, 32x80 vertical o 48x48 casi cuadrado; PU/overdrive geométrico se calcula por cara.
+- Autoridad: `docs/IMAGE-FORMAT-IMPORT-CONTRACT-dev39.md` y `docs/PRISM-ADAPTIVE-ASPECT-dev39.md`.
+
+> **Contrato autoritativo actual para Image/GIF.** Dev.39 conserva el Power/chassis/lifetime rework de dev.38 y añade la implementación animada. Cuando una nota histórica llame GIF "futuro", mandan esta sección, `docs/GIF-ANIMATED-IMAGE-dev39.md` y `docs/WIDE-TALL-SINGLE-ASPECT-dev39.md`. Network protocol **18**.
+
+Inventario y QA de cierre: `docs/CURRENT-IMPLEMENTATION-AUDIT-dev39.md` + `docs/DEV39-GIF-QA.md`.
+
+### GIF ya es una fuente Image real
+
+- GIF no crea un nuevo `SourceMode`: entra por Image Workspace y reutiliza exactamente los mismos settings de presentación.
+- Compact/Display/Field: un Plane continuo estático o animado.
+- Wide/Tall: `SINGLE` admite una imagen/GIF continua; `MULTI` admite cuatro fuentes independientes 4×1 / 1×4, cada una estática o GIF.
+- Prism: North/East/South/West pueden ser cuatro GIFs distintos. `Same Source on All Faces` copia el mismo asset id, sin duplicar bytes ni frame cache.
+- Front/Mirrored/Readable reutilizan el mismo asset/frame actual; Independent puede tener Front/Back distintos.
+- Flip, Scanlines, Tint, Ghost, Lighting, Rotation y Float se aplican al frame actual sin una ruta especial por efecto.
+
+### Asset pipeline dev.39
+
+Static:
+
+`PNG/JPG/JPEG/WebP/BMP -> content sniff -> decode -> RGBA -> PNG normalizado <=8 MiB -> SHA-256 -> .asset -> red/world store`.
+
+Animated:
+
+`GIF -> validar/decode completo -> preservar bytes GIF <=8 MiB -> SHA-256 -> .asset -> red/world store -> decode once -> DynamicTexture por frame`.
+
+- El path local original nunca se guarda ni se transmite.
+- Nuevos caches/world assets usan `<hash>.asset` porque el contenido puede ser PNG o GIF.
+- `<hash>.png` de dev.1-dev.38 sigue siendo fallback compatible tanto en cliente como servidor.
+- El servidor valida firma PNG/GIF, límite por tipo e igualdad SHA-256; el envelope de red sube a 8 MiB y conserva chunks de 32 KiB.
+- Protocolo sube **17 -> 18** para no permitir mezclas silenciosas dev.38/dev.39.
+
+### Decoder/timing
+
+- `GifAssetDecoder` lee canvas lógico, offsets de ImageDescriptor, delay y disposal de cada frame.
+- Composición soportada: keep (`none/doNotDispose`), `restoreToBackground` y `restoreToPrevious`.
+- dev.39 limpia `restoreToBackground` a transparencia, comportamiento elegido para proyecciones decorativas con alpha.
+- `delay=0` usa fallback 100 ms; delays no-cero se clamped a mínimo 20 ms; delay máximo 10 s.
+- Loop completo máximo 5 min; Mirage ignora finite loop-count y repite continuamente mientras la fuente esté proyectada.
+- Playback usa reloj monotónico compartido del cliente. El mismo GIF reutilizado por varios projectors/slots/faces se mantiene sincronizado en ese cliente.
+- No existe `currentFrame` en NBT ni tráfico por frame/tick.
+
+### Safety limits GIF
+
+- GIF bytes: máximo 8 MiB.
+- Canvas lógico: máximo 1024 px por eje.
+- Frames: máximo 128.
+- Decoded frame-pixel budget: `width * height * frames <= 16,777,216`.
+- Esto equivale, por ejemplo, a 512×512×64 o 1024×1024×16 como máximos de memoria aproximados.
+- Estas restricciones son safety rails de memoria/red y no modifican Scale/PU.
+- GIF no añade surcharge de PU: PU sigue modelando geometría/emisor; decoder/GPU se limita técnicamente para no introducir un coste de gameplay basado en estado client-only.
+
+### Wide/Tall SINGLE — condicionales congeladas
+
+La regla común es **sin crop y sin stretch**. `ProjectionImageSizing` es autoridad compartida entre renderer y `ProjectionPower`.
+
+Wide, nominal 80×32:
+
+- landscape o square (`sourceW >= sourceH`): `projectedW=Scale`, `projectedH=round(Scale*H/W)`;
+- portrait (`H>W`): `projectedH=Scale`, `projectedW=round(Scale*W/H)`;
+- portrait sigue siendo válido, pero empuja antes el nominal Height=32 y por eso entra antes a Geometry Overdrive.
+
+Tall, nominal 32×80:
+
+- portrait o square (`sourceH >= sourceW`): `projectedH=Scale`, `projectedW=round(Scale*W/H)`;
+- landscape (`W>H`): `projectedW=Scale`, `projectedH=round(Scale*H/W)`;
+- landscape sigue válido, pero empuja antes el nominal Width=32 y entra antes a Geometry Overdrive.
+
+Ejemplos Scale 80:
+
+- Wide + 800×320 -> 80×32;
+- Wide + 1920×1080 -> 80×45, por tanto overdrive vertical moderado;
+- Wide + 1080×1920 -> 45×80, overdrive vertical fuerte;
+- Tall + 320×800 -> 32×80;
+- Tall + 1080×1920 -> 45×80, overdrive horizontal moderado;
+- Tall + 1920×1080 -> 80×45, overdrive horizontal fuerte.
+
+MULTI no usa estas condicionales: conserva las cuatro celdas cuadradas dev.38 (Scale 80 -> Wide 80×20 / Tall 20×80; cada celda 20×20 y cada asset se aspect-fit dentro de la celda).
+
+### QA prioritario dev.39
+
+1. Compilar `build.bat` en Windows antes de marcar build-clean.
+2. GIF transparente/disposal-heavy en Compact, Display y Field.
+3. Wide SINGLE landscape, portrait y square; confirmar dimensiones/PU/slider max coherentes.
+4. Tall SINGLE portrait, landscape y square; confirmar dimensiones/PU/slider max coherentes.
+5. Wide/Tall MULTI con mezcla static/GIF y cuatro GIFs distintos.
+6. Prism con cuatro GIFs independientes y después Same Source on All Faces.
+7. Front/Mirrored/Readable/Independent con GIF; Mirrored/Readable deben mostrar exactamente el mismo frame actual.
+8. Scanlines/Tint/Ghost/Fullbright/Flip/Rotation/Float sobre GIF.
+9. Save/reload y reconnect; segundo cliente sin archivo local debe descargar y reproducir.
+10. Assets legacy `.png` dev.38 siguen visibles y transferibles.
+11. Rechazo claro de >8 MiB, >1024px, >128 frames y exceso de frame-pixel budget.
+12. Repetir QA pendiente dev.38 (Power, Field/Wide/Tall layouts, facing, idle books, Entity cleanup, Entity/projector/water).
+
+### Próxima oleada tras estabilizar dev.39
+
+- Improved Projection Cores (items/recipes/textures, amplifier target inicial ~×1.50) y balance real de la curva de PU.
+- Posible refresh de texturas/modelos de chassis.
+- Después: hardening/performance de animaciones visibles masivas y demás backlog gráfico.
+
+## Estado `0.1.0-dev.38` — Power System Rework + chassis/image contract recovery
+
+> **Baseline acumulativo de Power/chassis/lifetime.** dev.39 lo conserva, pero para Image/GIF y el inventario vigente mandan la sección dev.39 y `docs/CURRENT-IMPLEMENTATION-AUDIT-dev39.md`.
+
+### Power System Rework
+
+- El modelo dev.8/dev.19 queda **deprecado**: los Cores ya no poseen límites hardcodeados de Scale/Lift/Float y los valores del chassis ya no son paredes absolutas que puedan dejar PU inútiles.
+- Curva provisional de **PU base** estándar: Glass 32, Quartz 48, Amethyst 64, Diamond 96, Netherite 128.
+- Capacidad efectiva:
+
+  `floor(Core base PU × chassis multiplier × Core amplification)`.
+
+- Multiplicadores de chassis jugables actuales: Compact ×1.00, Display ×1.50, Wide ×2.00, Tall ×2.00, Field ×4.00, Prism ×2.00.
+- Todos los cores raw actuales son `Standard` con amplificación ×1.00. La arquitectura ya reserva `Core amplification` para futuros Cores mejorados; el primer target de diseño es ~×1.50 **sin aumentar la PU base del material**. Items/recipes/textures de esos Improved Cores siguen pendientes hasta QA de balance.
+- Compact+Netherite y Field+Glass poseen ambos 128 Effective PU, pero Field usa esa energía con mucha mayor eficiencia geométrica. Esto es intencional.
+- Los tamaños/Lift/Float de cada chassis son ahora **nominales**. Superarlos es Overdrive legal si existe PU suficiente.
+- Overdrive usa penalización cuadrática por componente: `cost × (current/nominal)^2` sólo cuando el ratio supera 1. Scale/geometry, Lift y Float se penalizan de forma independiente.
+- Float mantiene una única barrera física independiente de Power: cuando Floating está activo, `Float amplitude <= Lift`.
+- Technical ceilings internos (`Scale 512 / Lift 512 / Float 128`) son sólo safety rails para búsquedas/sliders; **no son límites de gameplay documentables**.
+
+### Fórmula PU dev.38
+
+- Emisor/estabilidad: 2 PU para toda proyección no vacía.
+- Geometría base: `ceil(area proyectada / 256)` PU antes de Overdrive (256 px² = 16×16).
+- Lift base: `ceil(Lift / 16)` PU antes de Overdrive.
+- Float base, sólo Floating ON: `ceil(Float / 2)` PU antes de Overdrive.
+- Complejidad actual: Independent Front+Back +1; Wide/Tall MULTI con >1 source +1; Prism Image +2; Item +2; Entity +4; Banner Plane +1; Banner Prism +2.
+- Features: Rotation +1; Rotation-synced Float +1; Fullbright +1; Image scanlines +1; Tint/Flip no cuestan PU.
+- Ghost entrega un rebate óptico deliberadamente mínimo: `floor((grossPU - 2) × Ghost% / 3000)`. A Ghost 90% nunca supera 3% del coste no-base, redondeado hacia abajo; no puede volver gratis una proyección pequeña.
+- `ProjectionPower.Breakdown` expone cada componente al tooltip de la GUI.
+
+### Dynamic sliders / Power UX
+
+- Scale/Lift/Float se reconfiguran hasta el **máximo actualmente pagable** con el Core/chassis/settings activos. El jugador no debe poder arrastrar deliberadamente a una zona inválida y tantear el umbral naranja.
+- Cambiar Core o activar una feature cara recalcula extremos inmediatamente. Si una configuración legacy queda inválida, se intenta reducir Float, luego Lift y Scale sólo como último recurso.
+- La GUI muestra Base PU, chassis multiplier, Core amp, Effective capacity, Load, tamaño actual vs nominal y `current/effective max` de Scale/Lift/Float.
+- `Remaining PU` deja de ser la métrica principal. El desglose completo de PU aparece al pasar el cursor por la sección Power.
+- Creative `Debug chassis` elimina penalizaciones de Overdrive para stress-test, pero **no** elimina requisito de Core, presupuesto Effective PU ni `Float <= Lift`.
+
+### Chassis/Image contract corregido
+
+- `Field` vuelve definitivamente a **un solo Plane continuo**. La cuadrícula 3×3/9 imágenes introducida en dev.33 fue una interpretación incorrecta y no forma parte del diseño vigente.
+- `Wide` y `Tall` sí conservan cuatro fuentes, pero son **opcionales** mediante `ImageLayoutMode`: `SINGLE` = una imagen continua; `MULTI` = Wide 4×1 / Tall 1×4.
+- MULTI usa cuatro celdas cuadradas simétricas: Scale 80 produce Wide 80×20 o Tall 20×80 (celdas 20×20), eliminando la magnificación desigual Tall vs Wide.
+- `Prism` conserva cuatro caras laterales N/E/S/W independientes y world-cardinales.
+- Valores **nominales** vigentes: Compact 10×10/Lift32/Float4; Display 32×32/48/12; Wide 80×32/64/12; Tall 32×80/96/16; Field 128×128/144/24; Prism 48×48/96/12.
+- `ImageSourceBank` mantiene 9 slots serializados sólo para no destruir saves dev.33-dev.37. Field no consume ni muestra grid; si una migración no tiene Front continuo, slot 0 se recupera como Front. Wide/Tall consumen sólo slots 0-3 en MULTI.
+- `ImageLayoutMode` permanece en settings/payload y protocolo **17**.
+
+### Placement / GUI / lifetime fixes de la misma oleada
+
+- Todos los projectors físicos poseen `HorizontalDirectionalBlock.FACING` y se colocan con orientación estilo furnace, mirando al jugador.
+- Plane usa ese facing como orientación base. Prism Image/Banner conserva N/E/S/W cardinal y no remapea caras por la orientación física del bloque.
+- Los seis chassis registrados (Compact, Display, Wide, Tall, Field y Prism) muestran el mismo libro vanilla flotante cuando no existe ninguna fuente renderizable. El idle marker no depende de tener Core: Compact ya no es el único que lo muestra por venir históricamente con Glass.
+- Item Snapshot Workspace elimina el segundo título interno del preview; la Screen es la única dueña de labels y reserva el viewport del modelo, evitando `ITEM SNAPSHOT`/`ITEM PREVIEW` superpuestos.
+- El fix de render dev.37 se conserva: Entity diferido en `AFTER_TRIPWIRE_BLOCKS` con `BufferSource` privado de Mirage. No volver a hacer `endBatch()` sobre el buffer global para arreglar Entity, porque eso regresó Image Mode en dev.36.
+
+### Entity workspace lifetime / card-kind invalidation
+
+La ausencia temporal de card y el **cambio de familia de card** son dos eventos distintos:
+
+- retirar una Humanoid card sin insertar otra conserva los seis canales virtuales, permitiendo el maniquí Humanoid sin body;
+- insertar una Humanoid card mantiene Humanoid y limpia cualquier Horse Incoming/Projected oculto;
+- insertar una Horse card mantiene Horse y limpia los seis Humanoid Incoming/Projected, porque esas filas desaparecen de la GUI;
+- insertar una Generic card limpia Humanoid y Horse virtuales, porque Generic no expone equipment editable;
+- al limpiar una familia incompatible también se restablece su pose a `Standing`/`Idle`;
+- la limpieza afecta **sólo snapshots virtuales**. Los items físicos que todavía estuvieran en staging nunca se destruyen silenciosamente: siguen sujetos al retorno/drop seguro del menú.
+
+Invariante dev.38: **si un cambio de `EntityScanData.Kind` hace desaparecer una familia de slots de la GUI, ningún snapshot virtual perteneciente a esos slots puede quedar escondido en NBT/memoria ni reaparecer después al retirar otra card.**
+
+### Documentación autoritativa
+
+- `docs/POWER-SYSTEM-REWORK-dev38.md`: fórmula completa, Overdrive, Ghost, sliders, Improved-Core hook y deprecaciones.
+- `docs/CHASSIS-IMAGE-LAYOUT-POWER-UX-dev38.md`: contratos por chassis, Wide/Tall SINGLE/MULTI, Field continuo, Prism, facing, migración y QA.
+- `docs/MULTI-SOURCE-IMAGE-LAYOUTS-dev33.md`: queda únicamente como historia y debe llevar advertencia SUPERSEDED.
+- `docs/ENTITY-WORKSPACE-LIFETIME-dev38.md`: contrato vigente de ownership/invalidación de snapshots al cambiar Humanoid/Horse/Generic.
+- `docs/DEV38-CLOSURE-QA.md`: checklist de cierre estático + build/QA in-game antes de declarar dev.38 build-clean.
+
+### QA prioritario dev.38
+
+1. Field con una sola imagen cuadrada/vertical/horizontal: nunca debe aparecer cuadrícula, replicación 3×3 ni selector de 9 slots.
+2. Wide SINGLE + Wide MULTI 4×1; alternar/reabrir y confirmar persistencia. Repetir Tall SINGLE + MULTI 1×4.
+3. Comparar Wide/Tall MULTI con la misma imagen y mismo Scale: cada celda debe tener exactamente el mismo tamaño disponible.
+4. Verificar que los valores nominales **no** son hard caps: con Core suficiente debe aparecer Overdrive y el slider puede pasar nominal; con Core débil el extremo termina antes.
+5. Cambiar Glass→Quartz→Amethyst→Diamond→Netherite y comprobar Effective PU/máximos dinámicos.
+6. Comprobar el desglose PU contra geometría, Lift, Float, features y source complexity; Ghost 90% sólo debe ahorrar una fracción mínima.
+7. Confirmar que Float nunca supera Lift y que cambiar Core no deja sliders en estado inválido.
+8. Colocar todos los chassis mirando N/E/S/W; Plane sigue facing. Prism mantiene caras world-cardinales.
+9. Sin fuente renderizable, Compact/Display/Wide/Tall/Field/Prism deben mostrar el mismo libro flotante incluso con socket de Core vacío.
+10. Entity lifetime: Humanoid con armor/manos -> retirar card -> sigue maniquí bodyless; insertar Generic/Horse -> desaparecen y se eliminan esos snapshots; retirar la nueva card -> la armor vieja **no** reaparece. Repetir Horse -> Humanoid/Generic para Saddle/Body.
+11. Item Workspace: ningún label/texto debe pisar preview, slots ni otro texto en GUI scales normales.
+12. Repetir QA de profundidad dev.37: Entity contra projectors y agua delante/detrás, más dos Entity Ghost superpuestas.
+
+- Build Windows e in-game QA de dev.38 siguen pendientes; **no declarar build-clean antes de ambos**.
+
+### Prioridad inmediata después de cerrar dev.38 — SUPERSEDED por dev.39
+
+Esta prioridad ya fue ejecutada: **GIF / Animated Image import está implementado en dev.39** con decodificación controlada, timing/disposal, límites de resolución/frames/FPS/memoria, identidad SHA-256, transporte multiplayer y cache de frames. Los Improved Cores (items/recipes/textures) y posibles retoques de modelos/texturas de chassis quedan como la siguiente oleada de balance/arte y no forman parte de dev.39.
+
 ## Estado `0.1.0-dev.37`
 
 - Baseline verificado anterior: dev.35 build-clean/in-game. dev.36 **sí llegó a ejecutarse in-game**, pero su QA reportó regresiones de profundidad/orden e Image Mode; queda clasificado como QA-failed y no debe usarse como baseline visual.
@@ -15,7 +249,7 @@
 1. Entidad gigante atravesando visualmente varios Mirage Projectors: los proyectores detrás deben quedar detrás; los físicamente delante deben ocluirla.
 2. Ghost Entity con agua claramente detrás y luego claramente delante; el resultado debe obedecer distancia/profundidad, no tipo de render.
 3. Dos Entity projections Ghost superpuestas desde varios ángulos.
-4. Revalidar Image Mode que funcionaba antes de dev.36: Compact/Display single-source, Wide 4×1, Tall 1×4, Field 3×3 y Prism N/E/S/W; no aceptar cambios de escala, aspect ratio, orientación o fuente como parte de este fix.
+4. **Histórico dev.37, superseded en dev.38:** en esa build se revalidaba todavía el contrato accidental dev.33 (incluido Field 3×3). No recuperar esa expectativa como diseño actual; dev.38 define Field continuo y Wide/Tall SINGLE/MULTI opcional.
 5. Debug Handbook: centrado real, tamaño cómodo, page arrows clicables y tabs General/Compact/Display/Wide/Tall/Field/Prism en GUI scales usados normalmente.
 6. Confirmar que abrir el handbook no vuelve a introducir blur ni render de la mano/libro.
 
@@ -62,7 +296,7 @@ Si dev.37 necesita otra corrección de render, conservar este source como snapsh
 - Entity Scan v5 freezes mob CustomName explicitly and keeps conservative compatibility recovery for older cards.
 - Entity Workspace preview exposes `name · entity type` whenever the frozen scan carries a projection nameplate.
 - Debug Handbook keeps the dev.32 local dark overlay and now also suppresses its own first-person hand/item render while the screen is open.
-- Wide/Tall/Field Image Mode retains the dev.33 persistent multi-source layout banks (4×1 / 1×4 / 3×3).
+- **Histórico dev.34:** Wide/Tall/Field retenían en ese momento los bancos dev.33 (4×1 / 1×4 / 3×3). **Superseded en dev.38:** Field es un Plane continuo y sólo Wide/Tall conservan MULTI opcional.
 - Protocol remains **15**; the scan card internal data version changes without altering packet shape.
 
 ### Waiting list after dev.34
@@ -859,7 +1093,7 @@ Con Display/Wide/Tall/Field ya registrados físicamente en dev.10, la siguiente 
 6. implementar Mirage Prism de cuatro caras;
 7. implementar Effigy/equipment rig;
 8. implementar Colossal + LOD/culling;
-9. GIF queda al final del pipeline de imágenes estáticas.
+9. histórico dev.10: GIF quedaba al final del pipeline; **implementado finalmente en dev.39**.
 
 Video, YouTube, browser, streaming y audio siguen explícitamente fuera de alcance.
 

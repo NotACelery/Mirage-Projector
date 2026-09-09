@@ -30,6 +30,7 @@ public record ProjectionSettings(
         int westImageWidth,
         int westImageHeight,
         SourceMode sourceMode,
+        ImageLayoutMode imageLayoutMode,
         int scalePixels,
         int liftPixels,
         boolean rotationEnabled,
@@ -50,9 +51,10 @@ public record ProjectionSettings(
         boolean debugChassisOverride
 ) {
     public static final int DEBUG_MIN_SCALE_PIXELS = 2;
-    public static final int DEBUG_MAX_SCALE_PIXELS = 160;
-    public static final int DEBUG_MAX_LIFT_PIXELS = 160;
-    public static final int DEBUG_MAX_FLOAT_PIXELS = 32;
+    /** Technical safety/search ceilings, not chassis gameplay limits. */
+    public static final int DEBUG_MAX_SCALE_PIXELS = 512;
+    public static final int DEBUG_MAX_LIFT_PIXELS = 512;
+    public static final int DEBUG_MAX_FLOAT_PIXELS = 128;
 
     public static final ProjectionSettings DEFAULT = new ProjectionSettings(
             "", 0, 0,
@@ -60,6 +62,7 @@ public record ProjectionSettings(
             "", 0, 0,
             "", 0, 0,
             SourceMode.IMAGE,
+            ImageLayoutMode.SINGLE,
             10,
             1,
             true,
@@ -100,6 +103,7 @@ public record ProjectionSettings(
                 Mth.clamp(westImageWidth, 0, 8192),
                 Mth.clamp(westImageHeight, 0, 8192),
                 sourceMode == null ? SourceMode.IMAGE : sourceMode,
+                imageLayoutMode == null ? ImageLayoutMode.SINGLE : imageLayoutMode,
                 Mth.clamp(scalePixels, DEBUG_MIN_SCALE_PIXELS, DEBUG_MAX_SCALE_PIXELS),
                 Mth.clamp(liftPixels, 0, DEBUG_MAX_LIFT_PIXELS),
                 rotationEnabled,
@@ -180,7 +184,7 @@ public record ProjectionSettings(
     public ProjectionSettings withImage(String id, int width, int height) {
         return copy(id, width, height, backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
-                sourceMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
                 scanlines, debugChassisOverride);
@@ -189,7 +193,7 @@ public record ProjectionSettings(
     public ProjectionSettings withBackImage(String id, int width, int height) {
         return copy(imageId, imageWidth, imageHeight, id, width, height,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
-                sourceMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
                 scanlines, debugChassisOverride);
@@ -198,7 +202,7 @@ public record ProjectionSettings(
     public ProjectionSettings withDebugChassisOverride(boolean enabled) {
         return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
-                sourceMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
                 scanlines, enabled);
@@ -207,7 +211,7 @@ public record ProjectionSettings(
     public ProjectionSettings withSourceMode(SourceMode mode) {
         return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
-                mode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                mode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
                 scanlines, debugChassisOverride);
@@ -218,14 +222,41 @@ public record ProjectionSettings(
             String backId, int backWidth, int backHeight,
             String eastId, int eastWidth, int eastHeight,
             String westId, int westWidth, int westHeight,
-            BackFaceMode newBackFaceMode, boolean newFlipVertical, boolean newScanlines
+            ImageLayoutMode newImageLayoutMode, BackFaceMode newBackFaceMode, boolean newFlipVertical, boolean newScanlines
     ) {
         return copy(frontId, frontWidth, frontHeight, backId, backWidth, backHeight,
                 eastId, eastWidth, eastHeight, westId, westWidth, westHeight,
-                SourceMode.IMAGE, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                SourceMode.IMAGE, newImageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, newBackFaceMode, newFlipVertical, fullbright, opacityPercent, tintRgb,
                 newScanlines, debugChassisOverride);
+    }
+
+    public ProjectionSettings withImageLayoutMode(ImageLayoutMode mode) {
+        return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
+                eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
+                sourceMode, mode == null ? ImageLayoutMode.SINGLE : mode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
+                floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
+                scanlines, debugChassisOverride);
+    }
+
+    public ProjectionSettings withScalePixels(int value) {
+        return withPresentation(value, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise, rotationOffsetDegrees,
+                floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees,
+                fullbright, opacityPercent, tintRgb, debugChassisOverride);
+    }
+
+    public ProjectionSettings withLiftPixels(int value) {
+        return withPresentation(scalePixels, value, rotationEnabled, rotationPeriodTicks, clockwise, rotationOffsetDegrees,
+                floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees,
+                fullbright, opacityPercent, tintRgb, debugChassisOverride);
+    }
+
+    public ProjectionSettings withFloatAmplitudePixels(int value) {
+        return withPresentation(scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise, rotationOffsetDegrees,
+                floatingEnabled, floatMode, value, floatCycleTicks, floatIntervalDegrees,
+                fullbright, opacityPercent, tintRgb, debugChassisOverride);
     }
 
     public ProjectionSettings withPresentation(
@@ -247,7 +278,7 @@ public record ProjectionSettings(
     ) {
         return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
-                sourceMode, newScalePixels, newLiftPixels, newRotationEnabled, newRotationPeriodTicks, newClockwise,
+                sourceMode, imageLayoutMode, newScalePixels, newLiftPixels, newRotationEnabled, newRotationPeriodTicks, newClockwise,
                 newRotationOffsetDegrees, newFloatingEnabled, newFloatMode, newFloatAmplitudePixels, newFloatCycleTicks,
                 newFloatIntervalDegrees, backFaceMode, flipVertical, newFullbright, newOpacityPercent, newTintRgb,
                 scanlines, newDebugChassisOverride);
@@ -258,7 +289,7 @@ public record ProjectionSettings(
             String backImageId, int backImageWidth, int backImageHeight,
             String eastImageId, int eastImageWidth, int eastImageHeight,
             String westImageId, int westImageWidth, int westImageHeight,
-            SourceMode sourceMode, int scalePixels, int liftPixels,
+            SourceMode sourceMode, ImageLayoutMode imageLayoutMode, int scalePixels, int liftPixels,
             boolean rotationEnabled, int rotationPeriodTicks, boolean clockwise, float rotationOffsetDegrees,
             boolean floatingEnabled, FloatMode floatMode, int floatAmplitudePixels, int floatCycleTicks,
             int floatIntervalDegrees, BackFaceMode backFaceMode, boolean flipVertical,
@@ -270,7 +301,7 @@ public record ProjectionSettings(
                 backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight,
                 westImageId, westImageWidth, westImageHeight,
-                sourceMode, scalePixels, liftPixels,
+                sourceMode, imageLayoutMode, scalePixels, liftPixels,
                 rotationEnabled, rotationPeriodTicks, clockwise, rotationOffsetDegrees,
                 floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical,
@@ -285,6 +316,7 @@ public record ProjectionSettings(
         writeAsset(buffer, s.eastImageId(), s.eastImageWidth(), s.eastImageHeight());
         writeAsset(buffer, s.westImageId(), s.westImageWidth(), s.westImageHeight());
         buffer.writeVarInt(s.sourceMode().ordinal());
+        buffer.writeVarInt(s.imageLayoutMode().ordinal());
         buffer.writeVarInt(s.scalePixels());
         buffer.writeVarInt(s.liftPixels());
         buffer.writeBoolean(s.rotationEnabled());
@@ -316,6 +348,7 @@ public record ProjectionSettings(
                 east.id(), east.width(), east.height(),
                 west.id(), west.width(), west.height(),
                 SourceMode.fromOrdinal(buffer.readVarInt()),
+                ImageLayoutMode.fromOrdinal(buffer.readVarInt()),
                 buffer.readVarInt(),
                 buffer.readVarInt(),
                 buffer.readBoolean(),
@@ -352,6 +385,7 @@ public record ProjectionSettings(
         tag.putInt("WestImageWidth", s.westImageWidth());
         tag.putInt("WestImageHeight", s.westImageHeight());
         tag.putInt("SourceMode", s.sourceMode().ordinal());
+        tag.putInt("ImageLayoutMode", s.imageLayoutMode().ordinal());
         tag.putInt("ScalePixels", s.scalePixels());
         tag.putInt("LiftPixels", s.liftPixels());
         tag.putBoolean("RotationEnabled", s.rotationEnabled());
@@ -388,6 +422,7 @@ public record ProjectionSettings(
                 tag.contains("WestImageWidth") ? tag.getInt("WestImageWidth") : d.westImageWidth(),
                 tag.contains("WestImageHeight") ? tag.getInt("WestImageHeight") : d.westImageHeight(),
                 SourceMode.fromOrdinal(tag.contains("SourceMode") ? tag.getInt("SourceMode") : d.sourceMode().ordinal()),
+                ImageLayoutMode.fromOrdinal(tag.contains("ImageLayoutMode") ? tag.getInt("ImageLayoutMode") : d.imageLayoutMode().ordinal()),
                 tag.contains("ScalePixels") ? tag.getInt("ScalePixels") : d.scalePixels(),
                 tag.contains("LiftPixels") ? tag.getInt("LiftPixels") : d.liftPixels(),
                 tag.contains("RotationEnabled") ? tag.getBoolean("RotationEnabled") : d.rotationEnabled(),
@@ -431,6 +466,17 @@ public record ProjectionSettings(
         public static SourceMode fromOrdinal(int ordinal) {
             SourceMode[] values = values();
             return ordinal >= 0 && ordinal < values.length ? values[ordinal] : IMAGE;
+        }
+    }
+
+    /** Image surface layout. SINGLE is the historical/default continuous Plane. */
+    public enum ImageLayoutMode {
+        SINGLE,
+        MULTI;
+
+        public static ImageLayoutMode fromOrdinal(int ordinal) {
+            ImageLayoutMode[] values = values();
+            return ordinal >= 0 && ordinal < values.length ? values[ordinal] : SINGLE;
         }
     }
 

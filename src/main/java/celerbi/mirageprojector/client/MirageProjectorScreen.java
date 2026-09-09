@@ -56,7 +56,14 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     private Button lightingButton;
     private Button tintButton;
     private Button debugButton;
+    private IntSlider scaleSlider;
+    private IntSlider liftSlider;
+    private IntSlider floatAmplitudeSlider;
     private IntSlider floatTimingSlider;
+    private int scaleLimit;
+    private int liftLimit;
+    private int floatLimit;
+    private ProjectionCoreProfile observedCore = ProjectionCoreProfile.NONE;
     private ProjectionClearance.Result clearance = ProjectionClearance.Result.UNKNOWN;
     private long lastClearanceTick = Long.MIN_VALUE;
 
@@ -111,24 +118,24 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
             PacketDistributor.sendToServer(new OpenBannerWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 3, y + 30, sourceButtonWidth, 20).build());
 
-        IntSlider scale = addRenderableWidget(new IntSlider(
+        scaleSlider = addRenderableWidget(new IntSlider(
                 x + 12, y + 76, half, 20,
                 ProjectionSettings.DEBUG_MIN_SCALE_PIXELS, ProjectionSettings.DEBUG_MAX_SCALE_PIXELS, scalePixels,
-                value -> { scalePixels = value; updateClearance(true); },
+                value -> { scalePixels = value; refreshDynamicLimits(true); updateClearance(true); },
                 value -> Component.translatable("gui.mirage_projector.scale", value).getString()
         ));
-        scale.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.scale")));
+        scaleSlider.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.scale.dynamic")));
 
-        IntSlider lift = addRenderableWidget(new IntSlider(
+        liftSlider = addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 76, half, 20,
                 0, ProjectionSettings.DEBUG_MAX_LIFT_PIXELS, liftPixels,
-                value -> { liftPixels = value; updateClearance(true); },
+                value -> { liftPixels = value; refreshDynamicLimits(true); updateClearance(true); },
                 value -> Component.translatable("gui.mirage_projector.lift", value).getString()
         ));
-        lift.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.lift")));
+        liftSlider.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.lift.dynamic")));
 
         rotationButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
-            rotationEnabled = !rotationEnabled; refreshLabels();
+            rotationEnabled = !rotationEnabled; refreshLabels(); refreshDynamicLimits(true);
         }).bounds(x + 12, y + 118, half, 20).build());
         addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 118, half, 20,
@@ -143,19 +150,20 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
             rotationOffsetDegrees = wrap(rotationOffsetDegrees + 90.0F); refreshLabels();
         }).bounds(x + 20 + half, y + 142, half, 20).build());
 
-        floatingButton = addRenderableWidget(Button.builder(Component.empty(), button -> { floatingEnabled = !floatingEnabled; refreshLabels(); })
+        floatingButton = addRenderableWidget(Button.builder(Component.empty(), button -> { floatingEnabled = !floatingEnabled; refreshLabels(); refreshDynamicLimits(true); })
                 .bounds(x + 12, y + 176, half, 20).build());
-        addRenderableWidget(new IntSlider(
+        floatAmplitudeSlider = addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 176, half, 20,
                 0, ProjectionSettings.DEBUG_MAX_FLOAT_PIXELS, floatAmplitudePixels,
-                value -> { floatAmplitudePixels = value; updateClearance(true); },
+                value -> { floatAmplitudePixels = value; refreshDynamicLimits(true); updateClearance(true); },
                 value -> Component.translatable("gui.mirage_projector.float_amplitude", value).getString()
         ));
+        floatAmplitudeSlider.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.float.dynamic")));
 
         floatModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             floatMode = floatMode == ProjectionSettings.FloatMode.TIME
                     ? ProjectionSettings.FloatMode.ROTATION_SYNCED : ProjectionSettings.FloatMode.TIME;
-            refreshLabels(); refreshFloatTimingSlider();
+            refreshLabels(); refreshFloatTimingSlider(); refreshDynamicLimits(true);
         }).bounds(x + 12, y + 200, half, 20).build());
         floatTimingSlider = addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 200, half, 20,
@@ -164,12 +172,12 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
                 value -> Component.translatable("gui.mirage_projector.float_cycle", String.format(Locale.ROOT, "%.2f", value / 20.0D)).getString()
         ));
 
-        lightingButton = addRenderableWidget(Button.builder(Component.empty(), button -> { fullbright = !fullbright; refreshLabels(); })
+        lightingButton = addRenderableWidget(Button.builder(Component.empty(), button -> { fullbright = !fullbright; refreshLabels(); refreshDynamicLimits(true); })
                 .bounds(x + 12, y + 234, half, 20).build());
         IntSlider ghost = addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 234, half, 20,
                 0, 90, transparencyPercent,
-                value -> transparencyPercent = value,
+                value -> { transparencyPercent = value; refreshDynamicLimits(true); },
                 value -> Component.translatable("gui.mirage_projector.ghost", value).getString()
         ));
         ghost.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.ghost")));
@@ -178,7 +186,7 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
                 .bounds(x + 12, y + 258, half, 20).build());
         debugButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             if (minecraft != null && minecraft.player != null && minecraft.player.isCreative()) {
-                debugChassisOverride = !debugChassisOverride; refreshLabels(); updateClearance(true);
+                debugChassisOverride = !debugChassisOverride; refreshLabels(); refreshDynamicLimits(true); updateClearance(true);
             }
         }).bounds(x + 20 + half, y + 258, half, 20).build());
 
@@ -190,7 +198,91 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
 
         refreshLabels();
         refreshFloatTimingSlider();
+        observedCore = menu.coreProfile();
+        refreshDynamicLimits(true);
         updateClearance(true);
+    }
+
+    private void refreshDynamicLimits(boolean clampValues) {
+        ProjectionCoreProfile core = menu.coreProfile();
+        ProjectionChassisProfile chassis = menu.chassisProfile();
+        boolean hasContent = menu.hasProjectedSourceContent();
+        int sourceCount = menu.projectedSourceCount();
+
+        if (clampValues) {
+            // dev.38: chassis dimensions are nominal efficiency targets, not hard caps.
+            // These first clamps only enforce global technical safety ceilings (and sane
+            // no-Core/no-content defaults); PU feasibility is resolved immediately below.
+            ProjectionSettings current = buildSettings();
+            scalePixels = clamp(scalePixels, ProjectionSettings.DEBUG_MIN_SCALE_PIXELS,
+                    ProjectionPower.maximumStructuralScale(current, core, chassis, hasContent));
+            liftPixels = clamp(liftPixels, 0,
+                    ProjectionPower.maximumStructuralLift(buildSettings(), core, chassis));
+            if (floatingEnabled) {
+                floatAmplitudePixels = Math.min(floatAmplitudePixels, liftPixels);
+            }
+            floatAmplitudePixels = clamp(floatAmplitudePixels, 0,
+                    ProjectionPower.maximumStructuralFloat(buildSettings(), core, chassis));
+
+            // Normal slider movement is already bounded by the previous effective
+            // maximum, so it should never steal range from another slider. This
+            // recovery path only runs when a Core/feature change makes the current
+            // combination invalid. Prefer dropping optional Float, then Lift, and
+            // reduce Scale only as the final fallback.
+            if (core.present() && !ProjectionPower.evaluate(
+                    buildSettings(), core, chassis, hasContent, sourceCount).active()) {
+                int feasibleFloat = ProjectionPower.maximumFeasibleFloat(
+                        buildSettings(), core, chassis, hasContent, sourceCount);
+                floatAmplitudePixels = clamp(floatAmplitudePixels, 0, feasibleFloat);
+
+                if (!ProjectionPower.evaluate(buildSettings(), core, chassis, hasContent, sourceCount).active()) {
+                    int feasibleLift = ProjectionPower.maximumFeasibleLift(
+                            buildSettings(), core, chassis, hasContent, sourceCount);
+                    liftPixels = clamp(liftPixels, 0, feasibleLift);
+                    if (floatingEnabled) {
+                        floatAmplitudePixels = Math.min(floatAmplitudePixels, liftPixels);
+                    }
+                }
+
+                if (!ProjectionPower.evaluate(buildSettings(), core, chassis, hasContent, sourceCount).active()) {
+                    int feasibleScale = ProjectionPower.maximumFeasibleScale(
+                            buildSettings(), core, chassis, hasContent, sourceCount);
+                    scalePixels = clamp(scalePixels, ProjectionSettings.DEBUG_MIN_SCALE_PIXELS, feasibleScale);
+                }
+            }
+        }
+
+        ProjectionSettings finalSettings = buildSettings();
+        scaleLimit = core.present()
+                ? ProjectionPower.maximumFeasibleScale(finalSettings, core, chassis, hasContent, sourceCount)
+                : ProjectionPower.maximumStructuralScale(finalSettings, core, chassis, hasContent);
+        liftLimit = core.present()
+                ? ProjectionPower.maximumFeasibleLift(finalSettings, core, chassis, hasContent, sourceCount)
+                : ProjectionPower.maximumStructuralLift(finalSettings, core, chassis);
+        floatLimit = core.present()
+                ? ProjectionPower.maximumFeasibleFloat(finalSettings, core, chassis, hasContent, sourceCount)
+                : ProjectionPower.maximumStructuralFloat(finalSettings, core, chassis);
+
+        scaleLimit = Math.max(ProjectionSettings.DEBUG_MIN_SCALE_PIXELS, scaleLimit);
+        liftLimit = Math.max(0, liftLimit);
+        floatLimit = Math.max(0, floatLimit);
+
+        if (scaleSlider != null) scaleSlider.reconfigure(
+                ProjectionSettings.DEBUG_MIN_SCALE_PIXELS, scaleLimit, scalePixels,
+                value -> { scalePixels = value; refreshDynamicLimits(true); updateClearance(true); },
+                value -> Component.translatable("gui.mirage_projector.scale", value).getString());
+        if (liftSlider != null) liftSlider.reconfigure(
+                0, liftLimit, liftPixels,
+                value -> { liftPixels = value; refreshDynamicLimits(true); updateClearance(true); },
+                value -> Component.translatable("gui.mirage_projector.lift", value).getString());
+        if (floatAmplitudeSlider != null) floatAmplitudeSlider.reconfigure(
+                0, floatLimit, floatAmplitudePixels,
+                value -> { floatAmplitudePixels = value; refreshDynamicLimits(true); updateClearance(true); },
+                value -> Component.translatable("gui.mirage_projector.float_amplitude", value).getString());
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(Math.max(min, max), value));
     }
 
     private void refreshFloatTimingSlider() {
@@ -275,35 +367,71 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         ProjectionPower.Dimensions dimensions = ProjectionPower.dimensions(
                 buildSettings(), menu.hasProjectedSourceContent(), chassis);
 
-        int leftInfoX = 50;
+        ProjectionPower.Breakdown breakdown = ProjectionPower.calculateBreakdown(
+                buildSettings(), menu.hasProjectedSourceContent(), chassis, menu.projectedSourceCount());
+        ProjectionPower.Overdrive overdrive = ProjectionPower.overdrive(
+                buildSettings(), chassis, menu.hasProjectedSourceContent());
+
+        // dev.40: reserve the left column for the physical Core slot. The old
+        // Power copy started at x=20 and was literally painted over the slot.
+        int coreTextX = 50;
         if (core.present()) {
-            graphics.drawString(font, core.displayComponent(), leftInfoX, 296, 0xFFD8E7FF, false);
-            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.energy_budget", core.power()), leftInfoX, 307, 0xFF9FDBA9, false);
-            graphics.drawString(font, Component.translatable(
-                    "gui.mirage_projector.core.exact_limits",
-                    core.maxScalePixels(), core.maxLiftPixels(), core.maxFloatPixels()), leftInfoX, 318, 0xFF9CA3AF, false);
+            graphics.drawString(font, fitText(Component.translatable("gui.mirage_projector.power.core_output",
+                    core.displayComponent(), core.basePower()).getString(), 342), coreTextX, 294, 0xFFD8E7FF, false);
         } else {
-            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.empty"), leftInfoX, 300, 0xFFFFA0A0, false);
-            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.empty_hint"), leftInfoX, 312, 0xFF9CA3AF, false);
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.empty"), coreTextX, 294, 0xFFFFA0A0, false);
         }
 
-        int chassisX = 205;
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.chassis", chassis.displayName()), chassisX, 296, 0xFFBFD8FF, false);
-        graphics.drawString(font, Component.translatable(
-                "gui.mirage_projector.chassis.size_limits",
-                chassis.maxWidthPixels(), chassis.maxHeightPixels()), chassisX, 307, 0xFF9CA3AF, false);
-        graphics.drawString(font, Component.translatable(
-                "gui.mirage_projector.chassis.motion_limits",
-                chassis.maxLiftPixels(), chassis.maxFloatPixels(), chassis.sourceCapacity()), chassisX, 318, 0xFF9CA3AF, false);
+        graphics.drawString(font, fitText(Component.translatable("gui.mirage_projector.power.multipliers",
+                chassis.displayName(), String.format(Locale.ROOT, "%.2f", chassis.powerMultiplier()),
+                String.format(Locale.ROOT, "%.2f", core.amplificationMultiplier())).getString(), 342),
+                coreTextX, 305, 0xFFBFD8FF, false);
 
-        int barX = 20, barY = 344, barW = 376;
-        int powerColor = power.active() ? 0xFF8FD19A : 0xFFFFA87A;
-        graphics.drawString(font, Component.translatable(
-                "gui.mirage_projector.power.explicit",
-                power.usedPower(), power.availablePower(), power.freePower()), 20, 332, powerColor, false);
-        graphics.fill(barX, barY, barX + barW, barY + 7, 0xFF252A31);
-        int fill = Math.round(barW * power.fillRatio());
-        graphics.fill(barX, barY, barX + fill, barY + 7, power.active() ? 0xFF8FD19A : 0xFFFF8A73);
+        Component loadMetric = Component.translatable("gui.mirage_projector.power.effective_load",
+                power.availablePower(), power.usedPower(), power.availablePower());
+        String loadText = loadMetric.getString();
+        if (breakdown.ghostSavings() > 0) {
+            loadText += " · " + Component.translatable("gui.mirage_projector.power.ghost_saving", breakdown.ghostSavings()).getString();
+        }
+        graphics.drawString(font, fitText(loadText, 342), coreTextX, 316,
+                power.active() ? 0xFF9FDBA9 : 0xFFFFA87A, false);
+
+        // Capacity bar is intentionally visual and compact. The detailed formula
+        // lives behind the small '?' hotspot instead of hijacking the whole panel.
+        int barX = coreTextX;
+        int barY = 328;
+        int barWidth = 342;
+        int barHeight = 5;
+        graphics.fill(barX, barY, barX + barWidth, barY + barHeight, 0xFF252A33);
+        int filled = power.availablePower() <= 0
+                ? 0
+                : (int) Math.round(barWidth * Math.min(1.0D, power.usedPower() / (double) power.availablePower()));
+        if (filled > 0) {
+            graphics.fill(barX, barY, barX + filled, barY + barHeight,
+                    power.usedPower() <= power.availablePower() ? 0xFF66B879 : 0xFFE07A5F);
+        }
+        graphics.fill(imageWidth - 26, 284, imageWidth - 14, 296, 0xFF252A33);
+        graphics.drawString(font, "?", imageWidth - 22, 286, 0xFFD7C3E7, false);
+
+        Component sizeMetric;
+        if (dimensions.empty()) {
+            sizeMetric = Component.translatable("gui.mirage_projector.limit.scale", scalePixels, scaleLimit);
+        } else if (chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM
+                && buildSettings().sourceMode() == ProjectionSettings.SourceMode.IMAGE) {
+            sizeMetric = Component.translatable("gui.mirage_projector.power.size_prism_adaptive",
+                    dimensions.widthPixels(), dimensions.heightPixels());
+        } else {
+            sizeMetric = Component.translatable("gui.mirage_projector.power.size_nominal",
+                    dimensions.widthPixels(), dimensions.heightPixels(),
+                    chassis.nominalWidthPixels(), chassis.nominalHeightPixels());
+        }
+        graphics.drawString(font, fitText(sizeMetric.getString(), 210), 20, 338, 0xFFBFD8FF, false);
+        graphics.drawString(font, fitText(Component.translatable("gui.mirage_projector.power.scale_effective",
+                scalePixels, scaleLimit).getString(), 170), 230, 338, 0xFFBFD8FF, false);
+        graphics.drawString(font, fitText(Component.translatable("gui.mirage_projector.power.motion_effective",
+                liftPixels, liftLimit, chassis.nominalLiftPixels(),
+                floatAmplitudePixels, floatLimit, chassis.nominalFloatPixels()).getString(), 376),
+                20, 349, 0xFFBFD8FF, false);
 
         Component validation;
         int validationColor;
@@ -323,7 +451,12 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
             validation = Component.translatable("gui.mirage_projector.status.no_projection");
             validationColor = 0xFF9CA3AF;
         }
-        graphics.drawString(font, fitText(validation.getString(), 376), 20, 356, validationColor, false);
+        String validationText = validation.getString();
+        if (overdrive.active() && power.active()) {
+            validationText = Component.translatable("gui.mirage_projector.power.overdrive_status",
+                    String.format(Locale.ROOT, "%.2f", overdrive.maximumRatio()), validation).getString();
+        }
+        graphics.drawString(font, fitText(validationText, 376), 20, 360, validationColor, false);
         graphics.drawString(font, Component.translatable("container.inventory"), MirageProjectorMenu.PLAYER_INV_X, MirageProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
     }
 
@@ -333,6 +466,43 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
         renderEmptyCoreTooltip(graphics, mouseX, mouseY);
+        renderPowerBreakdownTooltip(graphics, mouseX, mouseY);
+    }
+
+    private void renderPowerBreakdownTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        // dev.40: the breakdown is intentionally opt-in. Hovering anywhere in
+        // POWER / CAPACITY used to cover half the screen with a giant tooltip.
+        // Only the small '?' in the section header owns this tooltip now.
+        int minX = leftPos + imageWidth - 26;
+        int maxX = leftPos + imageWidth - 14;
+        int minY = topPos + 284;
+        int maxY = topPos + 296;
+        if (mouseX < minX || mouseX >= maxX || mouseY < minY || mouseY >= maxY) return;
+
+        ProjectionCoreProfile core = menu.coreProfile();
+        ProjectionChassisProfile chassis = menu.chassisProfile();
+        ProjectionSettings current = buildSettings();
+        ProjectionPower.Breakdown b = ProjectionPower.calculateBreakdown(
+                current, menu.hasProjectedSourceContent(), chassis, menu.projectedSourceCount());
+        ProjectionPower.Status status = ProjectionPower.evaluate(
+                current, core, chassis, menu.hasProjectedSourceContent(), menu.projectedSourceCount());
+
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.translatable("tooltip.mirage_projector.power.title"));
+        lines.add(Component.translatable("tooltip.mirage_projector.power.capacity_formula",
+                core.basePower(), String.format(Locale.ROOT, "%.2f", chassis.powerMultiplier()),
+                String.format(Locale.ROOT, "%.2f", core.amplificationMultiplier()), status.availablePower()));
+        lines.add(Component.translatable("tooltip.mirage_projector.power.base", b.baseCost()));
+        lines.add(Component.translatable("tooltip.mirage_projector.power.geometry", b.geometryCost()));
+        lines.add(Component.translatable("tooltip.mirage_projector.power.source", b.sourceCost()));
+        lines.add(Component.translatable("tooltip.mirage_projector.power.lift", b.liftCost()));
+        lines.add(Component.translatable("tooltip.mirage_projector.power.float", b.floatCost()));
+        lines.add(Component.translatable("tooltip.mirage_projector.power.features", b.featureCost()));
+        if (b.ghostSavings() > 0) {
+            lines.add(Component.translatable("tooltip.mirage_projector.power.ghost", b.ghostSavings()));
+        }
+        lines.add(Component.translatable("tooltip.mirage_projector.power.total", b.totalPower(), status.availablePower()));
+        graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
     }
 
     private void renderEmptyCoreTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -344,7 +514,8 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         lines.add(Component.translatable("tooltip.mirage_projector.core.accepted"));
         for (ProjectionCoreProfile profile : ProjectionCoreProfile.values()) {
             if (!profile.present()) continue;
-            lines.add(Component.translatable("tooltip.mirage_projector.core.entry", profile.displayComponent(), profile.power(), profile.maxScalePixels(), profile.maxLiftPixels(), profile.maxFloatPixels()));
+            lines.add(Component.translatable("tooltip.mirage_projector.core.entry", profile.displayComponent(),
+                    profile.basePower(), String.format(Locale.ROOT, "%.2f", profile.amplificationMultiplier())));
         }
         graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
     }
@@ -352,7 +523,14 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     @Override
     protected void containerTick() {
         super.containerTick();
-        updateClearance(false);
+        ProjectionCoreProfile currentCore = menu.coreProfile();
+        if (currentCore != observedCore) {
+            observedCore = currentCore;
+            refreshDynamicLimits(true);
+            updateClearance(true);
+        } else {
+            updateClearance(false);
+        }
     }
 
     private void updateClearance(boolean force) {

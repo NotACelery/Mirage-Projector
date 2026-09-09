@@ -18,9 +18,9 @@ public final class ItemProjectorScreen extends AbstractContainerScreen<ItemProje
     private static final int W = 360;
     private static final int H = 270;
     private static final int PREVIEW_X = 218;
-    private static final int PREVIEW_Y = 40;
+    private static final int PREVIEW_Y = 54;
     private static final int PREVIEW_W = 120;
-    private static final int PREVIEW_H = 94;
+    private static final int PREVIEW_H = 80;
 
     private final ItemProjectionPreviewRenderer preview = new ItemProjectionPreviewRenderer();
 
@@ -94,7 +94,7 @@ public final class ItemProjectorScreen extends AbstractContainerScreen<ItemProje
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, fit(title.getString(), 196), 10, 9, 0xFFF4F4F4, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.item.snapshot_slot"), 20, 43, 0xFFC9CED7, false);
-        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.item.preview"), PREVIEW_X + PREVIEW_W / 2, 43, 0xFFD7B8F5);
+        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.item.preview"), PREVIEW_X + PREVIEW_W / 2, 42, 0xFFD7B8F5);
 
         ItemStack stack = menu.snapshotStack();
         Component description = stack.isEmpty()

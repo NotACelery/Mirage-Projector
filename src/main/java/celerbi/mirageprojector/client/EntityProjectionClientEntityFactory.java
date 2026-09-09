@@ -22,6 +22,8 @@ import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.animal.horse.Horse;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
@@ -234,6 +236,19 @@ public final class EntityProjectionClientEntityFactory {
         living.yBodyRotO = 0.0F;
         living.yHeadRot = 0.0F;
         living.yHeadRotO = 0.0F;
+
+        // Projection-only entities must not react visually to the dimension in
+        // which the projector happens to be placed. Piglins and Hoglins report
+        // an active zombification conversion while rendered in a non-piglin-safe
+        // dimension, and vanilla renderers deliberately shake converting mobs.
+        // The Mirage clone never ticks or converts, so force immunity only on the
+        // temporary client-side copy. The frozen scan/NBT is left untouched.
+        if (living instanceof AbstractPiglin piglin) {
+            piglin.setImmuneToZombification(true);
+        }
+        if (living instanceof Hoglin hoglin) {
+            hoglin.setImmuneToZombification(true);
+        }
     }
 
     private static void applyProjectedEquipment(

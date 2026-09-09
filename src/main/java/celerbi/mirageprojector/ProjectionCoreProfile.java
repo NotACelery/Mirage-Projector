@@ -8,39 +8,37 @@ import net.minecraft.world.level.block.Blocks;
 /**
  * Material profile for the removable Projection Core socket.
  *
- * <p>These numbers are intentionally provisional during the 0.1.0 development line.
- * The data/validation architecture is shared by every chassis. dev.19 raises the provisional
- * power curve without allowing a Core to bypass the physical geometry limits of its chassis.</p>
+ * <p>dev.38 power-system contract:</p>
+ * <ul>
+ *     <li>A Core contributes only a base PU output plus an amplification multiplier.</li>
+ *     <li>A Core no longer owns hard Scale/Lift/Float caps.</li>
+ *     <li>The chassis multiplies the Core output and supplies nominal geometry/efficiency targets.</li>
+ *     <li>Future improved crafted cores should keep their material's base PU and raise only
+ *     {@link #amplificationMultiplier()} (planned first target: roughly x1.50).</li>
+ * </ul>
+ *
+ * <p>The current raw-material cores are all STANDARD grade, so their amplification is x1.00.
+ * The field is deliberately present now so improved cores can be added without another power-model rewrite.</p>
  */
 public enum ProjectionCoreProfile {
-    NONE("None", 0, 0, 0, 0, 0),
-    GLASS("Glass", 16, 16, 32, 2, 1),
-    QUARTZ("Quartz", 32, 32, 64, 4, 1),
-    AMETHYST("Amethyst", 96, 80, 96, 12, 4),
-    DIAMOND("Diamond", 192, 128, 128, 24, 8),
-    NETHERITE("Netherite", 384, 160, 160, 32, 16);
+    NONE("None", 0, 0.0F),
+    GLASS("Glass", 32, 1.0F),
+    QUARTZ("Quartz", 48, 1.0F),
+    AMETHYST("Amethyst", 64, 1.0F),
+    DIAMOND("Diamond", 96, 1.0F),
+    NETHERITE("Netherite", 128, 1.0F);
+
+    /** Design target reserved for the first purpose-built improved-core tier. */
+    public static final float PLANNED_IMPROVED_AMPLIFICATION = 1.50F;
 
     private final String displayName;
-    private final int power;
-    private final int maxScalePixels;
-    private final int maxLiftPixels;
-    private final int maxFloatPixels;
-    private final int futureSourceCapacity;
+    private final int basePower;
+    private final float amplificationMultiplier;
 
-    ProjectionCoreProfile(
-            String displayName,
-            int power,
-            int maxScalePixels,
-            int maxLiftPixels,
-            int maxFloatPixels,
-            int futureSourceCapacity
-    ) {
+    ProjectionCoreProfile(String displayName, int basePower, float amplificationMultiplier) {
         this.displayName = displayName;
-        this.power = power;
-        this.maxScalePixels = maxScalePixels;
-        this.maxLiftPixels = maxLiftPixels;
-        this.maxFloatPixels = maxFloatPixels;
-        this.futureSourceCapacity = futureSourceCapacity;
+        this.basePower = basePower;
+        this.amplificationMultiplier = amplificationMultiplier;
     }
 
     public String displayName() {
@@ -50,28 +48,21 @@ public enum ProjectionCoreProfile {
     public Component displayComponent() {
         return this == NONE
                 ? Component.translatable("gui.mirage_projector.core.none")
-                : Component.translatable("gui.mirage_projector.core.named", Component.translatable("gui.mirage_projector.core." + name().toLowerCase()));
+                : Component.translatable("gui.mirage_projector.core.named",
+                Component.translatable("gui.mirage_projector.core." + name().toLowerCase()));
     }
 
-    public int power() {
-        return power;
+    /** Raw PU produced by the material before chassis efficiency/amplification are applied. */
+    public int basePower() {
+        return basePower;
     }
 
-    public int maxScalePixels() {
-        return maxScalePixels;
-    }
-
-    public int maxLiftPixels() {
-        return maxLiftPixels;
-    }
-
-    public int maxFloatPixels() {
-        return maxFloatPixels;
-    }
-
-    /** Reserved for the multi-source/projector-chassis pass. */
-    public int futureSourceCapacity() {
-        return futureSourceCapacity;
+    /**
+     * Core-grade multiplier. Standard raw-material cores are x1.00. Future improved
+     * cores should increase this value while retaining the same material basePower.
+     */
+    public float amplificationMultiplier() {
+        return amplificationMultiplier;
     }
 
     public boolean present() {
@@ -106,9 +97,9 @@ public enum ProjectionCoreProfile {
     }
 
     /**
-     * Full block visual used by the BER for the tiny 2x3x2-pixel core column.
-     * The inserted raw item (quartz shard/diamond/etc.) is intentionally represented
-     * as its material block so the pedestal remains readable from several blocks away.
+     * Full block visual used by the BER for the tiny core column.
+     * The raw socket item is represented by its material block so the core remains
+     * readable from several blocks away.
      */
     public ItemStack visualStack() {
         return switch (this) {

@@ -36,8 +36,8 @@ public final class ClientAssetTransport {
             return;
         }
 
-        Path path = cachePath(assetId);
-        if (!Files.isRegularFile(path)) {
+        Path path = existingCachePath(assetId);
+        if (path == null) {
             UPLOAD_STATUS.put(assetId, "Upload failed · local cache file missing");
             MirageProjector.LOGGER.warn("Cannot upload Mirage asset {} because it is missing from the local cache", assetId);
             return;
@@ -45,7 +45,7 @@ public final class ClientAssetTransport {
 
         try {
             byte[] bytes = Files.readAllBytes(path);
-            if (bytes.length <= 0 || bytes.length > ProjectionAssetRules.MAX_NORMALIZED_BYTES) {
+            if (bytes.length <= 0 || bytes.length > ProjectionAssetRules.MAX_ASSET_BYTES) {
                 UPLOAD_STATUS.put(assetId, "Upload failed · invalid normalized size");
                 MirageProjector.LOGGER.warn("Cannot upload Mirage asset {} because its size is invalid", assetId);
                 return;
@@ -114,7 +114,7 @@ public final class ClientAssetTransport {
     }
 
     public static void requestIfMissing(String assetId) {
-        if (!ProjectionAssetRules.isValidAssetId(assetId) || Files.isRegularFile(cachePath(assetId))) {
+        if (!ProjectionAssetRules.isValidAssetId(assetId) || existingCachePath(assetId) != null) {
             return;
         }
 
@@ -180,18 +180,27 @@ public final class ClientAssetTransport {
         UPLOAD_STATUS.clear();
     }
 
+    /** New generic path. Contents may be normalized PNG or a preserved GIF. */
     public static Path cachePath(String assetId) {
         return Minecraft.getInstance().gameDirectory.toPath()
                 .resolve("mirage_projector")
                 .resolve("cache")
-                .resolve(assetId + ".png");
+                .resolve(assetId + ".asset");
+    }
+
+    /** dev.1-dev.38 compatibility: prefer .asset, then fall back to historical .png. */
+    public static Path existingCachePath(String assetId) {
+        Path generic = cachePath(assetId);
+        if (Files.isRegularFile(generic)) return generic;
+        Path legacy = generic.resolveSibling(assetId + ".png");
+        return Files.isRegularFile(legacy) ? legacy : null;
     }
 
     private static boolean validEnvelope(DownloadAssetChunkPayload payload) {
         if (!ProjectionAssetRules.isValidAssetId(payload.assetId())) {
             return false;
         }
-        if (payload.totalBytes() <= 0 || payload.totalBytes() > ProjectionAssetRules.MAX_NORMALIZED_BYTES) {
+        if (payload.totalBytes() <= 0 || payload.totalBytes() > ProjectionAssetRules.MAX_ASSET_BYTES) {
             return false;
         }
         if (payload.totalChunks() <= 0 || payload.totalChunks() > ProjectionAssetRules.MAX_CHUNKS) {

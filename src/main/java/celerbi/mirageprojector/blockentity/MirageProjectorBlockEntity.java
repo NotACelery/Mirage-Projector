@@ -207,11 +207,19 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void applyImageWorkspace(ProjectionSettings newSettings, ImageSourceBank bank) {
-        settings = newSettings.sanitized().withSourceMode(ProjectionSettings.SourceMode.IMAGE);
+        ProjectionSettings next = newSettings.sanitized().withSourceMode(ProjectionSettings.SourceMode.IMAGE);
+        if (!chassisProfile().supportsMultiSourceImageLayout()
+                && next.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
+            next = next.withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
+        }
+        settings = next;
         imageSourceBank.clearAll();
-        int limit = Math.min(ImageSourceBank.MAX_SLOTS, chassisProfile().imageLayoutSlots());
         if (bank != null) {
-            for (int i = 0; i < limit; i++) {
+            // Preserve the complete legacy bank on write even when this chassis no
+            // longer consumes every slot. Rendering/Power only inspect the active
+            // Wide/Tall 0-3 range; keeping 4-8 prevents dev.33 Field data from
+            // being destroyed merely by opening/applying the corrected workspace.
+            for (int i = 0; i < ImageSourceBank.MAX_SLOTS; i++) {
                 imageSourceBank.set(i, bank.get(i));
             }
         }
@@ -374,7 +382,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     public int projectedSourceCount() {
         return switch (settings.sourceMode()) {
             case IMAGE -> {
-                if (chassisProfile().hasMultiSourceImageLayout()) {
+                if (chassisProfile().supportsMultiSourceImageLayout() && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
                     yield imageSourceBank.countPresent(chassisProfile().imageLayoutSlots());
                 }
                 if (chassisProfile().geometry() != ProjectionChassisProfile.Geometry.PRISM) {
@@ -403,7 +411,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     /** Whether the currently selected source actually has something renderable. */
     public boolean hasProjectedSourceContent() {
         return switch (settings.sourceMode()) {
-            case IMAGE -> chassisProfile().hasMultiSourceImageLayout()
+            case IMAGE -> chassisProfile().supportsMultiSourceImageLayout() && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI
                     ? imageSourceBank.hasAny(chassisProfile().imageLayoutSlots())
                     : chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM
                     ? settings.hasAnyImage()
@@ -653,12 +661,28 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         settings = ProjectionSettings.load(tag);
+        if (!chassisProfile().supportsMultiSourceImageLayout()
+                && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
+            settings = settings.withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
+        }
         imageSourceBank.clearAll();
         if (tag.contains("ImageSourceBank")) {
             imageSourceBank.load(tag.getCompound("ImageSourceBank"));
-        } else if (chassisProfile().hasMultiSourceImageLayout() && settings.hasImage()) {
-            // Migration from pre-dev.33: preserve the old single Front image as slot 1.
+        } else if (chassisProfile().supportsMultiSourceImageLayout() && settings.hasImage()) {
+            // Keep a seed for the optional four-source mode without changing the
+            // historical/default continuous single-image Plane.
             imageSourceBank.set(0, settings.imageId(), settings.imageWidth(), settings.imageHeight());
+        }
+
+        // dev.33-dev.37 accidentally made Wide/Tall multi-source mandatory and
+        // Field a 3x3 grid. Recover slot 1 as the continuous Front image when an
+        // affected world has no legacy Front asset, then default back to SINGLE.
+        if (!tag.contains("ImageLayoutMode") && !settings.hasImage()) {
+            ImageSourceBank.Asset legacySlot = imageSourceBank.get(0);
+            if (legacySlot.present()) {
+                settings = settings.withImage(legacySlot.id(), legacySlot.width(), legacySlot.height())
+                        .withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
+            }
         }
         projectionSnapshotId = null;
         projectionSnapshot.setStackInSlot(0, ItemStack.EMPTY);

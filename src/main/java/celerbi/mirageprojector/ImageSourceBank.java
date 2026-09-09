@@ -9,11 +9,13 @@ import java.util.Arrays;
  * Persistent virtual image sources used by the multi-source Plane chassis.
  *
  * <p>The bank is intentionally separate from ProjectionSettings. Presentation
- * settings remain one global state while Wide/Tall/Field own a set of independent
+ * settings remain one global state while Wide/Tall own a set of independent
  * image sources. Slots contain only asset identity + original pixel dimensions;
  * no local filename is persisted or sent over the network.</p>
  */
 public final class ImageSourceBank {
+    /** Nine slots are retained on disk/wire only to recover dev.33-dev.37 worlds.
+     * Current Wide/Tall MULTI layouts expose slots 0-3; Field no longer uses this bank. */
     public static final int MAX_SLOTS = 9;
     private final Asset[] slots = new Asset[MAX_SLOTS];
 

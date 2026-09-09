@@ -4,6 +4,7 @@ import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.entity.HumanoidPosePreset;
+import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.entity.EntityProjectionState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -84,6 +85,8 @@ public final class ProjectionClearance {
         boolean prism = safeChassis.geometry() == ProjectionChassisProfile.Geometry.PRISM
                 && (s.sourceMode() == ProjectionSettings.SourceMode.IMAGE
                 || s.sourceMode() == ProjectionSettings.SourceMode.BANNER);
+        double orientationDegrees = s.rotationOffsetDegrees()
+                + placementFacingAngle(level, projectorPos, safeChassis, s);
         if (s.sourceMode() == ProjectionSettings.SourceMode.ITEM
                 || s.sourceMode() == ProjectionSettings.SourceMode.ENTITY) {
             double radius = Math.max(0.05D, width * 0.5D);
@@ -98,7 +101,7 @@ public final class ProjectionClearance {
                 halfX = swept;
                 halfZ = swept;
             } else {
-                double radians = Math.toRadians(s.rotationOffsetDegrees());
+                double radians = Math.toRadians(orientationDegrees);
                 double axisExtent = radius * (Math.abs(Math.cos(radians)) + Math.abs(Math.sin(radians)));
                 halfX = axisExtent;
                 halfZ = axisExtent;
@@ -111,7 +114,7 @@ public final class ProjectionClearance {
         } else {
             // A stationary 2D plane uses a thin oriented envelope to avoid false positives.
             double halfWidth = width * 0.5D;
-            double radians = Math.toRadians(s.rotationOffsetDegrees());
+            double radians = Math.toRadians(orientationDegrees);
             double thickness = 0.01D;
             halfX = Math.max(thickness,
                     Math.abs(Math.cos(radians)) * halfWidth + Math.abs(Math.sin(radians)) * thickness);
@@ -147,6 +150,32 @@ public final class ProjectionClearance {
             }
         }
         return new Result(blocked, checked, envelope, List.copyOf(blockedPreview));
+    }
+
+    private static double placementFacingAngle(
+            Level level,
+            BlockPos projectorPos,
+            ProjectionChassisProfile chassis,
+            ProjectionSettings settings
+    ) {
+        // Prism Image/Banner slots are true world-cardinal faces. Physical block
+        // placement does not remap North/East/South/West.
+        if (chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM
+                && (settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
+                || settings.sourceMode() == ProjectionSettings.SourceMode.BANNER)) {
+            return 0.0D;
+        }
+        var state = level.getBlockState(projectorPos);
+        if (!state.hasProperty(MirageProjectorBlock.FACING)) {
+            return 0.0D;
+        }
+        return switch (state.getValue(MirageProjectorBlock.FACING)) {
+            case SOUTH -> 0.0D;
+            case EAST -> 90.0D;
+            case NORTH -> 180.0D;
+            case WEST -> 270.0D;
+            default -> 0.0D;
+        };
     }
 
     /** Compatibility overload retained for Compact-only callers. */

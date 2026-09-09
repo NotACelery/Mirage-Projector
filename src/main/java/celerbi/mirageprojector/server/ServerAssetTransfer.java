@@ -73,7 +73,7 @@ public final class ServerAssetTransfer {
             ServerAssetStore.store(server, payload.assetId(), bytes);
             sendUploadAck(player, payload.assetId(), true, "Stored on server");
         } catch (IOException exception) {
-            sendUploadAck(player, payload.assetId(), false, "Server rejected the normalized image");
+            sendUploadAck(player, payload.assetId(), false, "Server rejected the projection asset");
             MirageProjector.LOGGER.warn("Rejected Mirage asset upload {} from {}", payload.assetId(), player.getGameProfile().getName(), exception);
         }
     }
@@ -110,7 +110,7 @@ public final class ServerAssetTransfer {
         if (!ProjectionAssetRules.isValidAssetId(assetId)) {
             return false;
         }
-        if (totalBytes <= 0 || totalBytes > ProjectionAssetRules.MAX_NORMALIZED_BYTES) {
+        if (totalBytes <= 0 || totalBytes > ProjectionAssetRules.MAX_ASSET_BYTES) {
             return false;
         }
         if (totalChunks <= 0 || totalChunks > ProjectionAssetRules.MAX_CHUNKS) {

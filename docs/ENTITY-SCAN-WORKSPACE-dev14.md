@@ -1,3 +1,5 @@
+> **Historical note — amended by dev.38:** simple Humanoid card removal still preserves the bodyless mannequin, but activating Horse or Generic clears hidden Humanoid Incoming/Projected snapshots because those GUI rows disappear. Activating Humanoid clears hidden Horse snapshots. See `ENTITY-WORKSPACE-LIFETIME-dev38.md`.
+
 # Mirage Projector dev.14 — Empty Scan Template + Entity Workspace
 
 This document is the implementation handoff for the entity-projection work introduced in `0.1.0-dev.14`. The normative product rules remain in `ENTITY-PROJECTION-CONTRACT.md`.

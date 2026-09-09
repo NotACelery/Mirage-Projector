@@ -1,3 +1,170 @@
+# Mirage Projector 0.1.0-dev.40
+
+## Power / Capacity GUI repair
+
+- Reserves a dedicated left column for the physical Projection Core slot so Core/Power text can no longer paint over it.
+- Restores a visible capacity/load progress bar directly below the Effective capacity / Load line.
+- Removes the dev.38-dev.39 section-wide Power hover trap: moving the cursor through POWER / CAPACITY no longer opens a giant formula tooltip.
+- Detailed PU breakdown remains available deliberately through a small `?` hotspot in the Power header.
+- Keeps the exact dev.38 Power formula, Overdrive, dynamic slider bounds and Ghost rebate unchanged; this is a presentation/UX correction, not a rebalance.
+
+## Dimension-neutral projection entities
+
+- Fixes Piglin previews and world projections shaking continuously in the Overworld/End even though Mirage entities never tick or convert.
+- Root cause: the vanilla Piglin renderer uses the live `AbstractPiglin#isConverting()` state for conversion shaking; reconstructed Mirage clones inhabit the current client dimension, so an ordinary Nether Piglin reports a zombification conversion when viewed in an unsafe dimension.
+- `EntityProjectionClientEntityFactory` now normalizes temporary `AbstractPiglin` clones with zombification immunity after frozen NBT load.
+- Applies the same projection-only immunity to Hoglin clones to prevent the equivalent Zoglin conversion state.
+- The real mob, frozen scan-card NBT and source identity are never modified. Preview and world rendering share the same normalization path.
+- Mirage still never calls `tick()` / `aiStep()` on projection-only entities.
+
+## Documentation / status
+
+- Adds `docs/ENTITY-DIMENSION-NORMALIZATION-dev40.md`.
+- Adds `docs/DEV40-UI-ENTITY-QA.md`.
+- Adds `docs/CURRENT-IMPLEMENTATION-AUDIT-dev40.md` as the new recovery authority while retaining dev.39 GIF/import documentation unchanged.
+- Network protocol remains **18**; dev.40 changes no payload or persisted schema.
+- Improved Core items/recipes/variant specializations remain the next design pass, not part of dev.40.
+- dev.39 was successfully executed in-game; dev.40 remains a SOURCE candidate until Windows build + in-game QA.
+
+---
+
+# Mirage Projector 0.1.0-dev.39
+
+- Content-sniffed import failsafe: extension is ignored for decoder selection; renamed GIF stays animated, animated WebP/APNG are detected and rejected explicitly instead of silently flattening.
+- Static import support is PNG/JPEG/WebP/BMP; GIF is the supported animated format. New assets use generic `.asset`, with dev.1-dev.38 `.png` compatibility retained.
+- Prism Image faces gain adaptive Wide-like/Tall-like/Square-like nominal envelopes (80x32 / 32x80 / 48x48) while remaining four N/E/S/W faces with no stacking mode. Geometry overdrive is charged per face.
+
+## GIF / Animated Image implementation
+
+- Promotes GIF from future scope to a real **Image Workspace source** on all six current projector chassis.
+- GIF is not a new SourceMode: every existing Image control continues to apply to the current animation frame (Scale, Lift, Rotation, Floating, Lighting, Ghost, Tint, Scanlines, Vertical Flip and Plane Front/Back semantics).
+- Compact, Display and Field support one continuous static/GIF Plane.
+- Wide/Tall support GIF in both `SINGLE` and `MULTI`; each of the four 4x1/1x4 cells may independently contain a static image or GIF.
+- Prism North/East/South/West may each contain independent GIFs. `Same Source on All Faces` reuses one content-addressed animated asset and one decoded frame cache, keeping copied faces synchronized without duplicating bytes.
+- Mirrored/Readable rear faces reuse the same current Front frame rather than creating a second animation instance; Independent Front/Back may use separate animations.
+
+## GIF decoder / timing / safety
+
+- Adds `GifAssetDecoder`, which decodes each asset once into full logical-screen RGBA frames and respects ImageDescriptor offsets plus `none/doNotDispose`, `restoreToBackground` and `restoreToPrevious` transitions.
+- Frame timing is read from GIF centiseconds. Zero delay falls back to 100 ms; non-zero delay is clamped to at least 20 ms (50 FPS ceiling); one frame may wait at most 10 seconds; one loop may total at most 5 minutes.
+- Mirage intentionally loops projected GIFs continuously; finite source loop counts are not used as a projection lifetime.
+- Playback is selected from a shared monotonic client clock. Reusing the same GIF asset on one client therefore resolves to the same frame at the same moment. Wide/Tall MULTI and Prism sample that clock once per layout draw so duplicated source ids cannot split across an animation-frame boundary inside one projector render.
+- GIF technical limits: 8 MiB preserved source asset, 1024 px maximum logical canvas axis, 128 frames and 16,777,216 decoded frame-pixels (`canvasWidth * canvasHeight * frameCount`). These are memory/network safety rails, not gameplay Scale limits.
+- Validates each encoded GIF frame rectangle against the logical canvas **before** asking ImageIO to allocate/decode frame pixels, closing the compressed-descriptor memory-bomb path.
+- Static images keep the 2048 px normalization dimension and now share the generic 8 MiB persisted asset ceiling; they are still normalized to PNG.
+- GIF has **no additional PU surcharge**. PU models emitter geometry/presentation; animation decode cost is bounded by technical limits instead of hidden client-only gameplay power.
+
+## Generic asset transport/cache
+
+- Static PNG and animated GIF now share one content-addressed transport envelope. The server accepts only supported PNG/GIF signatures within their type limit and verifies SHA-256 before storing.
+- Transport maximum becomes 8 MiB while retaining 32 KiB chunks.
+- New local/world assets use neutral `<hash>.asset` filenames because stored bytes may be PNG or GIF.
+- dev.1-dev.38 `<hash>.png` cache/world assets remain readable and uploadable/downloadable; SHA-256 identity is unchanged and no existing image NBT is rewritten.
+- `ProjectionTextureCache` now caches either one static DynamicTexture or all validated GIF frame textures. `invalidate`/session clear releases the complete frame set.
+- Network protocol increases **17 -> 18** so dev.38 and dev.39 do not silently mix asset-validation semantics.
+
+## Wide/Tall SINGLE aspect rules frozen
+
+- Adds `ProjectionImageSizing` as the shared renderer/power authority for continuous Image Plane dimensions.
+- SINGLE images/GIFs are never cropped or stretched.
+- Wide + landscape/square: Scale controls projected width; height follows aspect ratio.
+- Wide + portrait: portrait height remains the dominant Scale axis; the source is legal but reaches Wide vertical overdrive sooner.
+- Tall + portrait/square: Scale controls projected height; width follows aspect ratio.
+- Tall + landscape: landscape width remains the dominant Scale axis; the source is legal but reaches Tall horizontal overdrive sooner.
+- Power and renderer now consume the same sizing helper, preventing a future mismatch where PU is calculated for different dimensions than the quad actually rendered.
+- MULTI remains the dev.38 square-cell contract: Scale 80 = Wide 80x20 / Tall 20x80 with four equivalent 20x20 cells.
+- The Image layout button now explains the Wide/Tall SINGLE orientation rule in its tooltip.
+- Wide/Tall SINGLE workspace also surfaces source dimensions, current Scale-derived projected W×H, and highlights the cross-orientation case (portrait in Wide / landscape in Tall) so the rule is visible without opening documentation.
+
+## Documentation
+
+- Adds `docs/GIF-ANIMATED-IMAGE-dev39.md` as the authoritative animation/import/transport/playback/safety contract.
+- Adds `docs/WIDE-TALL-SINGLE-ASPECT-dev39.md` as the authoritative aspect/Scale/Overdrive contract for one continuous Wide/Tall image.
+- Adds `docs/CURRENT-IMPLEMENTATION-AUDIT-dev39.md` and `docs/DEV39-GIF-QA.md` for recovery/build/in-game validation.
+- Debug Handbook General pages now document GIF support/limits; Wide/Tall tabs explicitly document SINGLE aspect behavior.
+- Older README/DEVELOPMENT statements that call GIF future-only are superseded by the dev.39 authority section and docs above.
+
+## Validation status
+
+- Source-level implementation is complete for the dev.39 candidate, but Windows `build.bat` and in-game QA remain authoritative before marking it build-clean.
+- Priority live QA: transparent/disposal-heavy GIF, Compact/Display/Field, Wide/Tall SINGLE and four-source MULTI, Prism four independent GIFs, Front/Mirrored/Readable/Independent, all Image effects, save/reload, second-client download, old `.png` migration and technical-limit rejection.
+
+---
+
+# Mirage Projector 0.1.0-dev.38
+
+## Projection Power System Rework
+
+- **Deprecates the dev.8/dev.19 double-hard-cap model.** Projection Cores no longer define independent Scale/Lift/Float maxima and chassis geometry/Lift/Float values are no longer absolute gameplay walls.
+- Standard Core base-output curve is now Glass 32 PU, Quartz 48 PU, Amethyst 64 PU, Diamond 96 PU and Netherite 128 PU.
+- Adds chassis PU multipliers: Compact ×1.00, Display ×1.50, Wide ×2.00, Tall ×2.00, Field ×4.00 and Prism ×2.00.
+- Effective capacity is now `floor(Core base PU × chassis multiplier × Core amplification)`.
+- Standard raw-material Cores use amplification ×1.00. `ProjectionCoreProfile` reserves the amplification term for future purpose-built Improved Cores; the current design target is roughly ×1.50 while retaining the material's same base PU. Improved Core items/recipes/textures are not introduced yet.
+- Chassis W×H/Lift/Float values become **nominal efficiency targets**. Going beyond nominal is legal Overdrive when sufficient PU exists.
+- Overdrive applies a quadratic penalty independently to Geometry, Lift and Float: a component at ratio `r=current/nominal` costs `r²` once `r>1`.
+- Removes runtime `CORE_SCALE_LIMIT`, `CORE_LIFT_LIMIT`, `CORE_FLOAT_LIMIT`, `CHASSIS_ENVELOPE_LIMIT`, `CHASSIS_LIFT_LIMIT` and `CHASSIS_FLOAT_LIMIT` failure paths. Power validation is now Core present + physical Float/Lift safety + Effective PU budget.
+- Keeps the physical invariant `Float amplitude <= Lift` while Floating is enabled.
+
+## Exact PU breakdown + Ghost efficiency
+
+- Every non-empty projection pays a 2 PU emitter/stability base.
+- Geometry base cost is `ceil(projected area / 256)` PU before Geometry Overdrive.
+- Lift base cost is `ceil(Lift / 16)` PU before Lift Overdrive.
+- Float base cost is `ceil(Float / 2)` PU while Floating is active, before Float Overdrive.
+- Explicit source-complexity surcharges: Independent Plane +1; populated Wide/Tall MULTI beyond one source +1; Prism Image +2; Item +2; Entity +4; Banner Plane +1; Banner Prism +2.
+- Explicit presentation costs: Rotation +1, rotation-synced Floating +1, Fullbright +1, Image Scanlines +1; Tint/Flip remain free.
+- Ghost now supplies a deliberately tiny PU rebate: `floor((grossPU - 2) × Ghost% / 3000)`. At the 90% Ghost safety maximum it cannot exceed 3% of non-base load and rounds down, preventing low-cost abuse.
+- Adds `ProjectionPower.Breakdown` and a Power-section hover tooltip showing the complete capacity formula and every load component.
+
+## Dynamic slider/Power UX rework
+
+- Scale, Lift and Float slider endpoints are generated from the largest currently feasible value under the installed Core, chassis multiplier, active settings and current Effective PU.
+- The player no longer intentionally drags through invalid/orange ranges to find a pixel threshold.
+- If a Core/feature change makes an already-loaded configuration invalid, recovery prefers reducing Float, then Lift, then Scale only as a final fallback.
+- Power panel now prioritizes Core base output, chassis multiplier, Core amplification, Effective capacity/load, actual dimensions vs nominal and current/effective maximum for Scale/Lift/Float.
+- `Remaining PU` is no longer the primary limit explanation; exact PU components are available on hover.
+- Creative Debug chassis now removes Overdrive penalties for stress tests but still requires a Core, still obeys Effective PU and still obeys `Float <= Lift`.
+- Internal Scale/Lift/Float technical ceilings are safety/search rails only and are no longer documented as chassis gameplay limits.
+
+## Chassis/Image contract recovery
+
+- Rolls back the accidental dev.33 mandatory multi-source interpretation. **Field is restored as one continuous large Plane**; the 3×3/9-image UI/render contract is removed.
+- Current Field nominal target becomes 128×128 px / Lift 144 / Float 24 with chassis multiplier ×4.00.
+- Wide and Tall gain an explicit Image layout toggle: one continuous image (`SINGLE`) or four independent images (`MULTI`) arranged 4×1 / 1×4.
+- MULTI uses four equal square cells. Scale 80 resolves to Wide 80×20 or Tall 20×80 (four 20×20 cells), fixing the Tall-vs-Wide source magnification mismatch.
+- Current nominal targets: Compact 10×10 / 32 / 4; Display 32×32 / 48 / 12; Wide 80×32 / 64 / 12; Tall 32×80 / 96 / 16; Field 128×128 / 144 / 24; Prism 48×48 / 96 / 12.
+- Legacy `ImageSourceBank` still serializes nine slots only to preserve dev.33-dev.37 data. Field never consumes/displays the old grid; slot 0 can be recovered as continuous Front on migration. Wide/Tall use slots 0-3 in MULTI.
+- Adds/persists `ImageLayoutMode`; network protocol remains **17** for the dev.38 source line.
+
+## Placement / GUI / Entity-lifetime / render-pipeline fixes carried in the same wave
+
+- Adds furnace-style horizontal `FACING` to all current projector blocks. Plane rendering follows the placed chassis orientation.
+- Prism Image/Banner sources remain true world-cardinal North/East/South/West and are not renamed by physical block facing.
+- Every registered chassis now renders the same floating vanilla-book idle marker when no renderable source exists, even when its Core socket is empty. This removes the Compact-only idle feedback caused by Compact historically starting with Glass while the other five chassis start with empty Core sockets.
+- Fixes Entity workspace kind transitions: inserting a card whose kind exposes a different equipment-row family clears virtual Incoming/Projected snapshots belonging to rows that disappear. Humanoid -> Horse/Generic clears all six Humanoid armor/hand snapshots; Horse -> Humanoid/Generic clears Horse Saddle/Body snapshots; Generic exposes no editable equipment rows.
+- Removing a Humanoid card by itself still preserves the bodyless Humanoid mannequin use case. The new cleanup occurs when a different card kind becomes active and the GUI actually changes slot family, preventing hidden NBT/memory from resurfacing later.
+- Incompatible virtual workspace cleanup also resets that workspace's pose preset to its default. Physical staging items are never silently deleted; normal menu-close return/drop safety remains authoritative.
+- Adds a dev.38 load-time migration guard: saved projectors with an active Generic/Horse/Humanoid body prune virtual equipment from incompatible hidden families, while true no-body mannequin saves are left untouched.
+- Fixes Item Snapshot Workspace heading/preview collision: the Screen owns the label and the preview renderer only renders model content.
+- Keeps the dev.37 Entity render-order recovery: deferred Entity holograms use Mirage's private BufferSource at `AFTER_TRIPWIRE_BLOCKS`; Mirage must not flush Minecraft's global block/entity buffer again.
+
+## Documentation sweep
+
+- Adds `docs/POWER-SYSTEM-REWORK-dev38.md` as the authoritative mathematical/power contract.
+- Rewrites `docs/CHASSIS-IMAGE-LAYOUT-POWER-UX-dev38.md` as the authoritative chassis/image/facing/GUI contract.
+- `docs/MULTI-SOURCE-IMAGE-LAYOUTS-dev33.md` remains historical and explicitly SUPERSEDED.
+- README and DEVELOPMENT mark the dev.8/dev.19 hard-cap model and dev.33 Field grid as historical/superseded wherever they could otherwise be mistaken for current rules.
+- Adds `docs/ENTITY-WORKSPACE-LIFETIME-dev38.md` as the authoritative card-kind/virtual-equipment lifetime contract and updates the long-lived Entity contract with the dev.38 transition rule.
+- Marks GIF/animated-image import as the first feature priority after dev.38 stabilization; Improved Core items/recipes/models remain a subsequent balance/art wave rather than being mixed into this stabilization build.
+
+## Validation
+
+- Static source/data consistency and documentation audits are required before packaging.
+- Windows `build.bat` and in-game QA remain authoritative before dev.38 can become build-clean.
+- Priority QA: Field continuous Plane; Wide/Tall SINGLE/MULTI symmetry; core/chassis effective capacity and Overdrive; dynamic slider endpoints; Ghost rebate; N/E/S/W block placement; floating idle book on all six chassis; Entity Humanoid/Horse/Generic card-kind cleanup; Item Workspace layout; and dev.37 Entity/projector/water depth-order regression tests.
+
+---
+
 # Mirage Projector 0.1.0-dev.37
 
 ## Render-order recovery + tabbed Debug Handbook

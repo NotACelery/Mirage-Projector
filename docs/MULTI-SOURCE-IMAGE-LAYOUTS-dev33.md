@@ -1,3 +1,5 @@
+> **SUPERSEDED by dev.38.** This document records the historical dev.33 implementation, not the current design contract. The mandatory Field 3×3/9-source layout was an incorrect interpretation and has been rolled back. Current rules: Field = one continuous 128×128 Plane; Wide/Tall = optional SINGLE or four-source 4×1 / 1×4 modes.
+
 # Multi-source Image layouts — dev.33
 
 ## Physical layouts

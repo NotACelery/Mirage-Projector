@@ -60,8 +60,13 @@ public final class ImageProjectorMenu extends AbstractContainerMenu {
         return initialImageBank.copy();
     }
 
+    public boolean supportsMultiSourceLayout() {
+        return chassisProfile.supportsMultiSourceImageLayout();
+    }
+
     public boolean hasMultiSourceLayout() {
-        return chassisProfile.hasMultiSourceImageLayout();
+        return supportsMultiSourceLayout()
+                && initialSettings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI;
     }
 
     public int imageLayoutColumns() {

@@ -13,9 +13,11 @@ import java.util.Optional;
  *
  * <p>The staged physical scan card is deliberately not owned here. Importing a
  * card copies its frozen entity body into this state and copies card equipment
- * into incoming virtual channels. Removing the card clears that card-supplied
- * body; Humanoid incoming/projected equipment survives as independent mannequin
- * state, while Horse-only virtual channels are contextual and are cleared.</p>
+ * into incoming virtual channels. Removing a Humanoid card may leave its virtual
+ * mannequin equipment available while the workspace is bodyless, but inserting a
+ * card whose kind exposes a different slot set immediately clears every virtual
+ * equipment workspace that is no longer valid. This prevents invisible armor/hand
+ * snapshots from surviving behind Generic or Horse GUIs and later reappearing.</p>
  */
 public final class EntityProjectionState {
     private CompoundTag activeEntityScan = new CompoundTag();
@@ -168,13 +170,22 @@ public final class EntityProjectionState {
             return false;
         }
 
-        EntityScanData.Kind previousKind = activeKind();
-        activeEntityScan = root.get();
         EntityScanData.View scan = view.get();
 
-        if (previousKind == EntityScanData.Kind.HORSE && scan.kind() != EntityScanData.Kind.HORSE) {
-            clearHorseWorkspace();
+        // A change of entity kind also changes which equipment rows exist in the
+        // workspace. Virtual snapshots belonging to rows that disappear must be
+        // destroyed immediately instead of remaining hidden in NBT/memory and
+        // resurfacing when the card is removed later.
+        switch (scan.kind()) {
+            case HUMANOID -> clearHorseWorkspace();
+            case HORSE -> clearHumanoidWorkspace();
+            case GENERIC -> {
+                clearHumanoidWorkspace();
+                clearHorseWorkspace();
+            }
         }
+
+        activeEntityScan = root.get();
 
         switch (scan.kind()) {
             case HUMANOID -> loadIncoming(
@@ -248,9 +259,16 @@ public final class EntityProjectionState {
         activeEntityScan = new CompoundTag();
     }
 
+    public void clearHumanoidWorkspace() {
+        humanoidIncoming.clearAll();
+        humanoidProjected.clearAll();
+        humanoidPose = HumanoidPosePreset.STANDING;
+    }
+
     public void clearHorseWorkspace() {
         horseIncoming.clearAll();
         horseProjected.clearAll();
+        horsePose = HorsePosePreset.IDLE;
     }
 
     public CompoundTag save(HolderLookup.Provider registries) {
@@ -287,6 +305,27 @@ public final class EntityProjectionState {
         horseProjected.load(root == null ? new CompoundTag() : root.getCompound("HorseProjected"), registries);
         pruneProjectedDuplicates(humanoidIncoming, humanoidProjected, HUMANOID_CHANNELS);
         pruneProjectedDuplicates(horseIncoming, horseProjected, EntityScanData.HORSE_CHANNELS);
+        pruneIncompatibleWorkspaceForActiveEntity();
+    }
+
+    /**
+     * dev.38 migration/repair pass for worlds saved by builds that could retain
+     * invisible virtual equipment behind a different active entity family.
+     * A truly bodyless workspace is intentionally left untouched so the supported
+     * Humanoid mannequin-without-card state survives reloads.
+     */
+    private void pruneIncompatibleWorkspaceForActiveEntity() {
+        if (!hasActiveEntity()) {
+            return;
+        }
+        switch (activeKind()) {
+            case HUMANOID -> clearHorseWorkspace();
+            case HORSE -> clearHumanoidWorkspace();
+            case GENERIC -> {
+                clearHumanoidWorkspace();
+                clearHorseWorkspace();
+            }
+        }
     }
 
     private static void pruneProjectedDuplicates(

@@ -1,7 +1,119 @@
 # Mirage Projector
 
-> **Development baseline: `0.1.0-dev.37` (SOURCE candidate).** dev.37 is the recovery pass after dev.36 in-game QA exposed depth/order regressions: Entity holograms now flush from a Mirage-owned buffer at NeoForge `AFTER_TRIPWIRE_BLOCKS`, Image rendering is no longer affected by a global `endBatch()`, and the Debug Handbook is enlarged/centred with General + six chassis tabs. Protocol remains 15. Windows build/in-game QA of dev.37 remain pending; dev.35 is still the last fully confirmed build-clean visual baseline.
+> **Development baseline: `0.1.0-dev.40` (SOURCE candidate).** dev.39 ya fue ejecutado in-game y queda como baseline vivo de GIF/import/aspect. dev.40 conserva protocolo **18** y corrige la UX de POWER / CAPACITY más la estabilidad de Piglin/Hoglin como clones de proyección dimension-neutral. Windows build/in-game QA de dev.40 siguen pendientes.
 
+
+## Contrato autoritativo actual — dev.40
+
+### Power / Capacity UX
+
+El Power System matemático de dev.38 **no cambia**: Base PU × chassis multiplier × Core amplification, nominales con Overdrive, sliders dinámicos y Ghost rebate mínimo siguen siendo autoridad. dev.40 corrige cómo se presenta:
+
+- el Core slot tiene una columna reservada y nunca comparte píxeles con texto;
+- la barra visual `Load / Effective capacity` vuelve a existir;
+- pasar el mouse por el panel ya no abre un tooltip enorme;
+- el breakdown exacto sólo aparece al buscarlo en el pequeño `?` del header.
+
+### Projection-only entity environment normalization
+
+Los clones Mirage deben representar el snapshot visual y **no reaccionar al dimension/bioma local como si fueran mobs vivos**. Piglin y Hoglin son el primer adapter explícito: después de cargar el NBT congelado, sólo la copia temporal client-side recibe inmunidad a zombificación. Esto elimina el shake vanilla de conversión en Overworld/End sin tocar la entidad real ni la Entity Scan Card. Preview y world projection usan la misma factory. Véase `docs/ENTITY-DIMENSION-NORMALIZATION-dev40.md`.
+
+### Autoridad acumulativa
+
+GIF/formats/Wide/Tall/Prism siguen gobernados por los documentos dev.39 (`GIF-ANIMATED-IMAGE-dev39.md`, `IMAGE-FORMAT-IMPORT-CONTRACT-dev39.md`, `WIDE-TALL-SINGLE-ASPECT-dev39.md`, `PRISM-ADAPTIVE-ASPECT-dev39.md`). Power/chassis/lifetime siguen gobernados por dev.38. Para recuperación general desde este punto, usar `docs/CURRENT-IMPLEMENTATION-AUDIT-dev40.md`.
+
+## Contrato autoritativo actual — dev.39
+
+Cuando cualquier nota histórica de dev.8–dev.37 contradiga esta sección, mandan esta sección y:
+
+- `docs/POWER-SYSTEM-REWORK-dev38.md`;
+- `docs/CHASSIS-IMAGE-LAYOUT-POWER-UX-dev38.md`.
+- `docs/ENTITY-WORKSPACE-LIFETIME-dev38.md`.
+- `docs/DEV38-CLOSURE-QA.md`;
+- `docs/GIF-ANIMATED-IMAGE-dev39.md`;
+- `docs/WIDE-TALL-SINGLE-ASPECT-dev39.md`;
+- `docs/CURRENT-IMPLEMENTATION-AUDIT-dev39.md`;
+- `docs/DEV39-GIF-QA.md`.
+
+
+### GIF / Animated Image — dev.39
+
+GIF ya no es backlog: es una fuente real del **Image Workspace**. No añade un SourceMode nuevo. Compact/Display/Field reproducen un Plane animado; Wide/Tall aceptan GIF tanto en SINGLE como en sus cuatro slots MULTI; Prism permite GIF independiente en North/East/South/West. Los efectos de Image (Flip, Scanlines, Tint, Ghost, Lighting, Rotation, Float y BackFaceMode) se aplican al frame actual.
+
+El asset GIF se valida y conserva como GIF para no perder timing/disposal. Nuevos assets se almacenan como `<sha256>.asset`; los `<sha256>.png` históricos de dev.1-dev.38 siguen siendo compatibles. Límites vigentes: GIF <= 8 MiB, canvas <= 1024 px por eje, <= 128 frames, <= 16.777.216 frame-píxeles decodificados, delay mínimo 20 ms y loop máximo 5 min. Mirage decodifica una vez y cachea frames; no lee el archivo en cada frame.
+
+GIF no paga un surcharge de PU: la PU sigue midiendo geometría/presentación del emisor, mientras memoria/decoder se controlan con límites técnicos independientes.
+
+#### Detección por contenido y formatos
+
+La extensión nunca decide el decoder. dev.39 acepta PNG, JPG/JPEG, WebP estático y BMP como fuentes estáticas, más GIF animado. GIF renombrado a `.png/.jpg/.webp` sigue siendo GIF. Animated WebP y APNG se detectan por sus bytes/chunks y se rechazan explícitamente por ahora, incluso si fueron renombrados; Mirage nunca los degrada silenciosamente al primer frame. Contrato completo: `docs/IMAGE-FORMAT-IMPORT-CONTRACT-dev39.md`.
+
+#### Prism adaptativo
+
+Prism sigue siendo exclusivamente cuatro caras cardinales N/E/S/W, una fuente por cara y sin stacking 4x1/1x4. Para no quedar limitado a arte cuadrado, cada cara usa un nominal adaptativo para PU: horizontal claro -> 80x32 (Wide-like), vertical claro -> 32x80 (Tall-like), casi cuadrado -> 48x48. La geometría/overdrive se cobra por cara. Ver `docs/PRISM-ADAPTIVE-ASPECT-dev39.md`.
+
+### Wide/Tall SINGLE — regla de aspect ratio
+
+SINGLE **nunca estira ni recorta**. Wide con fuente apaisada/cuadrada usa Scale como ancho; si la fuente es vertical, su altura pasa a ser el eje dominante y llega antes al overdrive vertical de Wide. Tall hace el inverso: vertical/cuadrada usa Scale como alto; una fuente apaisada conserva su ratio pero llega antes al overdrive horizontal. El renderer y `ProjectionPower` usan la misma función `ProjectionImageSizing`, así que el tamaño cobrado en PU es exactamente el que se dibuja. MULTI conserva las cuatro celdas cuadradas equivalentes de dev.38.
+
+### Power
+
+```text
+Effective PU = floor(Core base PU × Chassis multiplier × Core amplification)
+```
+
+| Standard Core | Base PU |
+|---|---:|
+| Glass | 32 |
+| Quartz | 48 |
+| Amethyst | 64 |
+| Diamond | 96 |
+| Netherite | 128 |
+
+Los Cores estándar actuales tienen amplificación ×1.00. El sistema ya reserva un multiplier para futuros Improved Cores (target inicial ≈ ×1.50 manteniendo la misma base PU del material), pero sus items/recipes/textures se diseñarán después del QA de balance.
+
+Los chassis ya **no poseen hard caps de gameplay** para Scale/Lift/Float. Sus medidas son rangos **nominales de eficiencia**: se pueden superar con Overdrive si hay Effective PU, pero el componente que supera nominal paga una penalización cuadrática `ratio²`.
+
+### Chassis/Image
+
+| Chassis | Image contract | Nominal W×H | Nominal Lift | Nominal Float | PU multiplier |
+|---|---|---:|---:|---:|---:|
+| Mirage Projector / Compact | one continuous Plane | 10×10 px | 32 px | 4 px | ×1.00 |
+| Mirage Display | one continuous Plane | 32×32 px | 48 px | 12 px | ×1.50 |
+| Wide | toggle: one wide image **or** optional 4×1 | 80×32 px | 64 px | 12 px | ×2.00 |
+| Tall | toggle: one tall image **or** optional 1×4 | 32×80 px | 96 px | 16 px | ×2.00 |
+| Mirage Field | **one continuous large Plane; never a 3×3 grid** | 128×128 px | 144 px | 24 px | ×4.00 |
+| Mirage Prism | N/E/S/W lateral cardinal faces | 48×48 px/face | 96 px | 12 px | ×2.00 |
+
+Wide/Tall MULTI usa cuatro celdas cuadradas equivalentes: Scale 80 = Wide 80×20 o Tall 20×80, con cuatro celdas 20×20. Field no posee grid ni selector de 9 imágenes.
+
+Scale/Lift/Float terminan en el **máximo efectivo pagable** por la configuración actual. La GUI muestra capacidad efectiva, carga, nominales y máximos dinámicos; `Remaining PU` deja de ser el mecanismo principal para entender límites.
+
+Ghost da un rebate de PU deliberadamente mínimo: a 90% no puede superar el **3% del coste no-base** y se redondea hacia abajo.
+
+Newly placed projectors usan horizontal furnace-style facing. Plane hereda esa orientación; Prism Image/Banner mantiene N/E/S/W como puntos cardinales reales del mundo.
+
+### Entity workspace lifetime
+
+Humanoid sigue soportando el **bodyless mannequin**: retirar una Humanoid Scan Card limpia el body, pero los seis canales virtuales pueden quedarse mientras no se active otra familia de entidad. La regla nueva de dev.38 es de invalidación por **cambio de tipo de GUI**:
+
+| Card que pasa a estar activa | Workspace virtual que puede conservarse | Workspace virtual que debe limpiarse |
+|---|---|---|
+| Humanoid | Humanoid Head/Chest/Legs/Feet/Main/Off | Horse Saddle/Body |
+| Horse | Horse Saddle/Body | los seis Humanoid |
+| Generic | ninguno editable | Humanoid + Horse |
+
+Esto evita que armor/manos guardadas queden invisibles detrás de una GUI Generic/Horse y vuelvan a aparecer al retirar esa card. Los snapshots incompatibles se borran cuando desaparecen sus filas y su pose contextual vuelve a default. Los **items físicos de staging no se destruyen** por esta limpieza; mantienen el retorno/drop seguro existente.
+
+### Idle state de chassis
+
+Compact, Display, Wide, Tall, Field y Prism deben mostrar el mismo **libro vanilla flotante** cuando no existe ninguna fuente renderizable. El idle marker no requiere Core. Esta regla corrige la asimetría donde sólo Compact lo mostraba porque Compact conserva el Glass Core histórico por defecto y los otros cinco empiezan con socket vacío.
+
+### Estado pendiente inmediato
+
+dev.39 fue ejecutado in-game por el usuario. dev.40 es el **SOURCE candidate** actual y todavía no debe marcarse build-clean hasta Windows `build.bat` + QA. Faltan Windows `build.bat` y QA acumulativo: GIF en los seis chassis, compositor/timing/transparencia, Wide/Tall SINGLE y MULTI, migración `.png` -> `.asset`, multiplayer asset download, Power/Overdrive/sliders, facing N/E/S/W, libro idle, lifetime Humanoid/Horse/Generic y la regresión Entity/projector/water de dev.36-dev.37. El inventario actual vive en `docs/CURRENT-IMPLEMENTATION-AUDIT-dev39.md` y el checklist específico en `docs/DEV39-GIF-QA.md`.
+
+Tras estabilizar dev.40, la siguiente oleada prevista vuelve a **Improved Core items/recipes/textures y variantes especializadas**, definiendo primero para cada una rol, efecto, amplificación, materiales y caso de uso; después vendrán posibles retoques visuales de chassis. El backlog técnico adicional mantiene RenderTypes/glint especiales, bounds Entity específicos por renderer, preview Banner rico, performance/culling y multiplayer stress QA.
 
 > Documento maestro de diseño y alcance para **Mirage Projector**, un mod de decoración y exhibición para Minecraft 1.21.1 / NeoForge.
 
@@ -13,7 +125,7 @@ La intención no es crear una pantalla de video ni un navegador dentro de Minecr
 
 Casos de uso previstos:
 
-- Una imagen PNG/JPG/JPEG/WebP flotando sobre un pedestal.
+- Una imagen PNG/JPG/JPEG/WebP o GIF animado flotando sobre un pedestal.
 - Pixel art o ilustraciones de personajes como decoración.
 - Logos de base, emblemas de facción o carteles.
 - Banners sin poste, flotando y rotando.
@@ -22,8 +134,8 @@ Casos de uso previstos:
 - Una armadura completa ensamblada en forma de figura holográfica.
 - Una figura de armadura enorme, de varios bloques de altura.
 - Un "Mirage Prism" con cuatro caras laterales y una imagen distinta en cada una.
-- Varias imágenes colocadas juntas en un mismo campo de proyección.
-- GIFs animados como extensión futura, por ejemplo un estandarte ondeando.
+- Cuatro imágenes colocadas en tira 4×1/1×4 mediante Wide/Tall MULTI.
+- GIFs animados reales, por ejemplo un estandarte ondeando o cuatro animaciones independientes en Prism.
 - Instalaciones monumentales visibles desde lejos, como una estatua de armadura de netherita con un tridente.
 
 El nombre **Mirage Projector** se elige precisamente porque las proyecciones de los modelos grandes deberían sentirse más cercanas a un espejismo artificial que a una simple pantalla.
@@ -32,49 +144,55 @@ El nombre **Mirage Projector** se elige precisamente porque las proyecciones de 
 
 ## 2. Principio de diseño principal
 
-El sistema se divide en dos conceptos independientes:
+Desde dev.38 el sistema se divide en tres responsabilidades separadas. Esta separación reemplaza la antigua regla donde Core y chassis poseían límites hardcodeados superpuestos.
 
 ### 2.1. Projector / Chassis
 
 El **cuerpo físico del proyector** determina:
 
-- La geometría de proyección que soporta.
-- El volumen máximo donde puede existir la proyección.
-- El ancho máximo.
-- El alto máximo.
-- La profundidad máxima, cuando corresponda.
-- La cantidad física de espacio disponible para el efecto de flotación.
-- El tipo de fuente visual que puede manejar.
-- Si soporta una sola cara, varias caras, volumen 3D, figura humanoide, etc.
-- Las funciones especiales propias de ese cuerpo.
+- la geometría y los Source layouts que soporta;
+- el rango **nominal** de ancho/alto, Lift y Float donde opera a eficiencia normal;
+- el multiplicador con el que aprovecha la PU base del Core;
+- sus capacidades especiales (Plane, Prism, multi-source opcional, etc.);
+- su forma física, Core socket y orientación al colocarse.
+
+Los valores nominales **no son hard caps de gameplay**. Una configuración suficientemente alimentada puede superar nominal mediante Overdrive, pagando una penalización cuadrática por el componente excedido.
 
 Regla conceptual:
 
-> **El Projector determina qué forma puede tomar el Mirage.**
+> **El Chassis determina la forma del Mirage y cuán eficientemente usa la potencia disponible.**
 
 ### 2.2. Projection Core
 
-El **núcleo insertado en el proyector** determina la potencia disponible dentro de los límites físicos del chassis.
+El **núcleo insertado** aporta la PU base:
 
-El núcleo afecta, según el diseño final:
+- Glass: 32 PU;
+- Quartz: 48 PU;
+- Amethyst: 64 PU;
+- Diamond: 96 PU;
+- Netherite: 128 PU.
 
-- Tamaño máximo efectivo dentro del envelope del projector.
-- Altura máxima a la que puede elevarse la proyección.
-- Amplitud máxima de flotación.
-- Cantidad máxima de fuentes simultáneas.
-- Coste de geometrías especiales.
-- Coste de proyecciones 3D.
-- Coste de figuras de equipamiento.
-- Cantidad de caras activas.
-- Alcance de proyección.
-- Potencia total disponible para efectos.
-- Potencialmente distancia de render recomendada o capacidad de una instalación monumental.
+El Core estándar **no** impone Scale/Lift/Float max. Su responsabilidad es aportar energía al sistema.
 
 Regla conceptual:
 
-> **El Core determina cuánto Mirage puede sostener el Projector.**
+> **El Core determina la materia prima energética del Mirage.**
 
-Un núcleo muy potente no convierte un projector compacto en un projector gigantesco. El chassis sigue imponiendo su límite físico.
+### 2.3. Core amplification / grado
+
+La capacidad efectiva incluye un multiplier de Core separado de la PU base. Los Cores raw actuales son Standard ×1.00. Los futuros Improved Cores deben conservar la PU base del material y aumentar este multiplier, con un target inicial aproximado de ×1.50.
+
+Regla conceptual:
+
+> **El grado del Core determina cuánto puede amplificarse la misma PU base sin inventar una segunda escalera arbitraria de energía.**
+
+La capacidad final es:
+
+```text
+Effective PU = floor(Core base PU × Chassis multiplier × Core amplification)
+```
+
+Esto permite, por diseño, que un Compact con Netherite y un Field con Glass partan ambos de 128 Effective PU, pero el Field sea muchísimo más eficiente para superficies grandes porque su nominal geometry es 128×128 en vez de 10×10.
 
 ---
 
@@ -109,7 +227,7 @@ Estado acumulado actual:
 12. **Item Mode dev.7→dev.12**: renderer 3D con ItemRenderer vanilla; desde dev.12 el antiguo slot físico se reemplaza por un **Virtual Snapshot Slot** que copia el estado visual del ItemStack sin consumir, almacenar ni devolver el objeto real.
 13. **Clearance dev.7→dev.9**: la GUI escanea el volumen de proyección; dev.9 añade overlay in-world, outline de obstructores y un envelope delgado orientado para Planes estáticas.
 14. Botones para limpiar Front/Back sin tener que reemplazar el asset.
-15. **Core / Power dev.8**: Glass, Quartz, Amethyst, Diamond y Netherite como núcleos físicos intercambiables, con presupuesto de potencia, límites de Scale/Lift/Float y core visual dinámico.
+15. **Core / Power dev.8 (histórico; modelo de límites superseded en dev.38)**: Glass, Quartz, Amethyst, Diamond y Netherite pasan a ser núcleos físicos intercambiables y se crea el primer presupuesto Power. Sus antiguos hard caps de Scale/Lift/Float ya no son vigentes.
 16. **Image completeness dev.9→dev.10**: WebP local mediante decoder embebido, preview dentro de la GUI, Fullbright/World Light, Ghost Effect/Transparency, Tint y Scanlines.
 17. **Clearance preview dev.9**: envelope del Mirage y bloques obstructores dibujados directamente en el mundo mientras la GUI está abierta.
 18. **Transfer feedback dev.9**: progreso de download, porcentaje de envío de upload, ACK final del servidor, estados locales de fallo y reintento manual desde la GUI.
@@ -129,6 +247,7 @@ Estado acumulado actual:
 32. **Entity stabilization dev.24→dev.26**: inventarios Item/Entity recentrados, Horse Reposo/En dos patas seleccionable y Ghost migrado a RenderTypes Mirage que no escriben depth; cuerpo y armor humanoide comparten alpha.
 33. **Held-item Ghost dev.27→dev.28**: Main/Off Hand normaliza también capas raw de ItemRenderer para conservar alpha sin escribir depth sobre agua.
 34. **Banner Mode dev.28**: snapshots virtuales no consumibles, Plane Front, Prism North/East/South/West, copia de North a todas las caras y renderer de tela/patterns vanilla sin poste ni travesaño.
+35. **Power/chassis recovery dev.38**: Core base PU × chassis multiplier × Core amplification, Overdrive cuadrático, sliders efectivos, Ghost rebate mínimo, Field continuo, Wide/Tall SINGLE/MULTI opcional, facing horizontal y reparación del layout Item Preview.
 
 ### 3.1A. Arquitectura de GUI desde dev.19
 
@@ -148,7 +267,7 @@ La pantalla principal ya no contiene previews diminutas ni botones de importaci�
 
 El **Mirage Debug Handbook** temporal usa componentes traducibles y sirve como manual in-game mientras la documentación/jugabilidad todavía cambia rápido.
 
-La curva provisional de Core sube en dev.19 a 16/32/96/192/384 PU (Glass→Netherite), manteniendo límites físicos independientes por chassis.
+> **Nota histórica:** dev.19 usó temporalmente la curva 16/32/96/192/384 PU y hard caps independientes. **Superseded por dev.38.** La curva vigente es 32/48/64/96/128 base PU, multiplicada por chassis y Core amplification; chassis usa nominales + Overdrive.
 
 ### 3.2. Dependencias embebidas y notices
 
@@ -160,7 +279,7 @@ El porcentaje de upload mostrado por el cliente significa **chunks despachados h
 
 El download calcula su porcentaje a partir de chunks realmente recibidos. Al completar, el cliente vuelve a verificar SHA-256 antes de hacer el reemplazo atómico del PNG cacheado y de invalidar la DynamicTexture anterior.
 
-La build sigue siendo de desarrollo. Desde dev.12 Item usa snapshots virtuales no robables y dev.14→dev.22 construyó Entity Scan, preview/world render y poses. dev.23→dev.26 estabilizó propiedad de staging, layouts, Horse Idle/Rearing y el pipeline Ghost no-depth-write para cuerpo/armor. dev.27 extiende ese contrato a Main/Off Hand para cerrar el artefacto de agua de ItemRenderer. dev.28 suma **Banner Mode** con snapshots virtuales y tela/patterns vanilla sin poste, incluyendo cuatro caras independientes en Mirage Prism. Siguen pendientes QA fino de glint/custom RenderTypes, renderers especiales no-LivingEntity y bounds especiales por renderer; los layouts multi-source de Wide/Tall/Field quedan implementados en dev.33.
+La build sigue siendo de desarrollo. Desde dev.12 Item usa snapshots virtuales no robables y dev.14→dev.22 construyó Entity Scan, preview/world render y poses. dev.23→dev.26 estabilizó propiedad de staging, layouts, Horse Idle/Rearing y el pipeline Ghost no-depth-write para cuerpo/armor. dev.27 extiende ese contrato a Main/Off Hand para cerrar el artefacto de agua de ItemRenderer. dev.28 suma **Banner Mode** con snapshots virtuales y tela/patterns vanilla sin poste, incluyendo cuatro caras independientes en Mirage Prism. Siguen pendientes QA fino de glint/custom RenderTypes, renderers especiales no-LivingEntity y bounds especiales por renderer. El layout dev.33 queda histórico: dev.38 conserva MULTI sólo como opción de Wide/Tall y restaura Field a un único Plane continuo.
 
 ## 3.1. Política permanente de URLs y descripciones
 
@@ -331,307 +450,234 @@ La versión inicial puede comenzar con una progresión simple y posteriormente e
 
 ---
 
-# 6. Potencia del núcleo
+# 6. Projection Power — contrato dev.38
 
-Se prefiere un sistema de **Projection Power** por sobre una colección de restricciones totalmente arbitrarias.
+> **Supersedes dev.8/dev.19.** La documentación histórica que asigne Scale/Lift/Float max a cada Core ya no describe el sistema activo.
 
-Ejemplo conceptual:
+Projection Power sigue siendo un presupuesto propio de Mirage y **no es FE/redstone energy**.
 
-```text
-Projection Power
-██████████████░░░░░░
-14 / 20
-```
+## 6.1. Base PU de Core
 
-Cada característica puede consumir parte de ese presupuesto.
+| Standard Core | Base PU | Core amplification actual |
+|---|---:|---:|
+| Glass | 32 | ×1.00 |
+| Quartz | 48 | ×1.00 |
+| Amethyst | 64 | ×1.00 |
+| Diamond | 96 | ×1.00 |
+| Netherite | 128 | ×1.00 |
 
-Ejemplos de posibles consumidores de energía:
+El material determina Base PU. No existe en dev.38 `Core Scale max`, `Core Lift max` ni `Core Float max`.
 
-- área de imagen;
-- volumen;
-- cantidad de caras;
-- cantidad de slots;
-- distancia vertical al projector;
-- proyección 3D;
-- figura de equipamiento;
-- escala;
-- cantidad de objetos simultáneos;
-- animación compleja;
-- GIF;
-- layout multi-display.
+## 6.2. Chassis multiplier
 
-Los valores numéricos finales no están congelados todavía. En **dev.8** existe una primera curva jugable/provisional:
+| Chassis actual | PU multiplier |
+|---|---:|
+| Compact | ×1.00 |
+| Display | ×1.50 |
+| Wide | ×2.00 |
+| Tall | ×2.00 |
+| Field | ×4.00 |
+| Prism | ×2.00 |
 
-| Core | Power | Scale max | Lift max | Float max | Capacidad futura de sources |
-|---|---:|---:|---:|---:|---:|
-| Glass | 8 | 10 px | 16 px | 1 px | 1 |
-| Quartz | 16 | 16 px | 32 px | 2 px | 1 |
-| Amethyst | 48 | 48 px | 64 px | 8 px | 2 |
-| Diamond | 96 | 80 px | 96 px | 16 px | 4 |
-| Netherite | 192 | 160 px en debug | 160 px | 32 px | 8 |
-
-El coste actual suma estabilización base, área/tamaño, lift, rotation, floating, surcharge 3D para Item Mode y extras como Independent Back. Estos números son deliberadamente fáciles de modificar una vez que tengamos QA real.
-
-## 6.1. Regla de doble límite
-
-Toda proyección debe pasar dos límites:
-
-### Límite de chassis
-
-El cuerpo físico permite o no permite esa forma/tamaño.
-
-### Límite de core
-
-El núcleo puede o no alimentar esa configuración.
-
-Ejemplo:
+La capacidad utilizable es:
 
 ```text
-Compact Mirage Projector
-Hard envelope: < 1 × 1 block
-
-Glass Core
-Power: baja
-
-Diamond Core
-Power: alta
+Effective PU = floor(Core base PU × Chassis multiplier × Core amplification)
 ```
 
-Aunque Diamond tenga energía sobrante, no puede superar el envelope físico del Compact Projector.
+Ejemplo deliberado:
+
+```text
+Compact + Netherite = 128 × 1.00 = 128 Effective PU
+Field + Glass        =  32 × 4.00 = 128 Effective PU
+```
+
+Ambos poseen el mismo presupuesto efectivo, pero Field es mucho más eficiente para geometría grande porque sus targets nominales son mucho mayores.
+
+## 6.3. Improved Cores
+
+La arquitectura separa `Core amplification` de Base PU. Los futuros Improved Cores deben conservar la Base PU de su material y aumentar la amplificación; el target inicial de diseño es aproximadamente ×1.50.
+
+Ejemplo futuro:
+
+```text
+Improved Netherite
+Base PU 128
+Core amplification ×1.50
+```
+
+No se añaden todavía los items/recipes/textures de Improved Cores. Primero se valida el balance estándar. La fórmula ya está preparada para agregarlos sin rehacer el sistema.
+
+## 6.4. Nominal y Overdrive
+
+Chassis W×H, Lift y Float pasan a ser **targets nominales de eficiencia**, no hard caps. Superarlos es posible con PU suficiente.
+
+Para cualquier componente por encima de nominal:
+
+```text
+ratio = current / nominal
+Overdrive cost multiplier = ratio²
+```
+
+El penalty se aplica de forma independiente a Geometry, Lift y Float. Un Compact muy potente puede superar 10×10, pero pagará rápidamente mucho más que Display/Field por el mismo resultado.
+
+## 6.5. Fórmula de consumo
+
+Para una proyección no vacía:
+
+```text
+Gross PU =
+    2 PU emitter/stability
+  + Geometry PU
+  + Source complexity PU
+  + Lift PU
+  + Float PU
+  + Presentation feature PU
+```
+
+### Geometry
+
+```text
+baseGeometry = ceil(projectedAreaPx² / 256)
+Geometry PU = ceil(baseGeometry × geometryOverdriveRatio²)
+```
+
+`256 px²` equivale a un área 16×16.
+
+### Lift
+
+```text
+baseLift = ceil(LiftPx / 16)
+Lift PU = ceil(baseLift × liftOverdriveRatio²)
+```
+
+### Float
+
+Sólo Floating ON:
+
+```text
+baseFloat = ceil(FloatPx / 2)
+Float PU = ceil(baseFloat × floatOverdriveRatio²)
+```
+
+Además existe la regla física:
+
+```text
+Float <= Lift
+```
+
+### Source complexity
+
+- Independent Front+Back real: +1;
+- Wide/Tall MULTI con más de una fuente: +1;
+- Prism Image: +2;
+- Item: +2;
+- Entity: +4;
+- Banner Plane: +1;
+- Banner Prism: +2.
+
+### Presentation features
+
+- Rotation: +1;
+- Rotation-synced Floating activo: +1;
+- Fullbright: +1;
+- Image Scanlines: +1;
+- Tint/Flip: +0.
+
+## 6.6. Ghost rebate
+
+Ghost entrega sólo una reducción óptica mínima:
+
+```text
+eligible = max(0, Gross PU - 2)
+Ghost saving = floor(eligible × Ghost% / 3000)
+Final load = max(1, Gross PU - Ghost saving)
+```
+
+A Ghost 90%, el ahorro teórico máximo es 3% del coste no-base y se redondea hacia abajo. No está pensado como herramienta de min-max ni para volver gratis una proyección pequeña.
+
+## 6.7. Dynamic sliders
+
+Scale/Lift/Float usan como endpoint el mayor valor que puede sostener la configuración actual con su Effective PU.
+
+El usuario no debe poder navegar una gran región inválida sólo para buscar el umbral donde el estado deja de ponerse naranja.
+
+La GUI muestra como información principal:
+
+- Base PU;
+- chassis multiplier;
+- Core amplification;
+- Effective capacity;
+- Final load;
+- actual W×H vs nominal W×H;
+- Scale current/effective max;
+- Lift current/effective max + nominal;
+- Float current/effective max + nominal;
+- estado Overdrive.
+
+El hover de la sección Power expone el desglose exacto por componente. `Remaining PU` puede derivarse para diagnóstico, pero deja de ser la métrica principal.
+
+Para la especificación matemática completa ver `docs/POWER-SYSTEM-REWORK-dev38.md`.
 
 ---
 
-# 7. Familias de Projectors previstas
+# 7. Familias de Projectors — targets nominales vigentes
 
-Los nombres y medidas exactas pueden cambiar durante desarrollo. Desde dev.9 `ProjectionChassisProfile` actúa como contrato central para que el cálculo de Power/limits no vuelva a hardcodear Compact. Desde **dev.10 Compact, Display, Wide, Tall y Field son bloques registrados** que comparten la misma arquitectura; **dev.21 convierte Prism en bloque/chassis funcional para imágenes estáticas de cuatro caras**. Effigy/Colossal siguen siendo contratos hasta sus oleadas dedicadas.
+Los valores siguientes **no son hard caps** desde dev.38. Son el rango donde el chassis opera sin penalty de Overdrive.
 
-| Chassis profile dev.10 | Envelope W×H | Lift máx. | Float máx. | Sources físicas | Geometry |
-|---|---:|---:|---:|---:|---|
-| Compact | 10×10 px | 32 px | 4 px | 1 | Plane |
-| Display | 16×16 px | 48 px | 6 px | 1 | Plane |
-| Wide | 80×32 px | 64 px | 8 px | 4 | Plane |
-| Tall | 32×80 px | 96 px | 12 px | 4 | Plane |
-| Field | 80×80 px | 96 px | 16 px | 9 | Plane |
-| Prism | 48×48 px | 96 px | 12 px | 4 | Prism |
-| Effigy | 96×160 px | 128 px | 16 px | 8 | Effigy |
-| Colossal | 160×160 px | 160 px | 32 px | 16 | Volumetric |
+| Chassis | Nominal W×H | Nominal Lift | Nominal Float | Sources/layout | Geometry | PU multiplier |
+|---|---:|---:|---:|---|---|---:|
+| Compact | 10×10 px | 32 px | 4 px | 1 | Plane | ×1.00 |
+| Display | 32×32 px | 48 px | 12 px | 1 | Plane | ×1.50 |
+| Wide | 80×32 px | 64 px | 12 px | SINGLE o 4×1 opcional | Plane | ×2.00 |
+| Tall | 32×80 px | 96 px | 16 px | SINGLE o 1×4 opcional | Plane | ×2.00 |
+| Field | 128×128 px | 144 px | 24 px | 1 continuo | Plane | ×4.00 |
+| Prism | 48×48 px/face | 96 px | 12 px | N/E/S/W | Prism | ×2.00 |
+| Effigy | 96×160 px | 128 px | 16 px | futuro | Effigy | provisional ×3.00 |
+| Colossal | 160×160 px | 160 px | 32 px | futuro | Volumetric | provisional ×5.00 |
 
-Estos valores **no son todavía balance final**. Sirven para separar arquitectura de geometría desde ahora y pueden ajustarse cuando existan los modelos/crafts. El Debug Chassis Override de Creative sólo salta los límites del chassis; nunca salta el Core ni el Power Budget.
+Effigy/Colossal permanecen como arquitectura futura; sus multiplicadores todavía no son balance jugable congelado.
+
+Creative `Debug chassis` elimina penalties de Overdrive para stress test, pero no ignora Core, Effective PU ni `Float <= Lift`.
 
 ## 7.1. Compact Mirage Projector
 
-Objetivo:
+Objetivo: displays pequeños y baratos. Nominal 10×10. Puede entrar en Overdrive con un Core fuerte, pero no debe ser la opción eficiente para obras grandes.
 
-- Decoración pequeña.
-- Primer prototipo.
-- Una sola imagen.
-- Un solo item en futuras versiones.
-- Menos de 1 × 1 bloque de proyección.
+## 7.2. Mirage Display
 
-Modelo actual:
+Objetivo: display general single-plane, nominal 32×32, con más Lift/Float que Compact. Es la opción natural para ilustraciones normales sin saltar a un chassis grande.
 
-- proyección de referencia de 10 × 10 px.
-- un pixel de margen vertical.
-- pedestal completo de 16 × 16 px de footprint.
+## 7.3. Wide
 
-Core previsto de entrada:
+Objetivo: panoramas y filas de imágenes. Image Workspace permite toggle:
 
-- Glass o núcleo equivalente de baja potencia.
+- `Single image`: un Plane ancho continuo;
+- `4 images`: cuatro fuentes 4×1.
 
-## 7.2. Mirage Display — bloque funcional desde dev.10
+En MULTI las celdas son cuadradas y simétricas con Tall. Scale 80 = 80×20 total, cuatro celdas 20×20.
 
-Projector general de aproximadamente 1 × 1. El modelo actual es un prototipo funcional propio con base de obsidiana, óptica de vidrio y Core dinámico; el arte final puede cambiar.
+## 7.4. Tall
 
-Objetivo:
+Objetivo: ilustraciones altas, banners visuales grandes y cascadas sin pagar Field. Toggle:
 
-- Imagen estándar.
-- Item estándar.
-- Banner pequeño.
-- Mayor margen vertical.
-- Mayor libertad de posicionamiento.
+- `Single image`: un Plane alto continuo;
+- `4 images`: cuatro fuentes 1×4.
 
-## 7.3. Wide Mirage Projector — bloque funcional desde dev.10
+Scale 80 = 20×80 total, cuatro celdas 20×20.
 
-Envelope implementado para Plane/Image Mode:
+## 7.5. Mirage Field
 
-- hasta **80 px / 5 bloques de ancho**;
-- hasta **32 px / 2 bloques de alto**.
-
-Pero el usuario no elige arbitrariamente 5 × 2 deformando la imagen.
-
-La proyección debe mantener aspect ratio.
-
-Ejemplo:
-
-- envelope 5 × 2;
-- imagen 16:9;
-- si el Scale elegido produce más de 32 px de alto, la configuración queda marcada inválida hasta bajar Scale o activar Debug Chassis en Creative. Una futura pasada puede convertir ese límite en un máximo dinámico del slider sin destruir el valor guardado.
-
-Uso:
-
-- banners horizontales;
-- logos;
-- carteles;
-- panoramas;
-- varias imágenes en fila.
-
-## 7.4. Tall Mirage Projector — bloque funcional desde dev.10
-
-Envelope implementado:
-
-- **32 px / 2 bloques de ancho**;
-- **80 px / 5 bloques de alto**.
-
-Uso:
-
-- banners altos;
-- personajes;
-- señalética vertical;
-- estatuas planas;
-- decoraciones altas.
-
-## 7.5. Mirage Field Projector — bloque funcional desde dev.10
-
-Envelope inicial implementado:
-
-- **80×80 px / hasta 5×5 bloques** para Plane/Image Mode.
-
-Uso:
-
-- grandes superficies;
-- varias imágenes;
-- composiciones decorativas;
-- carteles visibles desde lejos.
+Objetivo: una superficie 2D masiva. Field muestra **una sola imagen continua** y no posee modo 3×3/9 imágenes. Nominal 128×128 y Lift 144.
 
 ## 7.6. Mirage Prism
 
-Projector especializado en geometría de cuatro caras.
+Objetivo: cuatro caras laterales world-cardinales North/East/South/West. No posee top/bottom. Cada cara puede tener fuente independiente; Same Source on All Faces puede reutilizar North.
 
-Forma:
+## 7.7. Placement facing
 
-- cuatro caras laterales;
-- arriba abierto;
-- abajo abierto.
+Los projectors actuales almacenan FACING horizontal y se colocan estilo furnace mirando al jugador. Plane hereda ese facing como orientación base. Prism Image/Banner conserva las etiquetas N/E/S/W como cardinales reales del mundo.
 
-Esencialmente:
-
-```text
-      ┌────────┐
-     /        /│
-    / IMAGE  / │
-   ├────────┤  │
-   │ IMAGE  │ IMAGE
-   │        │ /
-   └────────┘/
-```
-
-No es un cubo sólido.
-
-Es una colección de cuatro quads.
-
-Slots:
-
-- North.
-- East.
-- South.
-- West.
-
-Cada cara puede contener:
-
-- la misma imagen;
-- imágenes diferentes;
-- banners;
-- eventualmente GIFs.
-
-Debe poder rotar como conjunto.
-
-## 7.7. Mirage Effigy Projector
-
-Projector especializado en una figura humanoide / equipamiento.
-
-No funciona como cuatro items simplemente flotando.
-
-Debe renderizar un rig/modelo humanoide invisible sobre el cual se aplican:
-
-- Head.
-- Chest.
-- Legs.
-- Feet.
-- Main Hand.
-- Off Hand.
-
-Puede incluir:
-
-- armadura vanilla;
-- trims;
-- leather armor tintada;
-- enchantment glint;
-- elytra;
-- shield;
-- trident;
-- herramientas;
-- armas;
-- bloques;
-- equipamiento modded que use las rutas normales de render.
-
-Debe permitir postura.
-
-Poses candidatas:
-
-- Standing.
-- Guard.
-- Hero.
-- Combat.
-- Raised Weapon.
-- Custom, si es técnicamente viable.
-
-Debe tener una geometría 3D real y límites propios de:
-
-- ancho;
-- alto;
-- profundidad.
-
-Escala:
-
-- modificable;
-- limitada por chassis y core.
-
-Proyecciones monumentales futuras:
-
-- una figura de 5 bloques;
-- una figura de 10 bloques de altura;
-- una "estatua holográfica" de armadura de netherita con un tridente.
-
-## 7.8. Colossal Mirage Projector
-
-No debe ser solamente el projector pequeño con Netherite Core.
-
-Debe ser una infraestructura física distinta.
-
-Puede incluir netherite en el craft del chassis.
-
-Después, aun así, debe poseer un Core Socket.
-
-Ejemplo conceptual:
-
-```text
-Colossal Projector + Quartz Core
-→ chassis enorme, pero potencia insuficiente para explotarlo.
-
-Colossal Projector + Diamond Core
-→ escala intermedia.
-
-Colossal Projector + Netherite Core
-→ envelope completo.
-```
-
-Envelope candidato:
-
-- hasta 8 × 8 para planos;
-- hasta aproximadamente 10 bloques de alto para Effigy;
-- límites finales por rendimiento y legibilidad.
-
----
 
 # 8. Fuentes de proyección
 
@@ -1076,7 +1122,7 @@ Debe funcionar con todas las fuentes compatibles:
 - banners;
 - Prism;
 - Effigy;
-- GIF futuro;
+- GIF animado (implementado desde dev.39);
 - multi-display.
 
 GUI conceptual:
@@ -1518,7 +1564,7 @@ Debe poder:
 - elevarse;
 - escalar;
 - usar banners;
-- usar GIFs futuros.
+- usar GIFs animados (implementado desde dev.39).
 
 El techo y piso permanecen abiertos.
 
@@ -1732,11 +1778,9 @@ No se agregan slots de Armor Mode a la GUI hasta que el renderer pueda mostrar l
 
 ---
 
-# 26. GIF / Animated Image
+# 26. GIF / Animated Image — histórico (SUPERSEDED por dev.39)
 
-GIF es una extensión futura explícitamente deseada.
-
-No forma parte del MVP.
+Esta sección describe la intención previa a dev.39 y ya no gobierna la implementación. El contrato vigente está en `docs/GIF-ANIMATED-IMAGE-dev39.md`.
 
 Flujo previsto:
 
@@ -2134,64 +2178,60 @@ Requisitos:
 
 ---
 
-# 41. Núcleo y altura
+# 41. Power, Lift y altura — dev.38
 
-El `Projection Height` consume capacidad del core.
-
-Ejemplo conceptual, NO números finales:
+Lift consume PU y ya no depende de un `core_lift_limit` hardcodeado.
 
 ```text
-Glass Core:
-- pequeño lift
-- 1 source
-
-Quartz Core:
-- lift moderado
-
-Amethyst Core:
-- lift alto
-- buena afinidad a multi-face/animation
-
-Diamond Core:
-- gran lift
-- gran superficie
-
-Netherite Core:
-- monumental
+baseLift = ceil(LiftPx / 16)
+liftRatio = max(1, LiftPx / chassisNominalLift)
+Lift PU = ceil(baseLift × liftRatio²)
 ```
 
-El chassis también puede imponer un máximo.
+El endpoint del slider se calcula buscando el mayor Lift que la Effective PU actual puede sostener junto con Scale, Float y features ya seleccionadas.
 
 ---
 
-# 42. Núcleo y amplitud
+# 42. Power y Float — dev.38
 
-La amplitud máxima se calcula usando:
+Float consume PU sólo cuando Floating está activo:
 
 ```text
-min(
-  chassis_clearance_limit,
-  core_float_limit,
-  current_projection_clearance
-)
+baseFloat = ceil(FloatPx / 2)
+floatRatio = max(1, FloatPx / chassisNominalFloat)
+Float PU = ceil(baseFloat × floatRatio²)
 ```
 
-No debe existir un slider que permita atravesar el pedestal.
+La barrera física que sí permanece es:
 
-La GUI refleja dinámicamente el rango válido.
+```text
+Float amplitude <= Lift
+```
+
+El slider Float se genera hasta el menor máximo que resulte de esa condición física y el presupuesto Effective PU actual. No debe existir un tramo naranja/inutilizable que obligue a tantear pixel por pixel.
 
 ---
 
 # 43. Core Socket
 
-**Primera implementación presente desde dev.8.** La GUI usa:
+La GUI conserva un único Core Socket físico:
 
 ```text
 Projection Core
 [ core slot ]
 ```
 
-Al cambiar core, dev.8 recalcula Power y valida límites sin destruir settings. Si el nuevo Core es insuficiente, el Mirage se apaga y la GUI muestra la razón; al reinsertar un Core suficiente vuelve a funcionar con la configuración anterior. Los sliders conservan todavía el rango de debug completo para no perder valores; una pasada posterior puede añadir markers/rangos visuales dinámicos sin clamping destructivo.
+Cambiar Core nunca borra los settings/snapshots. Desde dev.38 el cambio recalcula:
+
+```text
+Effective PU = Core base PU × chassis multiplier × Core amplification
+```
+
+y reconstruye inmediatamente los endpoints de Scale/Lift/Float.
+
+Si una configuración antigua ya no cabe con el nuevo Core, la GUI intenta preservar el resultado reduciendo primero Float, luego Lift y Scale sólo al final. El renderer nunca debe dibujar una configuración cuyo Final load exceda Effective PU.
+
+Los Cores actuales aceptan los materiales legacy Glass/Quartz/Amethyst/Diamond/Netherite. Futuros Improved Cores usarán el mismo socket y el multiplier `Core amplification`; sus recipes/items/textures todavía no están definidos.
 
 ---
 
@@ -2518,15 +2558,9 @@ Por lo tanto el servidor y otros clientes no necesitan conocer el formato origin
 
 ---
 
-# 59. GIF
+# 59. GIF — histórico (SUPERSEDED por dev.39)
 
-GIF puede decodificarse a frames internos.
-
-No renderizar desde disco cada frame.
-
-Predecodificar/cargar con cache controlada.
-
-Posible almacenamiento futuro:
+La arquitectura final de dev.39 ya implementa decode-once + frame cache y asset genérico. Véase `docs/GIF-ANIMATED-IMAGE-dev39.md`. El siguiente esquema queda sólo como nota histórica que inspiró la implementación:
 
 ```text
 <hash>/
@@ -3125,7 +3159,7 @@ Filtros:
 - JPG
 - JPEG
 - WebP
-- GIF futuro.
+- GIF.
 
 La GUI no debe almacenar la ruta.
 
@@ -3255,6 +3289,8 @@ La numeración original de milestones dejó de coincidir con los `dev.N` reales 
 
 ## Oleada completada en dev.8 — Core / Power
 
+> **HISTÓRICO / SUPERSEDED POR dev.38:** la lista siguiente describe lo que dev.8 implementó en ese momento. Los hard caps de Core/chassis ya no forman parte del sistema vigente; ver sección 6 y `docs/POWER-SYSTEM-REWORK-dev38.md`.
+
 - core slot;
 - material profiles: Glass / Quartz / Amethyst / Diamond / Netherite;
 - power budget;
@@ -3296,6 +3332,8 @@ Estado actual adicional de clearance: una Plane estática usa un AABB delgado or
 - Item Mode sigue opaco deliberadamente hasta disponer de un alpha path seguro para ItemRenderer.
 
 ### Chassis físicos compartidos
+
+> **HISTÓRICO:** los números de esta tabla son los de dev.10 y no deben recuperarse como balance actual. dev.38 usa nominales 10×10, 32×32, 80×32, 32×80, 128×128 y Prism 48×48, con Overdrive en vez de hard caps.
 
 Dev.10 registra como contenido jugable/de prueba, además de Compact:
 
@@ -3974,6 +4012,8 @@ La primera pasada sólo informa `clear` o el número de bloques no-air dentro de
 
 
 # Dev.8 implementation note — Core / Power
+
+> **HISTÓRICO / SUPERSEDED POR dev.38:** esta nota conserva el comportamiento de dev.8 para trazabilidad. Compact 10 px es ahora un target nominal; Debug elimina penalties de Overdrive, y el presupuesto vigente se calcula con Core base PU × chassis multiplier × Core amplification.
 
 `0.1.0-dev.8` convierte Projection Core y Projection Power de roadmap a sistema real. El Core es un ItemStack persistido en un socket del BlockEntity y su material se resuelve a un `ProjectionCoreProfile`. `ProjectionPower` evalúa settings sin mutarlos y devuelve estado activo, Power usado/disponible y motivo de fallo. El renderer consulta ese estado antes de dibujar cualquier Mirage y el core físico se dibuja dinámicamente.
 

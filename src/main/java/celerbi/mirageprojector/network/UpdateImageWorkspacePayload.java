@@ -20,6 +20,7 @@ public record UpdateImageWorkspacePayload(
         String eastId, int eastWidth, int eastHeight,
         String westId, int westWidth, int westHeight,
         ImageSourceBank sourceBank,
+        ProjectionSettings.ImageLayoutMode imageLayoutMode,
         ProjectionSettings.BackFaceMode backFaceMode,
         boolean flipVertical,
         boolean scanlines
@@ -35,6 +36,7 @@ public record UpdateImageWorkspacePayload(
                     b.readUtf(128), b.readVarInt(), b.readVarInt(),
                     b.readUtf(128), b.readVarInt(), b.readVarInt(),
                     ImageSourceBank.read(b),
+                    ProjectionSettings.ImageLayoutMode.fromOrdinal(b.readVarInt()),
                     ProjectionSettings.BackFaceMode.fromOrdinal(b.readVarInt()), b.readBoolean(), b.readBoolean()
             );
         }
@@ -47,6 +49,7 @@ public record UpdateImageWorkspacePayload(
             writeAsset(b, p.eastId(), p.eastWidth(), p.eastHeight());
             writeAsset(b, p.westId(), p.westWidth(), p.westHeight());
             (p.sourceBank() == null ? new ImageSourceBank() : p.sourceBank()).write(b);
+            b.writeVarInt(p.imageLayoutMode().ordinal());
             b.writeVarInt(p.backFaceMode().ordinal());
             b.writeBoolean(p.flipVertical());
             b.writeBoolean(p.scanlines());
@@ -76,7 +79,7 @@ public record UpdateImageWorkspacePayload(
                         payload.backId(), payload.backWidth(), payload.backHeight(),
                         payload.eastId(), payload.eastWidth(), payload.eastHeight(),
                         payload.westId(), payload.westWidth(), payload.westHeight(),
-                        payload.backFaceMode(), payload.flipVertical(), payload.scanlines()
+                        payload.imageLayoutMode(), payload.backFaceMode(), payload.flipVertical(), payload.scanlines()
                 );
                 projector.applyImageWorkspace(merged, payload.sourceBank());
             }

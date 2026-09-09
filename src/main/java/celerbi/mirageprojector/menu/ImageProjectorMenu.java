@@ -1,5 +1,6 @@
 package celerbi.mirageprojector.menu;
 
+import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
@@ -16,6 +17,7 @@ public final class ImageProjectorMenu extends AbstractContainerMenu {
     private final BlockPos projectorPos;
     private final ProjectionSettings initialSettings;
     private final ProjectionChassisProfile chassisProfile;
+    private final ImageSourceBank initialImageBank;
     @Nullable
     private final MirageProjectorBlockEntity projector;
 
@@ -24,6 +26,7 @@ public final class ImageProjectorMenu extends AbstractContainerMenu {
         projectorPos = buffer.readBlockPos();
         initialSettings = ProjectionSettings.read(buffer);
         chassisProfile = readChassis(buffer.readVarInt());
+        initialImageBank = ImageSourceBank.read(buffer);
         projector = inventory.player.level().getBlockEntity(projectorPos) instanceof MirageProjectorBlockEntity be ? be : null;
     }
 
@@ -32,6 +35,7 @@ public final class ImageProjectorMenu extends AbstractContainerMenu {
         this.projectorPos = projector.getBlockPos();
         this.initialSettings = projector.settings();
         this.chassisProfile = projector.chassisProfile();
+        this.initialImageBank = projector.imageSourceBank().copy();
         this.projector = projector;
     }
 
@@ -50,6 +54,26 @@ public final class ImageProjectorMenu extends AbstractContainerMenu {
 
     public ProjectionChassisProfile chassisProfile() {
         return chassisProfile;
+    }
+
+    public ImageSourceBank initialImageBank() {
+        return initialImageBank.copy();
+    }
+
+    public boolean hasMultiSourceLayout() {
+        return chassisProfile.hasMultiSourceImageLayout();
+    }
+
+    public int imageLayoutColumns() {
+        return chassisProfile.imageLayoutColumns();
+    }
+
+    public int imageLayoutRows() {
+        return chassisProfile.imageLayoutRows();
+    }
+
+    public int imageLayoutSlots() {
+        return chassisProfile.imageLayoutSlots();
     }
 
     @Nullable

@@ -1,9 +1,11 @@
 package celerbi.mirageprojector.client;
 
+import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.menu.MirageProjectorMenu;
+import celerbi.mirageprojector.network.OpenBannerWorkspacePayload;
 import celerbi.mirageprojector.network.OpenEntityWorkspacePayload;
 import celerbi.mirageprojector.network.OpenImageWorkspacePayload;
 import celerbi.mirageprojector.network.OpenItemWorkspacePayload;
@@ -61,7 +63,7 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     public MirageProjectorScreen(MirageProjectorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 416;
-        imageHeight = 468;
+        imageHeight = 500;
         inventoryLabelX = MirageProjectorMenu.PLAYER_INV_X;
         inventoryLabelY = MirageProjectorMenu.PLAYER_INV_Y - 12;
         base = menu.initialSettings();
@@ -90,18 +92,24 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         int wide = imageWidth - 24;
         int half = (wide - 8) / 2;
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.image"), button -> {
+        int sourceButtonWidth = 94;
+        int sourceGap = 5;
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.image_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 12, y + 30, 122, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.item"), button -> {
+        }).bounds(x + 12, y + 30, sourceButtonWidth, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.item_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenItemWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 147, y + 30, 122, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.entity"), button -> {
+        }).bounds(x + 12 + sourceButtonWidth + sourceGap, y + 30, sourceButtonWidth, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.entity_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenEntityWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 282, y + 30, 122, 20).build());
+        }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 2, y + 30, sourceButtonWidth, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.banner_short"), button -> {
+            saveSettings();
+            PacketDistributor.sendToServer(new OpenBannerWorkspacePayload(menu.projectorPos()));
+        }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 3, y + 30, sourceButtonWidth, 20).build());
 
         IntSlider scale = addRenderableWidget(new IntSlider(
                 x + 12, y + 76, half, 20,
@@ -176,9 +184,9 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
 
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> {
             saveSettings(); onClose();
-        }).bounds(x + 12, y + 438, half, 22).build());
+        }).bounds(x + 12, y + 470, half, 22).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button -> onClose())
-                .bounds(x + 20 + half, y + 438, half, 22).build());
+                .bounds(x + 20 + half, y + 470, half, 22).build());
 
         refreshLabels();
         refreshFloatTimingSlider();
@@ -236,13 +244,8 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         section(graphics, x + 8, y + 104, imageWidth - 16, 56);
         section(graphics, x + 8, y + 162, imageWidth - 16, 56);
         section(graphics, x + 8, y + 220, imageWidth - 16, 60);
-        section(graphics, x + 8, y + 282, imageWidth - 16, 56);
+        section(graphics, x + 8, y + 282, imageWidth - 16, 88);
         drawSlotFrame(graphics, x + MirageProjectorMenu.CORE_SLOT_X - 1, y + MirageProjectorMenu.CORE_SLOT_Y - 1);
-        ProjectionCoreProfile coreVisual = menu.coreProfile();
-        if (coreVisual.present()) {
-            drawSlotFrame(graphics, x + 183, y + 299);
-            graphics.renderFakeItem(coreVisual.visualStack(), x + 184, y + 300);
-        }
         for (int row = 0; row < 3; row++) for (int col = 0; col < 9; col++)
             drawSlotFrame(graphics, x + MirageProjectorMenu.PLAYER_INV_X + col * 18 - 1, y + MirageProjectorMenu.PLAYER_INV_Y + row * 18 - 1);
         for (int col = 0; col < 9; col++)
@@ -266,29 +269,61 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.core"), 12, 284, 0xFFBFA5D1, false);
 
         ProjectionCoreProfile core = menu.coreProfile();
-        ProjectionPower.Status power = ProjectionPower.evaluate(buildSettings(), core, menu.chassisProfile(), !menu.projectedItemStack().isEmpty());
-        int infoX = 50;
-        if (core.present()) {
-            graphics.drawString(font, core.displayComponent(), infoX, 296, 0xFFD8E7FF, false);
-            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.power", core.power()), infoX, 307, 0xFF9FDBA9, false);
-            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.limits_compact", core.maxScalePixels(), core.maxLiftPixels(), core.maxFloatPixels()), infoX, 318, 0xFF9CA3AF, false);
-        } else {
-            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.empty"), infoX, 300, 0xFFFFA0A0, false);
-            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.empty_hint"), infoX, 312, 0xFF9CA3AF, false);
-        }
-        int barX = 205, barY = 321, barW = 190;
-        graphics.fill(barX, barY, barX + barW, barY + 8, 0xFF252A31);
-        int fill = Math.round(barW * power.fillRatio());
-        graphics.fill(barX, barY, barX + fill, barY + 8, power.active() ? 0xFF8FD19A : 0xFFFF8A73);
-        graphics.drawString(font, Component.literal(power.usedPower() + " / " + power.availablePower() + " PU"), barX, 330, power.active() ? 0xFF8FD19A : 0xFFFFA87A, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.chassis", menu.chassisProfile().displayName()), 300, 296, 0xFFBFD8FF, false);
+        ProjectionChassisProfile chassis = menu.chassisProfile();
+        ProjectionPower.Status power = ProjectionPower.evaluate(
+                buildSettings(), core, chassis, menu.hasProjectedSourceContent(), menu.projectedSourceCount());
+        ProjectionPower.Dimensions dimensions = ProjectionPower.dimensions(
+                buildSettings(), menu.hasProjectedSourceContent(), chassis);
 
-        if (clearance.known()) {
-            Component c = clearance.clear()
-                    ? Component.translatable("gui.mirage_projector.clearance.clear")
-                    : Component.translatable("gui.mirage_projector.clearance.blocked", clearance.blockedBlocks());
-            graphics.drawString(font, c, 205, 308, clearance.clear() ? 0xFF8FD19A : 0xFFFFA87A, false);
+        int leftInfoX = 50;
+        if (core.present()) {
+            graphics.drawString(font, core.displayComponent(), leftInfoX, 296, 0xFFD8E7FF, false);
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.energy_budget", core.power()), leftInfoX, 307, 0xFF9FDBA9, false);
+            graphics.drawString(font, Component.translatable(
+                    "gui.mirage_projector.core.exact_limits",
+                    core.maxScalePixels(), core.maxLiftPixels(), core.maxFloatPixels()), leftInfoX, 318, 0xFF9CA3AF, false);
+        } else {
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.empty"), leftInfoX, 300, 0xFFFFA0A0, false);
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.core.empty_hint"), leftInfoX, 312, 0xFF9CA3AF, false);
         }
+
+        int chassisX = 205;
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.chassis", chassis.displayName()), chassisX, 296, 0xFFBFD8FF, false);
+        graphics.drawString(font, Component.translatable(
+                "gui.mirage_projector.chassis.size_limits",
+                chassis.maxWidthPixels(), chassis.maxHeightPixels()), chassisX, 307, 0xFF9CA3AF, false);
+        graphics.drawString(font, Component.translatable(
+                "gui.mirage_projector.chassis.motion_limits",
+                chassis.maxLiftPixels(), chassis.maxFloatPixels(), chassis.sourceCapacity()), chassisX, 318, 0xFF9CA3AF, false);
+
+        int barX = 20, barY = 344, barW = 376;
+        int powerColor = power.active() ? 0xFF8FD19A : 0xFFFFA87A;
+        graphics.drawString(font, Component.translatable(
+                "gui.mirage_projector.power.explicit",
+                power.usedPower(), power.availablePower(), power.freePower()), 20, 332, powerColor, false);
+        graphics.fill(barX, barY, barX + barW, barY + 7, 0xFF252A31);
+        int fill = Math.round(barW * power.fillRatio());
+        graphics.fill(barX, barY, barX + fill, barY + 7, power.active() ? 0xFF8FD19A : 0xFFFF8A73);
+
+        Component validation;
+        int validationColor;
+        if (!power.active()) {
+            validation = Component.translatable("gui.mirage_projector.status.power_blocked", powerFailure(power.failure()));
+            validationColor = 0xFFFF8A73;
+        } else if (clearance.known() && !clearance.clear()) {
+            validation = Component.translatable(
+                    "gui.mirage_projector.status.clearance_blocked",
+                    clearance.blockedBlocks(), clearanceEnvelopeSummary(clearance));
+            validationColor = 0xFFFF8A73;
+        } else if (!dimensions.empty()) {
+            validation = Component.translatable(
+                    "gui.mirage_projector.status.ready_dimensions", dimensions.widthPixels(), dimensions.heightPixels());
+            validationColor = 0xFF8FD19A;
+        } else {
+            validation = Component.translatable("gui.mirage_projector.status.no_projection");
+            validationColor = 0xFF9CA3AF;
+        }
+        graphics.drawString(font, fitText(validation.getString(), 376), 20, 356, validationColor, false);
         graphics.drawString(font, Component.translatable("container.inventory"), MirageProjectorMenu.PLAYER_INV_X, MirageProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
     }
 
@@ -331,10 +366,33 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
                 menu.projectorPos(),
                 buildSettings(),
                 menu.chassisProfile(),
-                !menu.projectedItemStack().isEmpty(),
-                menu.activeHumanoidPose()
+                menu.hasProjectedSourceContent(),
+                menu.activeHumanoidPose(),
+                menu.projector() == null ? null : menu.projector().entityProjectionState()
         );
         ProjectionClearancePreviewRenderer.show(menu.projectorPos(), clearance);
+    }
+
+    private static Component powerFailure(ProjectionPower.Failure failure) {
+        return Component.translatable("gui.mirage_projector.power.failure."
+                + (failure == null ? ProjectionPower.Failure.NONE : failure).name().toLowerCase(Locale.ROOT));
+    }
+
+    private static String clearanceEnvelopeSummary(ProjectionClearance.Result result) {
+        if (result == null || !result.hasEnvelope()) return "?";
+        int x = Math.max(1, (int) Math.ceil(result.envelope().getXsize() * 16.0D));
+        int y = Math.max(1, (int) Math.ceil(result.envelope().getYsize() * 16.0D));
+        int z = Math.max(1, (int) Math.ceil(result.envelope().getZsize() * 16.0D));
+        return x + "×" + y + "×" + z + " px";
+    }
+
+    private String fitText(String value, int maxWidth) {
+        if (value == null || font.width(value) <= maxWidth) return value == null ? "" : value;
+        String ellipsis = "…";
+        int target = Math.max(0, maxWidth - font.width(ellipsis));
+        int end = value.length();
+        while (end > 0 && font.width(value.substring(0, end)) > target) end--;
+        return value.substring(0, Math.max(0, end)) + ellipsis;
     }
 
     @Override public void onClose() { ProjectionClearancePreviewRenderer.clear(); super.onClose(); }

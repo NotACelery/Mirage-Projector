@@ -6,21 +6,29 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.util.Mth;
 
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Projection-local render-buffer wrapper for 3D Item and Entity holograms.
  *
- * <p>The wrapper never mutates global shader colour or shared render state. It
- * multiplies colour/alpha per emitted vertex and, when Ghost Effect is active,
- * reroutes the common opaque/cutout textured entity layers through a translucent
- * equivalent. Unknown or special RenderTypes are left structurally intact and
- * still receive vertex tint/alpha, preserving modded renderers and glint as a
- * safe fallback rather than leaking state into unrelated world rendering.</p>
+ * <p>Base LivingEntity bodies are handled by {@link ProjectionRenderContext}
+ * plus a tiny LivingEntityRenderer mixin. This wrapper then handles equipment,
+ * held items and compatible secondary layers. Ghost-compatible passes are
+ * routed through Mirage-owned colour-only RenderTypes: they still depth-test
+ * against the world, but never write depth, so a hologram cannot punch holes
+ * into water or other translucent world geometry.</p>
  */
 public final class ProjectionRenderBuffers {
+    private static final Pattern TEXTURE_LOCATION = Pattern.compile(
+            "([a-z0-9_.-]+:[a-z0-9_./-]+\\.png)",
+            Pattern.CASE_INSENSITIVE
+    );
+
     private ProjectionRenderBuffers() {
     }
 
@@ -29,7 +37,26 @@ public final class ProjectionRenderBuffers {
         if (safe.opacityPercent() >= 100 && safe.tintRgb() == 0xFFFFFF) {
             return delegate;
         }
+        if (delegate instanceof ProjectionBufferSource existing && existing.settings().equals(safe)) {
+            return delegate;
+        }
         return new ProjectionBufferSource(delegate, safe);
+    }
+
+    /**
+     * Adds a held-item-specific RenderType normalizer without applying Tint/Ghost
+     * twice. Entity renderers already receive {@link #wrap}; ItemInHandRenderer
+     * can nevertheless ask for the raw block chunk layers (solid/cutout/etc.)
+     * instead of the entity sheets that the generic wrapper recognizes. Those
+     * raw layers write depth and were the last source of the water-hole bug.
+     */
+    public static MultiBufferSource wrapHeldItem(MultiBufferSource delegate, ProjectionSettings settings) {
+        ProjectionSettings safe = settings == null ? ProjectionSettings.DEFAULT : settings.sanitized();
+        if (safe.opacityPercent() >= 100) {
+            return delegate;
+        }
+        MultiBufferSource projection = wrap(delegate, safe);
+        return new HeldItemBufferSource(projection, safe);
     }
 
     public static int tintedArgb(ProjectionSettings settings, int sourceRgb) {
@@ -56,55 +83,111 @@ public final class ProjectionRenderBuffers {
         }
     }
 
+    private record HeldItemBufferSource(
+            MultiBufferSource delegate,
+            ProjectionSettings settings
+    ) implements MultiBufferSource {
+        @Override
+        public VertexConsumer getBuffer(RenderType requested) {
+            return delegate.getBuffer(remapHeldItemForGhostEffect(requested, settings));
+        }
+    }
+
+    private static RenderType remapHeldItemForGhostEffect(RenderType requested, ProjectionSettings settings) {
+        if (settings.opacityPercent() >= 100) {
+            return requested;
+        }
+
+        // ItemRenderer may ask for chunk-style layers even when it is rendering
+        // a held ItemStack. In a projection these layers must never keep their
+        // normal depth-writing state: every block/item model is sampled from
+        // the block atlas and belongs in Mirage's colour-only item pass.
+        if (requested == RenderType.solid()
+                || requested == RenderType.cutoutMipped()
+                || requested == RenderType.cutout()
+                || requested == RenderType.translucent()
+                || requested == RenderType.translucentMovingBlock()
+                || requested == Sheets.solidBlockSheet()
+                || requested == Sheets.cutoutBlockSheet()
+                || requested == Sheets.translucentItemSheet()) {
+            return ProjectionRenderTypes.ghostItem(InventoryMenu.BLOCK_ATLAS);
+        }
+
+        // Preserve the explicit atlas-backed special cases already understood
+        // by the normal projection wrapper (shield/banner/trims) and recover
+        // texture-backed entity/item layers when possible.
+        return remapForGhostEffect(requested, settings);
+    }
+
     private static RenderType remapForGhostEffect(RenderType requested, ProjectionSettings settings) {
         if (settings.opacityPercent() >= 100) {
             return requested;
         }
 
-        // Vanilla item/block models use these shared atlas sheets. Preserve the
-        // NEW_ENTITY vertex format while switching their opaque sheets to the
-        // translucent block-atlas route.
-        if (requested == Sheets.solidBlockSheet() || requested == Sheets.cutoutBlockSheet()) {
-            return Sheets.translucentCullBlockSheet();
+        // Held blocks and normal items all ultimately sample the block atlas.
+        // Route them through Mirage's colour-only ghost pass so they cannot
+        // stamp depth over water or other translucent world geometry.
+        if (requested == Sheets.solidBlockSheet()
+                || requested == Sheets.cutoutBlockSheet()
+                || requested == Sheets.translucentItemSheet()) {
+            return ProjectionRenderTypes.ghostItem(InventoryMenu.BLOCK_ATLAS);
+        }
+
+        if (requested == Sheets.shieldSheet()) {
+            return ProjectionRenderTypes.ghostEntity(Sheets.SHIELD_SHEET);
+        }
+        if (requested == Sheets.bannerSheet()) {
+            return ProjectionRenderTypes.ghostEntity(Sheets.BANNER_SHEET);
+        }
+        if (requested == Sheets.armorTrimsSheet(false) || requested == Sheets.armorTrimsSheet(true)) {
+            return ProjectionRenderTypes.ghostEntity(Sheets.ARMOR_TRIMS_SHEET);
         }
 
         String description = requested.toString();
         String lower = description.toLowerCase(Locale.ROOT);
 
-        // These already have deliberate blending/texturing behaviour. Replacing
-        // them would destroy glint animation, emissive eyes, beams or other
-        // special layers. They still receive vertex-level colour/alpha below.
-        if (isSpecialOrAlreadyTranslucent(lower)) {
+        // Keep effect-only passes native. Rewiring any of these can break
+        // outlines, emissive eyes, beams, text, shadows or world masks.
+        if (isSpecialLayer(lower)) {
             return requested;
         }
 
-        if (!isCommonOpaqueEntityLayer(lower)) {
+        // Normal opaque *and already-translucent* entity/item layers are safe
+        // to convert when we can recover their texture. Already-translucent
+        // vanilla layers still need Mirage's COLOR_WRITE mask; otherwise they
+        // can reproduce the water-hole bug despite already having alpha.
+        if (!isCompatibleEntityOrItemLayer(lower)) {
             return requested;
         }
 
         ResourceLocation texture = firstTexture(description);
         if (texture == null) {
+            // Unknown/modded RenderTypes fail closed instead of risking the
+            // depth buffer. Their vertices still receive Mirage tint/alpha.
             return requested;
         }
 
-        boolean noCull = lower.contains("no_cull") || lower.contains("nocull") || lower.contains("armor_");
-        return noCull
-                ? RenderType.entityTranslucent(texture, false)
-                : RenderType.entityTranslucentCull(texture);
+        if (lower.contains("item_entity_translucent")) {
+            return ProjectionRenderTypes.ghostItem(texture);
+        }
+        return ProjectionRenderTypes.ghostEntity(texture);
     }
 
-    private static boolean isCommonOpaqueEntityLayer(String description) {
+    private static boolean isCompatibleEntityOrItemLayer(String description) {
         return description.contains("entity_solid")
                 || description.contains("entity_cutout")
                 || description.contains("entity_smooth_cutout")
-                || description.contains("armor_cutout");
+                || description.contains("entity_translucent")
+                || description.contains("armor_cutout")
+                || description.contains("armor_trims")
+                || description.contains("item_entity_translucent");
     }
 
-    private static boolean isSpecialOrAlreadyTranslucent(String description) {
-        return description.contains("translucent")
-                || description.contains("glint")
+    private static boolean isSpecialLayer(String description) {
+        return description.contains("glint")
                 || description.contains("eyes")
                 || description.contains("energy_swirl")
+                || description.contains("breeze_wind")
                 || description.contains("beacon_beam")
                 || description.contains("lightning")
                 || description.contains("dragon_rays")
@@ -112,42 +195,27 @@ public final class ProjectionRenderBuffers {
                 || description.contains("entity_no_outline")
                 || description.contains("entity_shadow")
                 || description.contains("leash")
+                || description.contains("water_mask")
+                || description.contains("outline")
                 || description.contains("text")
                 || description.contains("lines");
     }
 
     /**
-     * RenderType has no public texture accessor in 1.21.1. Its diagnostic
-     * CompositeState string does contain the canonical first TextureStateShard
-     * resource location. Parse only that narrow stable fragment and fail closed
-     * to the original RenderType if a modded/custom type exposes something else.
+     * RenderType does not expose its texture in 1.21.1. We use its diagnostic
+     * description only as a compatibility fallback for secondary layers. Unlike
+     * dev.23, this parser searches for a complete namespaced PNG and cannot be
+     * confused by nested Optional brackets.
      */
     private static ResourceLocation firstTexture(String description) {
-        int marker = description.indexOf("texture[");
-        if (marker < 0) {
-            return null;
+        Matcher matcher = TEXTURE_LOCATION.matcher(description);
+        while (matcher.find()) {
+            ResourceLocation resource = ResourceLocation.tryParse(matcher.group(1));
+            if (resource != null) {
+                return resource;
+            }
         }
-        int start = marker + "texture[".length();
-        int endParen = description.indexOf('(', start);
-        int endBracket = description.indexOf(']', start);
-        int end;
-        if (endParen >= 0 && endBracket >= 0) {
-            end = Math.min(endParen, endBracket);
-        } else {
-            end = Math.max(endParen, endBracket);
-        }
-        if (end <= start) {
-            return null;
-        }
-
-        String token = description.substring(start, end).trim();
-        // Vanilla 1.21.1 TextureStateShard#toString() prints the resource as
-        // Optional[minecraft:...]. Keep the parser deliberately narrow and
-        // unwrap only that exact diagnostic representation.
-        if (token.startsWith("Optional[") && token.endsWith("]")) {
-            token = token.substring("Optional[".length(), token.length() - 1).trim();
-        }
-        return ResourceLocation.tryParse(token);
+        return null;
     }
 
     private static final class ProjectionVertexConsumer implements VertexConsumer {

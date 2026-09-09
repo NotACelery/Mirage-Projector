@@ -1,15 +1,20 @@
 package celerbi.mirageprojector.client;
 
+import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -17,17 +22,26 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.blockentity.BannerRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.entity.BannerPatternLayers;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
@@ -35,11 +49,29 @@ import java.util.WeakHashMap;
 public final class MirageProjectorRenderer implements BlockEntityRenderer<MirageProjectorBlockEntity> {
     private static final float PIXEL = 1.0F / 16.0F;
     private static final UUID BODYLESS_CACHE_ID = new UUID(0L, 1L);
+    /**
+     * Entity projections are deferred until NeoForge AFTER_TRIPWIRE_BLOCKS.
+     * At that point opaque/translucent world geometry and physical projector
+     * bodies have already populated the frame/depth buffer, so a hologram can
+     * depth-test against water and other projectors according to real distance
+     * instead of submission order.
+     *
+     * The deferred pass owns its own BufferSource. Never call endBatch() on
+     * Minecraft's shared renderBuffers().bufferSource() here: doing so flushes
+     * unrelated Image/Banner/BlockEntity batches and was the dev.36 regression
+     * that corrupted previously-correct image projection ordering.
+     */
+    private static final List<DeferredEntityProjection> DEFERRED_ENTITY_PROJECTIONS = new ArrayList<>();
+    private static final ByteBufferBuilder DEFERRED_ENTITY_BUFFER = new ByteBufferBuilder(1 << 20);
+    private static final MultiBufferSource.BufferSource DEFERRED_ENTITY_BUFFERS =
+            MultiBufferSource.immediate(DEFERRED_ENTITY_BUFFER);
 
     private final Map<MirageProjectorBlockEntity, EntityCacheEntry> entityCache = new WeakHashMap<>();
     private final Map<MirageProjectorBlockEntity, EquippedItemCacheEntry> equippedItemCache = new WeakHashMap<>();
+    private final ModelPart bannerFlag;
 
     public MirageProjectorRenderer(BlockEntityRendererProvider.Context context) {
+        bannerFlag = context.bakeLayer(ModelLayers.BANNER).getChild(BannerRenderer.FLAG);
     }
 
     @Override
@@ -59,7 +91,8 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                 settings,
                 core,
                 blockEntity.chassisProfile(),
-                !blockEntity.projectedStack().isEmpty()
+                blockEntity.hasProjectedSourceContent(),
+                blockEntity.projectedSourceCount()
         );
         if (!power.active()) {
             return;
@@ -70,10 +103,14 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         float bob = bobOffset(settings, gameTime);
         int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
 
+        if (settings.sourceMode() == ProjectionSettings.SourceMode.BANNER) {
+            renderProjectedBanners(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight, gameTime);
+            return;
+        }
+
         if (settings.sourceMode() == ProjectionSettings.SourceMode.ITEM) {
             if (blockEntity.projectedStack().isEmpty()) {
                 equippedItemCache.remove(blockEntity);
-                renderBook(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
             } else {
                 LivingEntity equippedPiece = resolveEquippedItemEntity(blockEntity);
                 if (equippedPiece != null) {
@@ -97,25 +134,17 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         }
 
         if (settings.sourceMode() == ProjectionSettings.SourceMode.ENTITY) {
-            LivingEntity entity = resolveProjectedEntity(blockEntity);
-            if (entity == null) {
-                renderBook(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
-            } else {
-                renderProjectedEntity(
-                        blockEntity,
-                        settings,
-                        entity,
-                        partialTick,
-                        poseStack,
-                        bufferSource,
-                        angle,
-                        bob,
-                        projectionLight,
-                        blockEntity.entityProjectionState().activeKind() == celerbi.mirageprojector.entity.EntityScanData.Kind.HUMANOID
-                                || !blockEntity.entityProjectionState().hasActiveEntity()
-                );
-                renderProjectionNameplate(blockEntity, settings, poseStack, bufferSource, bob, projectionLight);
+            deferEntityProjection(this, blockEntity, partialTick, packedLight);
+            return;
+        }
+
+        if (blockEntity.chassisProfile().hasMultiSourceImageLayout()) {
+            if (!blockEntity.imageSourceBank().hasAny(blockEntity.chassisProfile().imageLayoutSlots())) {
+                return;
             }
+            renderMultiSourceImageLayout(
+                    blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight
+            );
             return;
         }
 
@@ -139,24 +168,112 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             return;
         }
 
-        if (!settings.hasImage()) {
+        if (!hasPlaneImageContent(settings)) {
             renderBook(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
             return;
         }
 
-        ProjectionTextureCache.get(settings.imageId()).ifPresentOrElse(
-                frontTexture -> renderImage(
-                        blockEntity,
-                        settings,
-                        frontTexture,
-                        poseStack,
-                        bufferSource,
-                        angle,
-                        bob,
-                        projectionLight
-                ),
-                () -> renderMissingAsset(blockEntity, poseStack, bufferSource, angle, bob, projectionLight)
+        renderImage(
+                blockEntity,
+                settings,
+                poseStack,
+                bufferSource,
+                angle,
+                bob,
+                projectionLight
         );
+    }
+
+    private void renderProjectedBanners(
+            MirageProjectorBlockEntity blockEntity,
+            ProjectionSettings settings,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            float angle,
+            float bob,
+            int projectionLight,
+            double gameTime
+    ) {
+        if (!blockEntity.hasAnyBannerSnapshot()) {
+            return;
+        }
+
+        MultiBufferSource projectionBuffers = ProjectionRenderBuffers.wrap(bufferSource, settings);
+        float bannerHeight = settings.scalePixels() * PIXEL;
+        float modelScale = Math.max(PIXEL, settings.scalePixels() / 40.0F);
+        float bottom = physicalTop(blockEntity) + settings.liftPixels() * PIXEL + bob;
+
+        poseStack.pushPose();
+        poseStack.translate(0.5D, bottom + bannerHeight, 0.5D);
+        poseStack.mulPose(Axis.YP.rotationDegrees(angle));
+
+        if (blockEntity.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM) {
+            float bannerWidth = bannerHeight * 0.5F;
+            float radius = Math.max(PIXEL, bannerWidth * 0.5F);
+            renderBannerFace(blockEntity.bannerSnapshot(0), 180.0F, radius, 0, gameTime,
+                    poseStack, projectionBuffers, modelScale, projectionLight);
+            renderBannerFace(blockEntity.bannerSnapshot(1), 90.0F, radius, 1, gameTime,
+                    poseStack, projectionBuffers, modelScale, projectionLight);
+            renderBannerFace(blockEntity.bannerSnapshot(2), 0.0F, radius, 2, gameTime,
+                    poseStack, projectionBuffers, modelScale, projectionLight);
+            renderBannerFace(blockEntity.bannerSnapshot(3), -90.0F, radius, 3, gameTime,
+                    poseStack, projectionBuffers, modelScale, projectionLight);
+        } else {
+            renderBannerFace(blockEntity.bannerSnapshot(0), 0.0F, 0.0F, 0, gameTime,
+                    poseStack, projectionBuffers, modelScale, projectionLight);
+        }
+
+        poseStack.popPose();
+    }
+
+    private void renderBannerFace(
+            ItemStack stack,
+            float faceRotationDegrees,
+            float radius,
+            int faceIndex,
+            double gameTime,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            float modelScale,
+            int projectionLight
+    ) {
+        if (!(stack.getItem() instanceof BannerItem bannerItem)) {
+            return;
+        }
+
+        PartPose previous = bannerFlag.storePose();
+        poseStack.pushPose();
+        try {
+            poseStack.mulPose(Axis.YP.rotationDegrees(faceRotationDegrees));
+            poseStack.translate(0.0D, 0.0D, radius);
+
+            // The baked vanilla flag is 20x40 model pixels. Remove the standing-
+            // banner pivot and scale only the cloth, deliberately omitting pole/bar.
+            bannerFlag.setPos(0.0F, 0.0F, 0.0F);
+            float wave = (float) (-0.035D + Math.sin(gameTime * 0.08D + faceIndex * 0.7D) * 0.025D);
+            bannerFlag.setRotation(wave, 0.0F, 0.0F);
+
+            poseStack.scale(modelScale, -modelScale, -modelScale);
+            BannerPatternLayers patterns = stack.getOrDefault(
+                    DataComponents.BANNER_PATTERNS,
+                    BannerPatternLayers.EMPTY
+            );
+            BannerRenderer.renderPatterns(
+                    poseStack,
+                    bufferSource,
+                    projectionLight,
+                    OverlayTexture.NO_OVERLAY,
+                    bannerFlag,
+                    ModelBakery.BANNER_BASE,
+                    true,
+                    bannerItem.getColor(),
+                    patterns,
+                    stack.hasFoil()
+            );
+        } finally {
+            bannerFlag.loadPose(previous);
+            poseStack.popPose();
+        }
     }
 
     private LivingEntity resolveEquippedItemEntity(MirageProjectorBlockEntity blockEntity) {
@@ -254,6 +371,129 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         return entity;
     }
 
+    private static void deferEntityProjection(
+            MirageProjectorRenderer renderer,
+            MirageProjectorBlockEntity blockEntity,
+            float partialTick,
+            int packedLight
+    ) {
+        // A BER may be visited more than once by compatibility render paths. Keep
+        // one entry per physical projector for the current frame.
+        DEFERRED_ENTITY_PROJECTIONS.removeIf(entry -> entry.blockEntity() == blockEntity);
+        DEFERRED_ENTITY_PROJECTIONS.add(new DeferredEntityProjection(renderer, blockEntity, partialTick, packedLight));
+    }
+
+    /** Called from ClientRuntimeEvents at NeoForge AFTER_TRIPWIRE_BLOCKS. */
+    public static void flushDeferredEntityProjections(PoseStack poseStack, Vec3 cameraPosition) {
+        if (poseStack == null || cameraPosition == null || DEFERRED_ENTITY_PROJECTIONS.isEmpty()) {
+            return;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) {
+            DEFERRED_ENTITY_PROJECTIONS.clear();
+            return;
+        }
+
+        List<DeferredEntityProjection> frame = new ArrayList<>(DEFERRED_ENTITY_PROJECTIONS);
+        DEFERRED_ENTITY_PROJECTIONS.clear();
+
+        // Transparent holograms need the same far-to-near ordering users expect
+        // from normal translucent geometry. Opaque projections are also safe in
+        // this order because they still use normal depth writes.
+        frame.sort(Comparator.comparingDouble((DeferredEntityProjection entry) -> {
+            BlockPos pos = entry.blockEntity().getBlockPos();
+            double dx = pos.getX() + 0.5D - cameraPosition.x;
+            double dy = pos.getY() + 0.5D - cameraPosition.y;
+            double dz = pos.getZ() + 0.5D - cameraPosition.z;
+            return dx * dx + dy * dy + dz * dz;
+        }).reversed());
+
+        MultiBufferSource.BufferSource buffers = DEFERRED_ENTITY_BUFFERS;
+        for (DeferredEntityProjection entry : frame) {
+            MirageProjectorBlockEntity blockEntity = entry.blockEntity();
+            if (blockEntity.isRemoved() || blockEntity.getLevel() != minecraft.level) {
+                continue;
+            }
+
+            BlockPos pos = blockEntity.getBlockPos();
+            poseStack.pushPose();
+            poseStack.translate(
+                    pos.getX() - cameraPosition.x,
+                    pos.getY() - cameraPosition.y,
+                    pos.getZ() - cameraPosition.z
+            );
+            entry.renderer().renderDeferredEntityProjection(
+                    blockEntity,
+                    entry.partialTick(),
+                    poseStack,
+                    buffers,
+                    entry.packedLight()
+            );
+            poseStack.popPose();
+        }
+
+        // Flush only Mirage's private deferred source. Physical projectors,
+        // images, banners and vanilla/modded renderers keep their own global
+        // batching lifecycle untouched.
+        buffers.endBatch();
+    }
+
+    public static void clearDeferredEntityProjections() {
+        DEFERRED_ENTITY_PROJECTIONS.clear();
+    }
+
+    private void renderDeferredEntityProjection(
+            MirageProjectorBlockEntity blockEntity,
+            float partialTick,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight
+    ) {
+        ProjectionSettings settings = blockEntity.settings();
+        if (settings.sourceMode() != ProjectionSettings.SourceMode.ENTITY) {
+            return;
+        }
+
+        ProjectionPower.Status power = ProjectionPower.evaluate(
+                settings,
+                blockEntity.coreProfile(),
+                blockEntity.chassisProfile(),
+                blockEntity.hasProjectedSourceContent(),
+                blockEntity.projectedSourceCount()
+        );
+        if (!power.active()) {
+            return;
+        }
+
+        LivingEntity entity = resolveProjectedEntity(blockEntity);
+        if (entity == null) {
+            return;
+        }
+
+        double gameTime = blockEntity.getLevel() == null
+                ? 0.0D
+                : blockEntity.getLevel().getGameTime() + partialTick;
+        float angle = rotationAngle(settings, gameTime);
+        float bob = bobOffset(settings, gameTime);
+        int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
+
+        renderProjectedEntity(
+                blockEntity,
+                settings,
+                entity,
+                partialTick,
+                poseStack,
+                bufferSource,
+                angle,
+                bob,
+                projectionLight,
+                blockEntity.entityProjectionState().activeKind() == celerbi.mirageprojector.entity.EntityScanData.Kind.HUMANOID
+                        || !blockEntity.entityProjectionState().hasActiveEntity()
+        );
+        renderProjectionNameplate(blockEntity, poseStack, bufferSource, projectionLight);
+    }
+
     private static void renderProjectedEntity(
             MirageProjectorBlockEntity blockEntity,
             ProjectionSettings settings,
@@ -288,7 +528,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
         MultiBufferSource projectionBuffers = ProjectionRenderBuffers.wrap(bufferSource, settings);
         dispatcher.setRenderShadow(false);
-        try {
+        try (ProjectionRenderContext.Scope ignored = ProjectionRenderContext.push(entity, settings)) {
             dispatcher.render(
                     entity,
                     0.0D,
@@ -308,10 +548,8 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
 
     private static void renderProjectionNameplate(
             MirageProjectorBlockEntity blockEntity,
-            ProjectionSettings settings,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
-            float bob,
             int projectionLight
     ) {
         String text = blockEntity.entityProjectionState().projectionNameplate();
@@ -319,10 +557,10 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             return;
         }
 
-        float baseTop = physicalTop(blockEntity);
-        float entityBottom = baseTop + settings.liftPixels() * PIXEL + bob;
-        float gap = Math.max(0.0F, entityBottom - baseTop);
-        float labelY = baseTop + (gap >= 2.0F * PIXEL ? gap * 0.5F : 0.5F * PIXEL);
+        // The projection name belongs to the projector/base, not to the scaled
+        // hologram envelope. Keeping it here makes a nametag readable even when
+        // Scale is enormous or Lift moves the entity many blocks away.
+        float labelY = physicalTop(blockEntity) + 3.0F * PIXEL;
 
         Minecraft minecraft = Minecraft.getInstance();
         Font font = minecraft.font;
@@ -334,17 +572,18 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         poseStack.scale(-0.025F, -0.025F, 0.025F);
         Matrix4f matrix = poseStack.last().pose();
         float textX = -font.width(label) / 2.0F;
+        int textColor = 0xFFFFFFFF;
+        int backgroundColor = 0x60000000;
+
+        // First pass guarantees readability through the translucent projection;
+        // second pass keeps normal depth behaviour against opaque world geometry.
         font.drawInBatch(
-                label,
-                textX,
-                0.0F,
-                ProjectionRenderBuffers.tintedArgb(settings, 0xFFFFFF),
-                false,
-                matrix,
-                bufferSource,
-                Font.DisplayMode.SEE_THROUGH,
-                0,
-                projectionLight
+                label, textX, 0.0F, 0x60FFFFFF, false, matrix, bufferSource,
+                Font.DisplayMode.SEE_THROUGH, backgroundColor, projectionLight
+        );
+        font.drawInBatch(
+                label, textX, 0.0F, textColor, false, matrix, bufferSource,
+                Font.DisplayMode.NORMAL, 0, projectionLight
         );
         poseStack.popPose();
     }
@@ -467,6 +706,90 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     }
 
     /**
+     * Multi-source Plane layouts are one physical surface divided into virtual cells.
+     * Wide = 4x1, Tall = 1x4, Field = 3x3. Each source preserves its own aspect
+     * ratio inside the cell while global Scale controls the complete layout envelope.
+     */
+    private static void renderMultiSourceImageLayout(
+            MirageProjectorBlockEntity blockEntity,
+            ProjectionSettings settings,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            float angle,
+            float bob,
+            int projectionLight
+    ) {
+        ProjectionChassisProfile chassis = blockEntity.chassisProfile();
+        int columns = Math.max(1, chassis.imageLayoutColumns());
+        int rows = Math.max(1, chassis.imageLayoutRows());
+        int slots = Math.min(chassis.imageLayoutSlots(), ImageSourceBank.MAX_SLOTS);
+        ProjectionPower.Dimensions layout = ProjectionPower.dimensions(settings, true, chassis);
+        float layoutWidth = Math.max(PIXEL, layout.widthPixels() * PIXEL);
+        float layoutHeight = Math.max(PIXEL, layout.heightPixels() * PIXEL);
+        float cellWidth = layoutWidth / columns;
+        float cellHeight = layoutHeight / rows;
+        float bottom = physicalTop(blockEntity) + settings.liftPixels() * PIXEL + bob;
+        float topV = settings.flipVertical() ? 1.0F : 0.0F;
+        float bottomV = settings.flipVertical() ? 0.0F : 1.0F;
+        boolean viewingFront = isCameraOnFrontSide(blockEntity, angle);
+        ProjectionSettings.BackFaceMode planeMode = settings.backFaceMode();
+        // Wide/Tall/Field currently have one source bank. FRONT is the new
+        // one-sided default; MIRRORED/READABLE may reuse that bank on the rear.
+        // BACK/INDEPENDENT require a real rear bank and therefore render no
+        // fabricated fallback here.
+        if ((viewingFront && planeMode == ProjectionSettings.BackFaceMode.BACK)
+                || (!viewingFront && (planeMode == ProjectionSettings.BackFaceMode.FRONT
+                || planeMode == ProjectionSettings.BackFaceMode.BACK
+                || planeMode == ProjectionSettings.BackFaceMode.INDEPENDENT))) {
+            return;
+        }
+        boolean readableBack = planeMode == ProjectionSettings.BackFaceMode.READABLE;
+
+        poseStack.pushPose();
+        poseStack.translate(0.5D, bottom, 0.5D);
+        poseStack.mulPose(Axis.YP.rotationDegrees(angle));
+
+        for (int slot = 0; slot < slots; slot++) {
+            ImageSourceBank.Asset asset = blockEntity.imageSourceBank().get(slot);
+            if (!asset.present()) continue;
+            var texture = ProjectionTextureCache.get(asset.id());
+            if (texture.isEmpty()) continue;
+
+            int column = slot % columns;
+            int row = slot / columns;
+            FaceSize fitted = fitFaceToCell(asset.width(), asset.height(), cellWidth, cellHeight);
+            float cellLeft = -layoutWidth * 0.5F + column * cellWidth;
+            float cellBottom = layoutHeight - (row + 1) * cellHeight;
+            float sourceLeft = cellLeft + (cellWidth - fitted.width()) * 0.5F;
+            float sourceBottom = cellBottom + (cellHeight - fitted.height()) * 0.5F;
+
+            poseStack.pushPose();
+            poseStack.translate(sourceLeft + fitted.width() * 0.5F, sourceBottom, 0.0D);
+            PoseStack.Pose pose = poseStack.last();
+            if (viewingFront) {
+                renderFrontFace(texture.get(), fitted, topV, bottomV, settings, projectionLight, pose.pose(), pose, bufferSource);
+            } else {
+                renderBackFace(texture.get(), fitted, topV, bottomV, readableBack, settings, projectionLight, pose.pose(), pose, bufferSource);
+            }
+            poseStack.popPose();
+        }
+        poseStack.popPose();
+    }
+
+    private static FaceSize fitFaceToCell(int imageWidth, int imageHeight, float cellWidth, float cellHeight) {
+        float safeW = Math.max(PIXEL, cellWidth * 0.94F);
+        float safeH = Math.max(PIXEL, cellHeight * 0.94F);
+        float ratio = Math.max(1, imageWidth) / (float) Math.max(1, imageHeight);
+        float width = safeW;
+        float height = width / ratio;
+        if (height > safeH) {
+            height = safeH;
+            width = height * ratio;
+        }
+        return new FaceSize(width, height);
+    }
+
+    /**
      * Renders the Prism as four independent lateral quads around an open square.
      * North/East/South/West rotate as one unit; there is deliberately no top or
      * bottom quad, so the result never becomes a solid cube.
@@ -561,80 +884,109 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         return true;
     }
 
+    private static boolean hasPlaneImageContent(ProjectionSettings settings) {
+        return switch (settings.backFaceMode()) {
+            case FRONT, MIRRORED, READABLE -> settings.hasImage();
+            case BACK -> settings.hasBackImage();
+            case INDEPENDENT -> settings.hasImage() || settings.hasBackImage();
+        };
+    }
+
+    /**
+     * Plane source presentation. FRONT/BACK are truly one-sided. MIRRORED and
+     * READABLE reuse Front on the rear. INDEPENDENT uses the stored Back asset
+     * and deliberately does not fall back to Front when Back is missing.
+     */
     private static void renderImage(
             MirageProjectorBlockEntity blockEntity,
             ProjectionSettings settings,
-            ResourceLocation frontTexture,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             float angle,
             float bob,
             int projectionLight
     ) {
+        boolean viewingFront = isCameraOnFrontSide(blockEntity, angle);
+        ProjectionSettings.BackFaceMode mode = settings.backFaceMode();
+
+        String assetId;
+        int imageWidth;
+        int imageHeight;
+        boolean renderAsBack;
+        boolean readableBack;
+
+        if (viewingFront) {
+            if (mode == ProjectionSettings.BackFaceMode.BACK || !settings.hasImage()) {
+                return;
+            }
+            assetId = settings.imageId();
+            imageWidth = settings.imageWidth();
+            imageHeight = settings.imageHeight();
+            renderAsBack = false;
+            readableBack = false;
+        } else {
+            switch (mode) {
+                case FRONT -> {
+                    return;
+                }
+                case BACK -> {
+                    if (!settings.hasBackImage()) return;
+                    assetId = settings.backImageId();
+                    imageWidth = settings.backImageWidth();
+                    imageHeight = settings.backImageHeight();
+                    renderAsBack = true;
+                    readableBack = true;
+                }
+                case MIRRORED -> {
+                    if (!settings.hasImage()) return;
+                    assetId = settings.imageId();
+                    imageWidth = settings.imageWidth();
+                    imageHeight = settings.imageHeight();
+                    renderAsBack = true;
+                    readableBack = false;
+                }
+                case READABLE -> {
+                    if (!settings.hasImage()) return;
+                    assetId = settings.imageId();
+                    imageWidth = settings.imageWidth();
+                    imageHeight = settings.imageHeight();
+                    renderAsBack = true;
+                    readableBack = true;
+                }
+                case INDEPENDENT -> {
+                    if (!settings.hasBackImage()) return;
+                    assetId = settings.backImageId();
+                    imageWidth = settings.backImageWidth();
+                    imageHeight = settings.backImageHeight();
+                    renderAsBack = true;
+                    readableBack = true;
+                }
+                default -> throw new IllegalStateException("Unhandled plane mode: " + mode);
+            }
+        }
+
+        var texture = ProjectionTextureCache.get(assetId);
+        if (texture.isEmpty()) {
+            renderMissingAsset(blockEntity, poseStack, bufferSource, angle, bob, projectionLight);
+            return;
+        }
+
         float bottom = physicalTop(blockEntity) + settings.liftPixels() * PIXEL + bob;
         float topV = settings.flipVertical() ? 1.0F : 0.0F;
         float bottomV = settings.flipVertical() ? 0.0F : 1.0F;
+        FaceSize size = faceSize(imageWidth, imageHeight, settings.scalePixels());
 
         poseStack.pushPose();
         poseStack.translate(0.5D, bottom, 0.5D);
         poseStack.mulPose(Axis.YP.rotationDegrees(angle));
-
         PoseStack.Pose pose = poseStack.last();
         Matrix4f matrix = pose.pose();
-        FaceSize frontSize = faceSize(settings.imageWidth(), settings.imageHeight(), settings.scalePixels());
 
-        boolean viewingFront = isCameraOnFrontSide(blockEntity, angle);
-        if (viewingFront) {
-            renderFrontFace(frontTexture, frontSize, topV, bottomV, settings, projectionLight, matrix, pose, bufferSource);
+        if (renderAsBack) {
+            renderBackFace(texture.get(), size, topV, bottomV, readableBack, settings, projectionLight, matrix, pose, bufferSource);
         } else {
-            switch (settings.backFaceMode()) {
-                case MIRRORED -> renderBackFace(
-                        frontTexture,
-                        frontSize,
-                        topV,
-                        bottomV,
-                        false,
-                        settings,
-                        projectionLight,
-                        matrix,
-                        pose,
-                        bufferSource
-                );
-                case READABLE -> renderBackFace(
-                        frontTexture,
-                        frontSize,
-                        topV,
-                        bottomV,
-                        true,
-                        settings,
-                        projectionLight,
-                        matrix,
-                        pose,
-                        bufferSource
-                );
-                case INDEPENDENT -> {
-                    ResourceLocation backTexture = settings.hasBackImage()
-                            ? ProjectionTextureCache.get(settings.backImageId()).orElse(frontTexture)
-                            : frontTexture;
-                    FaceSize backSize = settings.hasBackImage()
-                            ? faceSize(settings.backImageWidth(), settings.backImageHeight(), settings.scalePixels())
-                            : frontSize;
-                    renderBackFace(
-                            backTexture,
-                            backSize,
-                            topV,
-                            bottomV,
-                            true,
-                            settings,
-                            projectionLight,
-                            matrix,
-                            pose,
-                            bufferSource
-                    );
-                }
-            }
+            renderFrontFace(texture.get(), size, topV, bottomV, settings, projectionLight, matrix, pose, bufferSource);
         }
-
         poseStack.popPose();
     }
 
@@ -675,7 +1027,10 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     ) {
         float minX = -size.width() * 0.5F;
         float maxX = size.width() * 0.5F;
-        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(texture));
+        RenderType projectionType = settings.opacityPercent() < 100
+                ? ProjectionRenderTypes.ghostEntity(texture)
+                : RenderType.entityTranslucent(texture);
+        VertexConsumer consumer = bufferSource.getBuffer(projectionType);
         if (!settings.scanlines()) {
             emitFrontQuad(consumer, matrix, pose, minX, maxX, 0.0F, size.height(), bottomV, topV, settings, projectionLight);
             return;
@@ -699,7 +1054,10 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         float maxX = size.width() * 0.5F;
         float leftU = readable ? 1.0F : 0.0F;
         float rightU = readable ? 0.0F : 1.0F;
-        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(texture));
+        RenderType projectionType = settings.opacityPercent() < 100
+                ? ProjectionRenderTypes.ghostEntity(texture)
+                : RenderType.entityTranslucent(texture);
+        VertexConsumer consumer = bufferSource.getBuffer(projectionType);
         if (!settings.scanlines()) {
             emitBackQuad(consumer, matrix, pose, minX, maxX, 0.0F, size.height(), bottomV, topV,
                     leftU, rightU, settings, projectionLight);
@@ -874,7 +1232,8 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                 settings,
                 blockEntity.coreProfile(),
                 blockEntity.chassisProfile(),
-                !blockEntity.projectedStack().isEmpty()
+                blockEntity.hasProjectedSourceContent(),
+                blockEntity.projectedSourceCount()
         );
         if (!power.active()) {
             return new AABB(pos).inflate(0.5D, 0.5D, 0.5D);
@@ -886,44 +1245,35 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                 && (blockEntity.entityProjectionState().hasActiveEntity()
                 || blockEntity.entityProjectionState().hasProjectedHumanoidEquipment());
         boolean imageProjection = settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
-                && (blockEntity.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM
+                && (blockEntity.chassisProfile().hasMultiSourceImageLayout()
+                ? blockEntity.imageSourceBank().hasAny(blockEntity.chassisProfile().imageLayoutSlots())
+                : blockEntity.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM
                 ? settings.hasAnyImage()
-                : settings.hasImage());
-        if (!imageProjection && !itemProjection && !entityProjection) {
+                : hasPlaneImageContent(settings));
+        boolean bannerProjection = settings.sourceMode() == ProjectionSettings.SourceMode.BANNER
+                && blockEntity.hasAnyBannerSnapshot();
+        if (!imageProjection && !itemProjection && !entityProjection && !bannerProjection) {
             return new AABB(pos).inflate(0.5D, 1.0D, 0.5D);
         }
 
         ProjectionPower.Dimensions dimensions = ProjectionPower.dimensions(
                 settings,
-                !blockEntity.projectedStack().isEmpty(),
+                blockEntity.hasProjectedSourceContent(),
                 blockEntity.chassisProfile()
         );
         double width = Math.max(PIXEL, dimensions.widthPixels() * PIXEL);
         double height = Math.max(PIXEL, dimensions.heightPixels() * PIXEL);
 
-        boolean humanoidProjection = settings.sourceMode() == ProjectionSettings.SourceMode.ENTITY
-                && (blockEntity.entityProjectionState().hasActiveEntity()
-                ? blockEntity.entityProjectionState().activeKind()
-                == celerbi.mirageprojector.entity.EntityScanData.Kind.HUMANOID
-                : blockEntity.entityProjectionState().hasProjectedHumanoidEquipment());
-        if (humanoidProjection) {
-            double targetHeight = Math.max(PIXEL, settings.scalePixels() * PIXEL);
-            width = Math.max(
-                    width,
-                    targetHeight * HumanoidPoseController.horizontalExtentMultiplier(
-                            blockEntity.entityProjectionState().humanoidPose()
-                    )
-            );
-            height = Math.max(
-                    height,
-                    targetHeight * HumanoidPoseController.verticalExtentMultiplier(
-                            blockEntity.entityProjectionState().humanoidPose()
-                    )
-            );
+        if (settings.sourceMode() == ProjectionSettings.SourceMode.ENTITY) {
+            EntityProjectionBounds.Bounds entityBounds = EntityProjectionBounds.projected(
+                    blockEntity.entityProjectionState(), settings);
+            width = Math.max(PIXEL, entityBounds.widthPixels() * PIXEL);
+            height = Math.max(PIXEL, entityBounds.heightPixels() * PIXEL);
         }
 
         double radius = blockEntity.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM
-                && settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
+                && (settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
+                || settings.sourceMode() == ProjectionSettings.SourceMode.BANNER)
                 ? Math.max(0.75D, width * Math.sqrt(2.0D) * 0.5D + 0.25D)
                 : Math.max(0.75D, width * 0.5D + 0.25D);
         double minY = pos.getY() + physicalTop(blockEntity) + settings.liftPixels() * PIXEL
@@ -951,6 +1301,14 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     @Override
     public int getViewDistance() {
         return 256;
+    }
+
+    private record DeferredEntityProjection(
+            MirageProjectorRenderer renderer,
+            MirageProjectorBlockEntity blockEntity,
+            float partialTick,
+            int packedLight
+    ) {
     }
 
     private record EntityCacheEntry(

@@ -2,21 +2,27 @@ package celerbi.mirageprojector.entity;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.horse.Horse;
 import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,7 +37,7 @@ import java.util.UUID;
  */
 public final class EntityScanData {
     public static final String ROOT_KEY = "MirageEntityScan";
-    public static final int DATA_VERSION = 3;
+    public static final int DATA_VERSION = 5;
     public static final int MAX_ENTITY_NBT_BYTES = 256 * 1024;
 
     public static final EquipmentSlot[] HUMANOID_SLOTS = {
@@ -87,9 +93,14 @@ public final class EntityScanData {
 
         UUID scanId = root.hasUUID("ScanId") ? root.getUUID("ScanId") : UUID.randomUUID();
         UUID sourceUuid = root.hasUUID("SourceUuid") ? root.getUUID("SourceUuid") : new UUID(0L, 0L);
+        int dataVersion = root.contains("Version") ? root.getInt("Version") : 0;
         Kind kind = Kind.fromSerialized(root.getString("Kind"));
         String displayName = root.getString("DisplayName");
         String nameplateText = root.getString("NameplateText");
+        boolean hadCustomName = root.contains("HadCustomName")
+                ? root.getBoolean("HadCustomName")
+                : !nameplateText.isBlank();
+        String customNameText = root.getString("CustomNameText");
         boolean playerSource = root.contains("PlayerSource")
                 ? root.getBoolean("PlayerSource")
                 : type.equals(ResourceLocation.withDefaultNamespace("player"));
@@ -101,13 +112,41 @@ public final class EntityScanData {
                 : displayName;
         String playerTextureValue = playerProfile.getString("TextureValue");
         String playerTextureSignature = playerProfile.getString("TextureSignature");
+        int playerModelParts = playerProfile.contains("ModelParts")
+                ? playerProfile.getInt("ModelParts")
+                : Player.DEFAULT_MODEL_CUSTOMIZATION;
+        String playerMainArm = playerProfile.contains("MainArm")
+                ? playerProfile.getString("MainArm")
+                : Player.DEFAULT_MAIN_HAND.name().toLowerCase(Locale.ROOT);
+        String playerSkinModel = playerProfile.getString("SkinModel");
         CompoundTag entityData = root.contains("EntityData") ? root.getCompound("EntityData").copy() : new CompoundTag();
         CompoundTag equipment = root.contains("Equipment") ? root.getCompound("Equipment").copy() : new CompoundTag();
 
-        // dev.13 compatibility: player scans already carried DisplayName but did
-        // not yet separate projector nameplate policy from the card label.
+        // Player scans always expose their frozen profile/display name.
         if (nameplateText.isBlank() && playerSource) {
             nameplateText = displayName;
+        }
+
+        // CustomName is frozen explicitly from v5 onward, but DisplayName is
+        // also a trustworthy recovery signal for a named mob: vanilla getName()
+        // returns the nametag text when one exists. Keep this fallback for every
+        // scan version instead of restricting it to legacy cards; that makes the
+        // projection resilient when a loader/modded entity reports CustomName
+        // metadata differently while still exposing the visible renamed name.
+        if (!playerSource && nameplateText.isBlank()) {
+            if (hadCustomName && !customNameText.isBlank()) {
+                nameplateText = customNameText;
+            } else if (!displayName.isBlank()) {
+                var entityTypeValue = BuiltInRegistries.ENTITY_TYPE.get(type);
+                String vanillaName = entityTypeValue == null
+                        ? ""
+                        : entityTypeValue.getDescription().getString();
+                if (!displayName.equals(vanillaName)) {
+                    hadCustomName = true;
+                    customNameText = displayName;
+                    nameplateText = displayName;
+                }
+            }
         }
 
         return Optional.of(new View(
@@ -117,10 +156,15 @@ public final class EntityScanData {
                 kind,
                 displayName,
                 nameplateText,
+                hadCustomName,
+                customNameText,
                 playerSource,
                 playerProfileName,
                 playerTextureValue,
                 playerTextureSignature,
+                playerModelParts,
+                playerMainArm,
+                playerSkinModel,
                 entityData,
                 equipment
         ));
@@ -131,7 +175,9 @@ public final class EntityScanData {
         Kind kind = classify(target);
         ResourceLocation entityType = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
         String displayName = target.getName().getString();
-        String nameplateText = projectionNameplate(target);
+        boolean hadCustomName = target.hasCustomName() && target.getCustomName() != null;
+        String customNameText = hadCustomName ? target.getCustomName().getString() : "";
+        String nameplateText = target instanceof Player ? displayName : customNameText;
 
         CompoundTag entityData = target.saveWithoutId(new CompoundTag());
         sanitizeCommon(entityData);
@@ -154,6 +200,10 @@ public final class EntityScanData {
         root.putString("EntityType", entityType.toString());
         root.putString("Kind", kind.serializedName());
         root.putString("DisplayName", displayName);
+        root.putBoolean("HadCustomName", hadCustomName);
+        if (!customNameText.isBlank()) {
+            root.putString("CustomNameText", customNameText);
+        }
         root.putBoolean("PlayerSource", target instanceof Player);
         if (target instanceof Player player) {
             CompoundTag playerProfile = capturePlayerProfile(player);
@@ -192,6 +242,16 @@ public final class EntityScanData {
             return Kind.HORSE;
         }
         return Kind.GENERIC;
+    }
+
+
+    public static boolean supportsSittingPose(ResourceLocation entityType) {
+        if (entityType == null) {
+            return false;
+        }
+        return entityType.equals(ResourceLocation.withDefaultNamespace("cat"))
+                || entityType.equals(ResourceLocation.withDefaultNamespace("wolf"))
+                || entityType.equals(ResourceLocation.withDefaultNamespace("parrot"));
     }
 
     public static String projectionNameplate(LivingEntity entity) {
@@ -274,14 +334,58 @@ public final class EntityScanData {
             result.putString("Name", profileName);
         }
 
+        int modelParts = 0;
+        for (PlayerModelPart part : PlayerModelPart.values()) {
+            if (player.isModelPartShown(part)) {
+                modelParts |= part.getMask();
+            }
+        }
+        result.putInt("ModelParts", modelParts);
+        HumanoidArm mainArm = player.getMainArm();
+        result.putString("MainArm", (mainArm == null ? Player.DEFAULT_MAIN_HAND : mainArm).name().toLowerCase(Locale.ROOT));
+
         Property texture = profile.getProperties().get("textures").stream().findFirst().orElse(null);
         if (texture != null && texture.value() != null && !texture.value().isBlank()) {
             result.putString("TextureValue", texture.value());
             if (texture.signature() != null && !texture.signature().isBlank()) {
                 result.putString("TextureSignature", texture.signature());
             }
+            String skinModel = decodePlayerSkinModel(texture.value());
+            if (!skinModel.isBlank()) {
+                result.putString("SkinModel", skinModel);
+            }
         }
         return result;
+    }
+
+
+    private static String decodePlayerSkinModel(String textureValue) {
+        if (textureValue == null || textureValue.isBlank()) {
+            return "";
+        }
+        try {
+            String json = new String(Base64.getDecoder().decode(textureValue), StandardCharsets.UTF_8);
+            JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+            JsonObject textures = root.has("textures") && root.get("textures").isJsonObject()
+                    ? root.getAsJsonObject("textures")
+                    : null;
+            JsonObject skin = textures != null && textures.has("SKIN") && textures.get("SKIN").isJsonObject()
+                    ? textures.getAsJsonObject("SKIN")
+                    : null;
+            if (skin == null) {
+                return "";
+            }
+            JsonObject metadata = skin.has("metadata") && skin.get("metadata").isJsonObject()
+                    ? skin.getAsJsonObject("metadata")
+                    : null;
+            if (metadata != null && metadata.has("model")
+                    && "slim".equalsIgnoreCase(metadata.get("model").getAsString())) {
+                return "slim";
+            }
+            return "wide";
+        } catch (RuntimeException ignored) {
+            return "";
+        }
     }
 
     private static void sanitizeCommon(CompoundTag tag) {
@@ -341,10 +445,15 @@ public final class EntityScanData {
             Kind kind,
             String displayName,
             String nameplateText,
+            boolean hadCustomName,
+            String customNameText,
             boolean playerSource,
             String playerProfileName,
             String playerTextureValue,
             String playerTextureSignature,
+            int playerModelParts,
+            String playerMainArm,
+            String playerSkinModel,
             CompoundTag entityData,
             CompoundTag equipment
     ) {
@@ -356,8 +465,26 @@ public final class EntityScanData {
             return equipment.contains(slotName);
         }
 
+        /**
+         * Canonical projection label. dev.35 no longer trusts only the legacy
+         * NameplateText field: named mobs resolve from the explicitly frozen
+         * CustomName first, while players fall back to their frozen display name.
+         */
+        public String projectionNameplateText() {
+            if (!playerSource && hadCustomName && customNameText != null && !customNameText.isBlank()) {
+                return customNameText;
+            }
+            if (nameplateText != null && !nameplateText.isBlank()) {
+                return nameplateText;
+            }
+            if (playerSource && displayName != null) {
+                return displayName;
+            }
+            return "";
+        }
+
         public boolean hasProjectionNameplate() {
-            return !nameplateText.isBlank();
+            return !projectionNameplateText().isBlank();
         }
     }
 

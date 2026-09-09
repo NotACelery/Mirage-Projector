@@ -20,6 +20,7 @@ public final class ClientEvents {
         event.register(ModMenus.ENTITY_PROJECTOR.get(), EntityProjectorScreen::new);
         event.register(ModMenus.IMAGE_PROJECTOR.get(), ImageProjectorScreen::new);
         event.register(ModMenus.ITEM_PROJECTOR.get(), ItemProjectorScreen::new);
+        event.register(ModMenus.BANNER_PROJECTOR.get(), BannerProjectorScreen::new);
     }
 
     @SubscribeEvent

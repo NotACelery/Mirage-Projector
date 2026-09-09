@@ -2,6 +2,8 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.entity.EntityScanData;
+import celerbi.mirageprojector.entity.GenericPosePreset;
+import celerbi.mirageprojector.entity.HorsePosePreset;
 import celerbi.mirageprojector.entity.HumanoidPosePreset;
 import celerbi.mirageprojector.entity.VirtualEquipmentSnapshots;
 import celerbi.mirageprojector.menu.EntityProjectorMenu;
@@ -20,17 +22,26 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.EnumMap;
 import java.util.Map;
 
-/** Entity/Humanoid workspace with staged equipment conflict resolution and live 3D inspection. */
+/**
+ * Entity workspace arranged around the same centred 9x3 + hotbar footprint as
+ * the normal player inventory. Source, equipment, actions and preview have
+ * independent regions so translated labels never share button/slot space.
+ */
 public final class EntityProjectorScreen extends AbstractContainerScreen<EntityProjectorMenu> {
-    private static final int PANEL_WIDTH = 370;
-    private static final int PANEL_HEIGHT = 330;
-    private static final int PROJECTED_X = 278;
-    private static final int APPLY_X = 63;
-    private static final int PREVIEW_GAP = 8;
-    private static final int PREVIEW_PREFERRED_WIDTH = 150;
-    private static final int PREVIEW_MIN_WIDTH = 68;
-    private static final int PREVIEW_HEIGHT = 218;
-    private static final int SCREEN_MARGIN = 4;
+    private static final int PANEL_WIDTH = 570;
+    private static final int PANEL_HEIGHT = 438;
+
+    private static final int APPLY_X = 52;
+    private static final int CHANNEL_X = 86;
+    private static final int PROJECTED_X = 332;
+
+    private static final int PREVIEW_X = 380;
+    private static final int PREVIEW_Y = 30;
+    private static final int PREVIEW_W = 180;
+    private static final int PREVIEW_H = 240;
+
+    private static final int ACTION_Y = 283;
+    private static final int STATUS_Y = 308;
 
     private final Map<VirtualEquipmentSnapshots.Channel, Button> applyButtons =
             new EnumMap<>(VirtualEquipmentSnapshots.Channel.class);
@@ -42,7 +53,7 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
     private Button confirmReplaceButton;
     private Button cancelReplaceButton;
     private VirtualEquipmentSnapshots.Channel pendingConflict;
-    private Component status = Component.literal("Entity workspace ready");
+    private Component status = Component.translatable("gui.mirage_projector.entity.ready");
     private EntityScanData.Kind lastKind;
 
     public EntityProjectorScreen(EntityProjectorMenu menu, Inventory inventory, Component title) {
@@ -56,16 +67,18 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
     @Override
     protected void init() {
         super.init();
-        layoutComposite();
         createApplyButtons();
 
-        addRenderableWidget(Button.builder(Component.literal("Use this projection"), button ->
-                PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.ENTITY))
-        ).bounds(leftPos + 102, topPos + 4, 122, 18).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.entity.use_projection"), button ->
+                PacketDistributor.sendToServer(new SetProjectionSourcePayload(
+                        menu.projectorPos(),
+                        ProjectionSettings.SourceMode.ENTITY
+                ))
+        ).bounds(leftPos + 286, topPos + 6, 130, 18).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Projection settings..."), button ->
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.entity.projection_settings"), button ->
                 PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + 232, topPos + 4, 126, 18).build());
+        ).bounds(leftPos + 422, topPos + 6, 138, 18).build());
 
         captureLoadoutButton = addRenderableWidget(Button.builder(
                 Component.translatable("gui.mirage_projector.entity.capture_loadout"),
@@ -77,7 +90,7 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
                     ));
                     status = Component.translatable("gui.mirage_projector.entity.capture_loadout_status");
                 }
-        ).bounds(leftPos + 20, topPos + 197, 92, 20).build());
+        ).bounds(leftPos + 18, topPos + ACTION_Y, 110, 20).build());
         captureLoadoutButton.setTooltip(Tooltip.create(Component.translatable(
                 "tooltip.mirage_projector.entity.capture_loadout"
         )));
@@ -92,96 +105,108 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
                     ));
                     status = Component.translatable("gui.mirage_projector.entity.return_gear_status");
                 }
-        ).bounds(leftPos + 116, topPos + 197, 80, 20).build());
+        ).bounds(leftPos + 134, topPos + ACTION_Y, 100, 20).build());
         returnGearButton.setTooltip(Tooltip.create(Component.translatable(
                 "tooltip.mirage_projector.entity.return_gear"
         )));
 
-        poseButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
-            HumanoidPosePreset next = menu.state().humanoidPose().next();
-            PacketDistributor.sendToServer(new EntityWorkspaceActionPayload(
-                    menu.projectorPos(),
-                    EntityWorkspaceActionPayload.Action.CYCLE_POSE,
-                    null
-            ));
-            status = Component.translatable(
-                    "gui.mirage_projector.entity.pose_status",
-                    poseName(next)
-            );
-        }).bounds(leftPos + 202, topPos + 197, 150, 20).build());
+        poseButton = addRenderableWidget(Button.builder(Component.empty(), button -> cyclePose())
+                .bounds(leftPos + 240, topPos + ACTION_Y, 120, 20)
+                .build());
         poseButton.setTooltip(Tooltip.create(Component.translatable(
                 "tooltip.mirage_projector.entity.pose"
         )));
 
-        confirmReplaceButton = addRenderableWidget(Button.builder(Component.literal("Replace"), button -> {
-            if (pendingConflict != null) {
-                sendAction(EntityWorkspaceActionPayload.Action.REPLACE, pendingConflict);
-                status = Component.literal("Projected " + channelName(pendingConflict) + " replaced");
-            }
-            pendingConflict = null;
-            refreshConflictButtons();
-        }).bounds(leftPos + 202, topPos + 197, 72, 20).build());
+        confirmReplaceButton = addRenderableWidget(Button.builder(
+                Component.translatable("gui.mirage_projector.entity.replace"),
+                button -> {
+                    if (pendingConflict != null) {
+                        VirtualEquipmentSnapshots.Channel replaced = pendingConflict;
+                        sendAction(EntityWorkspaceActionPayload.Action.REPLACE, replaced);
+                        status = Component.translatable(
+                                "gui.mirage_projector.entity.replaced_status",
+                                channelComponent(replaced)
+                        );
+                    }
+                    pendingConflict = null;
+                    refreshConflictButtons();
+                }
+        ).bounds(leftPos + 240, topPos + ACTION_Y, 76, 20).build());
 
-        cancelReplaceButton = addRenderableWidget(Button.builder(Component.literal("Cancel"), button -> {
-            pendingConflict = null;
-            status = Component.literal("Replacement cancelled");
-            refreshConflictButtons();
-        }).bounds(leftPos + 280, topPos + 197, 72, 20).build());
+        cancelReplaceButton = addRenderableWidget(Button.builder(
+                Component.translatable("gui.mirage_projector.cancel"),
+                button -> {
+                    pendingConflict = null;
+                    status = Component.translatable("gui.mirage_projector.entity.replace_cancelled");
+                    refreshConflictButtons();
+                }
+        ).bounds(leftPos + 322, topPos + ACTION_Y, 76, 20).build());
 
-        refreshConflictButtons();
         updateModeWidgets(true);
+        refreshActionableButtons();
+        refreshConflictButtons();
         refreshPoseButton();
-    }
-
-    private void layoutComposite() {
-        int preferredTotal = imageWidth + PREVIEW_GAP + PREVIEW_PREFERRED_WIDTH;
-        if (width >= preferredTotal + SCREEN_MARGIN * 2) {
-            leftPos = (width - preferredTotal) / 2;
-            return;
-        }
-
-        int minimumTotal = imageWidth + PREVIEW_GAP + PREVIEW_MIN_WIDTH;
-        if (width >= minimumTotal + SCREEN_MARGIN * 2) {
-            leftPos = SCREEN_MARGIN;
-        }
-    }
-
-    private int previewPanelWidth() {
-        int available = width - (leftPos + imageWidth + PREVIEW_GAP) - SCREEN_MARGIN;
-        return available < PREVIEW_MIN_WIDTH ? 0 : Math.min(PREVIEW_PREFERRED_WIDTH, available);
     }
 
     private void createApplyButtons() {
         for (VirtualEquipmentSnapshots.Channel channel : VirtualEquipmentSnapshots.Channel.values()) {
-            int y = localY(channel);
             Button button = addRenderableWidget(Button.builder(Component.literal("✓"), ignored -> apply(channel))
-                    .bounds(leftPos + APPLY_X, topPos + y, 20, 18)
+                    .bounds(leftPos + APPLY_X, topPos + localY(channel), 22, 18)
                     .build());
-            button.setTooltip(Tooltip.create(Component.literal(
-                    "Apply this incoming snapshot to the matching projected slot. Existing projected equipment requires confirmation."
+            button.setTooltip(Tooltip.create(Component.translatable(
+                    "tooltip.mirage_projector.entity.apply"
             )));
             applyButtons.put(channel, button);
         }
     }
 
+    private void cyclePose() {
+        EntityScanData.Kind kind = menu.effectiveKind();
+        Component next;
+        if (kind == EntityScanData.Kind.HORSE) {
+            next = horsePoseName(menu.state().horsePose().next());
+        } else if (kind == EntityScanData.Kind.HUMANOID) {
+            next = humanoidPoseName(menu.state().humanoidPose().next());
+        } else if (kind == EntityScanData.Kind.GENERIC && menu.supportsGenericSittingPose()) {
+            next = genericPoseName(menu.state().genericPose().next());
+        } else {
+            return;
+        }
+        PacketDistributor.sendToServer(new EntityWorkspaceActionPayload(
+                menu.projectorPos(),
+                EntityWorkspaceActionPayload.Action.CYCLE_POSE,
+                null
+        ));
+        status = Component.translatable("gui.mirage_projector.entity.pose_status", next);
+    }
+
     private void apply(VirtualEquipmentSnapshots.Channel channel) {
-        ItemStack incoming = menu.incoming(channel).stack();
-        if (incoming.isEmpty()) {
-            status = Component.literal("Nothing is staged for " + channelName(channel));
+        if (!menu.hasActionableIncoming(channel)) {
+            status = Component.translatable(
+                    "gui.mirage_projector.entity.nothing_staged",
+                    channelComponent(channel)
+            );
             return;
         }
 
+        ItemStack incoming = menu.incoming(channel).stack();
         if (menu.hasConflict(channel)) {
             pendingConflict = channel;
             ItemStack current = menu.projected(channel).stack();
-            status = Component.literal("Replace " + truncate(current.getHoverName().getString(), 20)
-                    + " with " + truncate(incoming.getHoverName().getString(), 20) + "?");
+            status = Component.translatable(
+                    "gui.mirage_projector.entity.replace_question",
+                    Component.literal(truncate(current.getHoverName().getString(), 18)),
+                    Component.literal(truncate(incoming.getHoverName().getString(), 18))
+            );
             refreshConflictButtons();
             return;
         }
 
         sendAction(EntityWorkspaceActionPayload.Action.APPLY, channel);
-        status = Component.literal("Applied " + channelName(channel));
+        status = Component.translatable(
+                "gui.mirage_projector.entity.applied_status",
+                channelComponent(channel)
+        );
     }
 
     private void sendAction(
@@ -198,53 +223,83 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         }
         lastKind = kind;
         pendingConflict = null;
+        captureLoadoutButton.visible = kind == EntityScanData.Kind.HUMANOID;
+        returnGearButton.visible = kind == EntityScanData.Kind.HUMANOID || kind == EntityScanData.Kind.HORSE;
         refreshConflictButtons();
+    }
 
+    private void refreshActionableButtons() {
+        EntityScanData.Kind kind = menu.effectiveKind();
         for (Map.Entry<VirtualEquipmentSnapshots.Channel, Button> entry : applyButtons.entrySet()) {
             VirtualEquipmentSnapshots.Channel channel = entry.getKey();
-            entry.getValue().visible = switch (kind) {
+            boolean supported = switch (kind) {
                 case HUMANOID -> channel.humanoid();
                 case HORSE -> channel.horse();
                 case GENERIC -> false;
             };
+            entry.getValue().visible = supported && menu.hasActionableIncoming(channel);
+            entry.getValue().active = entry.getValue().visible;
         }
-        // Keep this visible even in Generic context: a context switch may hide
-        // physical Humanoid staging rows, but must never hide the escape hatch
-        // that safely returns those real items.
-        captureLoadoutButton.visible = kind == EntityScanData.Kind.HUMANOID;
-        returnGearButton.visible = true;
+
+        if (pendingConflict != null && !menu.hasConflict(pendingConflict)) {
+            pendingConflict = null;
+            refreshConflictButtons();
+        }
     }
 
     private void refreshConflictButtons() {
-        boolean visible = pendingConflict != null;
+        boolean conflict = pendingConflict != null;
         if (confirmReplaceButton != null) {
-            confirmReplaceButton.visible = visible;
+            confirmReplaceButton.visible = conflict;
         }
         if (cancelReplaceButton != null) {
-            cancelReplaceButton.visible = visible;
+            cancelReplaceButton.visible = conflict;
         }
         if (poseButton != null) {
-            poseButton.visible = !visible && lastKind == EntityScanData.Kind.HUMANOID;
+            poseButton.visible = !conflict
+                    && (lastKind == EntityScanData.Kind.HUMANOID
+                    || lastKind == EntityScanData.Kind.HORSE
+                    || (lastKind == EntityScanData.Kind.GENERIC && menu.supportsGenericSittingPose()));
         }
     }
 
     private void refreshPoseButton() {
-        if (poseButton != null) {
-            poseButton.setMessage(Component.translatable(
-                    "gui.mirage_projector.entity.pose",
-                    poseName(menu.state().humanoidPose())
-            ));
+        if (poseButton == null) {
+            return;
         }
+        EntityScanData.Kind kind = menu.effectiveKind();
+        boolean supported = kind == EntityScanData.Kind.HUMANOID
+                || kind == EntityScanData.Kind.HORSE
+                || (kind == EntityScanData.Kind.GENERIC && menu.supportsGenericSittingPose());
+        poseButton.visible = pendingConflict == null && supported;
+        if (!supported) {
+            return;
+        }
+        Component pose = switch (kind) {
+            case HUMANOID -> humanoidPoseName(menu.state().humanoidPose());
+            case HORSE -> horsePoseName(menu.state().horsePose());
+            case GENERIC -> genericPoseName(menu.state().genericPose());
+        };
+        poseButton.setMessage(Component.translatable("gui.mirage_projector.entity.pose", pose));
     }
 
-    private static Component poseName(HumanoidPosePreset pose) {
+    private static Component humanoidPoseName(HumanoidPosePreset pose) {
         return Component.translatable("gui.mirage_projector.entity.pose." + pose.serializedName());
+    }
+
+    private static Component horsePoseName(HorsePosePreset pose) {
+        return Component.translatable("gui.mirage_projector.entity.horse_pose." + pose.serializedName());
+    }
+
+    private static Component genericPoseName(GenericPosePreset pose) {
+        return Component.translatable("gui.mirage_projector.entity.generic_pose." + pose.serializedName());
     }
 
     @Override
     protected void containerTick() {
         super.containerTick();
         updateModeWidgets(false);
+        refreshActionableButtons();
         refreshPoseButton();
     }
 
@@ -252,51 +307,75 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = leftPos;
         int y = topPos;
-        graphics.fill(x, y, x + imageWidth, y + imageHeight, 0xE014171D);
-        graphics.fill(x + 7, y + 23, x + imageWidth - 7, y + 221, 0xFF20252D);
-        graphics.fill(x + 7, y + 224, x + imageWidth - 7, y + imageHeight - 7, 0xFF171A20);
 
-        drawSlotFrame(graphics, x + EntityProjectorMenu.CARD_X, y + EntityProjectorMenu.CARD_Y, 0xFF75658A);
+        graphics.fill(x, y, x + imageWidth, y + imageHeight, 0xF014171D);
+        graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 2, 0xFF6B4A7E);
+
+        section(graphics, x + 10, y + 30, 360, 64);
+        section(graphics, x + 10, y + 100, 360, 170);
+        section(graphics, x + 10, y + 276, 550, 44);
+        section(graphics, x + 10, y + 326, 550, 102);
+        section(graphics, x + PREVIEW_X, y + PREVIEW_Y, PREVIEW_W, PREVIEW_H);
+
+        drawSlotFrame(graphics, x + EntityProjectorMenu.CARD_X - 1, y + EntityProjectorMenu.CARD_Y - 1, 0xFF75658A);
 
         EntityScanData.Kind kind = menu.effectiveKind();
         if (kind == EntityScanData.Kind.HUMANOID) {
             for (VirtualEquipmentSnapshots.Channel channel : humanoidChannels()) {
-                int rowY = y + localY(channel);
-                drawSlotFrame(graphics, x + EntityProjectorMenu.STAGING_X, rowY, 0xFF536675);
-                drawSlotFrame(graphics, x + PROJECTED_X, rowY, menu.hasConflict(channel) ? 0xFF9C5A52 : 0xFF53675C);
+                drawEquipmentFrames(graphics, x, y, channel);
             }
         } else if (kind == EntityScanData.Kind.HORSE) {
             for (VirtualEquipmentSnapshots.Channel channel : horseChannels()) {
-                int rowY = y + localY(channel);
-                drawSlotFrame(graphics, x + EntityProjectorMenu.STAGING_X, rowY, 0xFF536675);
-                drawSlotFrame(graphics, x + PROJECTED_X, rowY, menu.hasConflict(channel) ? 0xFF9C5A52 : 0xFF53675C);
+                drawEquipmentFrames(graphics, x, y, channel);
             }
+        }
+
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                drawSlotFrame(
+                        graphics,
+                        x + EntityProjectorMenu.PLAYER_INV_X + col * 18 - 1,
+                        y + EntityProjectorMenu.PLAYER_INV_Y + row * 18 - 1,
+                        0xFF5A5361
+                );
+            }
+        }
+        for (int col = 0; col < 9; col++) {
+            drawSlotFrame(
+                    graphics,
+                    x + EntityProjectorMenu.PLAYER_INV_X + col * 18 - 1,
+                    y + EntityProjectorMenu.PLAYER_INV_Y + 58 - 1,
+                    0xFF5A5361
+            );
         }
 
         renderPreviewPanel(graphics, mouseX, mouseY);
     }
 
-    private void renderPreviewPanel(GuiGraphics graphics, int mouseX, int mouseY) {
-        int panelW = previewPanelWidth();
-        int panelH = PREVIEW_HEIGHT;
-        if (panelW == 0) {
-            return;
-        }
-        int x = leftPos + imageWidth + PREVIEW_GAP;
-        int y = topPos + 24;
+    private void drawEquipmentFrames(
+            GuiGraphics graphics,
+            int x,
+            int y,
+            VirtualEquipmentSnapshots.Channel channel
+    ) {
+        int rowY = y + localY(channel);
+        drawSlotFrame(graphics, x + EntityProjectorMenu.STAGING_X - 1, rowY - 1, 0xFF536675);
+        drawSlotFrame(
+                graphics,
+                x + PROJECTED_X - 1,
+                rowY - 1,
+                menu.hasConflict(channel) ? 0xFF9C5A52 : 0xFF53675C
+        );
+    }
 
-        int previewChars = Math.max(6, panelW / 6);
-        graphics.fill(x, y, x + panelW, y + panelH, 0xE014171D);
-        graphics.fill(x + 4, y + 18, x + panelW - 4, y + panelH - 4, 0xFF20252D);
-        graphics.drawCenteredString(font, panelW < 90 ? "Preview" : "3D Preview", x + panelW / 2, y + 6, 0xFFF2ECFF);
+    private void renderPreviewPanel(GuiGraphics graphics, int mouseX, int mouseY) {
+        int x = leftPos + PREVIEW_X;
+        int y = topPos + PREVIEW_Y;
+        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.preview"), x + PREVIEW_W / 2, y + 8, 0xFFF2ECFF);
 
         var active = menu.state().activeEntity();
         boolean bodylessMannequin = active.isEmpty() && menu.state().hasProjectedHumanoidEquipment();
         if (active.isPresent() || bodylessMannequin) {
-            int viewportX = x + 7;
-            int viewportY = y + 23;
-            int viewportW = panelW - 14;
-            int viewportH = panelH - 58;
             ProjectionSettings previewSettings = menu.projector() == null
                     ? ProjectionSettings.DEFAULT
                     : menu.projector().settings();
@@ -304,67 +383,59 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
                     graphics,
                     menu.state(),
                     previewSettings,
-                    viewportX,
-                    viewportY,
-                    viewportW,
-                    viewportH,
+                    x + 8,
+                    y + 25,
+                    PREVIEW_W - 16,
+                    PREVIEW_H - 58,
                     mouseX,
                     mouseY
             );
 
             if (!rendered) {
-                graphics.drawCenteredString(font, "Preview unavailable", x + panelW / 2, y + 91, 0xFFFFC884);
+                graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.preview_unavailable"), x + PREVIEW_W / 2, y + 98, 0xFFFFC884);
             }
 
+            String footer;
             if (active.isPresent()) {
                 EntityScanData.View scan = active.get();
-                if (scan.hasProjectionNameplate()) {
-                    graphics.fill(x + 9, y + panelH - 31, x + panelW - 9, y + panelH - 17, 0xB0000000);
-                    graphics.drawCenteredString(
-                            font,
-                            truncate(scan.nameplateText(), previewChars),
-                            x + panelW / 2,
-                            y + panelH - 28,
-                            ProjectionRenderBuffers.tintedArgb(previewSettings, 0xF2F2F2)
-                    );
-                }
-                String footer = scan.playerSource() && scan.hasFrozenPlayerTexture()
-                        ? scan.entityType() + " · frozen skin"
-                        : scan.hasProjectionNameplate()
-                        ? scan.entityType().toString()
+                footer = scan.hasProjectionNameplate()
+                        ? scan.projectionNameplateText() + " · " + scan.entityType()
+                        : scan.playerSource() && scan.hasFrozenPlayerTexture()
+                        ? scan.displayName() + " · frozen skin"
                         : scan.displayName();
-                graphics.drawCenteredString(
-                        font,
-                        truncate(footer, previewChars),
-                        x + panelW / 2,
-                        y + panelH - 13,
-                        0xFF9CA3AF
-                );
             } else {
-                graphics.drawCenteredString(
-                        font,
-                        truncate("Virtual humanoid mannequin", previewChars),
-                        x + panelW / 2,
-                        y + panelH - 13,
-                        0xFF9CA3AF
-                );
+                footer = Component.translatable("gui.mirage_projector.entity.virtual_mannequin").getString();
             }
+            graphics.drawCenteredString(
+                    font,
+                    fit(footer, PREVIEW_W - 16),
+                    x + PREVIEW_W / 2,
+                    y + PREVIEW_H - 17,
+                    0xFF9CA3AF
+            );
             return;
         }
 
-        graphics.drawCenteredString(font, "No entity body", x + panelW / 2, y + 91, 0xFF9CA3AF);
-        graphics.drawCenteredString(font, "Apply projected gear", x + panelW / 2, y + 107, 0xFF9CA3AF);
-        graphics.drawCenteredString(font, "to create the mannequin", x + panelW / 2, y + 119, 0xFF9CA3AF);
+        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.no_body"), x + PREVIEW_W / 2, y + 96, 0xFF9CA3AF);
+        graphics.drawCenteredString(font, fit(Component.translatable("gui.mirage_projector.entity.no_body_hint").getString(), PREVIEW_W - 18), x + PREVIEW_W / 2, y + 112, 0xFF9CA3AF);
     }
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, 10, 8, 0xFFF4F4F4, false);
-        EntityScanData.Kind kind = menu.effectiveKind();
-        graphics.drawString(font, "Incoming / staging", 18, 25, 0xFFAFD8EE, false);
-        graphics.drawCenteredString(font, "Entity source", EntityProjectorMenu.CARD_X + 8, 25, 0xFFD7B8F5);
-        graphics.drawString(font, "Projected / active", 251, 25, 0xFFB9E4C0, false);
+        graphics.drawString(font, fit(title.getString(), 260), 10, 9, 0xFFF4F4F4, false);
 
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.source_section"), 18, 37, 0xFFD7B8F5, false);
+        ItemStack card = menu.cardStack();
+        String source = card.isEmpty()
+                ? Component.translatable("gui.mirage_projector.entity.scan_hint").getString()
+                : card.getHoverName().getString();
+        graphics.drawString(font, fit(source, 292), 58, 64, 0xFFD8C5EB, false);
+
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 18, 106, 0xFFAFD8EE, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.channel"), CHANNEL_X, 106, 0xFFC9CED7, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.projected"), 295, 106, 0xFFB9E4C0, false);
+
+        EntityScanData.Kind kind = menu.effectiveKind();
         if (kind == EntityScanData.Kind.HUMANOID) {
             for (VirtualEquipmentSnapshots.Channel channel : humanoidChannels()) {
                 renderRow(graphics, channel);
@@ -374,35 +445,27 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
                 renderRow(graphics, channel);
             }
         } else {
-            graphics.drawString(font, "Generic Entity: visual state remains inside the frozen entity snapshot.", 18, 83, 0xFFC4C9D3, false);
-            graphics.drawString(font, "Editable armor slots are not fabricated for unsupported equipment models.", 18, 97, 0xFF8F98A8, false);
+            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_1").getString(), 330), 18, 136, 0xFFC4C9D3, false);
+            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_2").getString(), 330), 18, 151, 0xFF8F98A8, false);
         }
 
-        ItemStack card = menu.cardStack();
-        String source = card.isEmpty() ? "Drop a scanned template here" : truncate(card.getHoverName().getString(), 26);
-        graphics.drawCenteredString(font, source, EntityProjectorMenu.CARD_X + 8, EntityProjectorMenu.CARD_Y + 22, 0xFFD8C5EB);
-
-        graphics.drawString(font, status, 18, 181, pendingConflict == null ? 0xFFE7DCF5 : 0xFFFFB98E, false);
-        graphics.drawString(font, "Inventory", EntityProjectorMenu.PLAYER_INV_X, EntityProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
-
-        if (kind == EntityScanData.Kind.HORSE && menu.projector() != null && menu.projector().hasPhysicalHorseStaging()) {
-            graphics.drawString(font, "Return horse staging gear before removing its scan card.", 18, 211, 0xFFFFB98E, false);
-        }
+        graphics.drawString(font, fit(status.getString(), 532), 18, STATUS_Y, pendingConflict == null ? 0xFFE7DCF5 : 0xFFFFB98E, false);
+        graphics.drawString(font, Component.translatable("container.inventory"), EntityProjectorMenu.PLAYER_INV_X, EntityProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
     }
 
     private void renderRow(GuiGraphics graphics, VirtualEquipmentSnapshots.Channel channel) {
         int y = localY(channel);
-        graphics.drawString(font, channelName(channel), 88, y + 5, 0xFFC9CED7, false);
+        graphics.drawString(font, fit(channelComponent(channel).getString(), 190), CHANNEL_X, y + 5, 0xFFC9CED7, false);
 
         ItemStack physical = menu.physicalStaging(channel);
         VirtualEquipmentSnapshots.Snapshot incoming = menu.incoming(channel);
-        if (physical.isEmpty() && !incoming.stack().isEmpty()) {
-            graphics.renderFakeItem(incoming.stack(), EntityProjectorMenu.STAGING_X + 1, y + 1);
+        if (physical.isEmpty() && menu.hasActionableIncoming(channel) && !incoming.stack().isEmpty()) {
+            graphics.renderFakeItem(incoming.stack(), EntityProjectorMenu.STAGING_X, y);
         }
 
         ItemStack projected = menu.projected(channel).stack();
         if (!projected.isEmpty()) {
-            graphics.renderFakeItem(projected, PROJECTED_X + 1, y + 1);
+            graphics.renderFakeItem(projected, PROJECTED_X, y);
         }
     }
 
@@ -418,7 +481,9 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
             EntityScanData.Kind kind = menu.effectiveKind();
             VirtualEquipmentSnapshots.Channel[] channels = kind == EntityScanData.Kind.HORSE
                     ? horseChannels()
-                    : kind == EntityScanData.Kind.HUMANOID ? humanoidChannels() : new VirtualEquipmentSnapshots.Channel[0];
+                    : kind == EntityScanData.Kind.HUMANOID
+                    ? humanoidChannels()
+                    : new VirtualEquipmentSnapshots.Channel[0];
             for (VirtualEquipmentSnapshots.Channel channel : channels) {
                 int x = leftPos + PROJECTED_X;
                 int y = topPos + localY(channel);
@@ -427,7 +492,10 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
                         sendAction(EntityWorkspaceActionPayload.Action.CLEAR_PROJECTED, channel);
                         pendingConflict = null;
                         refreshConflictButtons();
-                        status = Component.literal("Cleared projected " + channelName(channel));
+                        status = Component.translatable(
+                                "gui.mirage_projector.entity.cleared_status",
+                                channelComponent(channel)
+                        );
                     }
                     return true;
                 }
@@ -456,17 +524,8 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         };
     }
 
-    private static String channelName(VirtualEquipmentSnapshots.Channel channel) {
-        return switch (channel) {
-            case HEAD -> "Head";
-            case CHEST -> "Chest";
-            case LEGS -> "Legs";
-            case FEET -> "Feet";
-            case MAIN_HAND -> "Main Hand";
-            case OFF_HAND -> "Off Hand";
-            case SADDLE -> "Saddle";
-            case BODY -> "Body Armor";
-        };
+    private static Component channelComponent(VirtualEquipmentSnapshots.Channel channel) {
+        return Component.translatable("gui.mirage_projector.entity.channel." + channel.serializedName());
     }
 
     private static VirtualEquipmentSnapshots.Channel[] humanoidChannels() {
@@ -487,9 +546,27 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         };
     }
 
+    private static void section(GuiGraphics graphics, int x, int y, int w, int h) {
+        graphics.fill(x, y, x + w, y + h, 0xA20B0E13);
+        graphics.fill(x, y, x + 2, y + h, 0xFF4C3858);
+    }
+
     private static void drawSlotFrame(GuiGraphics graphics, int x, int y, int border) {
         graphics.fill(x, y, x + 18, y + 18, border);
         graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF171A20);
+    }
+
+    private String fit(String value, int maxWidth) {
+        if (value == null || value.isEmpty() || font.width(value) <= maxWidth) {
+            return value == null ? "" : value;
+        }
+        String ellipsis = "…";
+        int target = Math.max(0, maxWidth - font.width(ellipsis));
+        int end = value.length();
+        while (end > 0 && font.width(value.substring(0, end)) > target) {
+            end--;
+        }
+        return value.substring(0, Math.max(0, end)) + ellipsis;
     }
 
     private static String truncate(String value, int max) {

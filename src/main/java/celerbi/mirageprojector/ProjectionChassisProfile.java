@@ -91,6 +91,33 @@ public enum ProjectionChassisProfile {
         return sourceCapacity;
     }
 
+    /** Plane chassis that divide one physical projection surface into a source bank. */
+    public boolean hasMultiSourceImageLayout() {
+        return this == WIDE || this == TALL || this == FIELD;
+    }
+
+    public int imageLayoutColumns() {
+        return switch (this) {
+            case WIDE -> 4;
+            case TALL -> 1;
+            case FIELD -> 3;
+            default -> 1;
+        };
+    }
+
+    public int imageLayoutRows() {
+        return switch (this) {
+            case WIDE -> 1;
+            case TALL -> 4;
+            case FIELD -> 3;
+            default -> 1;
+        };
+    }
+
+    public int imageLayoutSlots() {
+        return hasMultiSourceImageLayout() ? imageLayoutColumns() * imageLayoutRows() : 1;
+    }
+
     /** Height of the physical projector body/emitter above the block floor. */
     public int physicalTopPixels() {
         return physicalTopPixels;

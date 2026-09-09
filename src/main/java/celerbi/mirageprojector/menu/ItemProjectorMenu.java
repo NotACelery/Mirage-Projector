@@ -18,10 +18,10 @@ import java.util.UUID;
 
 /** Dedicated Item Snapshot workspace. The source slot is virtual and never stores the real item. */
 public final class ItemProjectorMenu extends AbstractContainerMenu {
-    public static final int SNAPSHOT_X = 82;
-    public static final int SNAPSHOT_Y = 61;
-    public static final int PLAYER_INV_X = 9;
-    public static final int PLAYER_INV_Y = 136;
+    public static final int SNAPSHOT_X = 30;
+    public static final int SNAPSHOT_Y = 68;
+    public static final int PLAYER_INV_X = 99;
+    public static final int PLAYER_INV_Y = 174;
     public static final int SNAPSHOT_SLOT_INDEX = 0;
     public static final int FIRST_PLAYER_SLOT_INDEX = 1;
 

@@ -111,7 +111,7 @@ public final class EntityScanCardItem extends Item {
             if (scan.hasProjectionNameplate()) {
                 tooltipComponents.add(Component.translatable(
                         "tooltip.mirage_projector.scan_card.nameplate",
-                        scan.nameplateText()
+                        scan.projectionNameplateText()
                 ).withStyle(ChatFormatting.GRAY));
             }
             String id = scan.scanId().toString();

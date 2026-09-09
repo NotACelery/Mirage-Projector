@@ -1,3 +1,279 @@
+# Mirage Projector 0.1.0-dev.37
+
+## Render-order recovery + tabbed Debug Handbook
+
+- Moves the deferred Entity hologram pass from NeoForge `AFTER_BLOCK_ENTITIES` to `AFTER_TRIPWIRE_BLOCKS`, after translucent world geometry has established its depth. Water behind a hologram can therefore remain behind it, while nearer water still occludes it normally.
+- Deferred Entity projections now use a Mirage-owned `MultiBufferSource.BufferSource`. The pass no longer calls `endBatch()` on Minecraft's shared entity/block-entity buffer source.
+- This isolates Entity batching from Image/Banner/other BlockEntity rendering and specifically repairs the dev.36 pipeline regression that disturbed previously-correct Image projections. Image layout/source semantics themselves are unchanged from dev.33.
+- Physical Mirage projectors are rendered before the late Entity pass and remain in the depth buffer. A projector behind an Entity hologram can no longer win merely because its BER was submitted later; a physically nearer projector still occludes the hologram correctly.
+- Debug Handbook keeps vanilla `BookViewScreen` page rendering but is now dynamically enlarged and vertically/horizontally centred.
+- Replaces the long linear handbook with seven side tabs: General, Compact, Display, Wide, Tall, Field and Prism. Each chassis tab explicitly explains its intended use and hard chassis limits. General covers source modes, Projection Cores/power, independent Core/chassis limits, virtual snapshots, global presentation controls, clearance and entity scanning.
+- Removes the oversized vanilla Done button from the handbook; Esc remains the close gesture. The local non-blurred dim overlay and narrow first-person hand suppression remain unchanged.
+- No network or persistent-data change; protocol remains 15.
+
+## Validation
+
+- Source/static validation performed in the recovery environment. Gradle/NeoForge compilation cannot be executed there because the wrapper JAR/distribution and dependency cache are not available offline. Windows `build.bat` remains authoritative before dev.37 is build-clean.
+- Priority in-game QA: water in front/behind a Ghost Entity; multiple physical projectors crossing a giant Entity; Image projections on Compact/Display/Wide/Tall/Field/Prism; handbook at several GUI scales and all seven tabs.
+
+---
+
+# Mirage Projector 0.1.0-dev.36
+
+## Entity name/base label and deferred projection ordering
+
+- Named mob scans now recover a projection label from `DisplayName` whenever it differs from the vanilla EntityType name, regardless of scan data version. Explicit frozen `CustomNameText` still has priority.
+- Projected entity names are rendered at the projector base instead of above the scaled entity. The label therefore stays visible and stable even with very large Scale/Lift values.
+- Entity holograms are no longer rendered inside each projector BER immediately. The physical projector/core is submitted first and the entity projection is deferred to NeoForge `AFTER_BLOCK_ENTITIES`.
+- Deferred entity projections are sorted far-to-near, rendered after all physical block entities, and flushed before translucent world blocks. This removes other Mirage Projectors being painted on top of a projection while preserving the no-depth-write Ghost/water fix.
+- No network protocol change; protocol remains 15.
+- dev.36 was later compiled/run in-game by the user, but failed QA: Entity depth ordering remained incorrect against physical projectors/water and Image Mode regressed. dev.35 remains the last build-clean visual baseline.
+
+# Mirage Projector 0.1.0-dev.35
+
+## Vanilla-book Debug Handbook + projected custom-name labels
+
+- Replaces the custom DebugHandbookScreen panel with Minecraft 1.21.1 `BookViewScreen`, so the handbook uses the same in-game book rendering/background path as vanilla books instead of a generic menu blur stratum.
+- Handbook content remains fully translatable; each handbook paragraph becomes one physical vanilla page to avoid clipping in the narrower book text area.
+- Keeps first-person Debug Handbook hand suppression while its BookViewScreen is open as an additional fail-safe.
+- Projection nameplates now resolve from the explicitly frozen mob `CustomName` first instead of trusting only the legacy `NameplateText` field.
+- Reconstructed named mobs receive their frozen CustomName again (with vanilla nameplate visibility disabled to avoid duplication), keeping the temporary render entity semantically faithful.
+- Custom-name labels move from the chassis/feet region to above the projected entity using species/pose-aware projected bounds, matching vanilla nametag expectations.
+- Name labels use a two-pass vanilla-like font render for readability with Ghost while retaining normal opaque-world depth behaviour.
+- Network protocol remains `15`; no new saved/network fields are introduced.
+
+## Validation
+
+- Source/static validation performed; Windows `build.bat` and in-game handbook/nametag QA remain authoritative before dev.35 is build-clean.
+
+---
+
+# Mirage Projector 0.1.0-dev.34
+
+## Entity custom-name fidelity + Debug Handbook hand suppression
+
+- Entity Scan data version bumped `4 -> 5` and now freezes mob `CustomName` explicitly (`HadCustomName` + `CustomNameText`) instead of relying only on the generic display label.
+- Player nameplate behavior remains explicit and unchanged: a scanned Player uses the frozen player/display name.
+- Legacy pre-v5 mob scans attempt a conservative recovery when their stored DisplayName differs from the vanilla EntityType description.
+- Entity Workspace preview footer now shows `name · entity type` whenever a projection nameplate exists, making nametag capture immediately verifiable.
+- Projected custom-name labels keep a minimum readable offset above the chassis when Lift is near zero.
+- Debug Handbook now cancels first-person rendering of the handbook item itself through NeoForge `RenderHandEvent` while the handbook screen is open. The dev.32 non-blurred dark overlay remains in place.
+- Network protocol remains `15`; only the frozen Entity Scan card payload version changes.
+
+## Validation
+
+- Source/static validation performed; Windows `build.bat` and in-game nametag/handbook QA remain authoritative before dev.34 is build-clean.
+
+---
+
+# Mirage Projector 0.1.0-dev.33
+
+## Wide / Tall / Field multi-source Image layouts
+
+- Adds a persistent `ImageSourceBank` separate from global ProjectionSettings.
+- Wide uses four independent source cells in a 4×1 horizontal strip.
+- Tall uses four independent source cells in a 1×4 vertical strip.
+- Field uses nine independent source cells in a 3×3 matrix.
+- Image Workspace now exposes a physical layout map, selectable source cells, a dedicated large preview, per-cell import/replace/clear and `Copy to empty slots`.
+- Multi-source Plane rear rendering supports global Mirrored or Readable behavior. Independent rear banks are intentionally deferred instead of pretending one legacy Back asset applies to every cell.
+- Global Scale controls the complete layout footprint; individual images preserve aspect ratio and are centered within their cells.
+- Power charges populated cells while clearance/render bounds reserve the complete active layout envelope.
+- Existing pre-dev.33 Front images on Wide/Tall/Field migrate into source slot 1 when no source bank exists.
+- Network protocol bumped `14 -> 15` because Image Workspace menu/payload now carries the source bank.
+- Includes the dev.32 Debug Handbook no-blur hotfix.
+
+## Validation
+
+- Source/static validation performed; Windows `build.bat` remains authoritative before dev.33 is build-clean.
+
+---
+
+# Mirage Projector 0.1.0-dev.32
+
+## Debug Handbook blur hotfix
+
+- Debug Handbook no longer calls the generic blurred screen background path.
+- The handbook now renders over a local dark overlay, so opening it cannot blur the same first-person book that remains visible behind the GUI.
+- No networking or saved-data format changes; protocol remains `14`.
+
+## Validation
+
+- Source/static validation performed; Windows `build.bat` remains authoritative before dev.32 is build-clean.
+
+---
+
+# Mirage Projector 0.1.0-dev.31
+
+## Entity reconstruction fidelity
+
+- Player scans now freeze the visual metadata that vanilla does not persist in ordinary entity NBT: skin model geometry (`slim`/`wide`), enabled player model parts (hat/jacket/sleeves/pants/cape) and dominant arm.
+- The packed GameProfile `textures` property remains the self-contained skin/cape source; dev.31 additionally decodes its skin-model metadata and forces the reconstructed `RemotePlayer` to the captured model.
+- Player model-part flags are restored after NBT load so the temporary projection matches the source player's visible second layers instead of inheriting RemotePlayer defaults.
+- Fixes Generic pose cache invalidation: Cat/Wolf/Parrot `Idle/Sitting` now participates in the client entity fingerprint and recreates the frozen render entity immediately when the pose changes.
+- Entity Scan data version bumped `3 -> 4`; old cards remain readable with vanilla-compatible defaults, but rescanning a Player is required to capture the new visual metadata.
+- Network protocol remains `14`; the card's internal frozen scan payload is extended without changing packet layout.
+- Added `docs/ENTITY-FIDELITY-dev31.md`.
+
+## Validation
+
+- Source/static validation performed; Windows `build.bat` and in-game Player/Generic QA remain authoritative before dev.31 is build-clean.
+
+---
+
+# Mirage Projector 0.1.0-dev.30
+
+## Species-aware Entity bounds
+
+- Entity clearance and BlockEntity render bounds now derive from the scanned EntityType native width/height instead of treating every entity as a square Scale×Scale projection.
+- Scale continues to target the largest native dimension, matching the world renderer.
+- Humanoid pose expansion remains pose-aware; Horse Rearing receives a taller conservative envelope.
+- Generic entities now reserve their own aspect ratio, reducing false obstruction checks around narrow/small mobs.
+- Network protocol remains `14`; no new payload shape beyond dev.29.
+- Added `docs/ENTITY-BOUNDS-dev30.md`.
+
+## Validation
+
+- Source/static validation performed; Windows `build.bat` remains authoritative before dev.30 is build-clean.
+
+---
+
+## Power/limits UX + contextual sitting pose
+
+- Adds persistent `Idle / Sitting` projection poses for vanilla Cat, Wolf and Parrot scans.
+- `Return gear` is now contextual and only appears for Entity families with editable physical gear staging (Humanoid/Horse).
+- Projection Settings replaces the ambiguous Used/Available display with explicit Projection cost, Core capacity and Remaining power.
+- Core limits and chassis physical limits are shown separately with exact Scale/Lift/Float, width/height and source-capacity values.
+- Clearance failures now report blocked block count and the required projection envelope instead of silently failing.
+- Fixes an accidental duplicate Lift PU charge.
+- Fixes a duplicate Main Hand row in the Humanoid GUI channel list.
+- Network protocol bumped `13 -> 14` for the new persisted Generic pose.
+- Added `docs/POWER-POSE-UX-dev29.md`.
+
+## Validation
+
+- Source/static validation performed; Windows `build.bat` remains authoritative before dev.29 is build-clean.
+
+---
+
+## Held-item Ghost completion + Banner Mode
+
+- Carries forward dev.27's projection-only `ItemInHandRenderer` normalization so Main/Off Hand swords, tools, blocks and ordinary items use Mirage's colour-only Ghost pass instead of depth-writing chunk layers.
+- Adds **Banner** as a first-class source mode while preserving the existing Image/Item/Entity ordinals for save compatibility.
+- Adds a dedicated Banner Workspace with virtual, non-consuming banner snapshots; the real banner never leaves the player inventory.
+- Plane chassis expose one Front banner source. Mirage Prism exposes independent North/East/South/West sources plus `Same source on all faces`.
+- Adds cloth-only world rendering through vanilla `BannerRenderer.renderPatterns`: base dye + loom patterns are preserved while pole/crossbar are omitted.
+- Banner Scale preserves the vanilla 20×40 cloth proportion; Lift/Rotation/Floating/Lighting/Tint/Ghost reuse global Projection Settings.
+- Prism Banner Power counts only populated faces and clearance/render bounds understand Banner as Prism face geometry.
+- Debug Handbook and source-workspace navigation document Banner Mode.
+- Network protocol bumped `12 -> 13`.
+- Added `docs/BANNER-MODE-dev28.md`.
+- Development version bumped to `0.1.0-dev.30`.
+
+## Validation
+
+- Source/resource/static validation performed in the development environment.
+- Windows `build.bat` remains authoritative before dev.30 is considered build-clean.
+- Priority QA: held-item/water regression, patterned Banner cloth, Plane/Prism face persistence, Ghost/Tint and 1-vs-4-face Power.
+
+---
+
+# Mirage Projector 0.1.0-dev.27
+
+## Held-item Ghost depth repair
+
+- Adds a projection-only `ItemInHandRenderer` mixin so Main Hand / Off Hand contents use Mirage's Ghost buffer contract explicitly.
+- Held swords, tools, blocks and ordinary items now normalize raw chunk-style `solid`, `cutout`, `cutoutMipped`, `translucent` and `translucentMovingBlock` layers onto the colour-only Mirage item pass.
+- Keeps the existing entity-wide projection buffer for tint/alpha, avoiding a second alpha/tint multiplication when the held-item wrapper is nested.
+- The fix is inert outside `ProjectionRenderContext`; normal player/mob item rendering is untouched.
+- Network protocol remains `12`: this wave adds no persisted/network state.
+- Windows build and in-game water regression QA remain authoritative.
+
+# Mirage Projector 0.1.0-dev.26
+
+## Ghost depth / armor repair
+
+- Replaced vanilla `entityTranslucent` as Mirage's Ghost body pass with custom projection-owned RenderTypes that depth-test against the world but write **colour only**, preventing Ghost entities/items from masking water behind them.
+- Added a projection-scoped `HumanoidArmorLayer` hook so vanilla humanoid armor uses the same Ghost alpha path as the body instead of remaining opaque.
+- Normalized held item/block atlas rendering, shield/banner atlases and armor trim sheets to the Mirage no-depth-write Ghost pass.
+- Image/Prism Ghost faces use the same colour-only pass, keeping the Ghost contract consistent across 2D and 3D projections.
+- Compatible entity/item translucent layers are normalized as well; glint, eyes, beams, shadows, text, outlines, masks and unknown special/modded RenderTypes remain native/fail-closed.
+- Network protocol remains `12`; no persistence or server payload changed.
+- Added `docs/GHOST-DEPTH-ARMOR-dev26.md`.
+- Development version bumped to `0.1.0-dev.26`.
+
+## Validation
+
+- Source/static validation performed in the development environment.
+- Windows `build.bat` and water/armor in-game QA remain authoritative before dev.26 is considered build-clean.
+
+---
+
+# Mirage Projector 0.1.0-dev.25
+
+## Build fix
+
+- Fixed the Entity Workspace 3D preview call to `EntityRenderDispatcher#render` for Minecraft 1.21.1 / NeoForge 21.1.244. dev.24 accidentally passed one extra `double` argument, causing `compileJava` to fail.
+- No functional Ghost, layout, staging, Horse pose, power, or persistence behavior from dev.24 was changed.
+- Development version bumped to `0.1.0-dev.25`.
+
+## Validation
+
+- The fix restores the exact dispatcher argument shape already used by the user-confirmed build-clean dev.22 and by the world Entity renderer.
+- Windows `build.bat` remains the authoritative compile/QA check.
+
+---
+
+# Mirage Projector 0.1.0-dev.24
+
+## Entity GUI / staging / Ghost repair
+
+- Rebuilt Entity Workspace around a larger centered vanilla-style 9x3 inventory + hotbar footprint; Source, Equipment, Actions/Status, Preview and Inventory no longer share text/button space.
+- Reflowed Item Snapshot Workspace so its title and Projection Settings button no longer overlap and its player inventory is centered.
+- Incoming is now strictly an actionable queue: accepted snapshots disappear from the left rail, saved duplicates matching Projected are pruned, and Capture Equipped Loadout skips already-projected matches.
+- Horse pose is now persisted and selectable (`Idle` / `Rearing`) instead of forcing every Horse projection to rear.
+- Replaced Ghost's base-body RenderType guessing with a projection-local `LivingEntityRenderer#getRenderType` hook. This covers normal LivingEntity bodies such as Skeleton consistently without changing normal world entities.
+- Held block/item models now use `Sheets.translucentItemSheet()` under Ghost instead of the translucent block sheet, preventing the dev.23 water/depth artefact.
+- Common armor/entity cutout layers and shield/banner atlas layers receive projection-local translucent routes; special effect passes keep their native RenderTypes.
+- Added `docs/ENTITY-GHOST-LAYOUT-dev24.md`.
+- Network protocol bumped `11 -> 12`.
+- Development version bumped to `0.1.0-dev.24`.
+
+## Validation
+
+- Source/static validation performed in the development environment.
+- Windows `build.bat` / in-game QA are still required before dev.24 is considered build-clean.
+
+---
+
+# Mirage Projector 0.1.0-dev.23
+
+## Fixed
+
+- Physical Entity staging items are no longer left inside the projector after acceptance. Successful Apply/Replace returns the real source immediately; the accepted virtual Incoming snapshot is consumed into Projected.
+- Closing/leaving the Entity workspace now returns every remaining physical staging stack server-side. Inventory overflow drops at the player instead of remaining trapped in hidden BlockEntity slots.
+- Fixed Entity Ghost Effect for common opaque/cutout body/equipment layers by correctly parsing the `Optional[resource]` texture shard and rerouting those layers through translucent entity RenderTypes.
+- Horse projections now force the full vanilla rearing animation (`getStandAnim = 1.0`) instead of remaining on four legs.
+- Empty source workspaces no longer report phantom Projection Power usage from presentation settings alone.
+- Empty Item/Entity modes no longer render the legacy generic book placeholder, keeping the visible world state consistent with 0 PU source usage.
+- Removed the duplicate decorative Core item from Projection Settings; the real Core slot remains the single physical/visual source.
+
+## Changed
+
+- Rebuilt Entity Workspace as one centred 520 px composition with dedicated Source, Equipment, Actions/Status, Inventory and integrated tall 3D Preview regions. Menu slots moved with the layout.
+- Incoming snapshots now behave as staging, not a second persistent copy: accepting an already-identical Projected snapshot also clears Incoming.
+- Projection Power UI now shows a compact non-overlapping Used / Available-remaining summary beside the Core Capacity.
+- `Item Snapshot` remains purely virtual: its real source item never leaves the player's inventory, while Entity physical staging gains the explicit close-time recovery path above.
+- Network protocol bumped from **10** to **11**.
+- Development version bumped to `0.1.0-dev.23`.
+- Added `docs/ENTITY-UX-RECOVERY-dev23.md`.
+
+## Validation
+
+- Built from the user-confirmed **dev.22 build-clean Windows baseline**.
+- Static validation in the assistant environment: 32 JSON resources parse, 60 Java sources pass delimiter/state checks, and translation keys used by the changed screens are present in en_us/es_es/es_cl.
+- Gradle/NeoForge compile could not be run in this environment because the Gradle 9.2.1 distribution download is unavailable here. Windows `build.bat` remains the authoritative compile/QA step for dev.23.
+- Priority QA is documented in `docs/ENTITY-UX-RECOVERY-dev23.md`.
+
 # Mirage Projector 0.1.0-dev.22
 
 ## Added
@@ -20,7 +296,7 @@
 
 - Static source/resource validation performed in the assistant environment.
 - Humanoid clearance is intentionally conservative, not exact per-model-part geometry. Exact species/entity bounds for Horse/Generic remain a separate pending pass.
-- Windows NeoForge `build.bat` and in-game QA are still required before this snapshot can be called build-clean.
+- Windows NeoForge `build.bat` was later confirmed build-clean by the user; in-game QA remained ongoing.
 - Priority QA: Player/Zombie/Skeleton/bodyless rig, all eight poses, main-arm handedness, armor/trims/dye/glint, tools/shields in both hands, save/reload, multiplayer sync, Ghost/Tint and obstruction preview.
 
 # Mirage Projector 0.1.0-dev.21
@@ -45,7 +321,7 @@
 ## Validation
 
 - Static source/resource validation performed in the assistant environment.
-- Windows NeoForge `build.bat` and in-game QA are still required before this snapshot can be called build-clean.
+- Windows NeoForge `build.bat` was later confirmed build-clean by the user; in-game QA remained ongoing.
 - Priority QA: 1/2/4 faces, mixed aspect ratios, Same Source, save/reload, multiplayer asset sync, rotation, Flip/Scanlines/Tint/Ghost and obstruction envelopes.
 
 # Mirage Projector 0.1.0-dev.20

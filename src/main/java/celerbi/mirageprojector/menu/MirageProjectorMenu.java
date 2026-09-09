@@ -28,7 +28,7 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
     public static final int CORE_SLOT_X = 24;
     public static final int CORE_SLOT_Y = 300;
     public static final int PLAYER_INV_X = 126;
-    public static final int PLAYER_INV_Y = 354;
+    public static final int PLAYER_INV_Y = 384;
 
     public static final int CORE_SLOT_INDEX = 0;
     public static final int FIRST_PLAYER_SLOT_INDEX = 1;
@@ -84,6 +84,8 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
     public ItemStack coreStack() { return getSlot(CORE_SLOT_INDEX).getItem(); }
     public ProjectionCoreProfile coreProfile() { return ProjectionCoreProfile.fromStack(coreStack()); }
     public ProjectionChassisProfile chassisProfile() { return projector == null ? ProjectionChassisProfile.COMPACT : projector.chassisProfile(); }
+    public boolean hasProjectedSourceContent() { return projector != null && projector.hasProjectedSourceContent(); }
+    public int projectedSourceCount() { return projector == null ? 0 : projector.projectedSourceCount(); }
     @Nullable
     public HumanoidPosePreset activeHumanoidPose() {
         if (projector == null || projector.settings().sourceMode() != ProjectionSettings.SourceMode.ENTITY) return null;

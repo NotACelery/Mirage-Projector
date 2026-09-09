@@ -71,7 +71,7 @@ public record ProjectionSettings(
             1,
             40,
             90,
-            BackFaceMode.MIRRORED,
+            BackFaceMode.FRONT,
             false,
             true,
             100,
@@ -111,7 +111,7 @@ public record ProjectionSettings(
                 Mth.clamp(floatAmplitudePixels, 0, DEBUG_MAX_FLOAT_PIXELS),
                 Mth.clamp(floatCycleTicks, 5, 20 * 60),
                 Mth.clamp(floatIntervalDegrees, 1, 360),
-                backFaceMode == null ? BackFaceMode.MIRRORED : backFaceMode,
+                backFaceMode == null ? BackFaceMode.FRONT : backFaceMode,
                 flipVertical,
                 fullbright,
                 Mth.clamp(opacityPercent, 10, 100),
@@ -425,7 +425,8 @@ public record ProjectionSettings(
     public enum SourceMode {
         IMAGE,
         ITEM,
-        ENTITY;
+        ENTITY,
+        BANNER;
 
         public static SourceMode fromOrdinal(int ordinal) {
             SourceMode[] values = values();
@@ -443,14 +444,25 @@ public record ProjectionSettings(
         }
     }
 
+    /**
+     * Plane presentation mode. The historical field name is kept in the record/NBT
+     * for migration compatibility, but from dev.37 it describes the complete
+     * Front/Back behaviour rather than only the rear face.
+     *
+     * <p>Do not reorder the first three values: dev.9-dev.36 persisted their
+     * ordinals. FRONT/BACK are appended so existing worlds retain their chosen
+     * Mirrored/Readable/Independent semantics.</p>
+     */
     public enum BackFaceMode {
         MIRRORED,
         READABLE,
-        INDEPENDENT;
+        INDEPENDENT,
+        FRONT,
+        BACK;
 
         public static BackFaceMode fromOrdinal(int ordinal) {
             BackFaceMode[] values = values();
-            return ordinal >= 0 && ordinal < values.length ? values[ordinal] : MIRRORED;
+            return ordinal >= 0 && ordinal < values.length ? values[ordinal] : FRONT;
         }
     }
 }

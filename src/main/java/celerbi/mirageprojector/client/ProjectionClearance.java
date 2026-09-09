@@ -4,6 +4,7 @@ import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.entity.HumanoidPosePreset;
+import celerbi.mirageprojector.entity.EntityProjectionState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -36,6 +37,18 @@ public final class ProjectionClearance {
             boolean hasProjectedItem,
             HumanoidPosePreset humanoidPose
     ) {
+        return scan(level, projectorPos, settings, chassis, hasProjectedItem, humanoidPose, null);
+    }
+
+    public static Result scan(
+            Level level,
+            BlockPos projectorPos,
+            ProjectionSettings settings,
+            ProjectionChassisProfile chassis,
+            boolean hasProjectedItem,
+            HumanoidPosePreset humanoidPose,
+            EntityProjectionState entityState
+    ) {
         if (level == null) {
             return Result.UNKNOWN;
         }
@@ -49,7 +62,11 @@ public final class ProjectionClearance {
 
         double width = dimensions.widthPixels() * PIXEL;
         double height = dimensions.heightPixels() * PIXEL;
-        if (s.sourceMode() == ProjectionSettings.SourceMode.ENTITY && humanoidPose != null) {
+        if (s.sourceMode() == ProjectionSettings.SourceMode.ENTITY && entityState != null) {
+            EntityProjectionBounds.Bounds bounds = EntityProjectionBounds.projected(entityState, s);
+            width = Math.max(PIXEL, bounds.widthPixels() * PIXEL);
+            height = Math.max(PIXEL, bounds.heightPixels() * PIXEL);
+        } else if (s.sourceMode() == ProjectionSettings.SourceMode.ENTITY && humanoidPose != null) {
             double targetHeight = Math.max(PIXEL, s.scalePixels() * PIXEL);
             width = targetHeight * HumanoidPoseController.horizontalExtentMultiplier(humanoidPose);
             height = targetHeight * HumanoidPoseController.verticalExtentMultiplier(humanoidPose);
@@ -65,7 +82,8 @@ public final class ProjectionClearance {
         double halfX;
         double halfZ;
         boolean prism = safeChassis.geometry() == ProjectionChassisProfile.Geometry.PRISM
-                && s.sourceMode() == ProjectionSettings.SourceMode.IMAGE;
+                && (s.sourceMode() == ProjectionSettings.SourceMode.IMAGE
+                || s.sourceMode() == ProjectionSettings.SourceMode.BANNER);
         if (s.sourceMode() == ProjectionSettings.SourceMode.ITEM
                 || s.sourceMode() == ProjectionSettings.SourceMode.ENTITY) {
             double radius = Math.max(0.05D, width * 0.5D);

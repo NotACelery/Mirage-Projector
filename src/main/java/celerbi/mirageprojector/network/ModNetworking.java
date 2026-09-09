@@ -8,7 +8,7 @@ public final class ModNetworking {
     }
 
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("10");
+        PayloadRegistrar registrar = event.registrar("16");
 
         registrar.playToServer(
                 UpdateProjectorPayload.TYPE,
@@ -29,6 +29,16 @@ public final class ModNetworking {
                 OpenItemWorkspacePayload.TYPE,
                 OpenItemWorkspacePayload.STREAM_CODEC,
                 OpenItemWorkspacePayload::handle
+        );
+        registrar.playToServer(
+                OpenBannerWorkspacePayload.TYPE,
+                OpenBannerWorkspacePayload.STREAM_CODEC,
+                OpenBannerWorkspacePayload::handle
+        );
+        registrar.playToServer(
+                BannerWorkspaceActionPayload.TYPE,
+                BannerWorkspaceActionPayload.STREAM_CODEC,
+                BannerWorkspaceActionPayload::handle
         );
         registrar.playToServer(
                 UpdateImageWorkspacePayload.TYPE,

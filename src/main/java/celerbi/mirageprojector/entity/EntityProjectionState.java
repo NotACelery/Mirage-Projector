@@ -20,6 +20,8 @@ import java.util.Optional;
 public final class EntityProjectionState {
     private CompoundTag activeEntityScan = new CompoundTag();
     private HumanoidPosePreset humanoidPose = HumanoidPosePreset.STANDING;
+    private HorsePosePreset horsePose = HorsePosePreset.IDLE;
+    private GenericPosePreset genericPose = GenericPosePreset.IDLE;
     private final VirtualEquipmentSnapshots humanoidIncoming = new VirtualEquipmentSnapshots();
     private final VirtualEquipmentSnapshots humanoidProjected = new VirtualEquipmentSnapshots();
     private final VirtualEquipmentSnapshots horseIncoming = new VirtualEquipmentSnapshots();
@@ -38,7 +40,7 @@ public final class EntityProjectionState {
     }
 
     public String projectionNameplate() {
-        return activeEntity().map(EntityScanData.View::nameplateText).orElse("");
+        return activeEntity().map(EntityScanData.View::projectionNameplateText).orElse("");
     }
 
     public HumanoidPosePreset humanoidPose() {
@@ -54,6 +56,32 @@ public final class EntityProjectionState {
         humanoidPose = pose == null ? HumanoidPosePreset.STANDING : pose;
     }
 
+    public HorsePosePreset horsePose() {
+        return horsePose;
+    }
+
+    public HorsePosePreset cycleHorsePose() {
+        horsePose = horsePose.next();
+        return horsePose;
+    }
+
+    public void setHorsePose(HorsePosePreset pose) {
+        horsePose = pose == null ? HorsePosePreset.IDLE : pose;
+    }
+
+    public GenericPosePreset genericPose() {
+        return genericPose;
+    }
+
+    public GenericPosePreset cycleGenericPose() {
+        genericPose = genericPose.next();
+        return genericPose;
+    }
+
+    public void setGenericPose(GenericPosePreset pose) {
+        genericPose = pose == null ? GenericPosePreset.IDLE : pose;
+    }
+
     public boolean hasProjectedHumanoidEquipment() {
         return humanoidProjected.hasAny(
                 VirtualEquipmentSnapshots.Channel.HEAD,
@@ -63,6 +91,17 @@ public final class EntityProjectionState {
                 VirtualEquipmentSnapshots.Channel.MAIN_HAND,
                 VirtualEquipmentSnapshots.Channel.OFF_HAND
         );
+    }
+
+    public boolean hasProjectedHorseEquipment() {
+        return horseProjected.hasAny(
+                VirtualEquipmentSnapshots.Channel.SADDLE,
+                VirtualEquipmentSnapshots.Channel.BODY
+        );
+    }
+
+    public boolean hasProjectedEntityContent() {
+        return hasActiveEntity() || hasProjectedHumanoidEquipment() || hasProjectedHorseEquipment();
     }
 
     public CompoundTag activeEntityRootCopy() {
@@ -102,9 +141,14 @@ public final class EntityProjectionState {
         for (VirtualEquipmentSnapshots.Channel channel : HUMANOID_CHANNELS) {
             EquipmentSlot slot = channel.equipmentSlot();
             ItemStack stack = slot == null ? ItemStack.EMPTY : player.getItemBySlot(slot);
-            humanoidIncoming.put(channel, stack);
-            if (!stack.isEmpty()) {
+            VirtualEquipmentSnapshots.Snapshot projected = humanoidProjected.get(channel);
+            if (!stack.isEmpty()
+                    && (projected.stack().isEmpty() || !ItemStack.matches(projected.stack(), stack))) {
+                humanoidIncoming.put(channel, stack);
                 captured++;
+            } else {
+                // Nothing new to accept: keep Incoming visually/semantically empty.
+                humanoidIncoming.clear(channel);
             }
         }
         return captured;
@@ -135,12 +179,14 @@ public final class EntityProjectionState {
         switch (scan.kind()) {
             case HUMANOID -> loadIncoming(
                     humanoidIncoming,
+                    humanoidProjected,
                     scan.equipment(),
                     registries,
                     EntityScanData.HUMANOID_SLOTS
             );
             case HORSE -> loadIncoming(
                     horseIncoming,
+                    horseProjected,
                     scan.equipment(),
                     registries,
                     EntityScanData.HORSE_CHANNELS
@@ -175,6 +221,10 @@ public final class EntityProjectionState {
             return ApplyResult.EMPTY_INCOMING;
         }
         if (destinationSet.visuallyEquals(channel, incoming)) {
+            // Accepting an Incoming snapshot is a move in workspace semantics,
+            // even when the projected side already looks identical. Keeping a
+            // second virtual copy made the UI look duplicated and ambiguous.
+            sourceSet.clear(channel);
             return ApplyResult.ALREADY_APPLIED;
         }
         if (destinationSet.has(channel) && !replaceExisting) {
@@ -182,6 +232,7 @@ public final class EntityProjectionState {
         }
 
         destinationSet.put(channel, incoming.snapshotId(), incoming.stack());
+        sourceSet.clear(channel);
         return ApplyResult.APPLIED;
     }
 
@@ -208,6 +259,8 @@ public final class EntityProjectionState {
             root.put("ActiveEntityScan", activeEntityScan.copy());
         }
         root.putString("HumanoidPose", humanoidPose.serializedName());
+        root.putString("HorsePose", horsePose.serializedName());
+        root.putString("GenericPose", genericPose.serializedName());
         root.put("HumanoidIncoming", humanoidIncoming.save(registries));
         root.put("HumanoidProjected", humanoidProjected.save(registries));
         root.put("HorseIncoming", horseIncoming.save(registries));
@@ -222,14 +275,39 @@ public final class EntityProjectionState {
         humanoidPose = root != null && root.contains("HumanoidPose")
                 ? HumanoidPosePreset.fromSerializedName(root.getString("HumanoidPose"))
                 : HumanoidPosePreset.STANDING;
+        horsePose = root != null && root.contains("HorsePose")
+                ? HorsePosePreset.fromSerializedName(root.getString("HorsePose"))
+                : HorsePosePreset.IDLE;
+        genericPose = root != null && root.contains("GenericPose")
+                ? GenericPosePreset.fromSerializedName(root.getString("GenericPose"))
+                : GenericPosePreset.IDLE;
         humanoidIncoming.load(root == null ? new CompoundTag() : root.getCompound("HumanoidIncoming"), registries);
         humanoidProjected.load(root == null ? new CompoundTag() : root.getCompound("HumanoidProjected"), registries);
         horseIncoming.load(root == null ? new CompoundTag() : root.getCompound("HorseIncoming"), registries);
         horseProjected.load(root == null ? new CompoundTag() : root.getCompound("HorseProjected"), registries);
+        pruneProjectedDuplicates(humanoidIncoming, humanoidProjected, HUMANOID_CHANNELS);
+        pruneProjectedDuplicates(horseIncoming, horseProjected, EntityScanData.HORSE_CHANNELS);
+    }
+
+    private static void pruneProjectedDuplicates(
+            VirtualEquipmentSnapshots incoming,
+            VirtualEquipmentSnapshots projected,
+            VirtualEquipmentSnapshots.Channel[] channels
+    ) {
+        for (VirtualEquipmentSnapshots.Channel channel : channels) {
+            VirtualEquipmentSnapshots.Snapshot staged = incoming.get(channel);
+            VirtualEquipmentSnapshots.Snapshot active = projected.get(channel);
+            if (!staged.stack().isEmpty()
+                    && !active.stack().isEmpty()
+                    && ItemStack.matches(staged.stack(), active.stack())) {
+                incoming.clear(channel);
+            }
+        }
     }
 
     private static void loadIncoming(
             VirtualEquipmentSnapshots destination,
+            VirtualEquipmentSnapshots projected,
             CompoundTag equipment,
             HolderLookup.Provider registries,
             EquipmentSlot[] slots
@@ -249,12 +327,17 @@ public final class EntityProjectionState {
                 case OFFHAND -> VirtualEquipmentSnapshots.Channel.OFF_HAND;
                 case BODY -> VirtualEquipmentSnapshots.Channel.BODY;
             };
+            VirtualEquipmentSnapshots.Snapshot projectedSnapshot = projected.get(channel);
+            if (!projectedSnapshot.stack().isEmpty() && ItemStack.matches(projectedSnapshot.stack(), stack)) {
+                continue;
+            }
             destination.put(channel, stack);
         }
     }
 
     private static void loadIncoming(
             VirtualEquipmentSnapshots destination,
+            VirtualEquipmentSnapshots projected,
             CompoundTag equipment,
             HolderLookup.Provider registries,
             VirtualEquipmentSnapshots.Channel[] channels
@@ -262,9 +345,14 @@ public final class EntityProjectionState {
         destination.clearAll();
         for (VirtualEquipmentSnapshots.Channel channel : channels) {
             ItemStack stack = EntityScanData.equipmentStack(equipment, channel, registries);
-            if (!stack.isEmpty()) {
-                destination.put(channel, stack);
+            if (stack.isEmpty()) {
+                continue;
             }
+            VirtualEquipmentSnapshots.Snapshot projectedSnapshot = projected.get(channel);
+            if (!projectedSnapshot.stack().isEmpty() && ItemStack.matches(projectedSnapshot.stack(), stack)) {
+                continue;
+            }
+            destination.put(channel, stack);
         }
     }
 

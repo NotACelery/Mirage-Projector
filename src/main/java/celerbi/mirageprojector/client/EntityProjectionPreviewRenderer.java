@@ -200,17 +200,21 @@ public final class EntityProjectionPreviewRenderer {
         dispatcher.setRenderShadow(false);
         MultiBufferSource projectionBuffers = ProjectionRenderBuffers.wrap(graphics.bufferSource(), settings);
         try {
-            RenderSystem.runAsFancy(() -> dispatcher.render(
-                    entity,
-                    0.0D,
-                    0.0D,
-                    0.0D,
-                    0.0F,
-                    1.0F,
-                    graphics.pose(),
-                    projectionBuffers,
-                    15728880
-            ));
+            RenderSystem.runAsFancy(() -> {
+                try (ProjectionRenderContext.Scope ignored = ProjectionRenderContext.push(entity, settings)) {
+                    dispatcher.render(
+                            entity,
+                            0.0D,
+                            0.0D,
+                            0.0D,
+                            0.0F,
+                            1.0F,
+                            graphics.pose(),
+                            projectionBuffers,
+                            15728880
+                    );
+                }
+            });
             graphics.flush();
         } finally {
             dispatcher.setRenderShadow(true);

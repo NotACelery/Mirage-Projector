@@ -2,6 +2,7 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.entity.EntityProjectionState;
 import celerbi.mirageprojector.entity.EntityScanData;
+import celerbi.mirageprojector.entity.HorsePosePreset;
 import celerbi.mirageprojector.entity.EquipmentSnapshotRules;
 import celerbi.mirageprojector.entity.VirtualEquipmentSnapshots;
 import com.mojang.authlib.GameProfile;
@@ -11,10 +12,13 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.animal.horse.Horse;
@@ -47,7 +51,7 @@ public final class EntityProjectionClientEntityFactory {
                     return null;
                 }
                 if (scan.kind() == EntityScanData.Kind.HORSE && type == EntityType.HORSE) {
-                    living = new MirageProjectionHorse(level);
+                    living = new MirageProjectionHorse(level, state.horsePose());
                 } else {
                     Entity created = type.create(level);
                     if (!(created instanceof LivingEntity createdLiving)) {
@@ -59,6 +63,24 @@ public final class EntityProjectionClientEntityFactory {
 
             living.load(scan.entityData().copy());
             normalizeForProjection(living);
+            if (!scan.playerSource() && scan.hadCustomName()) {
+                String frozenName = scan.projectionNameplateText();
+                if (!frozenName.isBlank()) {
+                    // Keep the reconstructed entity semantically named as well as
+                    // drawing Mirage's dedicated projection label. Vanilla's own
+                    // nameplate remains disabled to avoid a duplicate tag.
+                    living.setCustomName(Component.literal(frozenName));
+                    living.setCustomNameVisible(false);
+                }
+            }
+            if (scan.playerSource() && living instanceof MirageRemotePlayer player) {
+                player.applyFrozenVisualState(scan);
+            }
+            if (scan.kind() == EntityScanData.Kind.GENERIC
+                    && EntityScanData.supportsSittingPose(scan.entityType())
+                    && living instanceof TamableAnimal tameable) {
+                tameable.setInSittingPose(state.genericPose() == celerbi.mirageprojector.entity.GenericPosePreset.SITTING);
+            }
             applyProjectedEquipment(living, state, scan.kind());
             return living;
         } catch (Throwable ignored) {
@@ -76,7 +98,7 @@ public final class EntityProjectionClientEntityFactory {
         }
 
         GameProfile profile = new GameProfile(BODYLESS_MANNEQUIN_UUID, "Mirage");
-        MirageRemotePlayer mannequin = new MirageRemotePlayer(level, profile);
+        MirageRemotePlayer mannequin = new MirageRemotePlayer(level, profile, null);
         normalizeForProjection(mannequin);
         mannequin.setInvisible(true);
         mannequin.setItemSlot(slot, stack.copyWithCount(1));
@@ -108,7 +130,7 @@ public final class EntityProjectionClientEntityFactory {
         }
 
         GameProfile profile = new GameProfile(BODYLESS_MANNEQUIN_UUID, "Mirage");
-        MirageRemotePlayer mannequin = new MirageRemotePlayer(level, profile);
+        MirageRemotePlayer mannequin = new MirageRemotePlayer(level, profile, null);
         normalizeForProjection(mannequin);
         mannequin.setInvisible(true);
         applyProjectedEquipment(mannequin, state, EntityScanData.Kind.HUMANOID);
@@ -161,11 +183,17 @@ public final class EntityProjectionClientEntityFactory {
             case HORSE -> state.horseProjected();
             case GENERIC -> null;
         };
+        if (kind == EntityScanData.Kind.GENERIC) {
+            return "generic|pose:" + state.genericPose().serializedName();
+        }
         if (snapshots == null) {
-            return "generic";
+            return kind.name();
         }
 
         StringBuilder fingerprint = new StringBuilder(kind.name());
+        if (kind == EntityScanData.Kind.HORSE) {
+            fingerprint.append("|pose:").append(state.horsePose().serializedName());
+        }
         VirtualEquipmentSnapshots.Channel[] channels = kind == EntityScanData.Kind.HORSE
                 ? HORSE_CHANNELS
                 : HUMANOID_CHANNELS;
@@ -187,7 +215,12 @@ public final class EntityProjectionClientEntityFactory {
             );
             profile.getProperties().put("textures", texture);
         }
-        return new MirageRemotePlayer(level, profile);
+        PlayerSkin.Model frozenModel = switch (scan.playerSkinModel() == null ? "" : scan.playerSkinModel().toLowerCase(java.util.Locale.ROOT)) {
+            case "slim" -> PlayerSkin.Model.SLIM;
+            case "wide" -> PlayerSkin.Model.WIDE;
+            default -> null;
+        };
+        return new MirageRemotePlayer(level, profile, frozenModel);
     }
 
     private static void normalizeForProjection(LivingEntity living) {
@@ -257,28 +290,59 @@ public final class EntityProjectionClientEntityFactory {
 
     /** Horse projection whose saddle visibility follows the virtual saddle inventory slot client-side. */
     private static final class MirageProjectionHorse extends Horse {
-        private MirageProjectionHorse(ClientLevel level) {
+        private final HorsePosePreset pose;
+
+        private MirageProjectionHorse(ClientLevel level, HorsePosePreset pose) {
             super(EntityType.HORSE, level);
+            this.pose = pose == null ? HorsePosePreset.IDLE : pose;
         }
 
         @Override
         public boolean isSaddled() {
             return !getSlot(AbstractHorse.EQUIPMENT_SLOT_OFFSET).get().isEmpty();
         }
+
+        @Override
+        public float getStandAnim(float partialTick) {
+            // Projection-only pose selector. Idle suppresses the standing counter;
+            // Rearing uses the complete vanilla stand animation without ticking AI.
+            return pose == HorsePosePreset.REARING ? 1.0F : 0.0F;
+        }
     }
 
     /** RemotePlayer whose skin resolves from the frozen profile property on the scan itself. */
     private static final class MirageRemotePlayer extends RemotePlayer {
         private final Supplier<PlayerSkin> frozenSkin;
+        private final PlayerSkin.Model frozenModel;
 
-        private MirageRemotePlayer(ClientLevel level, GameProfile profile) {
+        private MirageRemotePlayer(ClientLevel level, GameProfile profile, PlayerSkin.Model frozenModel) {
             super(level, profile);
+            this.frozenModel = frozenModel;
             frozenSkin = Minecraft.getInstance().getSkinManager().lookupInsecure(profile);
+        }
+
+        private void applyFrozenVisualState(EntityScanData.View scan) {
+            this.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, (byte) (scan.playerModelParts() & 0xFF));
+            HumanoidArm arm = "left".equalsIgnoreCase(scan.playerMainArm())
+                    ? HumanoidArm.LEFT
+                    : HumanoidArm.RIGHT;
+            setMainArm(arm);
         }
 
         @Override
         public PlayerSkin getSkin() {
-            return frozenSkin.get();
+            PlayerSkin resolved = frozenSkin.get();
+            if (resolved == null || frozenModel == null || resolved.model() == frozenModel) {
+                return resolved;
+            }
+            return new PlayerSkin(
+                    resolved.texture(),
+                    resolved.textureUrl(),
+                    resolved.capeTexture(),
+                    resolved.elytraTexture(),
+                    frozenModel,
+                    resolved.secure()
+            );
         }
 
         @Override

@@ -39,6 +39,7 @@ public record OpenImageWorkspacePayload(BlockPos pos) implements CustomPacketPay
                 buffer.writeBlockPos(pos);
                 projector.settings().write(buffer);
                 buffer.writeVarInt(projector.chassisProfile().ordinal());
+                projector.imageSourceBank().write(buffer);
             });
         });
     }

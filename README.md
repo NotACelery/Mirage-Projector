@@ -1,6 +1,6 @@
 # Mirage Projector
 
-> **Development baseline: `0.1.0-dev.22`.** Mirage Prism remains a functional four-face static-image chassis and Humanoid Entity Mode now has eight persistent pose presets with pose-aware preview fitting, conservative clearance and render bounds. dev.20 Entity Scan priority/Capture Equipped Loadout and dev.21 Prism remain cumulative. Windows NeoForge build/in-game QA remain pending.
+> **Development baseline: `0.1.0-dev.37` (SOURCE candidate).** dev.37 is the recovery pass after dev.36 in-game QA exposed depth/order regressions: Entity holograms now flush from a Mirage-owned buffer at NeoForge `AFTER_TRIPWIRE_BLOCKS`, Image rendering is no longer affected by a global `endBatch()`, and the Debug Handbook is enlarged/centred with General + six chassis tabs. Protocol remains 15. Windows build/in-game QA of dev.37 remain pending; dev.35 is still the last fully confirmed build-clean visual baseline.
 
 
 > Documento maestro de diseño y alcance para **Mirage Projector**, un mod de decoración y exhibición para Minecraft 1.21.1 / NeoForge.
@@ -91,7 +91,7 @@ Un núcleo muy potente no convierte un projector compacto en un projector gigant
 
 ### Estado actual
 
-La línea de desarrollo ya superó el prototipo visual mínimo y en `0.1.0-dev.22` posee los pilares funcionales previos, la primera base real de Entity Scan y el primer chassis multi-face funcional: **Image Mode**, **Item Mode**, transporte de assets cliente/servidor, clearance/preview, **Projection Core / Power**, una primera capa completa de presentación visual para imágenes y una **familia inicial de chassis físicos**.
+La línea de desarrollo ya superó el prototipo visual mínimo y en `0.1.0-dev.30` posee **Image Mode, Item Mode, Entity/Humanoid Mode y Banner Mode**, transporte de assets cliente/servidor, clearance/preview, **Projection Core / Power**, Ghost/Tint 2D/3D y el primer chassis multi-face funcional: **Mirage Prism** para fuentes Image y Banner.
 
 Estado acumulado actual:
 
@@ -125,6 +125,10 @@ Estado acumulado actual:
 28. **Entity interaction/loadout dev.20**: Entity Scan toma prioridad en la interacción temprana para no perder el gesto ante Horse/Villager/etc.; Humanoid añade Capture Equipped Loadout no consumible hacia Incoming.
 29. **Mirage Prism dev.21**: bloque/chassis Prism funcional para Image Mode con cuatro fuentes persistentes North/East/South/West, previews/import independientes, Same Source on All Faces, renderer de cuatro quads abiertos y Power/Clearance/bounds conscientes de la geometría Prism.
 30. **Humanoid poses dev.22**: ocho presets persistentes separados de los snapshots, botón de ciclo en Entity Workspace, aplicación al rig vanilla después de `setupAnim` y primera pasada de preview/clearance/render bounds conscientes de la pose.
+31. **Entity safety/UX dev.23**: staging físico se devuelve al aceptar o salir (overflow al suelo), Incoming se consume al pasar a Projected, GUI Entity consolidada, PU Used/Available explícitos + Core Capacity.
+32. **Entity stabilization dev.24→dev.26**: inventarios Item/Entity recentrados, Horse Reposo/En dos patas seleccionable y Ghost migrado a RenderTypes Mirage que no escriben depth; cuerpo y armor humanoide comparten alpha.
+33. **Held-item Ghost dev.27→dev.28**: Main/Off Hand normaliza también capas raw de ItemRenderer para conservar alpha sin escribir depth sobre agua.
+34. **Banner Mode dev.28**: snapshots virtuales no consumibles, Plane Front, Prism North/East/South/West, copia de North a todas las caras y renderer de tela/patterns vanilla sin poste ni travesaño.
 
 ### 3.1A. Arquitectura de GUI desde dev.19
 
@@ -138,6 +142,7 @@ La captura/importación de contenido ya no comparte panel con los controles glob
 - **Image Workspace**: previews/import de caras, Back mode, Vertical Flip y Scanlines.
 - **Item Snapshot Workspace**: slot virtual + preview 3D + activación del snapshot.
 - **Entity/Humanoid Workspace**: sigue siendo dinámico según la card: Humanoid, Horse o Generic.
+- **Banner Workspace**: snapshots virtuales de estandarte; Plane Front o Prism North/East/South/West, sin consumir el banner real.
 
 La pantalla principal ya no contiene previews diminutas ni botones de importación. Esto evita solapamientos y deja espacio real a cada fuente. El contrato detallado vive en `docs/GUI-ARCHITECTURE-dev19.md`.
 
@@ -155,7 +160,7 @@ El porcentaje de upload mostrado por el cliente significa **chunks despachados h
 
 El download calcula su porcentaje a partir de chunks realmente recibidos. Al completar, el cliente vuelve a verificar SHA-256 antes de hacer el reemplazo atómico del PNG cacheado y de invalidar la DynamicTexture anterior.
 
-La build sigue siendo de desarrollo. Desde dev.12 el Item source usa snapshots virtuales no robables; dev.13 agregó la base de Entity Scan y dev.14 agrega el **Empty Scan Template** y el primer Entity Workspace funcional; dev.15 añade reconstrucción y **preview 3D real client-only**, auto-fit/clipping y composición sólo desde Projected/Active. dev.16 ya incorpora el primer **world Entity/Humanoid renderer**, nameplate de base, maniquí bodyless, skin congelada de Player y geometría equipada para armor standalone. dev.17 conecta **Ghost Effect/Tint al pipeline 3D** mediante buffers locales y lleva la preview de Item a geometría FIXED 3D. El primer build Windows de dev.17 alcanzó `:compileJava` y expuso 13 incompatibilidades de API de equipment; dev.18 corrige ese bloque, incluyendo la distinción real entre Saddle y `EquipmentSlot.BODY`. Los presets de pose Humanoid ya están implementados en dev.22; siguen pendientes la validación fina de glint/custom RenderTypes, QA de equipment modded y bounds exactos por especie/renderer antes de cerrar Entity Mode.
+La build sigue siendo de desarrollo. Desde dev.12 Item usa snapshots virtuales no robables y dev.14→dev.22 construyó Entity Scan, preview/world render y poses. dev.23→dev.26 estabilizó propiedad de staging, layouts, Horse Idle/Rearing y el pipeline Ghost no-depth-write para cuerpo/armor. dev.27 extiende ese contrato a Main/Off Hand para cerrar el artefacto de agua de ItemRenderer. dev.28 suma **Banner Mode** con snapshots virtuales y tela/patterns vanilla sin poste, incluyendo cuatro caras independientes en Mirage Prism. Siguen pendientes QA fino de glint/custom RenderTypes, renderers especiales no-LivingEntity y bounds especiales por renderer; los layouts multi-source de Wide/Tall/Field quedan implementados en dev.33.
 
 ## 3.1. Política permanente de URLs y descripciones
 
@@ -1425,27 +1430,22 @@ This prevents future Prism/multi-face work from accidentally treating a 3D sword
 
 # 22. Banner Mode
 
-Banner debe ser tratado como source especial.
+Banner es una familia de source especial de geometría 2D. **Primera pasada funcional implementada en dev.28.**
 
-No queremos el poste.
+Contrato actual:
 
-Queremos:
+- sólo se proyecta la **tela**, sin poste ni travesaño;
+- se conserva color base y `BANNER_PATTERNS`;
+- el banner real nunca sale del inventario: Mirage guarda un snapshot virtual de apariencia;
+- Plane usa una fuente **Front**;
+- Prism usa fuentes independientes **North / East / South / West** y puede copiar North a las demás;
+- Scale conserva la proporción vanilla 20×40;
+- Lift, Rotation, Floating, Lighting, Tint y Ghost son ajustes globales compartidos;
+- Power de Prism se calcula con el número real de caras Banner pobladas.
 
-- tela;
-- color base;
-- patterns;
-- dyes.
+Queda como extensión futura la animación mediante GIF/import visual alternativo y un preview de tela más rico dentro del workspace.
 
-Debe poder:
-
-- flotar;
-- rotar;
-- elevarse;
-- escalarse;
-- entrar en Prism Mode;
-- eventualmente animarse mediante GIF importado como alternativa visual.
-
-Caso de uso:
+Casos de uso ya cubiertos por el renderer:
 
 - cuatro banners flotando en un Mirage Prism;
 - levantados varios bloques sobre una torre;
@@ -3362,22 +3362,22 @@ Antes de activar Armor Mode deben completarse:
 
 Mientras eso se desarrolla, generic Item Mode conserva su renderer `FIXED` para bloques/items normales y ArmorItem usa fallback de item model.
 
-## Siguiente — Chassis polish + Banner / Entity bounds
+## Siguiente — Chassis polish + multi-source / Entity bounds
 
 - QA in-game de Display/Wide/Tall/Field/Prism;
 - modelos finales (los chassis actuales siguen siendo prototipos funcionales);
 - crafts una vez congelados modelos/power curve;
 - markers/rangos visuales dinámicos de sliders según Core + chassis;
-- Banner renderer without pole;
+- Banner renderer without pole: **implementado en dev.28**;
 - Humanoid pose presets + clearance conservador: **implementado en dev.22**; bounds exactos por especie/renderer siguen pendientes.
 
 ## Banner + Prism
 
 - Prism static Image N/E/S/W: **implementado en dev.21**;
-- banner renderer without pole: pendiente;
-- Banner como fuente para caras Prism: pendiente;
+- banner renderer without pole: **implementado en dev.28**;
+- Banner como fuente para caras Prism: **implementado en dev.28**;
 - Prism rotation global: reutiliza Rotation existente desde dev.21;
-- banner scale and Projection Lift: pendiente del renderer Banner.
+- banner Scale y Projection Lift: **implementados en dev.28** mediante settings globales.
 
 ## Effigy
 

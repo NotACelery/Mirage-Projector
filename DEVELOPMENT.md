@@ -1,9 +1,210 @@
+## Estado `0.1.0-dev.37`
+
+- Baseline verificado anterior: dev.35 build-clean/in-game. dev.36 **sí llegó a ejecutarse in-game**, pero su QA reportó regresiones de profundidad/orden e Image Mode; queda clasificado como QA-failed y no debe usarse como baseline visual.
+- Entity holograms se siguen recolectando fuera del BER individual, pero el flush cambia a `RenderLevelStageEvent.Stage.AFTER_TRIPWIRE_BLOCKS`: la geometría sólida, proyectores físicos y bloques translúcidos ya han establecido profundidad antes del holograma.
+- El flush diferido usa un `BufferSource` privado de Mirage. **Nunca** terminar el `minecraft.renderBuffers().bufferSource()` global desde esta pasada: el `endBatch()` global de dev.36 podía vaciar/reordenar batches ajenos y es la causa principal identificada para la regresión de Image Mode.
+- Ghost Entity conserva `LEQUAL` + no depth-write en sus RenderTypes Mirage. Al ejecutarse después del agua, la profundidad ya escrita por el mundo decide correctamente qué está delante sin reintroducir los agujeros de agua de dev.25/dev.26.
+- Image/Banner/Item no cambian de semántica ni layout en esta oleada. La reparación de imágenes consiste en retirar el side effect global de batching introducido en dev.36, preservando el comportamiento previamente correcto.
+- Debug Handbook mantiene `BookViewScreen`, pero su superficie vanilla de 192×192 se escala dinámicamente, se centra de verdad en pantalla y añade tabs laterales nativos de Mirage.
+- Tabs handbook definitivos para esta etapa: **General / Compact / Display / Wide / Tall / Field / Prism**. Cada chassis debe indicar explícitamente para qué sirve y sus límites; General concentra power/Core, source modes, snapshots, clearance y controles globales.
+- Protocolo permanece **15**. No hay cambio NBT/payload.
+- Build Windows e in-game QA de dev.37 pendientes.
+
+### QA prioritario dev.37
+
+1. Entidad gigante atravesando visualmente varios Mirage Projectors: los proyectores detrás deben quedar detrás; los físicamente delante deben ocluirla.
+2. Ghost Entity con agua claramente detrás y luego claramente delante; el resultado debe obedecer distancia/profundidad, no tipo de render.
+3. Dos Entity projections Ghost superpuestas desde varios ángulos.
+4. Revalidar Image Mode que funcionaba antes de dev.36: Compact/Display single-source, Wide 4×1, Tall 1×4, Field 3×3 y Prism N/E/S/W; no aceptar cambios de escala, aspect ratio, orientación o fuente como parte de este fix.
+5. Debug Handbook: centrado real, tamaño cómodo, page arrows clicables y tabs General/Compact/Display/Wide/Tall/Field/Prism en GUI scales usados normalmente.
+6. Confirmar que abrir el handbook no vuelve a introducir blur ni render de la mano/libro.
+
+### Invariante de recuperación
+
+Si dev.37 necesita otra corrección de render, conservar este source como snapshot recuperable antes de tocar nuevamente la pasada global. No sacrificar Image Mode para arreglar Entity Mode: ambos pipelines deben permanecer aislados.
+
+## Estado `0.1.0-dev.36`
+
+- Baseline de código: dev.35 confirmado in-game/build-clean por QA del usuario.
+- Esta pasada corrige la persistencia/visibilidad del nametag proyectado y el orden de render entre proyectores físicos y Entity holograms.
+- Entity projections se difieren a `RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES`; los cores físicos se dibujan primero y los hologramas se ordenan far-to-near antes de los bloques translúcidos.
+- El nombre congelado se muestra en la base del proyector, independiente de Scale/Lift, con fallback robusto `DisplayName != nombre vanilla`.
+- Protocolo: 15.
+- dev.36 llegó a compilar/ejecutarse in-game durante el QA del usuario, pero **falló QA**: Entity projections quedaron detrás de otros proyectores/agua y se observó una regresión adicional en Image Mode. dev.35 permanece como baseline build-clean.
+
+### QA prioritario dev.36
+
+1. Nombrar un gato/caballo nuevo, reescanear y comprobar que el nombre aparece en la base del proyector.
+2. Colocar varios Mirage Projectors dentro/detrás del volumen de una entidad gigante y comprobar que no se pintan por encima por orden de BER.
+3. Repetir con Ghost > 0% y agua detrás: el agua no debe desaparecer.
+4. Probar dos Entity projections translúcidas superpuestas desde distintos ángulos.
+
+## Estado `0.1.0-dev.35`
+
+- Debug Handbook now subclasses vanilla `BookViewScreen`; generic Screen blur/background handling is removed from Mirage's handbook implementation.
+- Handbook sections are split into vanilla-width physical pages, preserving translations without clipping.
+- Projection labels resolve canonical CustomName metadata and render above species/pose-aware Entity bounds.
+- Reconstructed named mobs regain their frozen CustomName internally while Mirage suppresses the vanilla duplicate nameplate.
+- Protocol remains **15**.
+
+### Waiting list after dev.35
+
+- Special-renderer visual adapters/bounds beyond EntityType dimensions.
+- Special/modded RenderType Ghost/Tint hardening and glint QA.
+- Multi-source Banner layouts if the Image layout contract proves good in QA.
+- Final chassis models/crafts after geometry/Power stabilization.
+- Rich cloth-model Banner preview inside its workspace.
+
+---
+
+## Estado `0.1.0-dev.34`
+
+- Entity Scan v5 freezes mob CustomName explicitly and keeps conservative compatibility recovery for older cards.
+- Entity Workspace preview exposes `name · entity type` whenever the frozen scan carries a projection nameplate.
+- Debug Handbook keeps the dev.32 local dark overlay and now also suppresses its own first-person hand/item render while the screen is open.
+- Wide/Tall/Field Image Mode retains the dev.33 persistent multi-source layout banks (4×1 / 1×4 / 3×3).
+- Protocol remains **15**; the scan card internal data version changes without altering packet shape.
+
+### Waiting list after dev.34
+
+- Special-renderer visual adapters/bounds beyond EntityType dimensions.
+- Special/modded RenderType Ghost/Tint hardening and glint QA.
+- Multi-source Banner layouts if the Image layout contract proves good in QA.
+- Final chassis models/crafts after geometry/Power stabilization.
+- Rich cloth-model Banner preview inside its workspace.
+
+---
+
+## Estado `0.1.0-dev.32`
+
+- Debug Handbook background is now a local dim overlay instead of the generic blur path.
+- Protocol remains **14**.
+- dev.31 entity fidelity remains unchanged underneath this UI-only hotfix.
+
+### Waiting list after dev.32
+
+- Wide/Tall/Field multi-source layout banks.
+- Special-renderer visual adapters/bounds beyond EntityType dimensions.
+- Special/modded RenderType Ghost/Tint hardening and glint QA.
+- Final chassis models/crafts after geometry/Power stabilization.
+
+---
+
+## Estado `0.1.0-dev.31`
+
+- Entity reconstruction fidelity pass on top of dev.30.
+- Player scan format v4 freezes `slim/wide`, model-part visibility mask and dominant arm in addition to the packed textures property.
+- Reconstructed Mirage RemotePlayer reapplies those visual flags after entity NBT load.
+- Generic Cat/Wolf/Parrot pose now invalidates the cached render entity correctly.
+- Protocol remains **14**; Windows build/in-game QA pending.
+- Existing Player cards remain compatible but must be rescanned to gain v4 fidelity metadata.
+
+### Waiting list after dev.31
+
+- Wide/Tall/Field multi-source layout banks.
+- Special-renderer visual adapters/bounds beyond EntityType dimensions.
+- Special/modded RenderType Ghost/Tint hardening and glint QA.
+- Final chassis models/crafts after geometry/Power stabilization.
+- Rich cloth-model Banner preview inside its workspace.
+
+---
+
+## Estado `0.1.0-dev.30`
+
+- Adds species-aware Entity clearance/render bounds from scanned EntityType width/height.
+- Scale is interpreted exactly like the world renderer: target largest dimension.
+- Humanoid pose expansion remains applied; Horse Rearing reserves extra vertical room.
+- Protocol remains **14**. Windows build/in-game QA pending.
+- Detailed contract: `docs/ENTITY-BOUNDS-dev30.md`.
+
+### Waiting list after dev.30
+
+- Wide/Tall/Field multi-source layout banks.
+- Special/modded RenderType Ghost/Tint hardening and glint QA.
+- Special-renderer visual bounds beyond EntityType dimensions.
+- Final chassis models/crafts after geometry/Power stabilization.
+- Rich cloth-model Banner preview inside its workspace.
+
+## Estado `0.1.0-dev.30`
+
+- Power UI now separates Projection cost, Core capacity, Remaining power, exact Core limits and exact chassis limits.
+- Clearance reports blocked-block count and envelope size in the main GUI.
+- Generic Cat/Wolf/Parrot scans gain persistent Idle/Sitting pose selection.
+- Return gear is contextual to Humanoid/Horse equipment-capable workspaces.
+- Duplicate Lift PU billing and duplicate Main Hand UI row fixed.
+- Protocol **14**. Windows build/in-game QA pending.
+- Detailed contract: `docs/POWER-POSE-UX-dev29.md`.
+
+### Waiting list after dev.29
+
+- Exact Horse/Generic/special-renderer bounds.
+- Wide/Tall/Field multi-source layout banks.
+- Special/modded RenderType Ghost/Tint hardening and glint QA.
+- Final chassis models/crafts after geometry/Power stabilization.
+- Rich cloth-model Banner preview inside its workspace.
+
+## Estado `0.1.0-dev.27`
+
+- dev.26 live QA confirmed Ghost on entity body + Humanoid armor.
+- Remaining water-hole bug was isolated to Main/Off Hand ItemRenderer paths.
+- Added `ItemInHandRendererMixin` plus held-item RenderType normalization.
+- Raw solid/cutout/translucent block layers used while rendering a held ItemStack now enter Mirage's colour-only `ghostItem` pass.
+- Tint/alpha remain applied once by the existing projection buffer.
+- Network protocol remains `12`.
+- Windows build + in-game water QA pending.
+
+## Estado `0.1.0-dev.26`
+
+### Ghost depth + armor repair
+
+- Added Mirage-owned translucent RenderTypes for entity/item projection passes. They keep `LEQUAL` depth testing so world blocks still occlude the projection, but use `COLOR_WRITE` instead of `COLOR_DEPTH_WRITE`, preventing a translucent projection from punching holes in water and other already-rendered translucent geometry.
+- Base LivingEntity bodies now use the Mirage ghost RenderType rather than vanilla `entityTranslucent`.
+- `HumanoidArmorLayer` is explicitly redirected during Mirage render context, so vanilla humanoid armor receives the same alpha path as the body instead of remaining opaque.
+- Held block/item atlas passes, shields, banners and armor trim atlas passes are remapped to Mirage no-depth-write ghost RenderTypes.
+- Image/Prism faces also switch to the colour-only ghost RenderType whenever Ghost is below 100%, so 2D holograms obey the same water/depth contract.
+- Compatible already-translucent entity/item layers are also normalized to the Mirage pass; effect-only RenderTypes (glint, eyes, beams, shadows, text, masks, outlines) remain native and fail closed.
+- Network protocol remains `12`: dev.26 is client-render-only and adds no persisted/network state.
+
+See `docs/GHOST-DEPTH-ARMOR-dev26.md` for the renderer contract and live QA matrix.
+
+---
+
+## Estado `0.1.0-dev.25`
+
+### Hotfix de compilación dev.25
+
+- `EntityProjectionPreviewRenderer` vuelve a usar la firma 1.21.1 correcta de `EntityRenderDispatcher#render`: entidad + XYZ + yaw + partialTick + pose/buffer/light.
+- dev.24 tenía un `double` posicional extra y fallaba en `compileJava`; dev.25 no cambia el comportamiento funcional de la oleada dev.24.
+
+
+dev.25 is the compile-fixed continuation of the dev.24 Entity stabilization wave on top of the user-confirmed build-clean dev.22 baseline and dev.23 repair snapshot. It retains the widened/recentered Item and Entity workspaces, actionable Incoming queue, optional persisted Horse rearing pose, and projection-local LivingEntity Ghost render context. Network protocol remains `12`. Windows build/in-game QA are pending.
+
+See `docs/ENTITY-GHOST-LAYOUT-dev24.md` for the exact layout and render-pipeline contract.
+
+---
+
+## Histórico `0.1.0-dev.23`
+
+dev.23 is the Entity safety/UX repair wave on top of the user-confirmed build-clean dev.22 baseline. Banner work stays paused until this pass survives build/in-game QA.
+
+### dev.23 — Entity item recovery + GUI consolidation + Ghost/Horse fixes
+
+- Physical Entity staging is now transient: successful Apply/Replace returns the real stack immediately; leaving the menu returns all leftovers and drops overflow at the player.
+- Incoming is consumed when accepted into Projected, including the already-identical case, so the UI no longer presents two persistent copies of one virtual snapshot.
+- Entity Workspace uses one centred panel with explicit Source / Equipment / Actions / Inventory / Preview regions and matching slot coordinates.
+- Projection Power shows Used and Available remaining in one compact line beside the Core Capacity; empty sources cost 0 PU.
+- Common opaque/cutout entity layers can now be remapped to translucent RenderTypes because the `Optional[resource]` texture parser is fixed.
+- Projection-only Horse forces full vanilla stand/rearing animation.
+- Protocol **11**.
+- Detailed contract + QA: `docs/ENTITY-UX-RECOVERY-dev23.md`.
+- Build status: source/static validation complete; Windows NeoForge build pending.
+
 
 ## Estado `0.1.0-dev.22`
 
 Dev.22 cierra la primera pasada funcional de **poses Humanoid** sobre la base acumulativa de dev.21. El projector persiste una pose separada de Entity Scan y de los snapshots de equipment; cambiarla no recaptura ni mueve objetos. El Entity Workspace expone ocho presets: Standing, Guard, Hero, Combat, Raised Main Hand, Raised Off Hand, Dual Wield y Display.
 
-El renderer enlaza únicamente las entidades temporales de Mirage a un hook client-only de `HumanoidModel` y aplica las rotaciones después del frame vanilla. Armor layers y Main/Off Hand heredan así la postura del rig sin convertirlo en Armor Stand ni entidad tickeada. Preview, clearance y render bounds reservan espacio adicional según el preset. Esta pasada sigue siendo conservadora: **no equivale aún a bounds exactos por especie o por mesh** para Horse/Generic. Protocolo de red: `10`. Build Windows/QA real siguen pendientes.
+El renderer enlaza únicamente las entidades temporales de Mirage a un hook client-only de `HumanoidModel` y aplica las rotaciones después del frame vanilla. Armor layers y Main/Off Hand heredan así la postura del rig sin convertirlo en Armor Stand ni entidad tickeada. Preview, clearance y render bounds reservan espacio adicional según el preset. Esta pasada sigue siendo conservadora: **no equivale aún a bounds exactos por especie o por mesh** para Horse/Generic. Protocolo de red: `10`. El usuario confirmó posteriormente build SUCCESS en Windows; dev.22 queda como baseline build-clean para dev.23. El QA in-game sigue abierto.
 
 Dev.21 permanece acumulado: **Mirage Prism** físico con cuatro fuentes Image North/East/South/West, renderer lateral, Same Source on All Faces y Power/Clearance propios. Dev.20 permanece acumulado: prioridad temprana de Entity Scan y Capture Equipped Loadout.
 
@@ -25,7 +226,7 @@ Dev.21 permanece acumulado: **Mirage Prism** físico con cuatro fuentes Image No
 ### QA / build status
 
 - Source/resource/static validation in the assistant environment only.
-- **Do not mark build-clean until the user's Windows `build.bat` succeeds.**
+- **Windows `build.bat` was subsequently confirmed successful by the user; dev.22 is the build-clean baseline for dev.23.**
 - Priority live QA: Player, Zombie, Skeleton, bodyless equipment rig, handedness, all presets, armor/trims/dye/glint, shield/tools, Ghost/Tint, reload/multiplayer and clearance visualization.
 - Exact species/model-part bounds are intentionally not claimed by this pass.
 
@@ -57,7 +258,7 @@ Dev.21 permanece acumulado: **Mirage Prism** físico con cuatro fuentes Image No
 ### QA / build status
 
 - Source/JSON/static validation in the assistant environment only.
-- **Do not mark build-clean until the user's Windows `build.bat` succeeds.**
+- **Windows `build.bat` was subsequently confirmed successful by the user; dev.22 is the build-clean baseline for dev.23.**
 - Priority live QA: one/two/four populated faces, mixed aspect ratios, Same Source, reload persistence, multiplayer asset transfer, Rotation on/off, Flip/Scanlines/Tint/Ghost and obstruction checks.
 
 ### Historical dev.21 waiting list
@@ -101,7 +302,7 @@ Dev.21 permanece acumulado: **Mirage Prism** físico con cuatro fuentes Image No
 
 - dev.18 Windows build output was authoritative and used to repair the 1.21.1 equipment API assumptions.
 - dev.19 has only source/static validation in the assistant environment at packaging time.
-- **Do not mark build-clean until the user's Windows `build.bat` succeeds.**
+- **Windows `build.bat` was subsequently confirmed successful by the user; dev.22 is the build-clean baseline for dev.23.**
 
 Priority live QA:
 
@@ -1063,3 +1264,8 @@ Glint/custom shaders with no vertex colour channel may not fade with exactly the
 - Pose/model-aware clearance instead of the current conservative square for Entity.
 - Species-specific visual animation adapters only where vanilla renderer history requires them.
 - Banner/multi-source/Prism after the 3D baseline is stable.
+
+
+### dev.34 — Custom names / handbook hand render
+- Entity Scan v5 freezes nametag CustomName explicitly and keeps a legacy fallback.
+- Debug Handbook cancels first-person rendering of its own held stack while its Screen is active.

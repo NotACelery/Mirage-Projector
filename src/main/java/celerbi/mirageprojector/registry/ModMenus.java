@@ -1,6 +1,7 @@
 package celerbi.mirageprojector.registry;
 
 import celerbi.mirageprojector.MirageProjector;
+import celerbi.mirageprojector.menu.BannerProjectorMenu;
 import celerbi.mirageprojector.menu.EntityProjectorMenu;
 import celerbi.mirageprojector.menu.ImageProjectorMenu;
 import celerbi.mirageprojector.menu.ItemProjectorMenu;
@@ -27,6 +28,9 @@ public final class ModMenus {
 
     public static final DeferredHolder<MenuType<?>, MenuType<ItemProjectorMenu>> ITEM_PROJECTOR =
             MENUS.register("item_projector", () -> IMenuTypeExtension.create(ItemProjectorMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<BannerProjectorMenu>> BANNER_PROJECTOR =
+            MENUS.register("banner_projector", () -> IMenuTypeExtension.create(BannerProjectorMenu::new));
 
     private ModMenus() {
     }

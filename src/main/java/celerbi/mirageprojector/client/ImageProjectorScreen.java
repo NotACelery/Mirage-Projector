@@ -1,5 +1,6 @@
 package celerbi.mirageprojector.client;
 
+import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.menu.ImageProjectorMenu;
@@ -34,6 +35,8 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     private String westId;
     private int westWidth;
     private int westHeight;
+    private final ImageSourceBank sourceBank;
+    private int selectedBankSlot;
     private ProjectionSettings.BackFaceMode backFaceMode;
     private boolean flipVertical;
     private boolean scanlines;
@@ -43,19 +46,29 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     private Button backButton;
     private Button eastButton;
     private Button westButton;
-    private Button frontClearButton;
-    private Button backClearButton;
-    private Button eastClearButton;
-    private Button westClearButton;
     private Button backModeButton;
     private Button sameAllButton;
     private Button flipButton;
     private Button scanlinesButton;
+    private Button bankImportButton;
+    private Button bankClearButton;
+    private Button bankCopyButton;
+
+    private int mapX;
+    private int mapY;
+    private int mapCell;
+    private int mapWidth;
+    private int mapHeight;
 
     public ImageProjectorScreen(ImageProjectorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 416;
-        imageHeight = 286;
+        if (menu.hasMultiSourceLayout()) {
+            imageWidth = 520;
+            imageHeight = 374;
+        } else {
+            imageWidth = 416;
+            imageHeight = 286;
+        }
         ProjectionSettings s = menu.initialSettings();
         frontId = s.imageId();
         frontWidth = s.imageWidth();
@@ -69,7 +82,16 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         westId = s.westImageId();
         westWidth = s.westImageWidth();
         westHeight = s.westImageHeight();
+        sourceBank = menu.initialImageBank();
         backFaceMode = s.backFaceMode();
+        if (menu.hasMultiSourceLayout()
+                && backFaceMode != ProjectionSettings.BackFaceMode.FRONT
+                && backFaceMode != ProjectionSettings.BackFaceMode.MIRRORED
+                && backFaceMode != ProjectionSettings.BackFaceMode.READABLE) {
+            // Multi-source Plane layouts have one bank today. Never fake a rear
+            // Independent/BACK bank by silently reusing the front sources.
+            backFaceMode = ProjectionSettings.BackFaceMode.FRONT;
+        }
         flipVertical = s.flipVertical();
         scanlines = s.scanlines();
     }
@@ -77,40 +99,48 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     @Override
     protected void init() {
         super.init();
-        boolean prism = isPrism();
-
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.back_to_settings"), button -> {
             apply(false);
             PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()));
-        }).bounds(leftPos + 278, topPos + 6, 126, 18).build());
+        }).bounds(leftPos + imageWidth - 138, topPos + 6, 126, 18).build());
 
+        if (isMultiSource()) {
+            initMultiSource();
+        } else {
+            initFaceWorkspace();
+        }
+        refreshLabels();
+    }
+
+    private void initFaceWorkspace() {
+        boolean prism = isPrism();
         if (prism) {
             frontButton = addFaceButton(Face.NORTH, 18);
             eastButton = addFaceButton(Face.EAST, 115);
             backButton = addFaceButton(Face.SOUTH, 212);
             westButton = addFaceButton(Face.WEST, 309);
-
-            frontClearButton = addClearButton(Face.NORTH, 88);
-            eastClearButton = addClearButton(Face.EAST, 185);
-            backClearButton = addClearButton(Face.SOUTH, 282);
-            westClearButton = addClearButton(Face.WEST, 379);
+            addClearButton(Face.NORTH, 88);
+            addClearButton(Face.EAST, 185);
+            addClearButton(Face.SOUTH, 282);
+            addClearButton(Face.WEST, 379);
         } else {
             frontButton = addRenderableWidget(Button.builder(frontImportLabel(), button -> openFilePicker(Face.NORTH))
                     .bounds(leftPos + 18, topPos + 178, 156, 20).build());
-            frontClearButton = addRenderableWidget(Button.builder(Component.literal("×"), button -> clearFace(Face.NORTH))
+            addRenderableWidget(Button.builder(Component.literal("×"), button -> clearFace(Face.NORTH))
                     .bounds(leftPos + 178, topPos + 178, 20, 20).build());
-
             backButton = addRenderableWidget(Button.builder(backImportLabel(), button -> openFilePicker(Face.SOUTH))
                     .bounds(leftPos + 218, topPos + 178, 156, 20).build());
-            backClearButton = addRenderableWidget(Button.builder(Component.literal("×"), button -> clearFace(Face.SOUTH))
+            addRenderableWidget(Button.builder(Component.literal("×"), button -> clearFace(Face.SOUTH))
                     .bounds(leftPos + 378, topPos + 178, 20, 20).build());
         }
 
         backModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             backFaceMode = switch (backFaceMode) {
+                case FRONT -> ProjectionSettings.BackFaceMode.BACK;
+                case BACK -> ProjectionSettings.BackFaceMode.MIRRORED;
                 case MIRRORED -> ProjectionSettings.BackFaceMode.READABLE;
                 case READABLE -> ProjectionSettings.BackFaceMode.INDEPENDENT;
-                case INDEPENDENT -> ProjectionSettings.BackFaceMode.MIRRORED;
+                case INDEPENDENT -> ProjectionSettings.BackFaceMode.FRONT;
             };
             refreshLabels();
         }).bounds(leftPos + 18, topPos + 208, 180, 20).build());
@@ -138,7 +168,58 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button ->
                 PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
         ).bounds(leftPos + 218, topPos + 252, 180, 22).build());
-        refreshLabels();
+    }
+
+    private void initMultiSource() {
+        int columns = menu.imageLayoutColumns();
+        int rows = menu.imageLayoutRows();
+        mapCell = Math.max(24, Math.min(47, Math.min(188 / columns, 188 / rows)));
+        mapWidth = mapCell * columns;
+        mapHeight = mapCell * rows;
+        mapX = leftPos + 22 + (190 - mapWidth) / 2;
+        mapY = topPos + 50 + (190 - mapHeight) / 2;
+
+        bankImportButton = addRenderableWidget(Button.builder(Component.empty(), button -> openBankFilePicker(selectedBankSlot))
+                .bounds(leftPos + 236, topPos + 214, 176, 20).build());
+        bankClearButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.image.bank.clear"), button -> {
+            sourceBank.clear(selectedBankSlot);
+            status = Component.translatable("gui.mirage_projector.image.bank.cleared", selectedBankSlot + 1);
+            refreshLabels();
+        }).bounds(leftPos + 420, topPos + 214, 78, 20).build());
+        bankCopyButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.image.bank.copy_empty"), button -> {
+            if (!sourceBank.get(selectedBankSlot).present()) {
+                status = Component.translatable("gui.mirage_projector.image.bank.source_required");
+                return;
+            }
+            sourceBank.copySlotToEmpty(selectedBankSlot, menu.imageLayoutSlots());
+            status = Component.translatable("gui.mirage_projector.image.bank.copied_empty");
+            refreshLabels();
+        }).bounds(leftPos + 22, topPos + 250, 190, 20).build());
+
+        backModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            backFaceMode = switch (backFaceMode) {
+                case FRONT -> ProjectionSettings.BackFaceMode.MIRRORED;
+                case MIRRORED -> ProjectionSettings.BackFaceMode.READABLE;
+                case READABLE -> ProjectionSettings.BackFaceMode.FRONT;
+                case BACK, INDEPENDENT -> ProjectionSettings.BackFaceMode.FRONT;
+            };
+            refreshLabels();
+        }).bounds(leftPos + 236, topPos + 242, 262, 20).build());
+        backModeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.image.bank.back_mode")));
+        flipButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            flipVertical = !flipVertical;
+            refreshLabels();
+        }).bounds(leftPos + 236, topPos + 268, 127, 20).build());
+        scanlinesButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            scanlines = !scanlines;
+            refreshLabels();
+        }).bounds(leftPos + 371, topPos + 268, 127, 20).build());
+
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> apply(true))
+                .bounds(leftPos + 22, topPos + 314, 230, 22).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button ->
+                PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
+        ).bounds(leftPos + 268, topPos + 338, 230, 22).build());
     }
 
     private Button addFaceButton(Face face, int localX) {
@@ -146,8 +227,8 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
                 .bounds(leftPos + localX, topPos + 164, 68, 20).build());
     }
 
-    private Button addClearButton(Face face, int localX) {
-        return addRenderableWidget(Button.builder(Component.literal("×"), button -> clearFace(face))
+    private void addClearButton(Face face, int localX) {
+        addRenderableWidget(Button.builder(Component.literal("×"), button -> clearFace(face))
                 .bounds(leftPos + localX, topPos + 164, 18, 20).build());
     }
 
@@ -155,14 +236,33 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         return menu.physicalFaceCount() == 4;
     }
 
+    private boolean isMultiSource() {
+        return menu.hasMultiSourceLayout();
+    }
+
     private void refreshLabels() {
         if (frontButton != null) frontButton.setMessage(isPrism() ? faceImportLabel(Face.NORTH) : frontImportLabel());
         if (eastButton != null) eastButton.setMessage(faceImportLabel(Face.EAST));
         if (backButton != null) backButton.setMessage(isPrism() ? faceImportLabel(Face.SOUTH) : backImportLabel());
         if (westButton != null) westButton.setMessage(faceImportLabel(Face.WEST));
-        if (backModeButton != null) backModeButton.setMessage(Component.translatable("gui.mirage_projector.image.back_mode", backModeName()));
+        if (backModeButton != null) {
+            Component mode = isMultiSource()
+                    ? Component.translatable("gui.mirage_projector.image.bank.back_mode", multiBackModeName())
+                    : Component.translatable("gui.mirage_projector.image.back_mode", backModeName());
+            backModeButton.setMessage(mode);
+        }
         if (flipButton != null) flipButton.setMessage(Component.translatable("gui.mirage_projector.image.flip", onOff(flipVertical)));
         if (scanlinesButton != null) scanlinesButton.setMessage(Component.translatable("gui.mirage_projector.image.scanlines", onOff(scanlines)));
+        if (bankImportButton != null) {
+            bankImportButton.setMessage(Component.translatable(
+                    sourceBank.get(selectedBankSlot).present()
+                            ? "gui.mirage_projector.image.bank.replace"
+                            : "gui.mirage_projector.image.bank.import",
+                    selectedBankSlot + 1
+            ));
+        }
+        if (bankClearButton != null) bankClearButton.active = sourceBank.get(selectedBankSlot).present();
+        if (bankCopyButton != null) bankCopyButton.active = sourceBank.get(selectedBankSlot).present();
     }
 
     private Component frontImportLabel() {
@@ -181,6 +281,10 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
 
     private Component backModeName() {
         return Component.translatable("gui.mirage_projector.image.back_mode." + backFaceMode.name().toLowerCase());
+    }
+
+    private Component multiBackModeName() {
+        return backModeName();
     }
 
     private static Component onOff(boolean value) {
@@ -208,26 +312,10 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
 
     private void clearFace(Face face) {
         switch (face) {
-            case NORTH -> {
-                frontId = "";
-                frontWidth = 0;
-                frontHeight = 0;
-            }
-            case EAST -> {
-                eastId = "";
-                eastWidth = 0;
-                eastHeight = 0;
-            }
-            case SOUTH -> {
-                backId = "";
-                backWidth = 0;
-                backHeight = 0;
-            }
-            case WEST -> {
-                westId = "";
-                westWidth = 0;
-                westHeight = 0;
-            }
+            case NORTH -> { frontId = ""; frontWidth = 0; frontHeight = 0; }
+            case EAST -> { eastId = ""; eastWidth = 0; eastHeight = 0; }
+            case SOUTH -> { backId = ""; backWidth = 0; backHeight = 0; }
+            case WEST -> { westId = ""; westWidth = 0; westHeight = 0; }
         }
         status = Component.translatable("gui.mirage_projector.image.face_cleared", faceLabel(face.serializedName));
         refreshLabels();
@@ -238,12 +326,18 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         uploadIfPresent(backId);
         uploadIfPresent(eastId);
         uploadIfPresent(westId);
+        if (isMultiSource()) {
+            for (int slot = 0; slot < menu.imageLayoutSlots(); slot++) {
+                uploadIfPresent(sourceBank.get(slot).id());
+            }
+        }
         PacketDistributor.sendToServer(new UpdateImageWorkspacePayload(
                 menu.projectorPos(),
                 frontId, frontWidth, frontHeight,
                 backId, backWidth, backHeight,
                 eastId, eastWidth, eastHeight,
                 westId, westWidth, westHeight,
+                sourceBank.copy(),
                 backFaceMode, flipVertical, scanlines
         ));
         if (returnToMain) {
@@ -263,27 +357,71 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         int y = topPos;
         graphics.fill(x, y, x + imageWidth, y + imageHeight, 0xF014171D);
         graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 2, 0xFF6B4A7E);
-        if (isPrism()) {
+        if (isMultiSource()) {
+            renderMultiSourceWorkspace(graphics);
+        } else if (isPrism()) {
             renderFaceCard(graphics, x + 18, y + 34, 88, 126, faceLabel("north"), frontId, frontWidth, frontHeight, false, false);
             renderFaceCard(graphics, x + 115, y + 34, 88, 126, faceLabel("east"), eastId, eastWidth, eastHeight, false, false);
             renderFaceCard(graphics, x + 212, y + 34, 88, 126, faceLabel("south"), backId, backWidth, backHeight, false, false);
             renderFaceCard(graphics, x + 309, y + 34, 88, 126, faceLabel("west"), westId, westWidth, westHeight, false, false);
         } else {
-            renderFaceCard(graphics, x + 18, y + 36, 180, 126, faceLabel("front"), frontId, frontWidth, frontHeight, false, false);
-            renderFaceCard(
-                    graphics,
-                    x + 218,
-                    y + 36,
-                    180,
-                    126,
-                    backFaceLabel(),
-                    effectiveBackId(),
-                    effectiveBackWidth(),
-                    effectiveBackHeight(),
+            renderFaceCard(graphics, x + 18, y + 36, 180, 126, frontFaceLabel(), frontId, frontWidth, frontHeight, false, false);
+            renderFaceCard(graphics, x + 218, y + 36, 180, 126, backFaceLabel(), effectiveBackId(), effectiveBackWidth(), effectiveBackHeight(),
                     backFaceMode == ProjectionSettings.BackFaceMode.MIRRORED,
-                    backFaceMode == ProjectionSettings.BackFaceMode.INDEPENDENT && backId.isBlank()
-            );
+                    false);
         }
+    }
+
+    private void renderMultiSourceWorkspace(GuiGraphics graphics) {
+        int x = leftPos;
+        int y = topPos;
+        graphics.fill(x + 16, y + 40, x + 218, y + 242, 0xFF0B0F14);
+        graphics.fill(x + 224, y + 40, x + 504, y + 204, 0xFF0B0F14);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.layout"), x + 22, y + 44, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.selected", selectedBankSlot + 1), x + 236, y + 44, 0xFFD7B8F5, false);
+
+        int columns = menu.imageLayoutColumns();
+        int rows = menu.imageLayoutRows();
+        for (int slot = 0; slot < menu.imageLayoutSlots(); slot++) {
+            int column = slot % columns;
+            int row = slot / columns;
+            int sx = mapX + column * mapCell;
+            int sy = mapY + row * mapCell;
+            boolean selected = slot == selectedBankSlot;
+            int border = selected ? 0xFFF0E2FF : 0xFF5C5168;
+            graphics.fill(sx, sy, sx + mapCell - 2, sy + mapCell - 2, border);
+            graphics.fill(sx + 2, sy + 2, sx + mapCell - 4, sy + mapCell - 4, 0xFF10151C);
+            ImageSourceBank.Asset asset = sourceBank.get(slot);
+            if (asset.present()) {
+                renderThumbnail(graphics, asset, sx + 4, sy + 4, mapCell - 10, mapCell - 10);
+            } else {
+                graphics.drawCenteredString(font, Component.literal("+"), sx + (mapCell - 2) / 2, sy + (mapCell - 2) / 2 - 4, 0xFF716A79);
+            }
+            graphics.drawString(font, Component.literal(Integer.toString(slot + 1)), sx + 4, sy + 4, selected ? 0xFFFFFFFF : 0xFFBEB4C8, true);
+        }
+
+        ImageSourceBank.Asset selected = sourceBank.get(selectedBankSlot);
+        renderFaceCard(graphics, x + 236, y + 58, 256, 138,
+                Component.translatable("gui.mirage_projector.image.bank.source", selectedBankSlot + 1),
+                selected.id(), selected.width(), selected.height(), false, false);
+    }
+
+    private void renderThumbnail(GuiGraphics graphics, ImageSourceBank.Asset asset, int x, int y, int w, int h) {
+        ProjectionTextureCache.get(asset.id()).ifPresent(texture -> {
+            float scale = Math.min(w / (float) asset.width(), h / (float) asset.height());
+            float drawW = asset.width() * scale;
+            float drawH = asset.height() * scale;
+            float drawX = x + (w - drawW) * 0.5F;
+            float drawY = y + (h - drawH) * 0.5F;
+            graphics.flush();
+            graphics.pose().pushPose();
+            graphics.pose().translate(drawX, drawY, 0.0F);
+            graphics.pose().scale(scale, scale, 1.0F);
+            graphics.blit(texture, 0, 0, asset.width(), asset.height(), 0.0F, 0.0F,
+                    asset.width(), asset.height(), asset.width(), asset.height());
+            graphics.pose().popPose();
+            graphics.flush();
+        });
     }
 
     private void renderFaceCard(
@@ -303,15 +441,9 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         graphics.fill(x + 1, y + 1, x + w - 1, y + h - 1, 0xFF0C1015);
         graphics.drawCenteredString(font, label, x + w / 2, y + 7, fallback ? 0xFF817A89 : 0xFFD5C8E4);
         if (assetId == null || assetId.isBlank() || sourceW <= 0 || sourceH <= 0) {
-            graphics.drawCenteredString(
-                    font,
-                    fallback
-                            ? Component.translatable("gui.mirage_projector.image.uses_front")
-                            : Component.translatable("gui.mirage_projector.image.empty"),
-                    x + w / 2,
-                    y + h / 2,
-                    0xFF777080
-            );
+            graphics.drawCenteredString(font, fallback
+                    ? Component.translatable("gui.mirage_projector.image.uses_front")
+                    : Component.translatable("gui.mirage_projector.image.empty"), x + w / 2, y + h / 2, 0xFF777080);
             return;
         }
         ProjectionTextureCache.get(assetId).ifPresentOrElse(texture -> {
@@ -324,11 +456,7 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
             float drawY = y + 24 + (availableH - drawH) * 0.5F;
             graphics.flush();
             graphics.pose().pushPose();
-            graphics.pose().translate(
-                    drawX + (mirrorHorizontal ? drawW : 0.0F),
-                    drawY + (flipVertical ? drawH : 0.0F),
-                    0.0F
-            );
+            graphics.pose().translate(drawX + (mirrorHorizontal ? drawW : 0.0F), drawY + (flipVertical ? drawH : 0.0F), 0.0F);
             graphics.pose().scale(mirrorHorizontal ? -scale : scale, flipVertical ? -scale : scale, 1.0F);
             graphics.blit(texture, 0, 0, sourceW, sourceH, 0.0F, 0.0F, sourceW, sourceH, sourceW, sourceH);
             graphics.pose().popPose();
@@ -340,39 +468,74 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
                     graphics.fill(Math.round(drawX), line, Math.round(drawX + drawW), line + 1, 0x66000000);
                 }
             }
-        }, () -> graphics.drawCenteredString(
-                font,
-                Component.translatable("gui.mirage_projector.image.loading"),
-                x + w / 2,
-                y + h / 2,
-                0xFF8C8494
-        ));
+        }, () -> graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.image.loading"), x + w / 2, y + h / 2, 0xFF8C8494));
     }
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 10, 9, 0xFFF4F4F4, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.image.face_count", menu.physicalFaceCount()), 18, 22, 0xFF9FBED1, false);
-        graphics.drawString(font, status, 18, 236, 0xFFE3D7FF, false);
+        if (isMultiSource()) {
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.summary",
+                    menu.chassisProfile().displayName(), menu.imageLayoutColumns(), menu.imageLayoutRows(), menu.imageLayoutSlots()),
+                    16, 24, 0xFF9FBED1, false);
+            graphics.drawString(font, status, 22, 310, 0xFFE3D7FF, false);
+        } else {
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.image.face_count", menu.physicalFaceCount()), 18, 22, 0xFF9FBED1, false);
+            graphics.drawString(font, status, 18, 236, 0xFFE3D7FF, false);
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (isMultiSource() && button == 0 && mouseX >= mapX && mouseY >= mapY
+                && mouseX < mapX + mapWidth && mouseY < mapY + mapHeight) {
+            int column = (int) ((mouseX - mapX) / mapCell);
+            int row = (int) ((mouseY - mapY) / mapCell);
+            int slot = row * menu.imageLayoutColumns() + column;
+            if (slot >= 0 && slot < menu.imageLayoutSlots()) {
+                selectedBankSlot = slot;
+                status = Component.translatable("gui.mirage_projector.image.bank.selected_status", slot + 1);
+                refreshLabels();
+                return true;
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     private String effectiveBackId() {
-        return backFaceMode == ProjectionSettings.BackFaceMode.INDEPENDENT && !backId.isBlank() ? backId : frontId;
+        return switch (backFaceMode) {
+            case MIRRORED, READABLE -> frontId;
+            case FRONT, BACK, INDEPENDENT -> backId;
+        };
     }
 
     private int effectiveBackWidth() {
-        return backFaceMode == ProjectionSettings.BackFaceMode.INDEPENDENT && !backId.isBlank() ? backWidth : frontWidth;
+        return switch (backFaceMode) {
+            case MIRRORED, READABLE -> frontWidth;
+            case FRONT, BACK, INDEPENDENT -> backWidth;
+        };
     }
 
     private int effectiveBackHeight() {
-        return backFaceMode == ProjectionSettings.BackFaceMode.INDEPENDENT && !backId.isBlank() ? backHeight : frontHeight;
+        return switch (backFaceMode) {
+            case MIRRORED, READABLE -> frontHeight;
+            case FRONT, BACK, INDEPENDENT -> backHeight;
+        };
+    }
+
+    private Component frontFaceLabel() {
+        return backFaceMode == ProjectionSettings.BackFaceMode.BACK
+                ? Component.translatable("gui.mirage_projector.image.face.front_off")
+                : faceLabel("front");
     }
 
     private Component backFaceLabel() {
         return switch (backFaceMode) {
+            case FRONT -> Component.translatable("gui.mirage_projector.image.face.back_off");
+            case BACK -> faceLabel("back");
             case MIRRORED -> Component.translatable("gui.mirage_projector.image.face.back_mirror");
             case READABLE -> Component.translatable("gui.mirage_projector.image.face.back_readable");
-            case INDEPENDENT -> faceLabel("back");
+            case INDEPENDENT -> Component.translatable("gui.mirage_projector.image.face.back_independent");
         };
     }
 
@@ -389,9 +552,39 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         };
     }
 
+    private void openBankFilePicker(int slot) {
+        status = Component.translatable("gui.mirage_projector.status.selecting");
+        Path selected = chooseImageFile(Component.translatable("gui.mirage_projector.image.picker.slot", slot + 1).getString());
+        importSelectedFile(selected, imported -> {
+            sourceBank.set(slot, imported.hash(), imported.width(), imported.height());
+            status = Component.translatable("gui.mirage_projector.image.bank.imported", slot + 1, imported.width(), imported.height());
+            refreshLabels();
+        });
+    }
+
     private void openFilePicker(Face face) {
         status = Component.translatable("gui.mirage_projector.status.selecting");
-        Path selected = chooseImageFile(face);
+        String pickerKey;
+        if (isPrism()) {
+            pickerKey = "gui.mirage_projector.image.picker." + face.serializedName;
+        } else {
+            pickerKey = face == Face.NORTH ? "gui.mirage_projector.image.picker.front" : "gui.mirage_projector.image.picker.back";
+        }
+        Path selected = chooseImageFile(Component.translatable(pickerKey).getString());
+        importSelectedFile(selected, imported -> {
+            switch (face) {
+                case NORTH -> { frontId = imported.hash(); frontWidth = imported.width(); frontHeight = imported.height(); }
+                case EAST -> { eastId = imported.hash(); eastWidth = imported.width(); eastHeight = imported.height(); }
+                case SOUTH -> { backId = imported.hash(); backWidth = imported.width(); backHeight = imported.height(); backFaceMode = ProjectionSettings.BackFaceMode.INDEPENDENT; }
+                case WEST -> { westId = imported.hash(); westWidth = imported.width(); westHeight = imported.height(); }
+            }
+            status = Component.translatable("gui.mirage_projector.image.imported",
+                    faceLabel(isPrism() ? face.serializedName : face == Face.NORTH ? "front" : "back"), imported.width(), imported.height());
+            refreshLabels();
+        });
+    }
+
+    private void importSelectedFile(Path selected, java.util.function.Consumer<ImageImporter.ImportedImage> onSuccess) {
         if (selected == null) {
             status = Component.translatable("gui.mirage_projector.status.cancelled");
             return;
@@ -406,56 +599,16 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         }).whenComplete((imported, throwable) -> Minecraft.getInstance().execute(() -> {
             if (throwable != null) {
                 Throwable cause = throwable.getCause() == null ? throwable : throwable.getCause();
-                status = Component.translatable(
-                        "gui.mirage_projector.image.import_failed",
-                        cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage()
-                );
+                status = Component.translatable("gui.mirage_projector.image.import_failed",
+                        cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage());
                 return;
             }
             ProjectionTextureCache.invalidate(imported.hash());
-            switch (face) {
-                case NORTH -> {
-                    frontId = imported.hash();
-                    frontWidth = imported.width();
-                    frontHeight = imported.height();
-                }
-                case EAST -> {
-                    eastId = imported.hash();
-                    eastWidth = imported.width();
-                    eastHeight = imported.height();
-                }
-                case SOUTH -> {
-                    backId = imported.hash();
-                    backWidth = imported.width();
-                    backHeight = imported.height();
-                    backFaceMode = ProjectionSettings.BackFaceMode.INDEPENDENT;
-                }
-                case WEST -> {
-                    westId = imported.hash();
-                    westWidth = imported.width();
-                    westHeight = imported.height();
-                }
-            }
-            status = Component.translatable(
-                    "gui.mirage_projector.image.imported",
-                    faceLabel(isPrism() ? face.serializedName : face == Face.NORTH ? "front" : "back"),
-                    imported.width(),
-                    imported.height()
-            );
-            refreshLabels();
+            onSuccess.accept(imported);
         }));
     }
 
-    private Path chooseImageFile(Face face) {
-        String pickerKey;
-        if (isPrism()) {
-            pickerKey = "gui.mirage_projector.image.picker." + face.serializedName;
-        } else {
-            pickerKey = face == Face.NORTH
-                    ? "gui.mirage_projector.image.picker.front"
-                    : "gui.mirage_projector.image.picker.back";
-        }
-        String title = Component.translatable(pickerKey).getString();
+    private Path chooseImageFile(String title) {
         String startPath = System.getProperty("user.home", "");
         try (MemoryStack stack = MemoryStack.stackPush()) {
             PointerBuffer filters = stack.mallocPointer(4);
@@ -464,13 +617,7 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
             filters.put(stack.UTF8("*.jpeg"));
             filters.put(stack.UTF8("*.webp"));
             filters.flip();
-            String path = TinyFileDialogs.tinyfd_openFileDialog(
-                    title,
-                    startPath,
-                    filters,
-                    "PNG / JPG / JPEG / WebP",
-                    false
-            );
+            String path = TinyFileDialogs.tinyfd_openFileDialog(title, startPath, filters, "PNG / JPG / JPEG / WebP", false);
             return path == null || path.isBlank() ? null : Path.of(path);
         } catch (Throwable throwable) {
             MirageProjector.LOGGER.error("Could not open the native image picker", throwable);
@@ -479,15 +626,8 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     }
 
     private enum Face {
-        NORTH("north"),
-        EAST("east"),
-        SOUTH("south"),
-        WEST("west");
-
+        NORTH("north"), EAST("east"), SOUTH("south"), WEST("west");
         private final String serializedName;
-
-        Face(String serializedName) {
-            this.serializedName = serializedName;
-        }
+        Face(String serializedName) { this.serializedName = serializedName; }
     }
 }

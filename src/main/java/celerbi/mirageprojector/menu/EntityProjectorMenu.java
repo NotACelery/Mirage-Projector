@@ -26,14 +26,14 @@ import org.jetbrains.annotations.Nullable;
  * data and are drawn/edited by explicit GUI actions.</p>
  */
 public final class EntityProjectorMenu extends AbstractContainerMenu {
-    public static final int CARD_X = 176;
-    public static final int CARD_Y = 48;
-    public static final int STAGING_X = 38;
-    public static final int HUMANOID_FIRST_Y = 32;
-    public static final int ROW_STEP = 27;
-    public static final int HORSE_FIRST_Y = 72;
-    public static final int PLAYER_INV_X = 104;
-    public static final int PLAYER_INV_Y = 232;
+    public static final int CARD_X = 28;
+    public static final int CARD_Y = 59;
+    public static final int STAGING_X = 28;
+    public static final int HUMANOID_FIRST_Y = 126;
+    public static final int ROW_STEP = 22;
+    public static final int HORSE_FIRST_Y = 126;
+    public static final int PLAYER_INV_X = 204;
+    public static final int PLAYER_INV_Y = 350;
 
     public static final int CARD_SLOT_INDEX = 0;
     public static final int HUMANOID_FIRST_SLOT_INDEX = 1;
@@ -184,6 +184,13 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
         return getSlot(CARD_SLOT_INDEX).getItem();
     }
 
+    public boolean supportsGenericSittingPose() {
+        return state().activeEntity()
+                .map(EntityScanData.View::entityType)
+                .map(EntityScanData::supportsSittingPose)
+                .orElse(false);
+    }
+
     public EntityScanData.Kind effectiveKind() {
         if (projector != null && !projector.stagedEntityCard().isEmpty()) {
             return projector.stagedEntityCardKind();
@@ -223,11 +230,34 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
                 : state().horseProjected().get(channel);
     }
 
+    /**
+     * Whether the Incoming side has a distinct action left to perform. Physical
+     * staging always counts so an identical real item can still be accepted and
+     * returned immediately; duplicate virtual snapshots do not keep the left
+     * rail visually occupied after they are already Projected.
+     */
+    public boolean hasActionableIncoming(VirtualEquipmentSnapshots.Channel channel) {
+        ItemStack physical = physicalStaging(channel);
+        if (!physical.isEmpty()) {
+            return true;
+        }
+
+        VirtualEquipmentSnapshots.Snapshot incoming = incoming(channel);
+        if (incoming.stack().isEmpty()) {
+            return false;
+        }
+        VirtualEquipmentSnapshots.Snapshot projected = projected(channel);
+        return projected.stack().isEmpty()
+                || !ItemStack.matches(incoming.stack(), projected.stack());
+    }
+
     public boolean hasConflict(VirtualEquipmentSnapshots.Channel channel) {
+        if (!hasActionableIncoming(channel)) {
+            return false;
+        }
         VirtualEquipmentSnapshots.Snapshot incoming = incoming(channel);
         VirtualEquipmentSnapshots.Snapshot projected = projected(channel);
-        return !incoming.stack().isEmpty()
-                && !projected.stack().isEmpty()
+        return !projected.stack().isEmpty()
                 && !ItemStack.matches(incoming.stack(), projected.stack());
     }
 
@@ -300,6 +330,17 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
         return getSlot(HUMANOID_FIRST_SLOT_INDEX + 4).hasItem()
                 ? HUMANOID_FIRST_SLOT_INDEX + 5
                 : HUMANOID_FIRST_SLOT_INDEX + 4;
+    }
+
+
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        if (!player.level().isClientSide && projector != null) {
+            // Leaving the workspace must never leave real staging items trapped
+            // inside Mirage. Inventory overflow is dropped by the BlockEntity.
+            projector.returnPhysicalStagingTo(player);
+        }
     }
 
     @Override

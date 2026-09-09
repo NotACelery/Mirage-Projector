@@ -4,7 +4,10 @@
   "package": "celerbi.mirageprojector.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "HumanoidModelMixin"
+    "HumanoidModelMixin",
+    "HumanoidArmorLayerMixin",
+    "LivingEntityRendererMixin",
+    "ItemInHandRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

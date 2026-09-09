@@ -2,6 +2,7 @@ package celerbi.mirageprojector.network;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
+import celerbi.mirageprojector.entity.EntityProjectionState;
 import celerbi.mirageprojector.entity.EntityScanData;
 import celerbi.mirageprojector.entity.VirtualEquipmentSnapshots;
 import net.minecraft.core.BlockPos;
@@ -61,12 +62,20 @@ public record EntityWorkspaceActionPayload(
             switch (payload.action()) {
                 case APPLY -> {
                     if (payload.channel() != null) {
-                        projector.applyEntityEquipment(payload.channel(), false);
+                        EntityProjectionState.ApplyResult result = projector.applyEntityEquipment(payload.channel(), false);
+                        if (result == EntityProjectionState.ApplyResult.APPLIED
+                                || result == EntityProjectionState.ApplyResult.ALREADY_APPLIED) {
+                            projector.returnPhysicalStagingChannelTo(payload.channel(), player);
+                        }
                     }
                 }
                 case REPLACE -> {
                     if (payload.channel() != null) {
-                        projector.applyEntityEquipment(payload.channel(), true);
+                        EntityProjectionState.ApplyResult result = projector.applyEntityEquipment(payload.channel(), true);
+                        if (result == EntityProjectionState.ApplyResult.APPLIED
+                                || result == EntityProjectionState.ApplyResult.ALREADY_APPLIED) {
+                            projector.returnPhysicalStagingChannelTo(payload.channel(), player);
+                        }
                     }
                 }
                 case CLEAR_PROJECTED -> {
@@ -82,9 +91,19 @@ public record EntityWorkspaceActionPayload(
                     }
                 }
                 case CYCLE_POSE -> {
-                    if (projector.stagedEntityCard().isEmpty()
-                            || projector.stagedEntityCardKind() == EntityScanData.Kind.HUMANOID) {
+                    EntityScanData.Kind kind = projector.stagedEntityCard().isEmpty()
+                            ? EntityScanData.Kind.HUMANOID
+                            : projector.stagedEntityCardKind();
+                    if (kind == EntityScanData.Kind.HUMANOID) {
                         projector.cycleHumanoidPose();
+                    } else if (kind == EntityScanData.Kind.HORSE) {
+                        projector.cycleHorsePose();
+                    } else if (kind == EntityScanData.Kind.GENERIC
+                            && projector.entityProjectionState().activeEntity()
+                            .map(EntityScanData.View::entityType)
+                            .map(EntityScanData::supportsSittingPose)
+                            .orElse(false)) {
+                        projector.cycleGenericPose();
                     }
                 }
             }

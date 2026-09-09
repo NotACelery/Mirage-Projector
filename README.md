@@ -1,251 +1,355 @@
 # Mirage Projector
 
-**Minecraft 1.21.1 · NeoForge 21.1.244 · Java 21**  
-Versión de desarrollo actual: **0.1.0-dev.41**  
-Protocolo de red: **18**
+Mirage Projector is a NeoForge 1.21.1 mod for configurable holographic projections: images/GIFs, items, banners and frozen entity snapshots rendered from six projector chassis.
 
-Mirage Projector añade proyectores físicos capaces de mostrar imágenes, GIFs, items, banners y snapshots de entidades sin spawnear/tickear copias reales de las entidades proyectadas.
+> **Current line:** `0.1.0-dev.41` — consolidation/documentation baseline. dev.41 is intended to preserve dev.40 gameplay while defining the next material/progression roadmap. New Crying-Obsidian crystal/core/crafting systems described below are planned, not implemented yet.
 
-> `dev.41` es una oleada de consolidación. El sistema de Power dev.38, Image/GIF dev.39 y normalización Entity dev.40 siguen siendo la implementación activa. La nueva progresión de Cut Obsidian Shards, upgrades e Improved Cores está definida en `docs/CORES-AND-UPGRADES-dev41.md`, pero todavía no está implementada salvo que se indique expresamente.
+For authoritative status/order, start with:
 
-## Estado de QA
-
-- dev.40 fue ejecutada in-game.
-- El temblor de Piglin proyectado en dimensiones no piglin-safe quedó confirmado como solucionado.
-- Siguen pendientes el redesign visual del Core/Glass del chassis y una regresión completa de profundidad Entity/agua/projectors antes de considerar una release estable.
-- No marcar dev.41 como build-clean hasta ejecutar `build.bat` en Windows y hacer QA in-game.
+- `docs/DOCUMENTATION-AUTHORITY-dev41.md`
+- `docs/CURRENT-STATE-ROADMAP-dev41.md`
+- `docs/CURRENT-IMPLEMENTATION-AUDIT-dev41.md`
+- `docs/NEXT-CHAT-HANDOFF-dev41.md` — compact migration entry point
 
 ---
 
-# Proyectores actuales
+# Current implemented systems
 
-| Chassis | Uso principal | Nominal W×H | Lift nominal | Float nominal | Multiplicador Power |
-|---|---|---:|---:|---:|---:|
-| Mirage Projector | proyección compacta | 10×10 px | 32 px | 4 px | ×1.00 |
-| Mirage Display | display mediano/cuadrado | 32×32 px | 48 px | 12 px | ×1.50 |
-| Wide Mirage Projector | panoramas o 4 fuentes horizontales | 80×32 px | 64 px | 12 px | ×2.00 |
-| Tall Mirage Projector | imágenes altas o 4 fuentes verticales | 32×80 px | 96 px | 16 px | ×2.00 |
-| Mirage Field Projector | una proyección 2D masiva | 128×128 px | 144 px | 24 px | ×4.00 |
-| Mirage Prism | cuatro caras N/E/S/W | adaptativo | 96 px | 12 px | ×2.00 |
+## Platform
 
-Los valores nominales son **zonas de eficiencia**, no hard caps. Con PU suficiente se pueden superar mediante Overdrive, pagando una penalización progresiva.
+- Minecraft 1.21.1
+- NeoForge 21.1.244
+- Java 21
+- Gradle 9.2.1
+- Parchment 2024.11.17
+- Network protocol 18
 
-Todos los chassis nuevos se colocan con orientación horizontal tipo Furnace. Las proyecciones Plane respetan esa orientación. Prism conserva North/East/South/West como caras cardinales del mundo.
+## Current chassis
 
-Cuando no existe una fuente renderizable, los seis chassis muestran el mismo libro vanilla flotante como estado idle.
+| Chassis | Nominal geometry | Lift | Float | PU multiplier |
+|---|---:|---:|---:|---:|
+| Mirage Projector | 10×10 | 32 | 4 | ×1.00 |
+| Mirage Display | 32×32 | 48 | 12 | ×1.50 |
+| Wide Mirage Projector | 80×32 | 64 | 12 | ×2.00 |
+| Tall Mirage Projector | 32×80 | 96 | 16 | ×2.00 |
+| Mirage Field Projector | 128×128 | 144 | 24 | ×4.00 |
+| Mirage Prism | adaptive 48×48 baseline | 96 | 12 | ×2.00 |
 
----
+Nominal values are efficiency ranges, not hard caps. Sufficient PU can pay Overdrive.
 
-# Projection Cores / Power
+All six current blocks use horizontal placement facing and render the idle floating book when they have no renderable source.
 
-Cores estándar implementados:
+## Power
 
-| Core | Base PU | Amplificación actual |
-|---|---:|---:|
-| Glass | 32 | ×1.00 |
-| Quartz | 48 | ×1.00 |
-| Amethyst | 64 | ×1.00 |
-| Diamond | 96 | ×1.00 |
-| Netherite | 128 | ×1.00 |
+Standard Base PU:
 
-Capacidad efectiva:
+- Glass 32
+- Quartz 48
+- Amethyst 64
+- Diamond 96
+- Netherite 128
 
 ```text
-Effective PU = floor(Base Core PU × Chassis Multiplier × Core Amplification)
+Effective PU = floor(Base Core PU × Chassis multiplier × Core amplification)
 ```
 
-Scale/Lift/Float calculan su máximo dinámicamente en función de la capacidad real disponible y del resto de settings. El jugador no debería tener que arrastrar un slider a una zona inválida y tantear hacia atrás.
+Standard amplification = ×1.00.
 
-El coste actual incluye:
+Implemented Power features:
 
-- emisor/estabilidad;
-- área geométrica;
-- Lift;
-- Float;
-- complejidad de fuente;
-- features de presentación;
-- Overdrive cuadrático al superar nominal;
-- un ahorro Ghost muy pequeño, diseñado para tener sentido temático sin ser explotable.
+- dynamic Scale/Lift/Float maxima generated from actual PU budget;
+- quadratic Overdrive above chassis nominal ranges;
+- explicit load breakdown;
+- tiny Ghost efficiency rebate;
+- capacity/load UI.
 
-Contrato completo: `docs/POWER-SYSTEM-REWORK-dev38.md`.
+## Image / GIF
 
-### Próximo redesign de Core
+Static formats:
 
-El renderer actual todavía transforma el material del Core en un bloque visual pequeño (`Netherite Ingot -> Netherite Block`, etc.). Esa representación está **deprecada como diseño final**.
+- PNG
+- JPG/JPEG
+- WebP
+- BMP
 
-La definición futura es una Core Chamber de vidrio pequeña (~4×4×4 px) con el ItemStack real flotando/girando dentro. Ver `docs/CORES-AND-UPGRADES-dev41.md`.
+Animated:
 
----
+- GIF
 
-# Image / GIF Mode
+The importer detects format from file bytes, not filename extension. Renamed GIFs remain animated; unsupported Animated WebP/APNG are identified and rejected instead of silently flattening.
 
-Formatos implementados:
+Current layouts:
 
-- PNG;
-- JPG/JPEG;
-- WebP estático;
-- BMP;
-- GIF animado.
+- Mirage/Display: one continuous Plane;
+- Wide: SINGLE continuous image/GIF or four 4×1 sources;
+- Tall: SINGLE continuous image/GIF or four 1×4 sources;
+- Field: one continuous large Plane — **never the old 3×3 grid**;
+- Prism: four independent N/E/S/W faces, each static/GIF, no stacking mode.
 
-Mirage detecta el **contenido real**, no confía en la extensión. Un GIF renombrado `.png` sigue siendo GIF.
+## Item / Banner / Entity
 
-Por ahora:
+Implemented:
 
-- Animated WebP: detectado y rechazado explícitamente;
-- APNG: detectado y rechazado explícitamente;
-- no se degrada silenciosamente un formato animado no soportado al primer frame.
+- virtual Item snapshots;
+- virtual Banner cloth/pattern snapshots;
+- Entity Scan Cards and frozen render-only entities;
+- Player appearance snapshot support;
+- Humanoid armor/hands snapshots and bodyless rig;
+- Horse equipment handling;
+- cleanup of virtual equipment when entity family changes;
+- Piglin/Hoglin dimension-conversion shaking normalization.
 
-Nuevos assets usan `<sha256>.asset`; assets legacy `<sha256>.png` continúan siendo compatibles.
-
-## Wide / Tall
-
-Wide y Tall tienen dos layouts de Image:
-
-- `SINGLE`: una imagen/GIF continua, sin crop ni stretch;
-- `MULTI`: cuatro fuentes independientes.
-
-Wide MULTI = `4×1`.  
-Tall MULTI = `1×4`.
-
-Las celdas MULTI tienen el mismo tamaño relativo en ambos chassis.
-
-## Field
-
-Field muestra **una sola imagen/GIF continua**. El antiguo grid 3×3 de dev.33-dev.37 fue una interpretación incorrecta y no es comportamiento activo.
-
-## Prism
-
-Prism siempre sigue siendo un prisma de cuatro caras laterales:
-
-- North;
-- East;
-- South;
-- West.
-
-Una fuente por cara, sin stacking 4×1/1×4.
-
-Las caras Image usan nominal adaptativo según aspect ratio:
-
-- horizontal claro: 80×32;
-- vertical claro: 32×80;
-- casi cuadrado: 48×48.
-
-Detalles: `docs/GIF-ANIMATED-IMAGE-dev39.md`, `docs/IMAGE-FORMAT-IMPORT-CONTRACT-dev39.md`, `docs/WIDE-TALL-SINGLE-ASPECT-dev39.md`, `docs/PRISM-ADAPTIVE-ASPECT-dev39.md`.
+Piglin shaking was confirmed solved in-game in dev.40.
 
 ---
 
-# Item Mode
+# Current known visual/QA problems
 
-- el item real no queda almacenado como la proyección;
-- Mirage crea un snapshot virtual;
-- armor standalone se representa equipada sobre un rig invisible cuando corresponde;
-- presentation settings globales siguen aplicando sobre la proyección.
+## Core renderer
 
----
+The current installed Core visual is legacy and can disappear from certain camera angles. Raw items are temporarily represented as artificial material blocks.
 
-# Banner Mode
+Planned replacement: small universal Glass Core Chamber containing the **real installed ItemStack** floating/rotating at uniform scale.
 
-- snapshots virtuales, sin consumir el banner real;
-- Plane usa la tela/patrones del banner;
-- Prism puede usar las cuatro caras N/E/S/W;
-- el poste/travesaño vanilla no forma parte de la proyección.
+## Chassis Glass ghost layers
 
----
+Current broad thin Glass/Pane model surfaces frequently lose texture borders and appear as translucent ghost sheets.
 
-# Entity Mode
+Planned replacement: Obsidian structure + Crying-Obsidian/Shards emitter material; real Glass mainly reserved for the Core Chamber.
 
-Entity Scan reconstruye entidades **sólo para render en cliente**:
+## Render QA still owed
 
-- no se añaden al `ClientLevel` como entidades vivas;
-- no tienen AI;
-- no ejecutan `tick()` / `aiStep()`;
-- el snapshot sigue siendo válido aunque la entidad original desaparezca.
+Before stable release, deeply test:
 
-El gesto de scan actual usa Empty Scan Template y Shift + right click.
-
-Humanoides poseen canales virtuales independientes:
-
-- Head;
-- Chest;
-- Legs;
-- Feet;
-- Main Hand;
-- Off Hand.
-
-Horse usa Saddle / Body Armor. Otras entidades sólo exponen canales que realmente tengan sentido.
-
-Al cambiar a una familia de entidad incompatible, los snapshots virtuales de slots que dejan de existir se limpian para no retener memoria/estado invisible. El staging físico se devuelve/dropea de forma segura.
-
-Piglin/Hoglin reconstruidos son normalizados sólo en la copia Mirage para impedir el shake de conversión por dimensión; el usuario confirmó el fix in-game en dev.40.
+- Entity/projector depth;
+- Ghost/water ordering;
+- overlapping translucent entities;
+- eyes/glint/special RenderTypes;
+- GIF stress/multiplayer transfer;
+- Prism mixed-aspect faces.
 
 ---
 
-# Nueva progresión definida para próximas oleadas
+# Planned Crying Obsidian ecosystem
 
-`docs/CORES-AND-UPGRADES-dev41.md` es la autoridad de diseño para:
+Authority: `docs/CRYING-OBSIDIAN-ECOSYSTEM-dev41.md`.
 
-- **Cut Obsidian Shard**;
-- 1 Crying Obsidian -> 4 shards mediante Stonecutter;
-- re-formado con 8 shards + Fire Charge/Magma Cream;
-- shard loot en Ruined Portals, Mineshafts, smith-related chests y fuentes temáticas;
-- transformación natural lenta Obsidian -> Crying Obsidian con lava + dripstone + cauldron;
-- dos estados intermedios visuales y progreso opcional Jade;
-- **Obsidian Spike** (3 shards + 2 String + 1 Stick, nueve puntas, 2 damage por hurt event);
-- eliminación del lenguaje visual de grandes paneles de Glass en los chassis;
-- receta base del Mirage Projector;
-- upgrade obligatorio Mirage Projector -> Mirage Display;
-- Display -> Wide/Tall/Prism/Field;
-- recetas de upgrade que preservan todo el estado/imports/snapshots;
-- cinco Improved Cores como bloques decorativos/instalables;
-- shells morados anidados con shell intermedio realmente rotado;
-- Improved Core = misma Base PU + amplificación (~×1.50 target);
-- interacción con Beacon beam: relay en Y+0.5, haz más ancho, efectos por material y stacking limitado;
-- Scan Codex / copia de scans diferido a 1.1.0+.
+## Crying Obsidian Shard
 
-Estas features están **diseñadas, no implementadas todavía** en dev.41.
+Final planned shared item name: **Crying Obsidian Shard**.
+
+```text
+Stonecutter:
+1 Crying Obsidian -> 4 Crying Obsidian Shards
+```
+
+```text
+8 shards + Fire Charge OR Magma Cream -> 1 Crying Obsidian
+```
+
+Small shard stacks are also planned for Ruined Portals, Mineshafts, smith-related chests and reviewed Obsidian/Crying-Obsidian loot pools.
+
+## Renewable crystal growth
+
+The old proposed normal-Obsidian dripstone/cauldron conversion is **retired**.
+
+New loop:
+
+```text
+Lava source
+Crying Obsidian
+      ↓ grows downward
+Small Bud -> Medium Bud -> Large Bud -> Mature Crying Obsidian Cluster
+```
+
+- first Small-Bud nucleation is slowest;
+- later stages grow progressively faster;
+- breaking without Silk Touch drops exactly 1/2/3/4 shards by age;
+- Silk Touch drops the actual stage;
+- Fortune does not increase shard counts initially;
+- naive automation can harvest Small for 1 shard, while patient harvest reaches 4.
+
+## Beacon-powered crystal
+
+As age increases:
+
+- crystal absorbs more of the vertical beam;
+- powered light increases;
+- residual purple refraction becomes stronger.
+
+Target visual transmission Small/Medium/Large/Mature:
+
+```text
+75% / 50% / 25% / 0% beam continues upward
+```
+
+Mature Cluster visually stops the beam while keeping Beacon gameplay active.
+
+Intended powered light with optional extended-light support:
+
+```text
+14 / 18 / 23 / 28
+```
+
+Vanilla fallback necessarily caps normal block light at 15.
+
+Mature Cluster can emit one narrow Crying-Obsidian-purple residual beam at a time:
+
+- roughly half vanilla Beacon-inner-beam width;
+- ~3–4 block maximum;
+- extends outward strongly;
+- holds at full length ~1 second;
+- retracts while fading to transparent;
+- changes pseudo-random direction after a cooldown.
+
+## Obsidian Spike
+
+Planned recipe budget:
+
+- 3 Crying Obsidian Shards;
+- 2 String;
+- 1 Stick.
+
+Planned block:
+
+- approximately half-block high;
+- nine sharp tips;
+- thinner/taller central tip;
+- bush-like movement hindrance;
+- 2.0 damage points (1 heart) per successful hurt event.
 
 ---
 
-# Problemas / backlog prioritario
+# Planned projector/Core progression
 
-1. Core actual desaparece en ciertos ángulos y usa un visual de bloque artificial: reemplazar por Core Chamber + item real.
-2. Modelos actuales tienen capas amplias de Glass/Glass Pane que se leen como layers fantasma: rediseñar con Cut Obsidian + Glass sólo en Chamber.
-3. Implementar Cut Obsidian Shard / progresión de crafting / upgrades preservando estado.
-4. Improved Cores + Beacon relay después de estabilizar materiales/modelos.
-5. QA de profundidad Entity vs agua/projectors y RenderTypes especiales/modded.
-6. QA de rendimiento/transferencia de muchos GIFs.
-7. Futuro 1.1.0: Mirage Scan Codex + estación de copia a tarjetas.
+Authority: `docs/CORES-AND-UPGRADES-dev41.md`.
+
+## Chassis progression
+
+```text
+Mirage Projector
+      ↓
+Mirage Display
+   ├─ Wide
+   ├─ Tall
+   ├─ Prism
+   └─ Field
+```
+
+Only the base Mirage is crafted from raw materials. Advanced chassis consume the previous projector and must preserve all imported/state data.
+
+Base Mirage recipe:
+
+```text
+S S S
+S G S
+O O O
+```
+
+`S = Crying Obsidian Shard`, `G = Glass Block`, `O = Obsidian`.
+
+Mirage -> Display:
+
+```text
+Q S A
+S M S
+A S Q
+```
+
+Display -> Prism:
+
+```text
+S G S
+G D G
+S G S
+```
+
+Wide/Tall must have equal total costs; Field must be substantially more expensive and use whole Crying Obsidian.
+
+## State preservation
+
+Projector upgrades must preserve the complete canonical persistent state, including Core, assets/GIFs, cards, Entity/Humanoid/Horse snapshots, Item/Banner snapshots and all Projection Settings.
+
+Do not implement upgrades as ordinary shaped recipes that lose components/NBT.
 
 ---
 
-# Compilar
+# Planned Improved Cores
 
-Requisitos:
+Exactly five:
+
+- Improved Glass
+- Improved Quartz
+- Improved Amethyst
+- Improved Diamond
+- Improved Netherite
+
+Power design:
+
+- same Base PU as standard material;
+- target amplification ~×1.50;
+- still uses normal chassis multiplier/PU/Overdrive.
+
+Visual design:
+
+- placeable decorative block;
+- three nested dark-purple transparent shells;
+- middle shell **genuinely rotated geometrically**;
+- corresponding material floating at center.
+
+Beacon identities:
+
+| Core | Effect |
+|---|---|
+| Glass | Diffusion — strongest widening |
+| Quartz | Radiance — brighter beam |
+| Amethyst | Resonance — faster rotation |
+| Diamond | Focus — more intense/defined inner beam |
+| Netherite | Inversion — reversed rotation |
+
+Universal relay:
+
+- incoming beam reaches Core mid-plane `Y+0.5`;
+- outgoing beam begins there and becomes wider;
+- stained-glass hue is preserved;
+- max four effective Improved Cores;
+- target final width cap ~2× vanilla.
+
+---
+
+# Development order after dev.41
+
+Short version:
+
+1. **dev.42:** Crying Obsidian Shard + new chassis visual language + Core Chamber/core-culling fix.
+2. **dev.43:** renewable Crying crystal growth + shard loot + Beacon light/refraction/residual beam.
+3. **dev.44:** Obsidian Spike.
+4. **dev.45:** canonical state-preserving projector upgrade recipes/progression.
+5. **dev.46:** five Improved Cores + projector amplification.
+6. **dev.47:** Improved-Core Beacon relay/effects.
+7. feature/render freeze QA.
+8. controlled code refactor.
+9. 0.1.0 release preparation.
+10. **1.1.0+:** Mirage Scan Codex + scan-copy station.
+
+Full roadmap: `docs/CURRENT-STATE-ROADMAP-dev41.md`.
+
+---
+
+# Explicit non-requirements / brainstorms
+
+- Glowstone currently has **no assigned role**; do not replace Glass Core or recipes without a new design decision.
+- Future unrefined Crying Crystal/Cluster Core is only a backlog concept; it may add intentional purple refractive distortion to projections.
+- Animated WebP/APNG playback remains future work.
+- true RGB purple world lighting is not a vanilla feature and would require compatibility with a colored-light/shader system.
+
+---
+
+# Build
+
+Requirements:
 
 - Java 21;
-- Windows: ejecutar `build.bat` desde la raíz del proyecto.
+- Windows: run `build.bat` from project root.
 
-El proyecto usa:
-
-- Minecraft 1.21.1;
-- NeoForge 21.1.244;
-- Gradle 9.2.1;
-- Parchment 2024.11.17.
-
-No incluir `.gradle`, `.gradle-dist`, `build`, `run` u otros caches en snapshots source.
-
----
-
-# Documentación
-
-Para saber qué documento manda cuando hay notas históricas contradictorias, leer primero:
-
-`docs/DOCUMENTATION-AUTHORITY-dev41.md`
-
-Inventario exacto de implementación actual:
-
-`docs/CURRENT-IMPLEMENTATION-AUDIT-dev41.md`
-
-Historial cronológico:
-
-`CHANGELOG.md`
+Source snapshots must not include `.gradle`, `.gradle-dist`, `build`, `run` or IDE/download caches.

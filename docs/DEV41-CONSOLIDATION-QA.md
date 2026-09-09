@@ -61,4 +61,16 @@ Do not fail the dev.41 consolidation build for these already-known issues; they 
 - current broad Glass/Glass-Pane chassis layers can appear as translucent ghost sheets;
 - installed Core still renders via legacy material-block substitution.
 
-These are superseded by the planned Core Chamber / Cut-Obsidian chassis redesign in `CORES-AND-UPGRADES-dev41.md`.
+These are superseded by the planned Core Chamber / Crying-Obsidian-Shard chassis redesign in `CORES-AND-UPGRADES-dev41.md`.
+
+
+## Documentation-closure checks
+
+The final dev.41 documentation pass intentionally changes no source behavior. Verify before handoff:
+
+- `CRYING-OBSIDIAN-ECOSYSTEM-dev41.md` exists and marks the normal-Obsidian dripstone/cauldron conversion as retired;
+- `CORES-AND-UPGRADES-dev41.md` uses `Crying Obsidian Shard` terminology;
+- `CURRENT-STATE-ROADMAP-dev41.md` and `NEXT-CHAT-HANDOFF-dev41.md` agree on dev.42-dev.47 ordering;
+- `DOCUMENTATION-AUTHORITY-dev41.md` lists the new focused contracts;
+- current README/DEVELOPMENT no longer present the retired conversion as future implementation;
+- Glowstone is recorded as brainstorm only, not a requirement.

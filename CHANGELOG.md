@@ -1,8 +1,22 @@
 # Mirage Projector 0.1.0-dev.41
 
+## Final design-closure addendum (same dev.41 line)
+
+- Keeps the version at dev.41 while closing the material/progression roadmap before the next implementation chat. No new gameplay code or protocol changes are introduced by this addendum.
+- Adds `docs/CRYING-OBSIDIAN-ECOSYSTEM-dev41.md` as the authoritative replacement for the earlier normal-Obsidian dripstone/cauldron conversion plan. Renewable Crying Obsidian now starts from a genuine Crying Obsidian source with Lava above it and grows downward through Small/Medium/Large/Mature crystal stages.
+- Renames the planned shared material from **Cut Obsidian Shard** to **Crying Obsidian Shard**, because shards can now come from Stonecutting or natural crystal harvest. Stonecutter remains `1 Crying Obsidian -> 4 shards`; `8 shards + Fire Charge` or `8 shards + Magma Cream -> 1 Crying Obsidian` remains the re-form loop.
+- Freezes no-Silk crystal drops at 1/2/3/4 shards by age, Silk Touch stage recovery, no initial Fortune bonus, slowest first nucleation and progressively faster later growth.
+- Defines age-dependent Beacon absorption: approximate visual continuation 75/50/25/0% from Small to Mature, while Beacon gameplay remains active. Mature Cluster visually terminates the vertical beam.
+- Defines powered crystal target light curve 14/18/23/28 when an optional extended-light provider exists, with vanilla-compatible fallback capped at 15. Purple world-light tint is not guaranteed without colored-light integration.
+- Defines residual escape/refraction beams: Crying-Obsidian purple, about half Beacon-inner-beam width, one at a time, mature target 3-4 blocks, breakthrough/extension -> ~1 s full-length hold -> simultaneous retraction/fade, collision-limited and pseudo-random direction.
+- Adds `docs/CURRENT-STATE-ROADMAP-dev41.md` as the next-chat handoff and implementation-order authority.
+- Rewrites `CORES-AND-UPGRADES-dev41.md`, README, DEVELOPMENT, documentation authority and current audit to remove the retired Obsidian-conversion/Jade-intermediate plan and to reference the new crystal ecosystem.
+- Records Glowstone only as an uncommitted brainstorm with **no current role**; future chats must not infer a Core/recipe replacement from it.
+- Preserves the optional future Unrefined Crying Crystal Core concept as backlog only: intentionally distorted/refracted projection signature, stats/recipe TBD after the standard/Improved Core pipeline is stable.
+
 ## Consolidation / documentation authority
 
-- Adds `docs/CORES-AND-UPGRADES-dev41.md` as the authoritative planned progression contract for Cut Obsidian Shards, natural Crying Obsidian conversion, Obsidian Spike, chassis upgrade crafting, Improved Cores, Beacon relay behavior and the deferred 1.1.0 Scan Codex.
+- Adds the dev.41 progression documentation set; its final authority is split between `CRYING-OBSIDIAN-ECOSYSTEM-dev41.md`, `CORES-AND-UPGRADES-dev41.md` and `CURRENT-STATE-ROADMAP-dev41.md`.
 - Adds `docs/DOCUMENTATION-AUTHORITY-dev41.md` so historical dev notes cannot silently override current contracts.
 - Adds `docs/CURRENT-IMPLEMENTATION-AUDIT-dev41.md`, `docs/CODE-QUALITY-AUDIT-dev41.md` and `docs/DEV41-CONSOLIDATION-QA.md`.
 - Rewrites README and DEVELOPMENT as current-state documents instead of embedding full duplicate histories; chronology remains in CHANGELOG and historical focused docs.
@@ -18,19 +32,9 @@
 - Renames the temporary Core material-block visual helper to `legacyBlockVisualStack()` and the old per-chassis Core sizing accessors to `legacyCore...`; the agreed universal Core Chamber + real ItemStack renderer supersedes both as final design.
 - Centralizes network protocol `18` as `MirageProjector.NETWORK_PROTOCOL`; payload shape/protocol is otherwise unchanged.
 
-## Newly frozen progression design (not implemented yet)
+## Early dev.41 progression draft — superseded within dev.41
 
-- `1 Crying Obsidian -> 4 Cut Obsidian Shards` via Stonecutter.
-- `8 shards + Fire Charge` or `8 shards + Magma Cream` may re-form one Crying Obsidian.
-- Shards are planned as small rare loot in Ruined Portals, Mineshaft chest minecarts, smith-related village chests and other reviewed Obsidian/Crying-Obsidian structure pools.
-- Natural Obsidian -> Crying Obsidian conversion uses lava source above, Obsidian target, downward Pointed Dripstone and Cauldron below; two non-obtainable intermediate visual states; full process targets roughly twice vanilla lava-cauldron time; breaking intermediates returns normal Obsidian; optional Jade progress presents both intermediates as Obsidian.
-- Obsidian Spike: 3 shards + 2 String + 1 Stick, half-block-ish cluster, 9 tips, 2.0 damage per successful bush-like hurt event plus movement hindrance.
-- Broad Glass/Glass-Pane chassis layers are deprecated as final art; Cut-Obsidian emitter material replaces them and actual Glass is reserved for the small Core Chamber.
-- Craft progression becomes Mirage Projector -> Mirage Display -> Wide/Tall/Prism/Field, with state-preserving custom upgrade recipes.
-- Base Mirage recipe target: `SSS / SGS / OOO`; Display upgrade: `QSA / SMS / ASQ`; Prism upgrade from Display: `SGS / GDG / SGS`.
-- Five Improved Cores (Glass/Quartz/Amethyst/Diamond/Netherite) remain same-base-PU cores with amplification target around x1.50, double as decorative nested-shell blocks, and gain material-specific Beacon-beam relay effects.
-- Improved Core block art requires three nested dark-purple shells with the middle shell genuinely rotated.
-- Beacon relay begins at block mid-plane (`Y+0.5`), preserves stained-glass color, widens the outgoing beam, combines material effects, caps at four effective cores and approximately 2x vanilla width.
+The first dev.41 planning draft still used `Cut Obsidian Shard` terminology and a normal-Obsidian dripstone/cauldron conversion. Those definitions were replaced before dev.41 documentation closure. The final same-version design is recorded in the **Final design-closure addendum** above and the current authoritative dev.41 docs.
 
 ## Status
 

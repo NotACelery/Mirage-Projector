@@ -1,86 +1,87 @@
 # Mirage Projector — Development Guide (dev.41)
 
-## 1. Estado de la línea actual
+## 1. Baseline
 
-- Minecraft: **1.21.1**
-- NeoForge: **21.1.244**
-- Java: **21**
-- Gradle: **9.2.1**
-- Parchment: **2024.11.17**
-- Mod version: **0.1.0-dev.41**
-- Network protocol: **18** (`MirageProjector.NETWORK_PROTOCOL`)
+- Minecraft **1.21.1**
+- NeoForge **21.1.244**
+- Java **21**
+- Gradle **9.2.1**
+- Parchment **2024.11.17**
+- Mod version **0.1.0-dev.41**
+- Network protocol **18** (`MirageProjector.NETWORK_PROTOCOL`)
 
-`dev.41` es una pasada de consolidación/deprecación. No cambia intencionalmente Power, Image/GIF, Entity persistence ni payloads respecto de dev.40.
+`dev.41` remains the consolidation/documentation baseline. Do not bump to dev.42 until actual next-wave code/resources are implemented.
 
-User QA confirmado antes de esta pasada:
+Current QA facts:
 
-- dev.40 corre in-game;
-- Piglin shaking queda solucionado;
-- Core físico actual tiene desaparición angle-dependent;
-- superficies grandes de Glass/Glass Pane de chassis no funcionan visualmente como arte final.
+- dev.40 ran in-game;
+- Piglin shaking fix is confirmed;
+- current Core visual has camera-angle disappearance;
+- broad chassis Glass layers are visually unacceptable ghost sheets.
 
-Autoridad documental: `docs/DOCUMENTATION-AUTHORITY-dev41.md`.
+Start any recovery/new chat with:
+
+1. `docs/DOCUMENTATION-AUTHORITY-dev41.md`
+2. `docs/CURRENT-STATE-ROADMAP-dev41.md`
+3. `docs/CURRENT-IMPLEMENTATION-AUDIT-dev41.md`
 
 ---
 
-# 2. Arquitectura actual
+# 2. Implemented chassis/Power invariants
 
-## 2.1 Chassis
+Active `ProjectionChassisProfile` values:
 
-`ProjectionChassisProfile` contiene **sólo seis chassis implementados**:
+- COMPACT
+- DISPLAY
+- WIDE
+- TALL
+- FIELD
+- PRISM
 
-- COMPACT;
-- DISPLAY;
-- WIDE;
-- TALL;
-- FIELD;
-- PRISM.
+Do not add placeholder enum values without real registered gameplay blocks and compatibility review.
 
-No introducir placeholders futuros en el enum. Los ordinals se usan en el menú Image; agregar un chassis requiere bloque real, UI/render contract y revisión de protocolo/compatibilidad.
+Nominal values:
 
-Nominales actuales:
-
-| Chassis | W×H | Lift | Float | Power |
+| Chassis | W×H | Lift | Float | Power multiplier |
 |---|---:|---:|---:|---:|
 | Compact | 10×10 | 32 | 4 | ×1.00 |
 | Display | 32×32 | 48 | 12 | ×1.50 |
 | Wide | 80×32 | 64 | 12 | ×2.00 |
 | Tall | 32×80 | 96 | 16 | ×2.00 |
 | Field | 128×128 | 144 | 24 | ×4.00 |
-| Prism | 48×48 baseline/adaptive faces | 96 | 12 | ×2.00 |
+| Prism | adaptive 48×48 baseline | 96 | 12 | ×2.00 |
 
-Son targets nominales, no hard caps.
+Nominals are efficiency targets, not hard caps.
 
-## 2.2 Facing
+Standard Core Base PU:
 
-`MirageProjectorBlock.FACING` usa horizontal placement tipo Furnace.
-
-- Plane orientation sigue FACING;
-- Wide/Tall voxel shapes rotan cuando corresponde;
-- Prism Image/Banner N/E/S/W siguen siendo cardinales del mundo.
-
-## 2.3 Core / Power
-
-`ProjectionCoreProfile` estándar:
-
-- Glass 32;
-- Quartz 48;
-- Amethyst 64;
-- Diamond 96;
-- Netherite 128;
-- amplification ×1.00.
-
-`ProjectionPower` conserva dev.38:
+- Glass 32
+- Quartz 48
+- Amethyst 64
+- Diamond 96
+- Netherite 128
 
 ```text
 capacity = floor(basePU × chassisMultiplier × coreAmplification)
 ```
 
-Los slider maxima son PU-aware. Overdrive aplica ratio² por componente excedido. Ghost rebate permanece pequeño.
+Standard amplification = ×1.00. dev.38 Overdrive/PU/Ghost behavior remains authoritative.
 
-`legacyBlockVisualStack()` es **temporal**. La siguiente implementación visual debe usar Core Chamber + ItemStack real según `CORES-AND-UPGRADES-dev41.md`.
+---
 
-## 2.4 Image source storage
+# 3. Facing
+
+`MirageProjectorBlock.FACING` is horizontal Furnace-like placement.
+
+- Plane projections follow FACING;
+- Wide/Tall shapes rotate where appropriate;
+- Prism N/E/S/W Image/Banner face semantics remain world-cardinal.
+
+Do not regress blocks to static orientation.
+
+---
+
+# 4. Image/GIF invariants
 
 `ImageSourceBank`:
 
@@ -89,112 +90,190 @@ ACTIVE_MULTI_SLOTS = 4
 PERSISTED_COMPAT_SLOTS = 9
 ```
 
-- slots 0-3: Wide/Tall MULTI activo;
-- slots 4-8: sólo migración dev.33-dev.37;
-- Field jamás consume el bank como grid activo.
+- slots 0–3 = active Wide/Tall MULTI;
+- 4–8 = dev.33–37 compatibility only;
+- Field never uses the bank as an active grid.
 
-No reducir el wire/NBT de 9 slots sin un plan de migración/protocolo.
+Supported import:
 
-## 2.5 Image/GIF
+- PNG/JPEG/WebP/BMP static;
+- GIF animated;
+- Animated WebP/APNG detected/rejected explicitly.
 
-Content sniffing identifica PNG/JPEG/WebP/BMP/GIF.
+Decoder selection is based on content, never extension.
 
-- static -> normalizado a PNG asset;
-- GIF -> bytes animados preservados/decode bounded;
-- Animated WebP/APNG -> reject explícito;
-- extensión nunca elige decoder.
+`ProjectionImageSizing` remains shared authority for Wide/Tall SINGLE renderer + PU dimensions.
 
-Nuevos assets: `<sha256>.asset`; fallback legacy `<sha256>.png`.
-
-Wide/Tall SINGLE dimensions: `ProjectionImageSizing` es la única autoridad compartida por renderer y Power.
-
-Prism: cuatro caras cardinales, adaptative aspect por cara, no stacking.
-
-## 2.6 Entity
-
-Mirage Entity clones:
-
-- render-only client entities;
-- no spawn/AI/tick;
-- scan snapshot independiente de entidad original;
-- equipment virtual separado de staging físico;
-- changing entity family purga snapshots virtuales incompatibles;
-- Piglin/Hoglin projection clones son inmunes a zombification sólo para neutralizar render shaking de dimensión.
-
-No meter excepciones de dimensión directamente en renderer; normalización común vive en `EntityProjectionClientEntityFactory`.
+Prism remains four independent cardinal faces, adaptive aspect, no stacking.
 
 ---
 
-# 3. Render order / depth invariants
+# 5. Entity invariants
 
-Entity projections usan pasada diferida propia. Mantener estas reglas:
+Projection entities:
 
-- no llamar `endBatch()` sobre `minecraft.renderBuffers().bufferSource()` global desde Mirage;
-- el buffer diferido Entity es privado;
-- Ghost necesita depth-test pero no debe reintroducir depth-write que corte agua/translucent geometry;
-- Image/Banner/Item no deben sufrir side effects de flush Entity.
+- are client render-only;
+- are never spawned into world entity lists;
+- do not run AI/tick;
+- use frozen scan state;
+- keep virtual equipment separate from physical staging;
+- purge incompatible virtual slot groups when entity family changes;
+- normalize temporary Piglin/Hoglin zombification state in `EntityProjectionClientEntityFactory` only.
 
-Antes de tocar este pipeline, conservar snapshot source y repetir QA Entity/projectors/water.
-
----
-
-# 4. GUI invariants
-
-- Main projector screen = presentation global + Core/Power.
-- Workspaces = contenido de cada SourceMode.
-- Preview renderers no dibujan labels/layout de la Screen.
-- Power tooltip detallado sólo debe activarse desde su hotspot `?`, no desde toda la sección.
-- Core slot debe tener columna reservada y barra used/capacity visible.
-- No volver a añadir texto sin reservar su rectángulo; UI collision ya ha regresado varias veces.
+Do not reintroduce dimension hacks in individual renderers.
 
 ---
 
-# 5. Persistencia / migrations
+# 6. Render-order/depth invariants
 
-No eliminar código aparentemente antiguo sin identificar la versión que recupera.
+- Entity projections use the dedicated deferred Mirage pass/buffer;
+- never call `endBatch()` on Minecraft's global `bufferSource()` from Mirage Entity flushing;
+- Ghost requires depth test but must not reintroduce depth write that cuts water/translucent geometry;
+- Image/Banner/Item must remain isolated from Entity flush side effects.
 
-Compatibilidad deliberada actual:
-
-- 9-slot Image bank para dev.33-dev.37;
-- legacy `.png` assets pre-dev.39;
-- pre-Core Compact Glass migration;
-- Entity scan versions y compatibility recovery;
-- old item-projection return migration.
-
-Cualquier limpieza de NBT debe documentar exactamente qué worlds/cards deja de soportar.
+Any render-pipeline edit requires a source snapshot and explicit Entity/projector/water regression QA.
 
 ---
 
-# 6. Nueva progresión material (PLANNED)
+# 7. GUI invariants
 
-Autoridad completa: `docs/CORES-AND-UPGRADES-dev41.md`.
-
-Resumen:
-
-- Cut Obsidian Shard: 4 por Crying Obsidian en Stonecutter;
-- 8 shards + Fire Charge o Magma Cream -> Crying Obsidian;
-- shards en loot temático;
-- proceso natural Obsidian -> Crying Obsidian con lava/dripstone/cauldron, dos estados intermedios y optional Jade progress;
-- Obsidian Spike;
-- chassis visual sin broad Glass layers;
-- universal Core Chamber;
-- sólo Mirage Projector se craftea desde materias primas;
-- Mirage -> Display -> Wide/Tall/Prism/Field;
-- custom upgrade recipe debe copiar estado completo;
-- cinco Improved Cores, same base PU + amplification;
-- Improved Core blocks con tres shells y shell medio realmente rotado;
-- Beacon optical relay/stacking;
-- Scan Codex queda 1.1.0+.
-
-No implementar partial recipes que rompan la futura transferencia de datos. Primero crear infraestructura de upgrade state-copy.
+- main projector screen owns global presentation + Core/Power;
+- Workspaces own SourceMode-specific content;
+- Preview renderers do not draw Screen labels/layout;
+- Power detailed tooltip opens only from its dedicated `?` hotspot;
+- reserve a physical Core-slot column;
+- capacity/load bar remains visible;
+- never add labels without reserving their rectangle — GUI collision has regressed repeatedly.
 
 ---
 
-# 7. Código / mantenimiento
+# 8. Compatibility/migration invariants
+
+Do not delete old-looking code before identifying the migration it protects.
+
+Deliberate compatibility includes:
+
+- 9-slot persisted Image bank for dev.33–37;
+- legacy `.png` asset files pre-dev.39;
+- older Entity scan versions;
+- old item/equipment recovery paths;
+- historical pre-Core migration as applicable.
+
+NBT/wire cleanup must state exactly which old worlds/cards/assets it stops supporting.
+
+---
+
+# 9. Planned Crying Obsidian ecosystem
+
+Authority: `docs/CRYING-OBSIDIAN-ECOSYSTEM-dev41.md`.
+
+Important current contract:
+
+- final shared item name is `Crying Obsidian Shard`, not `Cut Obsidian Shard`;
+- Stonecutter: 1 Crying Obsidian -> 4 shards;
+- 8 shards + Fire Charge or Magma Cream -> Crying Obsidian;
+- renewable growth comes from Lava directly above Crying Obsidian, growing downward through Small/Medium/Large/Mature crystal stages;
+- **do not implement** the retired normal-Obsidian + Pointed-Dripstone + Cauldron conversion/intermediate blocks;
+- no-Silk drops 1/2/3/4 shards by age; Silk obtains stage; no Fortune bonus initially;
+- larger powered crystals absorb more Beacon beam and emit more light;
+- Mature visually blocks 100% of the vertical beam while Beacon gameplay remains active;
+- mature target residual beam ~3–4 blocks, ~half Beacon inner-beam width, Crying-Obsidian-purple, extend -> hold -> retract/fade;
+- Obsidian Spike remains 3 shards + 2 String + 1 Stick, 9 tips, 2.0 damage/hurt event.
+
+Optional >15 lighting must be isolated behind a compatibility provider. Base mod cannot assume it exists.
+
+---
+
+# 10. Planned chassis/Core progression
+
+Authority: `docs/CORES-AND-UPGRADES-dev41.md`.
+
+Material language:
+
+- Obsidian = frame;
+- Crying Obsidian/Shards = emitter/advanced optical material;
+- Glass = primarily Core Chamber;
+- Core material = energy source.
+
+Broad Glass/Pane chassis layers are deprecated.
+
+Core Chamber target:
+
+- ~4×4×4 px;
+- real installed ItemStack;
+- uniform small scale;
+- slow Y rotation + tiny bob;
+- culling/bounds valid from every camera angle.
+
+Progression:
+
+```text
+Mirage -> Display -> Wide/Tall/Prism/Field
+```
+
+Projector crafting upgrades must transfer canonical persistent projector state wholesale, then normalize only chassis-specific incompatibilities.
+
+Do not create plain recipes that lose imported assets/snapshots/settings.
+
+---
+
+# 11. Planned Improved Cores
+
+Exactly five material-based Improved Cores.
+
+Projector behavior:
+
+- same Base PU;
+- target amplification ~×1.50;
+- normal chassis multiplier/PU/Overdrive still apply.
+
+Model:
+
+- three nested dark-purple shells;
+- middle shell truly rotated geometry;
+- corresponding material centered.
+
+Beacon:
+
+- Glass = Diffusion;
+- Quartz = Radiance;
+- Amethyst = Resonance;
+- Diamond = Focus;
+- Netherite = Inversion;
+- relay starts at Y+0.5;
+- keeps stained-glass hue;
+- width increases;
+- max four effective cores;
+- final width target cap ~2×.
+
+Glowstone currently has **no defined role**. Do not improvise one during implementation.
+
+---
+
+# 12. Planned implementation order
+
+Full authority: `docs/CURRENT-STATE-ROADMAP-dev41.md`.
+
+1. dev.42 — Shard + chassis visual/Core Chamber/culling fix.
+2. dev.43 — renewable crystals + loot + Beacon refraction/light/residual beams.
+3. dev.44 — Obsidian Spike.
+4. dev.45 — canonical state-preserving projector upgrade crafting.
+5. dev.46 — five Improved Cores + amplification.
+6. dev.47 — Improved-Core Beacon relay/effects.
+7. feature/render freeze QA.
+8. controlled technical refactor.
+9. 0.1.0 release preparation.
+10. 1.1.0+ Scan Codex/copy station.
+
+Every wave must produce a recoverable source snapshot even before final QA.
+
+---
+
+# 13. Code-quality/refactor policy
 
 Audit: `docs/CODE-QUALITY-AUDIT-dev41.md`.
 
-Hotspots grandes que necesitan refactor futuro con QA dedicado:
+Large hotspots should be decomposed only after feature behavior stabilizes:
 
 - `MirageProjectorRenderer`;
 - `MirageProjectorBlockEntity`;
@@ -203,44 +282,31 @@ Hotspots grandes que necesitan refactor futuro con QA dedicado:
 - `MirageProjectorScreen`;
 - `EntityProjectorScreen`.
 
-No mezclar una descomposición masiva de estas clases con el mismo snapshot que introduce Improved Cores/Beacon/chassis models.
+Do not combine a huge structural refactor with new block/Core/render mechanics.
 
-Style actual:
+Style:
 
 - 4 spaces;
+- no tabs;
 - no wildcard imports;
-- no tabs/trailing whitespace;
-- comentarios de compatibilidad explican *por qué* existe la ruta;
-- descriptors Mixin largos pueden superar line length por legibilidad/API exacta.
+- no trailing whitespace;
+- compatibility comments explain **why** a path still exists;
+- magic protocol values/constants must be centralized.
 
 ---
 
-# 8. QA actual pendiente
+# 14. Snapshot policy
 
-Antes de release estable:
+Every implementation/documentation wave must remain recoverable.
 
-1. build Windows de dev.41;
-2. confirmar que dev.41 no altera Power/Image/GIF/Entity behavior;
-3. Entity Ghost vs water/projectors;
-4. overlapping Entity Ghost;
-5. special/modded RenderTypes/glint/eyes;
-6. GIF stress + multiplayer transfer;
-7. Prism adaptive aspect mixed faces;
-8. después del redesign: Core Chamber visible desde todos los ángulos y desaparición de glass ghost layers.
-
----
-
-# 9. Snapshot policy
-
-Cada oleada debe producir source snapshot recuperable aunque quede QA pendiente.
-
-No incluir:
+Do not include:
 
 - `.gradle`;
 - `.gradle-dist`;
 - `build`;
 - `run`;
 - IDE caches;
-- downloaded distributions.
+- downloaded distributions;
+- generated class files.
 
-Priorizar raíz, `src`, `docs`, `gradle/wrapper` metadata necesaria.
+Keep root build metadata, `src`, `docs`, `gradle/wrapper` metadata and required tooling/scripts.

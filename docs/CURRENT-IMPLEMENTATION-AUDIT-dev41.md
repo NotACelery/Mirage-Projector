@@ -2,74 +2,77 @@
 
 ## Status
 
-`dev.41` is a **consolidation / documentation / code-hygiene source candidate** built from dev.40.
+`dev.41` is a **consolidation/documentation/code-hygiene source candidate** built from dev.40.
 
-Confirmed from user QA before this audit:
+Confirmed by user QA before/following this audit:
 
-- dev.40 was executed in-game;
-- the Piglin `isShaking`/zombification visual jitter fix works;
-- the current physical Core visual can disappear from certain camera angles;
-- the broad Glass/Glass-Pane surfaces in current chassis models read as translucent ghost layers and are not acceptable final art.
+- dev.40 executed in-game;
+- Piglin `isShaking` / dimension-zombification jitter is solved;
+- current physical Core visual can disappear from certain camera angles;
+- broad Glass/Glass-Pane chassis surfaces read as translucent ghost layers and are not acceptable final art.
 
-Network protocol remains **18**. dev.41 intentionally does not change packet/NBT semantics.
-
-## dev.41 changes actually present in source
-
-- version advanced to `0.1.0-dev.41`;
-- network protocol token centralized as `MirageProjector.NETWORK_PROTOCOL` instead of a magic literal in `ModNetworking`;
-- unused future placeholder chassis `EFFIGY` and `COLOSSAL` removed from the active `ProjectionChassisProfile` enum; only the six registered gameplay chassis remain;
-- `ImageSourceBank` now names the distinction explicitly:
-  - `ACTIVE_MULTI_SLOTS = 4` for real Wide/Tall gameplay;
-  - `PERSISTED_COMPAT_SLOTS = 9` only for dev.33-dev.37 save/wire migration;
-- the temporary raw-Core-to-material-block renderer method is renamed `legacyBlockVisualStack()` so new code does not mistake it for final design;
-- documentation authority and future progression are consolidated in:
-  - `DOCUMENTATION-AUTHORITY-dev41.md`;
-  - `CORES-AND-UPGRADES-dev41.md`;
-  - `CODE-QUALITY-AUDIT-dev41.md`.
-
-No PU formula, Image/GIF behavior, Entity snapshot behavior, SourceMode, asset transport, render-order stage or network payload is intentionally changed by dev.41.
+Network protocol remains **18**. dev.41 intentionally does not change packet/NBT semantics or core gameplay systems relative to dev.40.
 
 ---
 
-# Implemented authoritative systems
+# 1. dev.41 source changes actually present
 
-## Platform / network
+- version advanced to `0.1.0-dev.41`;
+- protocol token centralized as `MirageProjector.NETWORK_PROTOCOL`;
+- unused EFFIGY/COLOSSAL `ProjectionChassisProfile` placeholders removed; only six registered gameplay chassis remain;
+- `ImageSourceBank` terminology split into:
+  - `ACTIVE_MULTI_SLOTS = 4`;
+  - `PERSISTED_COMPAT_SLOTS = 9` for dev.33-dev.37 migration only;
+- unused `sourceCapacity` removed;
+- unused raw-English Core display name removed;
+- temporary raw-Core-to-material-block visual renamed `legacyBlockVisualStack()`;
+- old per-chassis Core visual sizes marked `legacyCore...`;
+- unused planned Improved-amplification code constant removed; future target remains documentation-only until gameplay exists;
+- documentation hierarchy, current roadmap, code audit and planned progression contracts consolidated.
+
+No PU formula, Image/GIF pipeline, Entity persistence, SourceMode, asset transport, render-order stage or network payload is intentionally changed by dev.41.
+
+---
+
+# 2. Implemented authoritative systems
+
+## Platform/network
 
 - Minecraft 1.21.1;
 - NeoForge 21.1.244;
 - Java 21;
+- Gradle 9.2.1;
+- Parchment 2024.11.17;
 - network protocol 18;
-- current image assets use `<sha256>.asset`; legacy `<sha256>.png` remains readable.
+- current assets `<sha256>.asset`, with legacy `<sha256>.png` readability.
 
-## Six current chassis
+## Six chassis
 
-Only these are active gameplay chassis:
+1. Mirage Projector / Compact
+2. Mirage Display
+3. Wide Mirage Projector
+4. Tall Mirage Projector
+5. Mirage Field Projector
+6. Mirage Prism
 
-1. Mirage Projector / Compact;
-2. Mirage Display;
-3. Wide Mirage Projector;
-4. Tall Mirage Projector;
-5. Mirage Field Projector;
-6. Mirage Prism.
-
-All six use horizontal `FACING` on placement. Plane-style projection orientation follows the placed block. Prism Image/Banner faces retain world-cardinal North/East/South/West semantics.
+All use horizontal `FACING`. Plane orientation follows placement. Prism Image/Banner faces retain world-cardinal N/E/S/W semantics.
 
 Current nominal efficiency targets:
 
-| Chassis | Nominal W×H | Lift | Float | Power multiplier |
+| Chassis | W×H nominal | Lift | Float | Chassis PU multiplier |
 |---|---:|---:|---:|---:|
-| Compact | 10×10 | 32 | 4 | ×1.00 |
+| Mirage | 10×10 | 32 | 4 | ×1.00 |
 | Display | 32×32 | 48 | 12 | ×1.50 |
 | Wide | 80×32 | 64 | 12 | ×2.00 |
 | Tall | 32×80 | 96 | 16 | ×2.00 |
 | Field | 128×128 | 144 | 24 | ×4.00 |
-| Prism | adaptive face envelope; baseline 48×48 | 96 | 12 | ×2.00 |
+| Prism | adaptive face baseline 48×48 | 96 | 12 | ×2.00 |
 
-These are nominal efficiency ranges, not hard gameplay caps.
+These are nominal efficiency ranges, not hard caps.
 
-## Power system
+## Power
 
-Current standard Core base PU:
+Current standard Base PU:
 
 | Core | Base PU | Amplification |
 |---|---:|---:|
@@ -79,166 +82,210 @@ Current standard Core base PU:
 | Diamond | 96 | ×1.00 |
 | Netherite | 128 | ×1.00 |
 
-Effective capacity:
+Formula:
 
 ```text
-floor(Base Core PU × Chassis multiplier × Core amplification)
+Effective PU = floor(Base Core PU × Chassis multiplier × Core amplification)
 ```
 
-Current costs remain those defined in `POWER-SYSTEM-REWORK-dev38.md`, including:
+Implemented:
 
-- emitter/stability base cost;
-- geometry cost;
-- quadratic overdrive above chassis nominal geometry/lift/float;
-- source complexity;
-- presentation features;
-- tiny Ghost rebate capped by the formula rather than functioning as a power exploit.
+- dynamic PU-aware Scale/Lift/Float maxima;
+- quadratic Overdrive above nominal geometry/Lift/Float;
+- centralized load breakdown;
+- source/presentation surcharges;
+- deliberately tiny Ghost rebate;
+- Power capacity/load UI and detailed `?` breakdown.
 
-Scale/Lift/Float controls compute PU-payable maxima dynamically.
+## Image/GIF
 
-## Image / GIF
+Implemented static formats:
 
-Implemented formats:
+- PNG;
+- JPEG/JPG;
+- WebP;
+- BMP.
 
-- PNG static;
-- JPEG/JPG static;
-- WebP static;
-- BMP static;
-- GIF animated.
+Implemented animated format:
 
-Content sniffing, not extension, selects the format. Therefore a GIF renamed `.png` is still GIF. Animated WebP and APNG are identified and explicitly rejected until playback support exists.
+- GIF.
 
-GIF limits/timing remain dev.39 authority.
+Format is sniffed from bytes, not filename. Renamed GIF remains GIF. Animated WebP/APNG are detected and rejected explicitly.
 
-### Wide / Tall
+Wide/Tall:
 
-- SINGLE: one continuous aspect-preserving source;
-- MULTI: exactly four active cells;
-  - Wide = 4×1;
-  - Tall = 1×4;
-- active cells are equivalent squares at the same global Scale;
-- Field never uses this bank as an active grid.
+- SINGLE = one continuous aspect-preserving source;
+- MULTI = exactly four active square cells, Wide 4×1 / Tall 1×4.
 
-### Field
+Field:
 
 - one continuous Plane;
-- the old dev.33 3×3 interpretation is not active behavior.
+- no active 3×3 grid.
 
-### Prism
+Prism:
 
-- four lateral faces only: N/E/S/W;
-- one image/GIF per face;
+- four lateral N/E/S/W faces;
+- one source per face;
 - no 4×1/1×4 stacking;
-- horizontal, vertical and near-square sources receive adaptive nominal face envelopes;
-- geometric overdrive is evaluated per face then summed.
+- adaptive horizontal/vertical/near-square nominal face envelope;
+- per-face geometry overdrive summed into PU.
 
-## Item / Banner / Entity
+## Item/Banner/Entity
 
-- Item snapshots are virtual copies; real input item is not stored as projected inventory;
-- Banner snapshots are virtual and render cloth/pattern content;
-- Entity scans reconstruct client-side render entities and never spawn/tick them into the level;
-- Player appearance metadata is frozen sufficiently for current vanilla skin/model-part behavior;
-- Humanoid gear snapshots may form a bodyless equipment rig after card removal;
-- changing to an incompatible entity family purges virtual slot groups that disappear from the workspace;
-- Piglin/Hoglin projection clones are normalized against dimension zombification state; user QA confirms Piglin shaking is fixed in dev.40.
+- Item projections use virtual snapshots;
+- Banner projections use virtual cloth/pattern snapshots;
+- Entity projection clones are render-only client entities and are not spawned/ticked/AI-driven;
+- Player appearance metadata is frozen for current vanilla skin/model-part behavior;
+- Humanoid six-slot virtual equipment exists and can render bodyless;
+- Horse saddle/body-armor snapshots exist;
+- switching entity family purges virtual slot groups that disappear;
+- Piglin/Hoglin temporary clones are normalized against dimension zombification; Piglin user QA is confirmed.
 
 ## Idle marker
 
-All six current chassis render the idle floating vanilla book when they have no renderable source, independent of installed Core presence.
+All six chassis show the idle floating vanilla book when no renderable source exists, independent of Core presence.
 
 ---
 
-# Current known problems / not yet stable design
+# 3. Known current implementation problems
 
-## 1. Core physical renderer
+## Core physical renderer
 
-Current implementation still substitutes raw Core items with full material-block ItemStacks and non-uniformly scales them in the BER.
+Current code still renders a legacy artificial material-block visual for raw standard Core inputs.
 
-Observed user bug:
+Observed:
 
-- active Core visual disappears from some camera angles.
+- disappears from certain camera angles;
+- misleading visual scale (`Netherite Ingot -> Netherite Block` etc.).
 
-This path is **not final design**. `CORES-AND-UPGRADES-dev41.md` replaces it conceptually with a universal ~4×4×4 Glass Core Chamber containing the real installed inventory item, floating/rotating at uniform scale.
+Final planned replacement:
 
-Do not spend large effort polishing `legacyBlockVisualStack()` unless a minimal interim culling fix is required before the chamber implementation.
+- universal ~4×4×4 Glass Core Chamber;
+- actual installed ItemStack/model;
+- uniform small scale, slow rotation and subtle bob;
+- corrected culling/bounds.
 
-## 2. Current chassis Glass layers
+Authority: `CORES-AND-UPGRADES-dev41.md`.
 
-Current six block models still contain broad thin Glass/Glass-Pane geometry. At their UV scale the visible border frequently disappears, producing angle-dependent translucent sheets/ghost layers.
+## Broad Glass chassis layers
 
-This is not a shader bug to preserve. Final art contract replaces broad Glass with Cut-Obsidian emitter material and reserves actual Glass for the small Core Chamber.
+Current block models still contain thin broad translucent Glass/Pane geometry that loses texture borders and appears as ghost sheets.
 
-## 3. Craft progression not implemented
+Final planned art uses:
 
-At dev.41 there are still no production recipes for the six projector chassis in resources. Only the Empty Scan Template recipe is present.
+- Obsidian structural base;
+- Crying-Obsidian/Shards emitter language;
+- real Glass mainly for Core Chamber;
+- more visible whole Crying Obsidian in Field.
 
-The new crafting progression in `CORES-AND-UPGRADES-dev41.md` is therefore a planned contract and does not conflict with an existing released recipe graph.
+## Remaining render QA
 
-## 4. Improved Cores not implemented
+Still explicitly regression-test before stable 0.1.x:
 
-`ProjectionCoreProfile` contains amplification architecture, but there are no Improved Core items/blocks/recipes/models yet.
-
-## 5. Crying Obsidian / shard systems not implemented
-
-Cut Obsidian Shard, natural Crying conversion intermediates, Jade provider, Obsidian Spike and shard loot injection are design-only in dev.41.
-
-## 6. Remaining render QA inherited from older builds
-
-Still worth explicitly regression-testing before a stable 0.1.x release:
-
-- Entity hologram vs physical projectors at different depths;
-- Entity Ghost vs water in front/behind;
+- Entity hologram depth vs physical projectors;
+- Ghost Entity vs water front/behind;
 - overlapping translucent Entity projections;
-- special/modded RenderTypes, eyes/glint/beams;
-- GIF stress/performance and multiplayer asset transfer;
-- Prism adaptive face PU/rendering with mixed aspects.
+- eyes/glint/beams/special/modded RenderTypes;
+- heavy GIF stress and multiplayer transfer;
+- Prism mixed-aspect/multi-face PU/rendering.
 
 ---
 
-# Removed/retired source concepts in dev.41
+# 4. Planned but not implemented in dev.41
 
-## EFFIGY / COLOSSAL enum placeholders
+## Crying Obsidian ecosystem
 
-They were not registered blocks, menus or real current chassis and existed only as provisional architecture values. Keeping them in the active enum made ordinal transport describe values players could never own.
+None of the following exist in source yet:
 
-Removed from active source. If either concept returns, introduce it with a real design and explicit network/schema plan.
+- Crying Obsidian Shard item;
+- Stonecutter/re-form recipes;
+- shard structure loot;
+- Small/Medium/Large/Mature Crying Obsidian buds/clusters;
+- renewable Lava-above-Crying-Obsidian growth;
+- Silk/no-Silk drops;
+- Beacon absorption/partial transmission;
+- powered crystal light;
+- residual purple escape beams;
+- Obsidian Spike.
 
-## Ambiguous nine-slot active Image bank
+Authority: `CRYING-OBSIDIAN-ECOSYSTEM-dev41.md`.
 
-Nine persisted slots remain for migration compatibility, but source now distinguishes them from the four active Wide/Tall slots by constant name. Slots 4-8 are not gameplay capacity.
+Important: the previous planned normal-Obsidian -> Crying-Obsidian dripstone/cauldron conversion is **retired** and should not be implemented.
 
-## Raw material block Core visual as “final” API
+## Projector crafting/upgrades
 
-The method remains temporarily because the renderer uses it, but its name/comment now explicitly identifies it as legacy visual behavior pending the Core Chamber pass.
+Current resources do not yet implement the real chassis progression.
+
+Planned graph:
+
+```text
+Mirage -> Display -> Wide/Tall/Prism/Field
+```
+
+Upgrade recipes must preserve all persistent projector state.
+
+Authority: `CORES-AND-UPGRADES-dev41.md`.
+
+## Improved Cores
+
+No Improved Core item/block/model/recipe/Beacon integration exists yet.
+
+Planned:
+
+- five material-based Improved Cores;
+- same Base PU + amplification target ~×1.50;
+- three nested shells with genuinely rotated middle shell;
+- decorative placement;
+- material-specific Beacon relay effects;
+- max four effective relays, width cap ~2×.
 
 ---
 
-# Important open design decision discovered by audit
+# 5. Explicitly retired concepts
 
-Compact currently receives a default Glass Core in its BlockEntity constructor and in a legacy migration path.
+Removed/retired from active design:
 
-The new base recipe uses a central Glass Block as the optical chamber ingredient, but the design has **not yet explicitly decided** whether a newly crafted/placed Mirage Projector should also include a free removable Glass Core.
-
-Do not silently infer this from the recipe art. Before implementing crafting progression, choose one:
-
-1. base projector starts with an empty Core socket; Glass Block is chamber only; or
-2. base projector includes a Glass Core and recipe cost intentionally covers that starter Core.
-
-Legacy worlds may still need the pre-Core migration fallback regardless of the new-craft decision.
+- EFFIGY/COLOSSAL active placeholder enum values;
+- Field active nine-image/3×3 layout;
+- nine slots as active Image capacity;
+- raw material block Core visual as final contract;
+- broad Glass sheets as final chassis art;
+- hard Core Scale/Lift/Float limits;
+- six unrelated direct chassis recipes;
+- four named Improved-Core variant families per material;
+- normal Obsidian -> Crying Obsidian via lava/dripstone/cauldron;
+- two intermediate Crying-infusion Obsidian blocks/Jade progress for that system;
+- final item name `Cut Obsidian Shard`; use `Crying Obsidian Shard` in new work.
 
 ---
 
-# Next implementation order
+# 6. Important open design decisions
 
-Use `CORES-AND-UPGRADES-dev41.md` as the next progression contract. Suggested sequence:
+These are genuinely unresolved and must not be guessed silently:
 
-1. Cut Obsidian Shard + crafting/loot foundation;
-2. natural Crying conversion + two textures + optional Jade;
-3. Obsidian Spike;
-4. chassis art/Core Chamber replacement;
-5. state-preserving upgrade recipe infrastructure and recipe graph;
-6. five Improved Core block/items + projector amplification;
-7. Beacon relay/stacking;
-8. final balance/QA.
+1. Does a newly crafted base Mirage Projector start with a free removable Glass Core or an empty socket?
+2. Final Wide/Tall shaped recipe pair (preferred equal-cost candidates exist).
+3. Final Field cost after renewable Crying Obsidian is playable.
+4. Final Improved Core recipe/material counts.
+5. Exact Improved amplification after ×1.50 testing.
+6. Optional extended-light provider/API for powered crystals above vanilla level 15.
+7. Any future Glowstone role — currently none.
 
-Future Scan Codex remains 1.1.0+.
+---
+
+# 7. Next implementation order
+
+The authoritative overall sequence is `CURRENT-STATE-ROADMAP-dev41.md`.
+
+Short form:
+
+1. dev.42: Crying Obsidian Shard + chassis visual/Core Chamber replacement;
+2. dev.43: renewable Crying crystal growth + Beacon refraction/light/residual beams + shard loot;
+3. dev.44: Obsidian Spike;
+4. dev.45: canonical state-preserving upgrade crafting + recipe graph;
+5. dev.46: five Improved Cores + projector amplification;
+6. dev.47: Improved-Core Beacon relay;
+7. deep render/feature-freeze QA;
+8. controlled refactor of oversized renderer/state/UI classes;
+9. 0.1.0 release prep;
+10. 1.1.0+: Scan Codex/copy station.

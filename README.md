@@ -2,14 +2,14 @@
 
 Mirage Projector is a NeoForge 1.21.1 mod for configurable holographic projections: images/GIFs, items, banners and frozen entity snapshots rendered from six projector chassis.
 
-> **Current line:** `0.1.0-dev.41` — consolidation/documentation baseline. dev.41 is intended to preserve dev.40 gameplay while defining the next material/progression roadmap. New Crying-Obsidian crystal/core/crafting systems described below are planned, not implemented yet.
+> **Current line:** `0.1.0-dev.54` — Core Booster redesign source candidate. Five user-facing Improved Core variants are consolidated into one stateful Core Booster with manually insertable Glass / Quartz / Amethyst / Diamond / Netherite material, persistent stateful drops and optional Jade readout.
 
 For authoritative status/order, start with:
 
-- `docs/DOCUMENTATION-AUTHORITY-dev41.md`
-- `docs/CURRENT-STATE-ROADMAP-dev41.md`
-- `docs/CURRENT-IMPLEMENTATION-AUDIT-dev41.md`
-- `docs/NEXT-CHAT-HANDOFF-dev41.md` — compact migration entry point
+- `docs/DOCUMENTATION-AUTHORITY-dev44.md`
+- `docs/CURRENT-STATE-ROADMAP-dev44.md`
+- `docs/CURRENT-IMPLEMENTATION-AUDIT-dev44.md`
+- `docs/NEXT-CHAT-HANDOFF-dev44.md` — compact migration entry point
 
 ---
 
@@ -103,19 +103,17 @@ Piglin shaking was confirmed solved in-game in dev.40.
 
 ---
 
-# Current known visual/QA problems
+# Current physical rework / QA status
 
-## Core renderer
+## Core Chamber
 
-The current installed Core visual is legacy and can disappear from certain camera angles. Raw items are temporarily represented as artificial material blocks.
+Implemented in dev.42 source candidate: every chassis has a universal 4×4×4 Glass Core Chamber and the BER renders the **real installed ItemStack** inside it with slow rotation, subtle bob and fullbright lighting. The old material-block substitution has been removed.
 
-Planned replacement: small universal Glass Core Chamber containing the **real installed ItemStack** floating/rotating at uniform scale.
+## Chassis optical material
 
-## Chassis Glass ghost layers
+Implemented in dev.42 source candidate: broad Glass/Pane sheets are gone. Chassis now separate solid structural geometry from translucent Crying-Obsidian emitter geometry, while real Glass is reserved for the central Core Chamber.
 
-Current broad thin Glass/Pane model surfaces frequently lose texture borders and appear as translucent ghost sheets.
-
-Planned replacement: Obsidian structure + Crying-Obsidian/Shards emitter material; real Glass mainly reserved for the Core Chamber.
+These two fixes still require in-game angle/depth QA before they are called stable.
 
 ## Render QA still owed
 
@@ -130,13 +128,13 @@ Before stable release, deeply test:
 
 ---
 
-# Planned Crying Obsidian ecosystem
+# Crying Obsidian ecosystem
 
-Authority: `docs/CRYING-OBSIDIAN-ECOSYSTEM-dev41.md`.
+Authority: `docs/CRYING-OBSIDIAN-ECOSYSTEM-dev44.md`.
 
 ## Crying Obsidian Shard
 
-Final planned shared item name: **Crying Obsidian Shard**.
+**Implemented since dev.42.** Final shared item name: **Crying Obsidian Shard**.
 
 ```text
 Stonecutter:
@@ -147,22 +145,23 @@ Stonecutter:
 8 shards + Fire Charge OR Magma Cream -> 1 Crying Obsidian
 ```
 
-Small shard stacks are also planned for Ruined Portals, Mineshafts, smith-related chests and reviewed Obsidian/Crying-Obsidian loot pools.
+dev.43 adds uncommon shard loot through data-driven Global Loot Modifiers: Ruined Portals (40%, 1–3), Abandoned Mineshafts (20%, 1–2) and village armorer/toolsmith/weaponsmith chests (12%, 1–2).
 
 ## Renewable crystal growth
 
-The old proposed normal-Obsidian dripstone/cauldron conversion is **retired**.
+**Implemented in dev.43 source candidate.** The old proposed normal-Obsidian dripstone/cauldron conversion is **retired**.
 
 New loop:
 
 ```text
-Lava source
+Lava (source or flowing)
 Crying Obsidian
       ↓ grows downward
 Small Bud -> Medium Bud -> Large Bud -> Mature Crying Obsidian Cluster
 ```
 
-- first Small-Bud nucleation is slowest;
+- Small-Bud nucleation accepts both source and flowing lava directly above the Crying Obsidian;
+- the initial success gate is 1/5 per eligible random tick;
 - later stages grow progressively faster;
 - breaking without Silk Touch drops exactly 1/2/3/4 shards by age;
 - Silk Touch drops the actual stage;
@@ -171,7 +170,7 @@ Small Bud -> Medium Bud -> Large Bud -> Mature Crying Obsidian Cluster
 
 ## Beacon-powered crystal
 
-As age increases:
+**Implemented in dev.43 source candidate, pending in-game render/balance QA.** As age increases:
 
 - crystal absorbs more of the vertical beam;
 - powered light increases;
@@ -185,15 +184,15 @@ Target visual transmission Small/Medium/Large/Mature:
 
 Mature Cluster visually stops the beam while keeping Beacon gameplay active.
 
-Intended powered light with optional extended-light support:
+Future intended powered light with optional extended-light support:
 
 ```text
 14 / 18 / 23 / 28
 ```
 
-Vanilla fallback necessarily caps normal block light at 15.
+Current dev.43 vanilla fallback uses 14 / 15 / 15 / 15. Optional >15 integration is not bundled yet.
 
-Mature Cluster can emit one narrow Crying-Obsidian-purple residual beam at a time:
+Powered stages can emit one narrow Crying-Obsidian-purple residual beam at a time; Mature has the strongest/longest leak:
 
 - roughly half vanilla Beacon-inner-beam width;
 - ~3–4 block maximum;
@@ -222,7 +221,7 @@ Planned block:
 
 # Planned projector/Core progression
 
-Authority: `docs/CORES-AND-UPGRADES-dev41.md`.
+Authority: `docs/CORES-AND-UPGRADES-dev44.md`.
 
 ## Chassis progression
 
@@ -268,21 +267,23 @@ Wide/Tall must have equal total costs; Field must be substantially more expensiv
 
 ## State preservation
 
-Projector upgrades must preserve the complete canonical persistent state, including Core, assets/GIFs, cards, Entity/Humanoid/Horse snapshots, Item/Banner snapshots and all Projection Settings.
+Projector upgrades preserve the complete canonical persistent state, including Core, assets/GIFs, cards, Entity/Humanoid/Horse snapshots, Item/Banner snapshots and all Projection Settings.
 
-Do not implement upgrades as ordinary shaped recipes that lose components/NBT.
+dev.45 implements this with stateful projector ItemStacks (`minecraft:block_entity_data`) plus a custom `projector_upgrade` recipe serializer. Ordinary Survival mining now returns one packed projector item instead of ejecting Core/card/staging contents separately. The implemented progression is Mirage -> Display -> Wide/Tall/Prism/Field.
+
+Do not replace this with ordinary shaped outputs that lose components/NBT.
 
 ---
 
-# Planned Improved Cores
+# Core Booster
 
-Exactly five:
+One user-facing block/item with five loadable materials:
 
-- Improved Glass
-- Improved Quartz
-- Improved Amethyst
-- Improved Diamond
-- Improved Netherite
+- Core Booster shell (empty after crafting)
+- Inserted material: Glass / Quartz / Amethyst / Diamond / Netherite
+- Loaded Booster amplification: ×1.50
+- Right-click inserts one valid material
+- Shift + right-click removes the inserted material
 
 Power design:
 
@@ -293,9 +294,10 @@ Power design:
 Visual design:
 
 - placeable decorative block;
-- three nested dark-purple transparent shells;
-- middle shell **genuinely rotated geometrically**;
-- corresponding material floating at center.
+- exact four-cube nested geometry supplied in `anidado.json`;
+- cubes 2 and 4 are geometrically rotated by 45°;
+- all shells use the Crying-Obsidian glass palette;
+- inserted material floats and spins inside the smallest cube.
 
 Beacon identities:
 
@@ -312,27 +314,24 @@ Universal relay:
 - incoming beam reaches Core mid-plane `Y+0.5`;
 - outgoing beam begins there and becomes wider;
 - stained-glass hue is preserved;
-- max four effective Improved Cores;
+- max four effective Core Boosters;
 - target final width cap ~2× vanilla.
 
 ---
 
-# Development order after dev.41
+# Development order from dev.45
 
-Short version:
+1. **dev.43:** renewable Crying crystal growth + shard loot + Beacon light/refraction/residual beam.
+2. **dev.44:** Obsidian Spike. Implemented source candidate.
+3. **dev.45:** canonical state-preserving projector upgrade recipes/progression. **Current source candidate.**
+4. **dev.46–54:** Improved Core prototype evolved into the single stateful Core Booster + projector amplification.
+5. **Next:** Core-Booster Beacon relay/effects and powered-crystal coupling.
+6. feature/render freeze QA.
+7. controlled code refactor.
+8. 0.1.0 release preparation.
+9. **1.1.0+:** Mirage Scan Codex + scan-copy station.
 
-1. **dev.42:** Crying Obsidian Shard + new chassis visual language + Core Chamber/core-culling fix.
-2. **dev.43:** renewable Crying crystal growth + shard loot + Beacon light/refraction/residual beam.
-3. **dev.44:** Obsidian Spike.
-4. **dev.45:** canonical state-preserving projector upgrade recipes/progression.
-5. **dev.46:** five Improved Cores + projector amplification.
-6. **dev.47:** Improved-Core Beacon relay/effects.
-7. feature/render freeze QA.
-8. controlled code refactor.
-9. 0.1.0 release preparation.
-10. **1.1.0+:** Mirage Scan Codex + scan-copy station.
-
-Full roadmap: `docs/CURRENT-STATE-ROADMAP-dev41.md`.
+Full roadmap: `docs/CURRENT-STATE-ROADMAP-dev44.md`.
 
 ---
 

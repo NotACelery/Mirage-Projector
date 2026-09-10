@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "mirage_projector:core_booster"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "mirage_projector:blocks/core_booster"
+}

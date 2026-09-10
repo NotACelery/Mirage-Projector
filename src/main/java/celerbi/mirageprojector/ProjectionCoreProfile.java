@@ -1,5 +1,7 @@
 package celerbi.mirageprojector;
 
+import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import celerbi.mirageprojector.registry.ModItems;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -13,12 +15,12 @@ import net.minecraft.world.level.block.Blocks;
  *     <li>A Core contributes only a base PU output plus an amplification multiplier.</li>
  *     <li>A Core no longer owns hard Scale/Lift/Float caps.</li>
  *     <li>The chassis multiplies the Core output and supplies nominal geometry/efficiency targets.</li>
- *     <li>Future improved crafted cores should keep their material's base PU and raise only
- *     {@link #amplificationMultiplier()} (planned first target: roughly x1.50).</li>
+ *     <li>Improved crafted cores keep their material's base PU and raise only
+ *     {@link #amplificationMultiplier()} (dev.46 initial balance: x1.50).</li>
  * </ul>
  *
- * <p>The current raw-material cores are all STANDARD grade, so their amplification is x1.00.
- * The field is deliberately present now so improved cores can be added without another power-model rewrite.</p>
+ * <p>Raw-material cores are STANDARD grade at x1.00. dev.54 replaces the five
+ * user-facing Improved Core items with one stateful Core Booster at x1.50.</p>
  */
 public enum ProjectionCoreProfile {
     NONE(0, 0.0F),
@@ -26,7 +28,12 @@ public enum ProjectionCoreProfile {
     QUARTZ(48, 1.0F),
     AMETHYST(64, 1.0F),
     DIAMOND(96, 1.0F),
-    NETHERITE(128, 1.0F);
+    NETHERITE(128, 1.0F),
+    IMPROVED_GLASS(32, 1.50F),
+    IMPROVED_QUARTZ(48, 1.50F),
+    IMPROVED_AMETHYST(64, 1.50F),
+    IMPROVED_DIAMOND(96, 1.50F),
+    IMPROVED_NETHERITE(128, 1.50F);
 
     private final int basePower;
     private final float amplificationMultiplier;
@@ -49,8 +56,8 @@ public enum ProjectionCoreProfile {
     }
 
     /**
-     * Core-grade multiplier. Standard raw-material cores are x1.00. Future improved
-     * cores should increase this value while retaining the same material basePower.
+     * Core-grade multiplier. Standard raw-material cores are x1.00. dev.46 Improved
+     * Cores use x1.50 while retaining the same material basePower.
      */
     public float amplificationMultiplier() {
         return amplificationMultiplier;
@@ -64,6 +71,11 @@ public enum ProjectionCoreProfile {
         if (stack == null || stack.isEmpty()) {
             return NONE;
         }
+
+        if (stack.is(ModItems.CORE_BOOSTER.get())) {
+            return CoreBoosterBlockEntity.materialFromStack(stack).improvedProfile();
+        }
+
 
         if (stack.is(Blocks.GLASS.asItem())) {
             return GLASS;
@@ -83,24 +95,16 @@ public enum ProjectionCoreProfile {
         return NONE;
     }
 
-    public static boolean isCoreItem(ItemStack stack) {
-        return fromStack(stack).present();
+    /** Effective output before chassis efficiency, useful for ordered UI lists. */
+    public float materialOutput() {
+        return basePower * amplificationMultiplier;
     }
 
-    /**
-     * Temporary dev.40-era BER visual. The raw socket item is represented by its material
-     * block only until the dev.41+ Core Chamber redesign is implemented. Final design renders
-     * the actual installed item inside a small glass chamber; do not build new mechanics around
-     * this block substitution.
-     */
-    public ItemStack legacyBlockVisualStack() {
-        return switch (this) {
-            case GLASS -> new ItemStack(Blocks.GLASS);
-            case QUARTZ -> new ItemStack(Blocks.QUARTZ_BLOCK);
-            case AMETHYST -> new ItemStack(Blocks.AMETHYST_BLOCK);
-            case DIAMOND -> new ItemStack(Blocks.DIAMOND_BLOCK);
-            case NETHERITE -> new ItemStack(Blocks.NETHERITE_BLOCK);
-            case NONE -> ItemStack.EMPTY;
-        };
+    public boolean improved() {
+        return amplificationMultiplier > 1.0F;
+    }
+
+    public static boolean isCoreItem(ItemStack stack) {
+        return fromStack(stack).present();
     }
 }

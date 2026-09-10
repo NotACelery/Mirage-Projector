@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "material=empty": {
+      "model": "mirage_projector:block/core_booster"
+    },
+    "material=glass": {
+      "model": "mirage_projector:block/core_booster"
+    },
+    "material=quartz": {
+      "model": "mirage_projector:block/core_booster"
+    },
+    "material=amethyst": {
+      "model": "mirage_projector:block/core_booster"
+    },
+    "material=diamond": {
+      "model": "mirage_projector:block/core_booster"
+    },
+    "material=netherite": {
+      "model": "mirage_projector:block/core_booster"
+    }
+  }
+}

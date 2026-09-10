@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "entries": [
+    "mirage_projector:shards_ruined_portal",
+    "mirage_projector:shards_abandoned_mineshaft",
+    "mirage_projector:shards_village_armorer",
+    "mirage_projector:shards_village_toolsmith",
+    "mirage_projector:shards_village_weaponsmith"
+  ]
+}

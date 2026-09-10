@@ -1,3 +1,189 @@
+# 0.1.0-dev.56 — Beacon optics rework
+
+- Residual Crying Obsidian rays now originate from the exact crystal center instead of inheriting a rotated +0.5 X/Z offset.
+- Residual rays are 50% narrower and approximately 66% shorter than the old mature-cluster implementation.
+- Bursts now appear instantly at full length, hold for 20 ticks, then retract while fading for 20 ticks.
+- Residual width/length/frequency now scale by stage: MATURE 100%, LARGE 75%, MEDIUM 50%, SMALL 25%.
+- Vanilla Beacon beam rendering stops at pixel 0 of every Crying Obsidian crystal block and resumes only above buds, with stage-based attenuation.
+- Bud stages no longer emit block light when energized; only MATURE cluster does.
+- Direct energized MATURE cluster above a Beacon suppresses the Beacon vertical beam and requests dynamic suppression of the Beacon block's own light while the cluster becomes the light source.
+- Energized mature-cluster texture now uses a stronger saturated purple/lavender palette.
+- Core Booster behavior from dev.55 is unchanged.
+- Protocol remains 18.
+
+# 0.1.0-dev.55 — Core Booster cleanup and visual-state sync
+
+- Removed the five legacy Improved Core BlockItems from the item registry, eliminating their Creative/Search/JEI-style exposure as independent obtainable blocks.
+- Retained only the old block IDs as hidden compatibility shims; placed legacy Improved Core blocks schedule a one-tick migration into the single Core Booster with the matching stored material.
+- Added authoritative `material` BlockState values (`empty`, `glass`, `quartz`, `amethyst`, `diamond`, `netherite`) to Core Booster.
+- Core Booster renderer now resolves its center item from the synchronized blockstate instead of a potentially stale client BlockEntity field.
+- Shift-right-click extraction therefore transitions the block to `material=empty`, immediately clearing the hologram instead of leaving a ghost core behind.
+- dev.54 BlockEntity-only material NBT is migrated into the new blockstate on world/chunk load.
+- Loaded Booster ItemStacks still use `BLOCK_ENTITY_DATA`, preserving same-material-only stacking and restoring their material on placement.
+- Protocol remains 18.
+
+# 0.1.0-dev.54 — Core Booster redesign
+
+- Replaced five user-facing Improved Core variants with one stateful **Core Booster**.
+- Added manual material socket: right-click inserts Glass / Quartz / Amethyst Shard / Diamond / Netherite Ingot; Shift + right-click returns it.
+- Empty Booster is not a valid projector Core; loaded Booster maps to the matching ×1.50 improved profile.
+- Material persists in Booster ItemStack block-entity data, giving same-material-only stacking automatically.
+- Correct pickaxe mining returns one loaded Booster item without requiring Silk Touch.
+- Adopted the user-supplied four-cube nested geometry as the canonical Booster model.
+- Added synchronized block-entity material state so the center hologram is available immediately on chunk/world load.
+- Added optional Jade material/amplification readout.
+- Removed the five old Improved Core crafting recipes and hid their creative entries; legacy registry IDs remain for QA-world compatibility.
+
+# 0.1.0-dev.51 — Crying growth + asset/core QA correction
+
+- Crying Obsidian nucleation now checks `FluidTags.LAVA`, so both lava source and flowing lava directly above the generator are valid. This matches the visible lava-drip setup instead of silently accepting only source blocks.
+- Initial Small-Bud nucleation is raised from 1/32 to 1/5 per eligible Crying-Obsidian random tick; later stage denominators remain unchanged for this QA wave.
+- Crying Obsidian Small/Medium/Large Bud and Cluster world models now use the same vanilla `minecraft:block/cross` model structure as amethyst buds/clusters, with Mirage textures only.
+- Crying Obsidian Shard now uses the vanilla prismarine-shard silhouette reconstructed from the in-game reference while retaining the approved purple gradient, centered in the 16x16 texture.
+- Obsidian Spike inventory presentation is scaled down so its tips no longer touch the slot border; world geometry is unchanged.
+- Improved Core outer shell now spans the full 16x16x16 block volume instead of floating inset from every face.
+- Removed the three frozen orthogonal material planes from placed Improved Cores. Added a dedicated block entity renderer that draws one actual Glass/Quartz/Amethyst/Diamond/Netherite item at the center, full-bright, tilted and rotating clockwise like the projector Core hologram.
+- Improved Glass and Quartz therefore use their real item/block presentation in-world instead of depending on flat texture planes that could disappear.
+- Protocol remains 18.
+
+# 0.1.0-dev.50 — Client mixin boot-crash hotfix
+
+- Removed the dev.47 `RenderLayerMixin` redirect after real pack QA showed that its target does not exist in the production-mapped `RenderLayer` class.
+- This fixes the startup `InjectionError` (`0/1 succeeded; Scanned 0 target(s)`) that cascaded into unrelated mods failing construction.
+- The dev.49 Crying Obsidian `BlockStateBase` random-tick dispatch fix remains unchanged and is still the growth-system candidate to test once the game boots.
+- Cat-collar/secondary-layer ordering is explicitly left pending instead of keeping a crash-prone generic redirect.
+
+# 0.1.0-dev.49 — Random-tick dispatch fix
+
+- Fixes the dev.48 startup crash caused by targeting `Block#randomTick`, which is not declared on `Block` in this target.
+- Moves Crying Obsidian nucleation to `BlockBehaviour.BlockStateBase#randomTick`, the state-level random-tick dispatch point.
+- Keeps the existing `BlockStateBase#isRandomlyTicking` override for vanilla Crying Obsidian.
+- Removes the broken standalone `CryingObsidianGrowthMixin`.
+- Carries forward all dev.47 visual/UI fixes.
+
+# 0.1.0-dev.46 — Improved Projection Cores
+
+- Added five placeable/installable Improved Cores: Glass, Quartz, Amethyst, Diamond and Netherite.
+- Improved Cores retain their standard material Base PU and use the initial x1.50 amplification target.
+- Added original three-shell translucent models with an actually rotated middle shell and a centered material/item visual.
+- Added the shared preferred `GSG / SCS / GSG` crafting family using Glass + Crying Obsidian Shards + the matching base Core material.
+- Core socket, shift-click handling and Power calculations accept Improved Cores without a second power system.
+- Empty Core tooltip now orders standard/improved entries by effective material output.
+- Metadata author is now explicitly `Celerbi`; mod metadata/description contains no repository URL.
+- Beacon relay/stacking/material effects remain deliberately deferred to the next wave.
+- Network protocol remains 18.
+
+# Mirage Projector 0.1.0-dev.45
+
+## Compile repair
+
+- Repairs the first Windows dev.45 `:compileJava` failure without advancing the development version.
+- Moves `ClipContext` to its Minecraft 1.21.1 package, `net.minecraft.world.level.ClipContext`.
+- Imports `net.minecraft.world.level.block.Block` for the stateful Survival drop path using `Block.popResource`.
+- The existing eight `EventBusSubscriber.Bus` messages remain deprecation warnings only.
+- Rebuild on Windows is still required before dev.45 can be marked build-clean.
+
+## Stateful projector items
+
+- Ordinary Survival mining now packs the complete `MirageProjectorBlockEntity` into the dropped projector ItemStack through vanilla `BlockEntity.saveToItem` / `minecraft:block_entity_data`.
+- Packed mining suppresses duplicate Core, Entity Scan card and staging-item ejection because those physical stacks are already inside the projector state.
+- Replacing the packed item restores state through vanilla BlockItem BlockEntity-data loading.
+- Middle-click clone preserves loaded projector state when a real Level is available.
+- Non-player destruction keeps the older physical-safety fallback; full virtual-state preservation for explosions/pistons is not promised yet.
+
+## Canonical upgrade transfer
+
+- Adds `ProjectorStateTransfer`; recipe logic no longer knows individual persistent fields.
+- Uses `ItemStack.transmuteCopy` so source item component patches/custom names survive chassis changes.
+- Loads the entire source BlockEntity payload into a temporary target-chassis BlockEntity, allowing the target's existing migration/sanitization rules to normalize incompatible state.
+- Clean Compact items materialize their implicit default Glass Core before Compact -> Display upgrades.
+- Scale/Lift/Float and all presentation/source state remain user-selected; upgrades do not auto-inflate projections.
+
+## Crafting progression
+
+- Adds the from-scratch Mirage Projector recipe: 5 Crying Obsidian Shards + Glass Block + 3 Obsidian.
+- Adds custom exact-pattern `mirage_projector:projector_upgrade` recipes.
+- Mirage -> Display uses 2 Quartz + 2 Amethyst Shards + 4 Crying Obsidian Shards.
+- Display -> Wide and Display -> Tall each use 6 shards + 2 Glass with horizontal/vertical pattern geometry.
+- Display -> Prism uses 4 shards + 4 Glass.
+- Display -> Field uses 4 whole Crying Obsidian + 4 shards; this exact material cost remains balance-provisional.
+- There are no direct Compact -> Wide/Tall/Prism/Field recipes.
+
+## Documentation / status
+
+- Adds dev.45 authority, implementation audit, roadmap, QA and next-chat handoff.
+- Promotes Cores/Upgrades and Crying-Obsidian ecosystem contracts to dev.45 current copies.
+- Protocol remains 18.
+- Source candidate only until Windows `build.bat` and in-game state-transfer QA pass.
+
+---
+
+# Mirage Projector 0.1.0-dev.44
+
+## Obsidian Spike
+
+- Adds `Obsidian Spike`, crafted from exactly 3 Crying Obsidian Shards, 2 String and 1 Stick.
+- Adds a true nine-spire ~half-block model; the center point is thinner/taller and surrounding points have varied height/lean.
+- Uses a dedicated 16x16 Crying-Obsidian texture rather than reusing Amethyst artwork.
+- Trap has no solid collision body, so living entities enter the spike volume instead of standing safely on a half-block.
+- Applies berry-bush-like movement drag `(0.8, 0.75, 0.8)` to living entities.
+- Requests 2.0 damage points (1 heart) on each movement-triggered server-side contact; normal Minecraft hurt immunity controls successful repeated events, so this is **not** 2 damage every game tick.
+- Counts vertical movement as well as horizontal movement, allowing a straight fall onto the spikes to hurt.
+- Adds a Mirage-specific `obsidian_spike` DamageType/death message; items/projectiles/non-living entities are ignored.
+- Requires floor support and returns itself from its block loot table.
+- Adds Debug Handbook guidance, dev.44 authority/audit/QA/handoff and promotes the Crying-Obsidian/Core contracts to dev.44 current copies.
+- Protocol remains **18**; no projector NBT/payload schema changed.
+
+## Status
+
+- Source candidate only until Windows `build.bat` succeeds. dev.44 inherits the still-unconfirmed dev.43 source candidate, so inherited crystal/Beacon build/render issues take priority.
+
+---
+
+# Mirage Projector 0.1.0-dev.43
+
+## Renewable Crying Obsidian crystal / Beacon ecosystem
+
+- Adds four placeable Crying-Obsidian crystal stages: Small Bud, Medium Bud, Large Bud and mature Crying Obsidian Cluster, with Amethyst-like facing/waterlogging and original normal/energized pixel-art textures.
+- Makes vanilla Crying Obsidian a renewable crystal generator only when a Lava **source** is directly above it and the growth space directly below is free/water. Natural growth is downward only. Initial nucleation is deliberately the slowest step; later stages progressively accelerate.
+- Adds exact harvesting economy: without Silk Touch stages drop 1/2/3/4 Crying Obsidian Shards; Silk Touch preserves the stage; Fortune is intentionally not applied.
+- Adds uncommon data-driven shard loot to Ruined Portals, Abandoned Mineshafts and village armorer/toolsmith/weaponsmith chests.
+- Adds Beacon excitation state to crystals. Vanilla fallback powered block light is 14/15/15/15 by age; optional >15 lighting remains a future compatibility integration rather than a mandatory dependency.
+- Adds custom Beacon rendering when a crystal lies in the active column. Stained-glass section colors are preserved while crystals visually transmit approximately 75/50/25/0% of the vertical beam. Mature visually terminates the beam without disabling Beacon gameplay/effects.
+- Adds deterministic Crying-Obsidian residual refraction beams: one leak per energized crystal, roughly half vanilla Beacon-inner width, stage-scaled length, solid-block ray clipping, ~1 s extension, ~1 s full-length hold, then ~1 s retract/fade followed by stage-specific cooldown.
+- Keeps stacked-crystal energy semantics: lower crystals attenuate the input reaching higher crystals, and a Mature Cluster prevents higher crystals from becoming Beacon-energized by the same column.
+- Adds dev.43 implementation audit, authority/handoff, ecosystem contract and QA checklist.
+- Protocol remains **18**; this wave adds blocks/resources/render hooks but does not change Mirage packet schemas.
+
+## Status
+
+- Source candidate only until Windows `build.bat` succeeds and in-game growth, loot, light and Beacon-render QA pass.
+- dev.42 physical chassis/Core-Chamber behavior remains part of the baseline and should be regression-tested alongside dev.43.
+
+---
+
+# Mirage Projector 0.1.0-dev.42
+
+## Material / Core Chamber / chassis rework
+
+- Implements `Crying Obsidian Shard` as the final shared shard item name. Adds a 16x16 sprite, creative-tab registration, `1 Crying Obsidian -> 4 shards` Stonecutter recipe, and both `8 shards + Fire Charge` / `8 shards + Magma Cream -> 1 Crying Obsidian` re-form recipes.
+- Replaces all six broad Glass/Glass-Pane chassis surfaces with a composite material language: solid Obsidian structure, translucent Crying-Obsidian optical/emitter geometry, and a small central Glass Core Chamber.
+- Converts all six block models to `neoforge:composite` with independently rendered solid/emitter/chamber children so the structural body no longer lives in the translucent render layer.
+- Gives Field a visibly Crying-Obsidian structural base, matching the planned expensive whole-Crying-Obsidian upgrade identity.
+- Removes the active fake Core material-block renderer (`Netherite Ingot -> Netherite Block`, etc.). The BER now renders the actual installed Core ItemStack in the chamber using uniform scale, camera-facing GUI-model rotation, subtle bob and fullbright lighting.
+- Removes legacy per-chassis Core width/height/depth sizing from `ProjectionChassisProfile`; the chamber is universally 4x4x4 model pixels and chassis only choose its center Y.
+- Keeps Compact's historical default Glass Core behavior, all Power formulas, saved state, Image/GIF/Entity behavior and network protocol 18 unchanged.
+- Adds dev.42 documentation authority, implementation audit, QA checklist and updated Crying-Obsidian/Core contracts.
+- Freezes future Improved-Core -> Beacon -> powered-crystal coupling: wider relay beams must visibly excite crystals more, radiance must increase useful crystal lighting where the lighting backend allows, and stacked Core modifiers resolve to one effective beam before crystal response is calculated.
+- Extended-light provider selection remains future work; do not rewrite Minecraft's global light engine merely to exceed vanilla level 15.
+
+## Status
+
+- Source candidate only until Windows `build.bat` and in-game physical/Core regression QA succeed.
+- Protocol remains **18**.
+
+---
+
 # Mirage Projector 0.1.0-dev.41
 
 ## Final design-closure addendum (same dev.41 line)
@@ -812,7 +998,7 @@ The first dev.41 planning draft still used `Cut Obsidian Shard` terminology and 
 ## 0.1.0-dev.9 — Image completeness, world preview and presentation pass
 
 - Took the user-pushed dev.8 repository state as the baseline for this wave and kept Minecraft 1.21.1 / NeoForge **21.1.244** / Java 21 fixed.
-- Added a permanent project metadata policy: **do not hardcode GitHub/repository URLs in mod descriptions**. Repository links belong in separate platform link fields when needed, not in `neoforge.mods.toml`/CurseForge/Modrinth descriptive copy.
+- Added a permanent project metadata policy: **do not hardcode repository URLs in mod descriptions**. Repository links belong in separate platform link fields when needed, not in `neoforge.mods.toml`/CurseForge/Modrinth descriptive copy.
 - Added real **WebP import** without requiring a separate user-installed mod/library.
   - Bundles `org.sejda.imageio:webp-imageio:0.1.6` through ModDevGradle Jar-in-Jar.
   - Native file picker now accepts `.webp` alongside PNG/JPG/JPEG.

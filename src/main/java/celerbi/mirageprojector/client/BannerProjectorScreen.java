@@ -95,18 +95,15 @@ public final class BannerProjectorScreen extends AbstractContainerScreen<BannerP
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, fit(title.getString(), 250), 12, 10, 0xFFF4F4F4, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.banner.sources"), 22, 44, 0xFFD7B8F5, false);
-        graphics.drawString(font,
-                Component.translatable(menu.prism() ? "gui.mirage_projector.banner.prism_hint" : "gui.mirage_projector.banner.plane_hint"),
-                22, 56, 0xFF9CA3AF, false);
 
         if (menu.prism()) {
             String[] labels = {"north", "east", "south", "west"};
             for (int face = 0; face < labels.length; face++) {
                 Component label = Component.translatable("gui.mirage_projector.face." + labels[face]);
-                graphics.drawCenteredString(font, label, BannerProjectorMenu.FACE_X[face] + 8, 96, 0xFFC9CED7);
+                graphics.drawCenteredString(font, label, BannerProjectorMenu.FACE_X[face] + 8, 84, 0xFFC9CED7);
             }
         } else {
-            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.front"), BannerProjectorMenu.PLANE_FACE_X + 8, 96, 0xFFC9CED7);
+            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.front"), BannerProjectorMenu.PLANE_FACE_X + 8, 84, 0xFFC9CED7);
         }
 
         graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.preview"), 344, 48, 0xFFD7B8F5);
@@ -116,7 +113,7 @@ public final class BannerProjectorScreen extends AbstractContainerScreen<BannerP
                 : primary.getHoverName();
         graphics.drawCenteredString(font, fit(previewName.getString(), 112), 344, 112, primary.isEmpty() ? 0xFF8D8493 : 0xFF9DDBA8);
 
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.banner.virtual_notice"), 22, 116, 0xFF8FCFA0, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.banner.virtual_notice"), 22, 104, 0xFF8FCFA0, false);
         graphics.drawString(font, Component.translatable("container.inventory"), BannerProjectorMenu.PLAYER_INV_X, BannerProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
     }
 

@@ -41,7 +41,13 @@ public final class DebugHandbookScreen extends BookViewScreen {
                     "handbook.mirage_projector.section.general.6",
                     "handbook.mirage_projector.section.general.7",
                     "handbook.mirage_projector.section.general.8",
-                    "handbook.mirage_projector.section.general.9"
+                    "handbook.mirage_projector.section.general.9",
+                    "handbook.mirage_projector.section.general.10",
+                    "handbook.mirage_projector.section.general.11",
+                    "handbook.mirage_projector.section.general.12",
+                    "handbook.mirage_projector.section.general.13",
+                    "handbook.mirage_projector.section.general.14",
+                    "handbook.mirage_projector.section.general.15"
             }),
             new Section("compact", "handbook.mirage_projector.section.compact.title", new String[]{
                     "handbook.mirage_projector.section.compact.1",

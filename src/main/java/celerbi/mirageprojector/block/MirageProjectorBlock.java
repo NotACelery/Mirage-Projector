@@ -7,6 +7,7 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -14,7 +15,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -179,8 +182,57 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
     }
 
     @Override
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+        ItemStack result = new ItemStack(this);
+        if (level instanceof Level actualLevel
+                && level.getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) {
+            projector.saveToItem(result, actualLevel.registryAccess());
+        }
+        return result;
+    }
+
+    @Override
+    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+        if (!level.isClientSide
+                && !player.isCreative()
+                && level.getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) {
+            projector.preparePackedPlayerBreak(level.registryAccess());
+        }
+        return super.playerWillDestroy(level, pos, state, player);
+    }
+
+    @Override
+    public void playerDestroy(
+            Level level,
+            Player player,
+            BlockPos pos,
+            BlockState state,
+            @Nullable BlockEntity blockEntity,
+            ItemStack tool
+    ) {
+        if (blockEntity instanceof MirageProjectorBlockEntity projector
+                && projector.hasPendingPackedPlayerBreakDrop()) {
+            player.awardStat(Stats.BLOCK_MINED.get(this));
+            player.causeFoodExhaustion(0.005F);
+            Block.popResource(level, pos, projector.takePendingPackedPlayerBreakDrop());
+            return;
+        }
+        super.playerDestroy(level, player, pos, state, blockEntity, tool);
+    }
+
+    @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) {
+            // Ordinary Survival mining is packed into one stateful projector ItemStack.
+            // In that path the Core/card/staging stacks must not also eject here.
+            if (projector.hasPendingPackedPlayerBreakDrop()) {
+                super.onRemove(state, level, pos, newState, movedByPiston);
+                return;
+            }
+
+            // Non-player destruction keeps the historical safe fallback: virtual
+            // snapshots are lost with the chassis, but real physical contents are
+            // still ejected rather than silently deleted.
             // Render snapshots are virtual copies and never drop as obtainable items.
             // Only a real pre-dev.12 item retained for migration is returned here.
             ItemStack legacyStored = projector.extractLegacyProjectionReturnItem();

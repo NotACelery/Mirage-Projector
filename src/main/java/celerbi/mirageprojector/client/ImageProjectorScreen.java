@@ -535,11 +535,11 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
             graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.summary",
                     menu.chassisProfile().displayName(), menu.imageLayoutColumns(), menu.imageLayoutRows(), menu.imageLayoutSlots()),
                     244, 34, 0xFF9FBED1, false);
-            graphics.drawString(font, status, 22, 334, 0xFFE3D7FF, false);
+            graphics.drawString(font, fit(status.getString(), imageWidth - 44), 22, 334, 0xFFE3D7FF, false);
         } else {
             int ox = faceOffsetX();
             int oy = faceOffsetY();
-            graphics.drawString(font, Component.translatable("gui.mirage_projector.image.face_count", menu.physicalFaceCount()), 18 + ox, 22 + oy, 0xFF9FBED1, false);
+            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.image.face_count", menu.physicalFaceCount()).getString(), 380), 18 + ox, 22 + oy, 0xFF9FBED1, false);
             if (menu.supportsMultiSourceLayout() && frontId != null && !frontId.isBlank() && frontWidth > 0 && frontHeight > 0) {
                 ProjectionImageSizing.Size projected = ProjectionImageSizing.size(
                         frontWidth, frontHeight, menu.initialSettings().scalePixels());
@@ -553,9 +553,9 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
                                 ? "gui.mirage_projector.image.axis.width"
                                 : "gui.mirage_projector.image.axis.height")
                 );
-                graphics.drawString(font, sizing, 18 + ox, 54, contrary ? 0xFFFFA86B : 0xFFAED7B4, false);
+                graphics.drawString(font, fit(sizing.getString(), 380), 18 + ox, 40 + oy, contrary ? 0xFFFFA86B : 0xFFAED7B4, false);
             }
-            graphics.drawString(font, status, 18 + ox, 236 + oy, 0xFFE3D7FF, false);
+            graphics.drawString(font, fit(status.getString(), 380), 18 + ox, 236 + oy, 0xFFE3D7FF, false);
         }
     }
 
@@ -611,6 +611,19 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
             case READABLE -> Component.translatable("gui.mirage_projector.image.face.back_readable");
             case INDEPENDENT -> Component.translatable("gui.mirage_projector.image.face.back_independent");
         };
+    }
+
+    private String fit(String value, int maxWidth) {
+        if (value == null || value.isEmpty() || font.width(value) <= maxWidth) {
+            return value == null ? "" : value;
+        }
+        String ellipsis = "…";
+        int target = Math.max(0, maxWidth - font.width(ellipsis));
+        int end = value.length();
+        while (end > 0 && font.width(value.substring(0, end)) > target) {
+            end--;
+        }
+        return value.substring(0, Math.max(0, end)) + ellipsis;
     }
 
     private static Component faceLabel(String face) {

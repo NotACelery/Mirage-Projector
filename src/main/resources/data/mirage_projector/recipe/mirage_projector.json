@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "SSS",
+    "SGS",
+    "OOO"
+  ],
+  "key": {
+    "S": {
+      "item": "mirage_projector:crying_obsidian_shard"
+    },
+    "G": {
+      "item": "minecraft:glass"
+    },
+    "O": {
+      "item": "minecraft:obsidian"
+    }
+  },
+  "result": {
+    "id": "mirage_projector:mirage_projector",
+    "count": 1
+  },
+  "show_notification": true
+}

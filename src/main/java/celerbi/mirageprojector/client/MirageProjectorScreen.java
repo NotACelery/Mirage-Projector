@@ -512,11 +512,14 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         if (mouseX < x || mouseX >= x + 18 || mouseY < y || mouseY >= y + 18) return;
         List<Component> lines = new ArrayList<>();
         lines.add(Component.translatable("tooltip.mirage_projector.core.accepted"));
-        for (ProjectionCoreProfile profile : ProjectionCoreProfile.values()) {
-            if (!profile.present()) continue;
-            lines.add(Component.translatable("tooltip.mirage_projector.core.entry", profile.displayComponent(),
-                    profile.basePower(), String.format(Locale.ROOT, "%.2f", profile.amplificationMultiplier())));
-        }
+        java.util.Arrays.stream(ProjectionCoreProfile.values())
+                .filter(ProjectionCoreProfile::present)
+                .sorted(java.util.Comparator
+                        .comparingDouble(ProjectionCoreProfile::materialOutput)
+                        .thenComparingInt(ProjectionCoreProfile::basePower))
+                .forEach(profile -> lines.add(Component.translatable(
+                        "tooltip.mirage_projector.core.entry", profile.displayComponent(),
+                        profile.basePower(), String.format(Locale.ROOT, "%.2f", profile.amplificationMultiplier()))));
         graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
     }
 

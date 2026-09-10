@@ -417,7 +417,6 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         }
 
         graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.no_body"), x + PREVIEW_W / 2, y + 96, 0xFF9CA3AF);
-        graphics.drawCenteredString(font, fit(Component.translatable("gui.mirage_projector.entity.no_body_hint").getString(), PREVIEW_W - 18), x + PREVIEW_W / 2, y + 112, 0xFF9CA3AF);
     }
 
     @Override

@@ -26,5 +26,7 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModBlockEntities.MIRAGE_PROJECTOR.get(), MirageProjectorRenderer::new);
+        event.registerBlockEntityRenderer(ModBlockEntities.IMPROVED_CORE.get(), ImprovedCoreRenderer::new);
+        event.registerBlockEntityRenderer(ModBlockEntities.CORE_BOOSTER.get(), CoreBoosterRenderer::new);
     }
 }

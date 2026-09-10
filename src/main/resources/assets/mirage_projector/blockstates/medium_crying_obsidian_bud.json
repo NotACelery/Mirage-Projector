@@ -1,0 +1,56 @@
+{
+  "variants": {
+    "facing=down,energized=false": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud",
+      "x": 180
+    },
+    "facing=down,energized=true": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud_energized",
+      "x": 180
+    },
+    "facing=east,energized=false": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud",
+      "x": 90,
+      "y": 90
+    },
+    "facing=east,energized=true": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud_energized",
+      "x": 90,
+      "y": 90
+    },
+    "facing=north,energized=false": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud",
+      "x": 90
+    },
+    "facing=north,energized=true": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud_energized",
+      "x": 90
+    },
+    "facing=south,energized=false": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud",
+      "x": 90,
+      "y": 180
+    },
+    "facing=south,energized=true": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud_energized",
+      "x": 90,
+      "y": 180
+    },
+    "facing=up,energized=false": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud"
+    },
+    "facing=up,energized=true": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud_energized"
+    },
+    "facing=west,energized=false": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud",
+      "x": 90,
+      "y": 270
+    },
+    "facing=west,energized=true": {
+      "model": "mirage_projector:block/medium_crying_obsidian_bud_energized",
+      "x": 90,
+      "y": 270
+    }
+  }
+}

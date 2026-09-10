@@ -1,0 +1,16 @@
+{
+  "replace": false,
+  "values": [
+    "mirage_projector:core_booster",
+    "mirage_projector:small_crying_obsidian_bud",
+    "mirage_projector:medium_crying_obsidian_bud",
+    "mirage_projector:large_crying_obsidian_bud",
+    "mirage_projector:crying_obsidian_cluster",
+    "mirage_projector:obsidian_spike",
+    "mirage_projector:improved_glass_core",
+    "mirage_projector:improved_quartz_core",
+    "mirage_projector:improved_amethyst_core",
+    "mirage_projector:improved_diamond_core",
+    "mirage_projector:improved_netherite_core"
+  ]
+}

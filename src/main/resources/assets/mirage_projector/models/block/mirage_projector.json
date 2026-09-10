@@ -1,152 +1,237 @@
 {
-  "render_type": "minecraft:translucent",
-  "ambientocclusion": false,
+  "loader": "neoforge:composite",
   "textures": {
-    "obsidian": "minecraft:block/obsidian",
-    "glass": "minecraft:block/glass",
-    "glass_pane_top": "minecraft:block/glass_pane_top",
     "particle": "minecraft:block/obsidian"
   },
-  "elements": [
-    {
-      "from": [
-        0,
-        0,
-        0
-      ],
-      "to": [
-        16,
-        1,
-        16
-      ],
-      "faces": {
-        "north": {
-          "texture": "#obsidian",
-          "uv": [
+  "children": {
+    "base": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:solid",
+      "textures": {
+        "base": "minecraft:block/obsidian",
+        "particle": "minecraft:block/obsidian"
+      },
+      "elements": [
+        {
+          "from": [
             0,
-            15,
+            0,
+            0
+          ],
+          "to": [
             16,
+            1,
             16
-          ]
-        },
-        "east": {
-          "texture": "#obsidian",
-          "uv": [
-            0,
-            15,
-            16,
-            16
-          ]
-        },
-        "south": {
-          "texture": "#obsidian",
-          "uv": [
-            0,
-            15,
-            16,
-            16
-          ]
-        },
-        "west": {
-          "texture": "#obsidian",
-          "uv": [
-            0,
-            15,
-            16,
-            16
-          ]
-        },
-        "up": {
-          "texture": "#obsidian",
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ]
-        },
-        "down": {
-          "texture": "#obsidian",
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ]
+          ],
+          "faces": {
+            "north": {
+              "texture": "#base"
+            },
+            "east": {
+              "texture": "#base"
+            },
+            "south": {
+              "texture": "#base"
+            },
+            "west": {
+              "texture": "#base"
+            },
+            "up": {
+              "texture": "#base"
+            },
+            "down": {
+              "texture": "#base"
+            }
+          }
         }
-      }
+      ]
     },
-    {
-      "from": [
-        2,
-        1,
-        2
-      ],
-      "to": [
-        14,
-        2,
-        14
-      ],
-      "faces": {
-        "north": {
-          "texture": "#glass_pane_top",
-          "uv": [
+    "emitter": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:translucent",
+      "ambientocclusion": false,
+      "textures": {
+        "emitter": "mirage_projector:block/crying_obsidian_emitter",
+        "particle": "minecraft:block/obsidian"
+      },
+      "elements": [
+        {
+          "from": [
             7,
-            4,
-            8,
-            16
+            1,
+            2
           ],
-          "rotation": 90
-        },
-        "east": {
-          "texture": "#glass_pane_top",
-          "uv": [
-            8,
-            4,
+          "to": [
             9,
-            16
+            2,
+            6
           ],
-          "rotation": 90
+          "faces": {
+            "north": {
+              "texture": "#emitter"
+            },
+            "east": {
+              "texture": "#emitter"
+            },
+            "south": {
+              "texture": "#emitter"
+            },
+            "west": {
+              "texture": "#emitter"
+            },
+            "up": {
+              "texture": "#emitter"
+            },
+            "down": {
+              "texture": "#emitter"
+            }
+          }
         },
-        "south": {
-          "texture": "#glass_pane_top",
-          "uv": [
-            8,
-            0,
-            9,
-            12
-          ],
-          "rotation": 90
-        },
-        "west": {
-          "texture": "#glass_pane_top",
-          "uv": [
+        {
+          "from": [
             7,
-            0,
-            8,
-            12
+            1,
+            10
           ],
-          "rotation": 90
+          "to": [
+            9,
+            2,
+            14
+          ],
+          "faces": {
+            "north": {
+              "texture": "#emitter"
+            },
+            "east": {
+              "texture": "#emitter"
+            },
+            "south": {
+              "texture": "#emitter"
+            },
+            "west": {
+              "texture": "#emitter"
+            },
+            "up": {
+              "texture": "#emitter"
+            },
+            "down": {
+              "texture": "#emitter"
+            }
+          }
         },
-        "up": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ]
+        {
+          "from": [
+            2,
+            1,
+            7
+          ],
+          "to": [
+            6,
+            2,
+            9
+          ],
+          "faces": {
+            "north": {
+              "texture": "#emitter"
+            },
+            "east": {
+              "texture": "#emitter"
+            },
+            "south": {
+              "texture": "#emitter"
+            },
+            "west": {
+              "texture": "#emitter"
+            },
+            "up": {
+              "texture": "#emitter"
+            },
+            "down": {
+              "texture": "#emitter"
+            }
+          }
         },
-        "down": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ]
+        {
+          "from": [
+            10,
+            1,
+            7
+          ],
+          "to": [
+            14,
+            2,
+            9
+          ],
+          "faces": {
+            "north": {
+              "texture": "#emitter"
+            },
+            "east": {
+              "texture": "#emitter"
+            },
+            "south": {
+              "texture": "#emitter"
+            },
+            "west": {
+              "texture": "#emitter"
+            },
+            "up": {
+              "texture": "#emitter"
+            },
+            "down": {
+              "texture": "#emitter"
+            }
+          }
         }
-      }
+      ]
+    },
+    "chamber": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:translucent",
+      "ambientocclusion": false,
+      "textures": {
+        "glass": "mirage_projector:block/crying_obsidian_chamber",
+        "particle": "mirage_projector:block/crying_obsidian_chamber"
+      },
+      "elements": [
+        {
+          "from": [
+            6,
+            1,
+            6
+          ],
+          "to": [
+            10,
+            5,
+            10
+          ],
+          "faces": {
+            "north": {
+              "texture": "#glass"
+            },
+            "east": {
+              "texture": "#glass"
+            },
+            "south": {
+              "texture": "#glass"
+            },
+            "west": {
+              "texture": "#glass"
+            },
+            "up": {
+              "texture": "#glass"
+            },
+            "down": {
+              "texture": "#glass"
+            }
+          }
+        }
+      ]
     }
+  },
+  "item_render_order": [
+    "base",
+    "emitter",
+    "chamber"
   ]
 }

@@ -12,11 +12,12 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * RenderTypes owned by Mirage for ghost projections.
  *
- * <p>The important difference from vanilla entityTranslucent is the write mask:
- * these passes still depth-test against the world, but they write colour only.
- * A projected translucent entity therefore cannot stamp its own depth into the
- * scene and make already-rendered translucent world geometry (notably water)
- * disappear behind it.</p>
+ * <p>The important differences from a normal opaque entity pass are:
+ * these passes still depth-test against the world, but they write colour only,
+ * and they participate in Minecraft's ITEM_ENTITY_TARGET transparency target.
+ * The colour-only mask keeps the old water-hole fix, while the entity target
+ * keeps Fabulous/shader-transparency composition ordered correctly against
+ * clouds and the other dedicated transparency framebuffers.</p>
  */
 public final class ProjectionRenderTypes extends RenderStateShard {
     private static final Map<ResourceLocation, RenderType> ENTITY_GHOST = new ConcurrentHashMap<>();
@@ -43,7 +44,7 @@ public final class ProjectionRenderTypes extends RenderStateShard {
                 .setCullState(NO_CULL)
                 .setLightmapState(LIGHTMAP)
                 .setOverlayState(OVERLAY)
-                .setOutputState(MAIN_TARGET)
+                .setOutputState(ITEM_ENTITY_TARGET)
                 .setWriteMaskState(COLOR_WRITE)
                 .createCompositeState(false);
 
@@ -67,7 +68,7 @@ public final class ProjectionRenderTypes extends RenderStateShard {
                 .setCullState(CULL)
                 .setLightmapState(LIGHTMAP)
                 .setOverlayState(OVERLAY)
-                .setOutputState(MAIN_TARGET)
+                .setOutputState(ITEM_ENTITY_TARGET)
                 .setWriteMaskState(COLOR_WRITE)
                 .createCompositeState(false);
 

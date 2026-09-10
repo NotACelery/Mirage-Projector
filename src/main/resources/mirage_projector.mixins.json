@@ -7,9 +7,13 @@
     "HumanoidModelMixin",
     "HumanoidArmorLayerMixin",
     "LivingEntityRendererMixin",
-    "ItemInHandRendererMixin"
+    "ItemInHandRendererMixin",
+    "BeaconRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "mixins": [
+    "CryingObsidianRandomTickStateMixin"
+  ]
 }

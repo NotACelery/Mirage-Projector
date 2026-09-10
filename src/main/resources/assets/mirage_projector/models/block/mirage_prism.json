@@ -1,131 +1,365 @@
 {
-  "render_type": "minecraft:translucent",
-  "ambientocclusion": false,
+  "loader": "neoforge:composite",
   "textures": {
-    "obsidian": "minecraft:block/obsidian",
-    "glass": "minecraft:block/glass",
     "particle": "minecraft:block/obsidian"
   },
-  "elements": [
-    {
-      "from": [0, 0, 0],
-      "to": [16, 2, 16],
-      "faces": {
-        "north": {"texture": "#obsidian"},
-        "east": {"texture": "#obsidian"},
-        "south": {"texture": "#obsidian"},
-        "west": {"texture": "#obsidian"},
-        "up": {"texture": "#obsidian"},
-        "down": {"texture": "#obsidian"}
-      }
+  "children": {
+    "base": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:solid",
+      "textures": {
+        "base": "minecraft:block/obsidian",
+        "particle": "minecraft:block/obsidian"
+      },
+      "elements": [
+        {
+          "from": [
+            0,
+            0,
+            0
+          ],
+          "to": [
+            16,
+            2,
+            16
+          ],
+          "faces": {
+            "north": {
+              "texture": "#base"
+            },
+            "east": {
+              "texture": "#base"
+            },
+            "south": {
+              "texture": "#base"
+            },
+            "west": {
+              "texture": "#base"
+            },
+            "up": {
+              "texture": "#base"
+            },
+            "down": {
+              "texture": "#base"
+            }
+          }
+        },
+        {
+          "from": [
+            0,
+            2,
+            0
+          ],
+          "to": [
+            3,
+            5,
+            3
+          ],
+          "faces": {
+            "north": {
+              "texture": "#base"
+            },
+            "east": {
+              "texture": "#base"
+            },
+            "south": {
+              "texture": "#base"
+            },
+            "west": {
+              "texture": "#base"
+            },
+            "up": {
+              "texture": "#base"
+            },
+            "down": {
+              "texture": "#base"
+            }
+          }
+        },
+        {
+          "from": [
+            13,
+            2,
+            0
+          ],
+          "to": [
+            16,
+            5,
+            3
+          ],
+          "faces": {
+            "north": {
+              "texture": "#base"
+            },
+            "east": {
+              "texture": "#base"
+            },
+            "south": {
+              "texture": "#base"
+            },
+            "west": {
+              "texture": "#base"
+            },
+            "up": {
+              "texture": "#base"
+            },
+            "down": {
+              "texture": "#base"
+            }
+          }
+        },
+        {
+          "from": [
+            0,
+            2,
+            13
+          ],
+          "to": [
+            3,
+            5,
+            16
+          ],
+          "faces": {
+            "north": {
+              "texture": "#base"
+            },
+            "east": {
+              "texture": "#base"
+            },
+            "south": {
+              "texture": "#base"
+            },
+            "west": {
+              "texture": "#base"
+            },
+            "up": {
+              "texture": "#base"
+            },
+            "down": {
+              "texture": "#base"
+            }
+          }
+        },
+        {
+          "from": [
+            13,
+            2,
+            13
+          ],
+          "to": [
+            16,
+            5,
+            16
+          ],
+          "faces": {
+            "north": {
+              "texture": "#base"
+            },
+            "east": {
+              "texture": "#base"
+            },
+            "south": {
+              "texture": "#base"
+            },
+            "west": {
+              "texture": "#base"
+            },
+            "up": {
+              "texture": "#base"
+            },
+            "down": {
+              "texture": "#base"
+            }
+          }
+        }
+      ]
     },
-    {
-      "from": [1, 2, 1],
-      "to": [15, 3, 15],
-      "faces": {
-        "north": {"texture": "#glass"},
-        "east": {"texture": "#glass"},
-        "south": {"texture": "#glass"},
-        "west": {"texture": "#glass"},
-        "up": {"texture": "#glass"},
-        "down": {"texture": "#glass"}
-      }
+    "emitter": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:translucent",
+      "ambientocclusion": false,
+      "textures": {
+        "emitter": "mirage_projector:block/crying_obsidian_emitter",
+        "particle": "minecraft:block/obsidian"
+      },
+      "elements": [
+        {
+          "from": [
+            7,
+            2,
+            0
+          ],
+          "to": [
+            9,
+            3,
+            6
+          ],
+          "faces": {
+            "north": {
+              "texture": "#emitter"
+            },
+            "east": {
+              "texture": "#emitter"
+            },
+            "south": {
+              "texture": "#emitter"
+            },
+            "west": {
+              "texture": "#emitter"
+            },
+            "up": {
+              "texture": "#emitter"
+            },
+            "down": {
+              "texture": "#emitter"
+            }
+          }
+        },
+        {
+          "from": [
+            7,
+            2,
+            10
+          ],
+          "to": [
+            9,
+            3,
+            16
+          ],
+          "faces": {
+            "north": {
+              "texture": "#emitter"
+            },
+            "east": {
+              "texture": "#emitter"
+            },
+            "south": {
+              "texture": "#emitter"
+            },
+            "west": {
+              "texture": "#emitter"
+            },
+            "up": {
+              "texture": "#emitter"
+            },
+            "down": {
+              "texture": "#emitter"
+            }
+          }
+        },
+        {
+          "from": [
+            0,
+            2,
+            7
+          ],
+          "to": [
+            6,
+            3,
+            9
+          ],
+          "faces": {
+            "north": {
+              "texture": "#emitter"
+            },
+            "east": {
+              "texture": "#emitter"
+            },
+            "south": {
+              "texture": "#emitter"
+            },
+            "west": {
+              "texture": "#emitter"
+            },
+            "up": {
+              "texture": "#emitter"
+            },
+            "down": {
+              "texture": "#emitter"
+            }
+          }
+        },
+        {
+          "from": [
+            10,
+            2,
+            7
+          ],
+          "to": [
+            16,
+            3,
+            9
+          ],
+          "faces": {
+            "north": {
+              "texture": "#emitter"
+            },
+            "east": {
+              "texture": "#emitter"
+            },
+            "south": {
+              "texture": "#emitter"
+            },
+            "west": {
+              "texture": "#emitter"
+            },
+            "up": {
+              "texture": "#emitter"
+            },
+            "down": {
+              "texture": "#emitter"
+            }
+          }
+        }
+      ]
     },
-    {
-      "from": [0, 2, 0],
-      "to": [3, 5, 3],
-      "faces": {
-        "north": {"texture": "#obsidian"},
-        "east": {"texture": "#obsidian"},
-        "south": {"texture": "#obsidian"},
-        "west": {"texture": "#obsidian"},
-        "up": {"texture": "#obsidian"},
-        "down": {"texture": "#obsidian"}
-      }
-    },
-    {
-      "from": [13, 2, 0],
-      "to": [16, 5, 3],
-      "faces": {
-        "north": {"texture": "#obsidian"},
-        "east": {"texture": "#obsidian"},
-        "south": {"texture": "#obsidian"},
-        "west": {"texture": "#obsidian"},
-        "up": {"texture": "#obsidian"},
-        "down": {"texture": "#obsidian"}
-      }
-    },
-    {
-      "from": [0, 2, 13],
-      "to": [3, 5, 16],
-      "faces": {
-        "north": {"texture": "#obsidian"},
-        "east": {"texture": "#obsidian"},
-        "south": {"texture": "#obsidian"},
-        "west": {"texture": "#obsidian"},
-        "up": {"texture": "#obsidian"},
-        "down": {"texture": "#obsidian"}
-      }
-    },
-    {
-      "from": [13, 2, 13],
-      "to": [16, 5, 16],
-      "faces": {
-        "north": {"texture": "#obsidian"},
-        "east": {"texture": "#obsidian"},
-        "south": {"texture": "#obsidian"},
-        "west": {"texture": "#obsidian"},
-        "up": {"texture": "#obsidian"},
-        "down": {"texture": "#obsidian"}
-      }
-    },
-    {
-      "from": [7, 3, 0],
-      "to": [9, 4, 5],
-      "faces": {
-        "north": {"texture": "#glass"},
-        "east": {"texture": "#glass"},
-        "south": {"texture": "#glass"},
-        "west": {"texture": "#glass"},
-        "up": {"texture": "#glass"},
-        "down": {"texture": "#glass"}
-      }
-    },
-    {
-      "from": [7, 3, 11],
-      "to": [9, 4, 16],
-      "faces": {
-        "north": {"texture": "#glass"},
-        "east": {"texture": "#glass"},
-        "south": {"texture": "#glass"},
-        "west": {"texture": "#glass"},
-        "up": {"texture": "#glass"},
-        "down": {"texture": "#glass"}
-      }
-    },
-    {
-      "from": [0, 3, 7],
-      "to": [5, 4, 9],
-      "faces": {
-        "north": {"texture": "#glass"},
-        "east": {"texture": "#glass"},
-        "south": {"texture": "#glass"},
-        "west": {"texture": "#glass"},
-        "up": {"texture": "#glass"},
-        "down": {"texture": "#glass"}
-      }
-    },
-    {
-      "from": [11, 3, 7],
-      "to": [16, 4, 9],
-      "faces": {
-        "north": {"texture": "#glass"},
-        "east": {"texture": "#glass"},
-        "south": {"texture": "#glass"},
-        "west": {"texture": "#glass"},
-        "up": {"texture": "#glass"},
-        "down": {"texture": "#glass"}
-      }
+    "chamber": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:translucent",
+      "ambientocclusion": false,
+      "textures": {
+        "glass": "mirage_projector:block/crying_obsidian_chamber",
+        "particle": "mirage_projector:block/crying_obsidian_chamber"
+      },
+      "elements": [
+        {
+          "from": [
+            6,
+            3,
+            6
+          ],
+          "to": [
+            10,
+            7,
+            10
+          ],
+          "faces": {
+            "north": {
+              "texture": "#glass"
+            },
+            "east": {
+              "texture": "#glass"
+            },
+            "south": {
+              "texture": "#glass"
+            },
+            "west": {
+              "texture": "#glass"
+            },
+            "up": {
+              "texture": "#glass"
+            },
+            "down": {
+              "texture": "#glass"
+            }
+          }
+        }
+      ]
     }
+  },
+  "item_render_order": [
+    "base",
+    "emitter",
+    "chamber"
   ]
 }

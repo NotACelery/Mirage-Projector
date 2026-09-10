@@ -14,12 +14,12 @@ package celerbi.mirageprojector;
  * materially more efficient for large projections.</p>
  */
 public enum ProjectionChassisProfile {
-    COMPACT("Compact", Geometry.PLANE, 10, 10, 32, 4, 1.00F, 5, 3.5F, 2, 3, 2),
-    DISPLAY("Display", Geometry.PLANE, 32, 32, 48, 12, 1.50F, 6, 4.5F, 4, 3, 4),
-    WIDE("Wide", Geometry.PLANE, 80, 32, 64, 12, 2.00F, 6, 4.5F, 4, 3, 4),
-    TALL("Tall", Geometry.PLANE, 32, 80, 96, 16, 2.00F, 8, 5.5F, 4, 5, 4),
-    FIELD("Field", Geometry.PLANE, 128, 128, 144, 24, 4.00F, 7, 5.0F, 4, 4, 4),
-    PRISM("Prism", Geometry.PRISM, 48, 48, 96, 12, 2.00F, 7, 5.0F, 4, 4, 4);
+    COMPACT("Compact", Geometry.PLANE, 10, 10, 32, 4, 1.00F, 5, 3.0F),
+    DISPLAY("Display", Geometry.PLANE, 32, 32, 48, 12, 1.50F, 6, 4.0F),
+    WIDE("Wide", Geometry.PLANE, 80, 32, 64, 12, 2.00F, 6, 4.0F),
+    TALL("Tall", Geometry.PLANE, 32, 80, 96, 16, 2.00F, 8, 6.0F),
+    FIELD("Field", Geometry.PLANE, 128, 128, 144, 24, 4.00F, 7, 5.0F),
+    PRISM("Prism", Geometry.PRISM, 48, 48, 96, 12, 2.00F, 7, 5.0F);
 
     private final String displayName;
     private final Geometry geometry;
@@ -29,11 +29,8 @@ public enum ProjectionChassisProfile {
     private final int nominalFloatPixels;
     private final float powerMultiplier;
     private final int physicalTopPixels;
-    // Temporary dimensions for the dev.40 material-block Core visual. Remove when Core Chamber lands.
-    private final float legacyCoreCenterYPixels;
-    private final int legacyCoreWidthPixels;
-    private final int legacyCoreHeightPixels;
-    private final int legacyCoreDepthPixels;
+    /** Center Y of the universal 4x4x4 Core Chamber, in model pixels above the block floor. */
+    private final float coreChamberCenterYPixels;
 
     ProjectionChassisProfile(
             String displayName,
@@ -44,10 +41,7 @@ public enum ProjectionChassisProfile {
             int nominalFloatPixels,
             float powerMultiplier,
             int physicalTopPixels,
-            float legacyCoreCenterYPixels,
-            int legacyCoreWidthPixels,
-            int legacyCoreHeightPixels,
-            int legacyCoreDepthPixels
+            float coreChamberCenterYPixels
     ) {
         this.displayName = displayName;
         this.geometry = geometry;
@@ -57,10 +51,7 @@ public enum ProjectionChassisProfile {
         this.nominalFloatPixels = nominalFloatPixels;
         this.powerMultiplier = powerMultiplier;
         this.physicalTopPixels = physicalTopPixels;
-        this.legacyCoreCenterYPixels = legacyCoreCenterYPixels;
-        this.legacyCoreWidthPixels = legacyCoreWidthPixels;
-        this.legacyCoreHeightPixels = legacyCoreHeightPixels;
-        this.legacyCoreDepthPixels = legacyCoreDepthPixels;
+        this.coreChamberCenterYPixels = coreChamberCenterYPixels;
     }
 
     public String displayName() {
@@ -124,20 +115,9 @@ public enum ProjectionChassisProfile {
         return physicalTopPixels;
     }
 
-    public float legacyCoreCenterYPixels() {
-        return legacyCoreCenterYPixels;
-    }
-
-    public int legacyCoreWidthPixels() {
-        return legacyCoreWidthPixels;
-    }
-
-    public int legacyCoreHeightPixels() {
-        return legacyCoreHeightPixels;
-    }
-
-    public int legacyCoreDepthPixels() {
-        return legacyCoreDepthPixels;
+    /** Center of the universal 4x4x4 glass Core Chamber. */
+    public float coreChamberCenterYPixels() {
+        return coreChamberCenterYPixels;
     }
 
     public enum Geometry {

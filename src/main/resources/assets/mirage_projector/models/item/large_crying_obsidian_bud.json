@@ -1,0 +1,15 @@
+{
+  "parent": "mirage_projector:item/crying_obsidian_bud",
+  "textures": {
+    "layer0": "mirage_projector:block/large_crying_obsidian_bud"
+  },
+  "display": {
+    "fixed": {
+      "translation": [
+        0,
+        4,
+        0
+      ]
+    }
+  }
+}

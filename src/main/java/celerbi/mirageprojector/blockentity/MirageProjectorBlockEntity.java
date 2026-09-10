@@ -1,5 +1,6 @@
 package celerbi.mirageprojector.blockentity;
 
+import celerbi.mirageprojector.ProjectorStateTransfer;
 import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
@@ -184,6 +185,16 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             return ProjectionCoreProfile.isCoreItem(stack);
         }
     };
+
+
+    /**
+     * Transient one-shot drop prepared immediately before an ordinary Survival
+     * player breaks the projector. onRemove uses its presence to avoid ejecting
+     * physical staging/Core contents separately, because they already live inside
+     * this packed projector ItemStack. Never serialized to world NBT.
+     */
+    @Nullable
+    private ItemStack pendingPackedPlayerBreakDrop;
 
     public MirageProjectorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MIRAGE_PROJECTOR.get(), pos, state);
@@ -620,6 +631,24 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             }
         });
         setChangedAndSync();
+    }
+
+    public void preparePackedPlayerBreak(HolderLookup.Provider registries) {
+        pendingPackedPlayerBreakDrop = ProjectorStateTransfer.packPlacedProjector(this, registries);
+    }
+
+    public boolean hasPendingPackedPlayerBreakDrop() {
+        return pendingPackedPlayerBreakDrop != null && !pendingPackedPlayerBreakDrop.isEmpty();
+    }
+
+    public ItemStack takePendingPackedPlayerBreakDrop() {
+        if (!hasPendingPackedPlayerBreakDrop()) {
+            pendingPackedPlayerBreakDrop = null;
+            return ItemStack.EMPTY;
+        }
+        ItemStack result = pendingPackedPlayerBreakDrop;
+        pendingPackedPlayerBreakDrop = null;
+        return result;
     }
 
     private void setChangedAndSync() {

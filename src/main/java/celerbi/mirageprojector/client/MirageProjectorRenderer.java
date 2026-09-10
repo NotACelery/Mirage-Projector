@@ -2,7 +2,9 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.ProjectionChassisProfile;
+import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.ProjectionCoreProfile;
+import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
 import celerbi.mirageprojector.ProjectionImageSizing;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
@@ -87,9 +89,9 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     ) {
         ProjectionSettings settings = blockEntity.settings();
         ProjectionCoreProfile core = blockEntity.coreProfile();
-        renderCore(blockEntity, core, poseStack, bufferSource, packedLight);
-
         double gameTime = blockEntity.getLevel() == null ? 0.0D : blockEntity.getLevel().getGameTime() + partialTick;
+        renderCoreItem(blockEntity, poseStack, bufferSource, gameTime);
+
         float angle = projectionBaseAngle(blockEntity, settings) + rotationAngle(settings, gameTime);
         float bob = bobOffset(settings, gameTime);
         int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
@@ -603,35 +605,72 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         poseStack.popPose();
     }
 
-    private static void renderCore(
+    /**
+     * dev.42 Core Chamber contract: the chamber itself is part of every chassis model;
+     * the BER renders only the real installed ItemStack inside it. This deliberately
+     * replaces the old raw-material -> material-block substitution, which looked wrong
+     * (especially Netherite) and interacted poorly with the old translucent plates.
+     */
+    private static void renderCoreItem(
             MirageProjectorBlockEntity blockEntity,
-            ProjectionCoreProfile core,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
-            int packedLight
+            double gameTime
     ) {
-        if (core == null || !core.present()) {
+        ItemStack coreStack = blockEntity.coreStack();
+        if (coreStack.isEmpty()) {
             return;
         }
 
         ProjectionChassisProfile chassis = blockEntity.chassisProfile();
+        long positionSeed = blockEntity.getBlockPos().asLong();
+        float rotation = (float) ((gameTime * 3.0D + Math.floorMod(positionSeed, 360L)) % 360.0D);
+        float bobPixels = (float) (Math.sin(gameTime * 0.10D + Math.floorMod(positionSeed, 97L)) * 0.20D);
+
         poseStack.pushPose();
-        poseStack.translate(0.5D, chassis.legacyCoreCenterYPixels() * PIXEL, 0.5D);
-        poseStack.scale(
-                chassis.legacyCoreWidthPixels() * PIXEL,
-                chassis.legacyCoreHeightPixels() * PIXEL,
-                chassis.legacyCoreDepthPixels() * PIXEL
+        poseStack.translate(
+                0.5D,
+                (chassis.coreChamberCenterYPixels() + bobPixels) * PIXEL,
+                0.5D
         );
+        // dev.47 visual contract: the installed Core must behave like a small
+        // holographic object inside the chamber, not a camera-facing billboard.
+        // Render the real stack in a fixed/world-like transform, add a slight
+        // tilt so flat items never read as a portal slice, and spin clockwise.
+        poseStack.mulPose(Axis.YP.rotationDegrees(-rotation));
+        poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
+        poseStack.scale(0.32F, 0.32F, 0.32F);
         Minecraft.getInstance().getItemRenderer().renderStatic(
-                core.legacyBlockVisualStack(),
-                ItemDisplayContext.NONE,
-                packedLight,
+                coreStack,
+                ItemDisplayContext.FIXED,
+                LightTexture.FULL_BRIGHT,
                 OverlayTexture.NO_OVERLAY,
                 poseStack,
                 bufferSource,
                 blockEntity.getLevel(),
-                0
+                (int) positionSeed
         );
+
+        // A loaded Core Booster is one stateful item ID. Its baked item model
+        // supplies the nested shell, while the stored raw Core is rendered in
+        // the center so the projector chamber still communicates its material.
+        CoreBoosterMaterial boosterMaterial = CoreBoosterBlockEntity.materialFromStack(coreStack);
+        if (boosterMaterial.present()) {
+            ItemStack boostedCore = boosterMaterial.centerStack();
+            poseStack.pushPose();
+            poseStack.scale(0.42F, 0.42F, 0.42F);
+            Minecraft.getInstance().getItemRenderer().renderStatic(
+                    boostedCore,
+                    ItemDisplayContext.FIXED,
+                    LightTexture.FULL_BRIGHT,
+                    OverlayTexture.NO_OVERLAY,
+                    poseStack,
+                    bufferSource,
+                    blockEntity.getLevel(),
+                    (int) (positionSeed ^ 0x5A17L)
+            );
+            poseStack.popPose();
+        }
         poseStack.popPose();
     }
 

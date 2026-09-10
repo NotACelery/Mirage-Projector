@@ -39,51 +39,89 @@ The loaded Core Booster relay branch is no longer waitlisted. dev.60 implements 
 
 The downstream useful-lighting consequences of all five relay identities are implemented by the dev.69 reflected-light contract below; Quartz/Radiance remains the dominant static range amplifier.
 
-## Implemented/stabilized in dev.67 — powered Crying Obsidian optics and lighting
+## Implemented/stabilized in dev.67–73 — Crying Obsidian optics and physical-light experiments
 
-dev.67 keeps Small/Medium/Large buds as zero-block-light stages and restores their missing residual-ray behavior. Only an energized Mature Cluster becomes a world-light source and drives the Mirage-owned half-decay auxiliary field. Its baseline decay target is approximately `5,5,4,4,3,3...`, doubling useful persistence without exceeding vanilla light level 15. dev.69 replaces the old width-derived relay tier with material-specific reflection: Quartz reinforces radiance/range, Diamond focuses axial reach, Glass adds bounded diagonal diffusion, Amethyst drives resonance and Netherite inversion. Nodes remain invisible, replaceable, non-item, occlusion-aware and self-cleaning.
+The optical behavior remains retained: Small/Medium/Large are zero-block-light attenuation stages, Mature is the full Beacon stop/world-light stage, Core Booster activation begins at `8.5/16`, bud continuation begins at the stage silhouette heights, and residual-ray behavior preserves the reflected material identities.
 
-The optical path is also stabilized: Core Booster effects begin at the internal-core plane `8.5/16`; Small/Medium/Large continuation resumes at `4.5/16`, `6.5/16`, `8.5/16`; Mature fully terminates the vertical beam; residual bursts ignore the source crystal's own collider; and the custom beam quad topology now matches vanilla to avoid accidental diagonal N/X faces.
+The physical `crying_light_node` experiments from dev.65–73 are no longer the forward architecture. Live numbered-floor and wall QA proved that every relay becomes an independent omnidirectional vanilla emitter after placement, which can create cross-shaped overfill, wall leakage and an unreliable final half-decay field even if candidate placement itself is source-occlusion-aware. dev.74 retains those nodes only as temporary visible-light scaffolding while the replacement runs in parallel.
 
-External dynamic-light providers remain optional ecosystem compatibility rather than a requirement for Mirage. A global custom light-engine rewrite remains explicitly rejected.
+## Implemented in dev.74 — Mirage Light Engine foundation
 
-## Backlog placeholders — advanced light profiles
+dev.74 adds a feature-independent shadow-light subsystem:
 
-dev.66 reserves three non-runtime lighting profiles behind the reusable `LightProfile` contract:
+- source/profile/runtime contracts;
+- fixed-point scalar energy with exact half-decay math;
+- causal six-neighbour voxel propagation;
+- vanilla edge-occlusion reuse;
+- primitive/bucketed solver work queues;
+- sparse 16³ per-source sections;
+- per-Level overlapping-source max aggregation;
+- debug commands for virtual-vs-vanilla inspection;
+- same-tick geometry rebuild integration for Mature sources;
+- future shape/RGB/dynamic-source reservation without claiming runtime support.
 
-- `CONCENTRATE`: faster useful falloff than vanilla. Activation requires suppressing/replacing the source block's normal omnidirectional emission; weaker additive nodes cannot subtract already-propagated light.
-- `DIRECTIONAL_SPOT`: static cone lighting using a direction vector and cone angle. Runtime candidate generation must be bounded and obstruction-aware rather than scanning an entire radius cube.
-- `ROTATING_DIRECTIONAL_SPOT`: dynamic directional field with a rotation period. A future implementation must update only node-set deltas at a bounded server cadence rather than clear/recreate the full field every visual frame.
+This is intentionally shadow-only. Visible Simple Light Level output remains the dev.73 physical backend in dev.74.
 
-These are architectural placeholders, not scheduled release promises. `VANILLA` and `EXTEND` are the only modes currently allowed to affect world lighting. See `LIGHT-PROFILE-FOUNDATION.md`.
+## P0 — dev.75 Cluster Virtual Light Backend
 
-## P1 — per-component Equipment visibility
+Before further Cluster tuning or mobile light work, make the dev.74 virtual field authoritative safely. Required work:
 
-Add render-only visibility toggles without deleting stored snapshots.
+- integrate final virtual contribution into client rendering/light lookup **without** making every virtual voxel a new vanilla emission source;
+- define/synchronize server gameplay-light semantics where relevant;
+- remove Mature runtime dependence on physical `crying_light_node`;
+- migrate/clean old relay blocks without touching unrelated operator/mod lights;
+- add automatic chunk-load invalidation/synchronization;
+- preserve overlap removal/downgrade behavior;
+- rerun exact numbered-floor `15→1`, full-wall, finite-wall corner-wrap, Booster and performance QA;
+- profile several overlapping radius-30/38 fields before optimizing partial invalidation.
 
-Humanoid:
+Do not reintroduce source-to-target relay lattices as the primary backend.
 
-- Head;
-- Chest;
-- Legs;
-- Feet;
-- Main Hand;
-- Off Hand.
+## P1 — dev.76 dynamic/mobile light source foundation
 
-Horse:
+After static virtual light is stable, separate `STATIC_WORLD` from `DYNAMIC_VISUAL` consumption so moving projectors do not rebuild server block-light state every visual frame. Initial target is a controlled moving test source, not a full portable-projector feature. This layer is intended to support later portable projectors, moving holograms and projected-map/display illumination.
 
-- Saddle;
-- Body Armor.
+## Backlog — advanced Mirage light profiles
 
-Turning a channel off must only suppress its renderer. Re-enabling must restore the already stored virtual snapshot immediately. It must not return/delete/recapture the equipment.
+Reserved profiles/shapes include:
+
+- `CONCENTRATE`;
+- `DIRECTIONAL_SPOT`;
+- `ROTATING_DIRECTIONAL_SPOT`;
+- directional cone;
+- rectangular frustum;
+- plane/projected-surface emission;
+- RGB-preserving visual lighting.
+
+These should reuse the dev.74 source/profile/storage architecture rather than create feature-specific physical emitters.
+
+## Implemented in dev.71 — per-component Equipment visibility
+
+Humanoid Head/Chest/Legs/Feet/Main Hand/Off Hand and Horse Saddle/Body Armor now expose persistent render-only visibility toggles in Entity Workspace. Hidden channels keep their virtual snapshots and snapshot UUIDs intact, do not return physical items, remain part of saved/state-transferred projector data, and reappear immediately when shown again. Clearing a snapshot resets that channel visibility to the default visible state. The renderer and 3D preview share the same visibility-aware reconstruction path.
+
+Network protocol is 19 because `EntityWorkspaceActionPayload.Action` gains a new appended action and mixed dev.70/dev.71 peers must not silently disagree about its ordinal.
+
+## Implemented in dev.72 — Entity envelope/frustum/nameplate hardening
+
+dev.72 closes the generic first-pass bounds/culling work without introducing quality-reducing LOD:
+
+- Entity bounds now reserve conservative extra width/height for visible Humanoid hand/chest/head equipment and Horse Body Armor in addition to species/pose dimensions;
+- preview fitting and clearance inherit the same bounds because they share `EntityProjectionBounds`;
+- projected nameplates are restored above `Lift + Float + projected height` instead of sitting near the chassis, and inherit Tint/Ghost opacity;
+- the BER render AABB now unions the physical machine with the full displaced projection plus nameplate footprint;
+- `shouldRenderOffScreen` is no longer forced true, allowing vanilla frustum culling to skip giant projectors whose complete envelope cannot contribute to the current frame.
+
+## Implemented in dev.73 — explicit Mature half-decay relays
+
+Simple Light Level QA on the accumulated dev.72 line showed that the sparse odd-distance relay lattice produced the intended doubled persistence only around levels 14–11; level 15 and the lower 10–1 tail fell too quickly. dev.73 removes that interpolation assumption. Every unobstructed axial air cell now receives the exact profile target, yielding `15,15,14,14,...,1,1` over 30 blocks without a Booster. Quartz/Diamond conceptual reinforcement extends the saturated plateau/tail while remaining capped to real light level 15. dev.70 branch occlusion and same-tick invalidation are preserved.
 
 ## P2 — renderer/entity hardening
 
 - targeted compatibility adapters for backpacks/Curios/accessories/cosmetic armor only where the generic Ghost buffer path cannot cover a mod safely;
-- renderer-specific/species-specific bounds and clearance refinements;
-- performance/frustum/LOD review for giant overdriven projections;
-- stress overlapping translucent projected entities;
-- verify offline/frozen Player skin behavior under reconnect/cache conditions.
+- renderer-specific/species-specific bounds refinements where a concrete renderer exceeds the conservative generic envelope;
+- stress overlapping translucent projected entities and verify deferred-sort/depth stability;
+- verify offline/frozen Player skin behavior under reconnect/cache conditions;
+- profile giant overdriven projections after frustum hardening before considering any actual LOD policy.
 
 ## P2 — mounted/composite entities
 
@@ -159,3 +197,13 @@ Retain only as a design concept, not scheduled work. Possible identity: an inten
 - Glass/Quartz/Amethyst/Diamond/Netherite now retain Diffusion/Radiance/Resonance/Focus/Inversion identities after Crying Obsidian reflection.
 - Mature source refresh resolves its Beacon relay once per refresh rather than once per candidate node.
 - Requires Windows compile plus in-game occlusion/mixture QA before build-clean acceptance.
+
+
+## dev.70 closed occlusion/refresh items
+
+- Terrain place/break changes around indexed active Mature sources rebuild at the end of the same server tick.
+- Opaque blockers hard-stop downstream axial relay placement; stale nodes reconcile immediately.
+- dev.69 long Glass face-diagonal world-light relays are removed because their omnidirectional vanilla emission leaked behind walls.
+- Legacy dev.69 diagonal nodes are swept on first dev.70 source refresh/removal.
+- Glass still affects residual reflected-ray geometry; a future static Diffusion topology must preserve occlusion before it can return.
+- Windows build and in-game wall/unblock/overlap QA remain open before build-clean acceptance.

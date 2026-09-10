@@ -442,6 +442,15 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         setChangedAndSync();
     }
 
+    public boolean toggleProjectedEntityEquipmentVisibility(VirtualEquipmentSnapshots.Channel channel) {
+        if (channel == null) {
+            return false;
+        }
+        boolean visible = entityProjectionState.toggleEquipmentVisible(channel);
+        setChangedAndSync();
+        return visible;
+    }
+
     public int captureEquippedHumanoidLoadout(Player player) {
         int captured = entityProjectionState.captureEquippedHumanoidLoadout(player);
         setChangedAndSync();

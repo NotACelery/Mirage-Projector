@@ -2,7 +2,7 @@
 
 Mirage Projector is a NeoForge 1.21.1 mod by **Celerbi** for configurable decorative holographic projections. The current development line supports images/GIFs, items, banners and frozen entity snapshots across six state-preserving projector chassis.
 
-**Current source line:** `0.1.0-dev.69` — occlusion-aware Mature Cluster reflected light plus material-specific Core Booster reflection over the dev.68 interaction/teardown baseline.
+**Current source line:** `0.1.0-dev.74` — Mirage Light Engine foundation running as a parallel shadow solver over the dev.73 physical Mature-light backend.
 
 Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in `docs/CURRENT-IMPLEMENTATION.md`; genuinely pending work lives only in `docs/ROADMAP.md`.
 
@@ -13,7 +13,7 @@ Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in 
 - Java 21
 - Gradle 9.2.1
 - Parchment 2024.11.17
-- Network protocol 18
+- Network protocol 19
 
 ## Projector chassis
 
@@ -58,7 +58,7 @@ Banner appearance is copied virtually. The real banner is never consumed by the 
 
 ### Entity
 
-Entity Scan Cards capture frozen visual data rather than keeping a live ticking entity. Current support includes generic living entities, Players, Humanoid equipment, bodyless equipment rigs, Horse Saddle/Body Armor, custom names and pose presets. Passenger/vehicle composite scans remain intentionally rejected until a dedicated format exists.
+Entity Scan Cards capture frozen visual data rather than keeping a live ticking entity. Current support includes generic living entities, Players, Humanoid equipment, bodyless equipment rigs, Horse Saddle/Body Armor, per-channel render visibility, custom names and pose presets. Hiding equipment suppresses only rendering; the virtual snapshot remains stored and can be restored immediately. Passenger/vehicle composite scans remain intentionally rejected until a dedicated format exists.
 
 ## Presentation controls
 
@@ -97,14 +97,20 @@ Implemented systems include:
 - Amethyst-family visual geometry recolored into the Crying Obsidian palette;
 - exact stage harvesting with Silk Touch preservation and no Fortune multiplier;
 - Beacon attenuation at roughly 75% / 50% / 25% / 0%;
-- energized mature-cluster light and residual purple ray behavior;
+- energized Mature Cluster lighting and residual purple ray behavior;
 - Obsidian Spike trap.
 
-Loaded Core Boosters relay active Beacon columns. Glass provides Diffusion, Quartz Radiance, Amethyst Resonance, Diamond Focus and Netherite Inversion. Up to four loaded Boosters contribute; extra Boosters remain physical but do not add further relay modifiers. Only an energized Mature Crying Obsidian Cluster emits the slower-decay world-light field; younger energized stages remain optical-only. dev.69 preserves the six axial half-decay branches, adds bounded Glass-driven face-diagonal diffusion, makes Quartz the dominant reflected-range amplifier, lets Diamond trade diffusion for focused axial reach, and keeps Amethyst/Netherite as reflected-ray dynamics rather than generic extra range. Fully opaque geometry terminates downstream node placement and partial light blockers add attenuation before Minecraft's normal block-light/AO propagation handles the final local shading. The Core Booster optical modifier begins at `8.5/16` inside the Booster, and bud beam continuation begins at stage-specific silhouette heights. dev.66's reusable `LightProfile` contract remains the architectural base for future concentrated/static-directional/rotating-directional profiles.
+Loaded Core Boosters relay active Beacon columns. Glass provides Diffusion, Quartz Radiance, Amethyst Resonance, Diamond Focus and Netherite Inversion, with at most four effective Boosters. Only an energized Mature Cluster is a static world-light source.
+
+dev.74 introduces the forward **Mirage Light Engine** architecture after live QA proved that physical auxiliary emitters cannot preserve source causality: each accepted relay becomes an independent omnidirectional vanilla source and can refill hidden regions. The new shadow solver propagates fixed-point energy voxel-to-voxel through vanilla-compatible edge occlusion and stores final contributions sparsely by 16³ section. Its no-Booster mathematical target is exactly `15,15,14,14,...,1,1`.
+
+For safety, dev.74 does **not** switch visible/gameplay lighting yet. The dev.73 `crying_light_node` backend remains active while the virtual field is calculated in parallel and inspected with `/miragelight`. dev.75 is the planned authority handoff after wall/decay/performance QA.
 
 ## Current stabilization point
 
-The immediate P0 issue remains semi-transparent Entity composition. dev.62 restored the late world transform and projection-local depth handling. Live dev.63 QA proved that normalizing alpha across Create's two synthetic diving-armor surfaces was insufficient because the projected body remained another translucent surface underneath. dev.64 therefore treats the Netherite Backtank chestpiece as one projected outer surface during Ghost rendering: the synthetic inner diving layer is discarded only while transparency is active, the outer diving layer uses the requested Ghost opacity with late depth stabilization, and the separate tank geometry remains untouched. Windows build/in-game acceptance is still required.
+The lighting branch is now an architectural migration rather than another relay tweak. dev.74 must prove the virtual solver itself before it is allowed to replace world light in dev.75. Entity P2 hardening from dev.72 and equipment visibility from dev.71 remain accumulated and must not regress while this work proceeds.
+
+For dev.74 light QA, Simple Light Level still shows the legacy physical result. Use `/miragelight axis`, `/miragelight probe`, `/miragelight stats` and `/miragelight rebuild` to inspect the shadow field.
 
 ## Documentation
 
@@ -129,16 +135,18 @@ Current active documents:
 - `docs/DEV64-CREATE-SYNTHETIC-CHEST-SINGLE-SURFACE.md`
 - `docs/DEV65-POWERED-CRYING-LIGHT-FIELD.md`
 - `docs/LIGHT-PROFILE-FOUNDATION.md`
+- `docs/DEV74-MIRAGE-LIGHT-ENGINE-FOUNDATION.md`
 - `docs/CHANGELOG.md`
 - `docs/DEVELOPMENT.md`
 - `docs/THIRD_PARTY_NOTICES.md`
 - `docs/NEXT-CHAT-HANDOFF-dev65.md`
 - `docs/NEXT-CHAT-HANDOFF-dev66.md`
+- `docs/NEXT-CHAT-HANDOFF-dev74.md`
 
 Superseded documentation is retained under `docs/archive/pre-dev59/` and `docs/archive/post-dev59/` for historical/migration archaeology only. It is not current authority.
 
 ## Build
 
-On Windows, run `build.bat` with Java 21 available. dev.69 is a source candidate until Windows compilation and in-game occlusion/reflection QA pass. Live QA has already confirmed the Create Netherite Backtank can fade completely under Ghost; the new light-field work must not regress that renderer path.
+On Windows, run `build.bat` with Java 21 available. dev.74 is a source candidate until Windows compilation and shadow-solver QA pass. The virtual layer intentionally does not alter visible Minecraft lighting yet; dev.75 will perform that handoff only after the foundation is measured.
 
 Release/runtime caches and generated directories are intentionally excluded from source snapshots.

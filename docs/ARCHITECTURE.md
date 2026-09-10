@@ -14,6 +14,7 @@ Owns the persistent projector state:
 - frozen Entity projection state;
 - incoming physical Entity-equipment staging;
 - virtual projected equipment;
+- per-channel Entity equipment render visibility, stored separately from snapshots;
 - migration fields required by older development saves.
 
 ### `ProjectionSettings`
@@ -22,15 +23,21 @@ Owns shared presentation and Image-facing state. Wire/NBT input is sanitized bef
 
 ### `EntityProjectionState`
 
-Owns frozen Entity identity/render state and pose/equipment projection state independently from a live source entity.
+Owns frozen Entity identity/render state and pose/equipment projection state independently from a live source entity. dev.71 keeps equipment visibility as presentation metadata inside this state while `VirtualEquipmentSnapshots` remains the authoritative snapshot store.
 
 ### `CoreBoosterBlockEntity`
 
 Owns the loaded Core Booster material for item persistence/migration while `CoreBoosterBlock.MATERIAL` is the placed-block visual authority.
 
-### Light profile layer
+### Mirage Light Engine
 
-`LightProfile` and `LightDecayMode` define a reusable world-light profile contract. The active dev.69 Crying Obsidian runtime maps the Mature Cluster to an `EXTEND`-style reflected field while keeping Mirage-owned node lifecycle, overlap resolution and source causality authoritative. Reflected relay semantics are material-specific instead of being inferred from generic Beacon width: Glass = diffusion coverage, Quartz = radiance, Diamond = focus, Amethyst = resonance and Netherite = inversion. `CONCENTRATE`, `DIRECTIONAL_SPOT` and `ROTATING_DIRECTIONAL_SPOT` remain reserved schema placeholders only. `LightProfileMath` contains pure future-facing falloff/cone calculations and performs no world mutation.
+The forward light architecture now lives under `celerbi.mirageprojector.light.engine`. `MirageLightSource` describes an emitter independently of the feature that owns it; `MirageLightProfile` describes fixed-point decay/shape/direction/RGB metadata; `MirageLightSolver` computes one causally connected voxel field; `MirageLightSection` stores fixed-point per-source energy sparsely by 16³ section; and `MirageLightWorld` aggregates overlapping fields by maximum visible contribution.
+
+The solver walks six adjacent voxels and delegates edge obstruction/opacity to vanilla `LightEngine.getLightBlockInto(...)`. It does not place blocks and does not turn solved voxels into new vanilla emitters. This is the architectural correction required by live dev.70–73 QA, where physical auxiliary emitters lost source causality after placement and refilled hidden regions.
+
+dev.74 runs this system as a server-side **shadow layer** only. The Mature Cluster registers a `STATIC_WORLD` source in parallel, while the dev.73 physical `crying_light_node` backend remains visible/gameplay authority until dev.75. Terrain edits use the existing end-of-tick coalesced source invalidation and force shadow re-solves. Unchanged periodic source refreshes reuse the cached field.
+
+The old `LightProfile`, `LightDecayMode` and `LightProfileMath` remain compatibility/design inputs while callers migrate. `CONCENTRATE`, `DIRECTIONAL_SPOT` and `ROTATING_DIRECTIONAL_SPOT`, plus new directional/frustum/plane shapes, are reserved rather than runtime-enabled in dev.74. `DYNAMIC_VISUAL` is reserved for portable/moving projectors and must not imply server block-light rebuilds every render tick.
 
 ## Renderer families
 
@@ -38,10 +45,10 @@ Do not collapse all source types into one quad renderer.
 
 - Image/Banner are plane/cardinal-face geometry.
 - Item is a real item/block model.
-- Entity is a reconstructed render-only client entity plus equipment layers.
+- Entity is a reconstructed render-only client entity plus visibility-filtered equipment layers.
 - Core/Booster centers use real item models.
 
-`MirageProjectorRenderer` is still the largest rendering coordinator. It delegates/supports source-specific helpers but remains a future refactor hotspot.
+`MirageProjectorRenderer` is still the largest rendering coordinator. It delegates/supports source-specific helpers but remains a future refactor hotspot. `EntityProjectionBounds` is the shared conservative Entity envelope authority for preview/clearance/world culling. The BER render AABB must include both the chassis and displaced projection/nameplate; dev.72 therefore allows normal vanilla frustum culling instead of forcing off-screen submission.
 
 ## Entity render isolation
 

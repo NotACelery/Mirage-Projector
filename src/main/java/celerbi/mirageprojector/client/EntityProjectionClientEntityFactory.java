@@ -113,7 +113,7 @@ public final class EntityProjectionClientEntityFactory {
     }
 
     public static LivingEntity createBodylessHumanoid(EntityProjectionState state, ClientLevel level) {
-        if (!state.hasProjectedHumanoidEquipment()) {
+        if (!state.hasVisibleProjectedHumanoidEquipment()) {
             return null;
         }
 
@@ -179,7 +179,8 @@ public final class EntityProjectionClientEntityFactory {
                 : HUMANOID_CHANNELS;
         for (VirtualEquipmentSnapshots.Channel channel : channels) {
             fingerprint.append('|').append(channel.serializedName()).append(':')
-                    .append(snapshots.get(channel).snapshotId());
+                    .append(snapshots.get(channel).snapshotId())
+                    .append(':').append(state.isEquipmentVisible(channel) ? '1' : '0');
         }
         return fingerprint.toString();
     }
@@ -241,6 +242,9 @@ public final class EntityProjectionClientEntityFactory {
                 ? HORSE_CHANNELS
                 : HUMANOID_CHANNELS;
         for (VirtualEquipmentSnapshots.Channel channel : channels) {
+            if (!state.isEquipmentVisible(channel)) {
+                continue;
+            }
             ItemStack stack = snapshots.get(channel).stack().copy();
             if (channel == VirtualEquipmentSnapshots.Channel.SADDLE) {
                 if (entity instanceof AbstractHorse horse) {

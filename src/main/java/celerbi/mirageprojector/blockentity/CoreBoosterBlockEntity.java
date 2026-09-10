@@ -2,13 +2,16 @@ package celerbi.mirageprojector.blockentity;
 
 import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.block.CoreBoosterBlock;
+import celerbi.mirageprojector.crying.CryingObsidianLightField;
 import celerbi.mirageprojector.registry.ModBlockEntities;
 import celerbi.mirageprojector.registry.ModItems;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -74,6 +77,12 @@ public final class CoreBoosterBlockEntity extends BlockEntity {
         }
         if (state.getValue(CoreBoosterBlock.MATERIAL) != safe) {
             level.setBlock(worldPosition, state.setValue(CoreBoosterBlock.MATERIAL, safe), Block.UPDATE_ALL);
+            if (level instanceof ServerLevel serverLevel) {
+                // Booster swaps change reflected power without a placement event. Force
+                // nearby Mature fields to rebuild in the same server operation instead
+                // of waiting for their 20-tick optics fallback.
+                CryingObsidianLightField.refreshSourcesNearNow(serverLevel, List.of(worldPosition));
+            }
         }
         legacyLoadedMaterial = CoreBoosterMaterial.EMPTY;
         setChanged();

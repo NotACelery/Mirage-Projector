@@ -1,6 +1,6 @@
 # Mirage Projector — development guide
 
-Current source line: **0.1.0-dev.69**.
+Current source line: **0.1.0-dev.74**.
 
 This file describes how the current project is organized and maintained. Chronology belongs in `CHANGELOG.md`; current feature truth belongs in `CURRENT-IMPLEMENTATION.md`; pending work belongs in `ROADMAP.md`. The root keeps `README.md`; the remaining project documentation belongs under `docs/`.
 
@@ -11,7 +11,7 @@ This file describes how the current project is organized and maintained. Chronol
 - Java 21
 - Gradle 9.2.1
 - Parchment 2024.11.17
-- Mirage network protocol 18
+- Mirage network protocol 19
 
 `MirageProjector.NETWORK_PROTOCOL` is the single protocol authority. Do not scatter protocol literals through payload registration.
 
@@ -23,7 +23,7 @@ Windows development entry point:
 build.bat
 ```
 
-dev.61 removed the Create Backtank crash, dev.62 restored late Entity transform/depth, and dev.64 switched the synthetic Create chest to a single Ghost surface. Live QA now confirms the Netherite Backtank can fade completely. dev.67 changes only Beacon/Crying Obsidian optics and powered-light behavior; it still requires a Windows build and dedicated in-game optics/light-field QA before runtime-clean acceptance.
+dev.61 removed the Create Backtank crash, dev.62 restored late Entity transform/depth, and dev.64 switched the synthetic Create chest to a single Ghost surface. Live QA confirms the Netherite Backtank can fade completely. dev.70–73 exposed the architectural limits of physical auxiliary light emitters. dev.74 therefore adds the new Mirage Light Engine as a server-side shadow solver/storage layer while leaving the dev.73 physical backend active for safety. Windows build plus `/miragelight` solver/performance QA are required before dev.75 can make the virtual field authoritative.
 
 Do not package generated/cache directories in source snapshots:
 
@@ -43,7 +43,7 @@ Primary packages under `celerbi.mirageprojector`:
 - `blockentity` — persistent/synchronized world state;
 - `client` — screens, renderers, caches and client-only runtime behavior;
 - `crying` — Crying Obsidian growth/Beacon optical state and the active extended field;
-- `light` — reusable light-profile contracts and future-safe pure profile math;
+- `light` — legacy/profile math plus the new `light.engine` source/profile/solver/section/world virtual-light foundation;
 - `event` — gameplay interaction/event entry points;
 - `item` — dedicated item behavior;
 - `compat/jade` — optional Jade integration;
@@ -68,11 +68,11 @@ The dev.67 source baseline uses:
 - braces for control-flow bodies;
 - no empty catch blocks;
 - no `TODO`, `FIXME` or `HACK` markers in active source;
-- no Java/Javadoc source comments under the current cleanup rule;
+- source comments should be limited to non-obvious invariants/compatibility rationale; architecture detail belongs primarily in `docs/`;
 - public top-level type name must match its filename;
 - registry/network constants centralized rather than duplicated as magic strings/numbers.
 
-When a compatibility path needs explanation, put the rationale in current documentation rather than reintroducing inline source comments while this rule remains active.
+When a compatibility path needs explanation, keep the durable contract in current documentation and reserve inline comments for the local invariant that would otherwise be easy to break.
 
 ## 5. Registry policy
 
@@ -190,12 +190,11 @@ Do not duplicate the detailed list here. `ROADMAP.md` is the single waitlist aut
 
 Immediate order:
 
-1. accept/fix the dev.64 semi-transparent Entity/Create synthetic-chest renderer path;
-2. validate the dev.60 loaded Core Booster Beacon relay identities and four-effective-Booster cap;
-3. investigate useful-range energized-crystal lighting;
-4. add render-only per-equipment-channel visibility;
-5. harden entity/render compatibility and release QA;
-6. defer Scan Codex to 1.1.0+.
+1. compile and in-game QA dev.70 same-tick Mature Cluster occlusion/rebuild behavior;
+2. compile and in-game QA dev.71 Humanoid/Horse per-channel visibility and persistence;
+3. verify Quartz/Diamond reflected range plus Glass residual-only Diffusion after the dev.69 rollback;
+4. harden entity/render compatibility and release QA;
+5. defer Scan Codex to 1.1.0+.
 
 Effigy/Colossal are not current promised chassis. Wide/Tall Banner MULTI is not implied by Image MULTI. Glowstone has no assigned role.
 
@@ -208,8 +207,24 @@ The Mature Cluster half-decay light field is baseline behavior whenever the clus
 
 ## dev.69 reflected-light implementation
 
-The Mature Cluster field now resolves one `SourceFieldSpec` per source refresh. It contains axial/diffuse conceptual intensity and maximum distance derived from the current Beacon relay. This avoids rescanning the complete Beacon column for every candidate node.
+The Mature Cluster field resolves one axial `SourceFieldSpec` per source refresh from the current Beacon relay. dev.70 removes the long dev.69 diffuse static-light branches; Glass remains a reflected-render property until a causality-safe widening topology exists. This avoids rescanning the complete Beacon column for every candidate node.
 
 `tracePathPenalty(...)` is the reflected-light occlusion boundary: level-15 blockers reject a candidate; partially blocking states add attenuation; existing Mirage light nodes do not recursively penalize the path. The accepted node is still an ordinary positive block-light source, so vanilla remains responsible for local propagation and face/AO shading.
 
 Do not reintroduce generic `widthScale -> fieldTier` behavior. Reflected static power is intentionally split from incoming-beam rendering.
+
+
+## dev.70 terrain invalidation and strict branch cutoff
+
+Player/entity block placements and player block breaks are collected during the server tick and processed from `LevelTickEvent.Post`. Active Mature sources are indexed per `ServerLevel`; every source touched by one or more edits refreshes at most once that tick. The normal 20-tick optics refresh and 40-tick node self-check remain fallbacks rather than the primary response path.
+
+When an opaque state intersects an axial branch, the branch is marked blocked for the remainder of that source refresh. Stale downstream nodes are reconciled immediately instead of scheduling a later node tick. A one-time compatibility sweep removes dev.69 diagonal Light Nodes while preserving any position still demanded by a valid dev.70 axial source.
+
+
+## dev.71 per-channel equipment visibility
+
+`EntityProjectionState` stores visibility separately from `VirtualEquipmentSnapshots`. The snapshot remains authoritative storage; visibility is presentation state only. `EntityProjectionClientEntityFactory.applyProjectedEquipment(...)` omits hidden channels when reconstructing the client-only entity, and `equipmentFingerprint(...)` includes visibility so both world and preview caches rebuild immediately when a toggle changes.
+
+Clearing a specific projected snapshot resets only that channel to visible. Clearing an incompatible Humanoid/Horse workspace resets that family's visibility flags along with its snapshots. Chassis state transfer requires no dedicated copy list because `EntityProjectionState` remains inside the canonical BlockEntity NBT transferred by `ProjectorStateTransfer`.
+
+`EntityWorkspaceActionPayload.Action.TOGGLE_VISIBILITY` is appended after existing ordinals. Protocol 19 intentionally prevents dev.70 protocol-18 peers from silently treating the new action as a different command.

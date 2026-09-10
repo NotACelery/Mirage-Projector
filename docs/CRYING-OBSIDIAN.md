@@ -104,20 +104,33 @@ TKT
 It is a low obstacle with nine visible points, hinders living-entity movement and deals 2 damage points on successful movement contact.
 
 ## Extended useful-light field
-dev.67 makes the half-decay field the standard powered behavior of an energized Mature Cluster, independent of requiring a modified relay. Small/Medium/Large buds remain zero-block-light stages; when energized they attenuate/continue the Beacon beam and can emit residual rays, but they do not create a world-light field.
 
-Mirage-owned auxiliary nodes preserve the six world-axis baseline at approximately one sampled source every two blocks. Mature level 15 therefore reaches about 29 blocks along an unobstructed primary axis before reflected Booster reinforcement. dev.69 removes generic beam-width range tiers: Quartz/Radiance is the dominant range amplifier, Diamond/Focus adds a smaller axial bonus, and Glass/Diffusion broadens coverage through bounded face-diagonal branches rather than simply making every branch brighter/farther.
+Only an energized Mature Cluster is intended to own the useful world-light field. Small/Medium/Large remain zero-block-light optical stages.
 
-Nodes remain internal-only blocks: no item, no Creative entry, no collision, no drops and replaceable. They only occupy air/other Mirage nodes in loaded chunks. Source-path tracing rejects fully opaque obstructions and applies extra loss for partial light blockers. Minecraft then performs ordinary local propagation/AO around the accepted nodes, so geometry can shadow opposite surfaces and light may still wrap naturally around corners instead of Mirage manually shading faces.
+Live dev.70–73 QA showed that the physical `crying_light_node` strategy cannot be the final implementation. Even a node placed on a valid source path becomes an independent omnidirectional vanilla emitter and can radiate sideways or refill a region hidden from the original Cluster. The measured result therefore diverged from both wall causality and the exact half-decay target.
 
-## Half-decay field baseline and teardown (dev.68)
+dev.74 begins the replacement with a parallel server-side Mirage Light Engine shadow source. It uses fixed-point energy and six-neighbour voxel propagation, so every solved cell is connected to the Cluster through an actual traversable path. Per-edge opacity/face blocking delegates to vanilla light-occlusion semantics. A full separating barrier disconnects the shadow field; a finite wall can still be routed around at the cost of a longer/weaker path.
 
-The extended Mature Cluster field is not gated by Core Boosters. A Beacon-energized Mature Cluster uses the slow-decay field at relay tier 0; effective Boosters only add relay tiers that reinforce or extend that field. The intended baseline axial progression repeats each block-light level for approximately two blocks rather than one.
+The no-Booster virtual target at outward distances 1–30 is exactly:
 
-When a Mature Cluster is broken, its contribution is reconciled immediately. Each Mirage light node previously reachable from that source is removed in the same server tick if no other Mature source still needs it, or downgraded immediately to the strongest remaining overlapping contribution. The same immediate path is used when an energized Mature Cluster becomes de-energized.
+```text
+15 15 14 14 13 13 12 12 11 11 10 10 9 9 8 8 7 7 6 6 5 5 4 4 3 3 2 2 1 1
+```
 
-## Reflected Booster light (dev.69)
+Quartz/Radiance and Diamond/Focus still feed conceptual scalar reinforcement into the Mature shadow profile, with Quartz stronger. Final virtual visible values remain capped to 15; extra conceptual power extends the saturated plateau/tail. Glass, Amethyst and Netherite keep their reflected visual identities without seeding independent side emitters.
 
-Crying Obsidian now consumes dedicated reflected relay properties rather than the raw incoming Beacon width as a generic power tier. Glass broadens reflected coverage, Quartz reinforces radiance/range, Amethyst increases resonance/cadence, Diamond focuses the reflected field and Netherite preserves inversion.
+For transition safety, dev.74 still leaves the dev.73 physical nodes active as visible/gameplay light. `/miragelight` commands inspect the new virtual field separately. dev.75 is responsible for the authoritative backend handoff and legacy-node cleanup.
 
-Residual purple rays use the same material identity: Quartz raises alpha/length, Glass broadens the beam, Amethyst increases excitation/rotation, Diamond narrows/focuses the beam while adding modest length, and Netherite reverses rotation. The existing four-effective-Booster cap remains unchanged.
+## Half-decay source lifecycle
+
+The Mature field is not gated by Core Boosters. An energized Mature source registers even at reflected tier zero. Terrain place/break edits remain coalesced until the end of the same server tick, then affected Mature sources are refreshed once against the committed geometry. Core Booster material changes explicitly trigger the same nearby source refresh.
+
+Breaking or de-energizing a Mature source removes its dev.74 virtual contribution immediately from the per-Level aggregate. Other source contributions remain and become visible through max aggregation. The legacy physical-node reconciliation remains active only for the dev.74 transition.
+
+The solver never force-loads chunks. During dev.74 shadow QA, `/miragelight rebuild` can refresh the nearest source after a relevant chunk loads. Automatic chunk-load invalidation becomes mandatory before dev.75 virtual light is authoritative.
+
+## Reflected Booster light
+
+Crying Obsidian consumes dedicated reflected relay properties rather than raw incoming Beacon width as a generic power tier. Quartz reinforces static Radiance, Diamond adds smaller Focus reinforcement, Amethyst increases residual Resonance/cadence and Netherite preserves Inversion. Glass broadens reflected residual-ray geometry without creating static secondary world-light branches.
+
+Residual purple rays keep the same material identity: Quartz raises alpha/length, Glass broadens the beam, Amethyst increases excitation/rotation, Diamond narrows/focuses the beam while adding modest length, and Netherite reverses rotation. The existing four-effective-Booster cap remains unchanged.

@@ -41,6 +41,8 @@ The Entity workspace separates physical Incoming staging from virtual Projected 
 
 A bodyless Humanoid rig can render equipment without the scanned body.
 
+Each Projected Humanoid channel has an independent persistent render-visibility flag. Hiding Head/Chest/Legs/Feet/Main Hand/Off Hand does not mutate, return or delete the virtual snapshot. The renderer simply omits that channel when rebuilding the projection entity; re-enabling it restores the same stored snapshot immediately. Clearing a projected snapshot resets that channel to visible for the next captured item.
+
 ## Horse equipment
 
 Horse-family state exposes:
@@ -48,17 +50,19 @@ Horse-family state exposes:
 - Saddle;
 - Body Armor.
 
-Switching to an incompatible entity family must clear incompatible virtual equipment so hidden old state cannot later reappear unexpectedly.
+Saddle and Body Armor use the same render-only visibility contract as Humanoid channels. A hidden Saddle also leaves the reconstructed projection horse visually unsaddled because the stored Saddle snapshot is not equipped into the client-only render entity until the channel is shown again.
+
+Switching to an incompatible entity family clears incompatible virtual equipment and resets that family's visibility flags so hidden old presentation state cannot unexpectedly affect newly captured equipment later.
 
 ## Pose system
 
 Humanoid, Horse and Generic pose foundations are separate. Humanoid pose presets affect the projection rig only and do not modify the source entity/card snapshot.
 
-Preview fitting and clearance use conservative pose/species-aware bounds.
+Preview fitting, clearance and world-render culling use the same conservative pose/species-aware bounds. dev.72 also reserves extra envelope width/height for visible held items, chest equipment, head equipment and Horse Body Armor so large/overdriven projections are less likely to be clipped by generic body dimensions.
 
 ## Nameplates
 
-Frozen custom names are preserved separately from the projection body's internal vanilla visibility state. Mirage renders the projected label at the projected entity's actual scale/pose-aware height.
+Frozen custom names are preserved separately from the projection body's internal vanilla visibility state. Mirage renders the projected label above the current projected entity envelope, including Lift, Float and pose/equipment-aware height. The label is billboarded to the camera and inherits the projection Tint/Ghost opacity instead of remaining an unrelated opaque white overlay.
 
 ## Current render stabilization
 
@@ -68,10 +72,9 @@ Create's Netherite Backtank is a required regression target because it uses two 
 
 ## Explicit remaining entity work
 
-See `ROADMAP.md`. Important pending areas include:
+See `ROADMAP.md`. Per-channel Humanoid/Horse render visibility is implemented in dev.71. Remaining areas include:
 
-- per-channel render visibility toggles that hide Head/Chest/Legs/Feet/Main/Off without deleting stored snapshots;
-- equivalent Saddle/Body Armor visibility for Horse;
 - mounted/composite/jockey projection design;
 - targeted adapters for accessories/backpacks/Curios/cosmetic equipment only when generic RenderType normalization is insufficient;
-- remaining renderer-specific bounds/species edge cases.
+- remaining renderer-specific/species-specific bounds edge cases that exceed the conservative generic equipment envelope;
+- stress/performance QA for giant overlapping translucent entities and frozen/offline Player skins.

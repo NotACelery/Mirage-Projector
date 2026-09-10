@@ -27,7 +27,8 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
 
     private static final int APPLY_X = 52;
     private static final int CHANNEL_X = 86;
-    private static final int PROJECTED_X = 332;
+    private static final int PROJECTED_X = 326;
+    private static final int VISIBILITY_X = 347;
 
     private static final int PREVIEW_X = 380;
     private static final int PREVIEW_Y = 30;
@@ -38,6 +39,8 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
     private static final int STATUS_Y = 308;
 
     private final Map<VirtualEquipmentSnapshots.Channel, Button> applyButtons =
+            new EnumMap<>(VirtualEquipmentSnapshots.Channel.class);
+    private final Map<VirtualEquipmentSnapshots.Channel, Button> visibilityButtons =
             new EnumMap<>(VirtualEquipmentSnapshots.Channel.class);
     private final EntityProjectionPreviewRenderer entityPreview = new EntityProjectionPreviewRenderer();
 
@@ -62,6 +65,7 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
     protected void init() {
         super.init();
         createApplyButtons();
+        createVisibilityButtons();
 
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.entity.use_projection"), button ->
                 PacketDistributor.sendToServer(new SetProjectionSourcePayload(
@@ -138,6 +142,7 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
 
         updateModeWidgets(true);
         refreshActionableButtons();
+        refreshVisibilityButtons();
         refreshConflictButtons();
         refreshPoseButton();
     }
@@ -151,6 +156,58 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
                     "tooltip.mirage_projector.entity.apply"
             )));
             applyButtons.put(channel, button);
+        }
+    }
+
+    private void createVisibilityButtons() {
+        for (VirtualEquipmentSnapshots.Channel channel : VirtualEquipmentSnapshots.Channel.values()) {
+            Button button = addRenderableWidget(Button.builder(Component.empty(), ignored -> toggleVisibility(channel))
+                    .bounds(leftPos + VISIBILITY_X, topPos + localY(channel), 25, 18)
+                    .build());
+            visibilityButtons.put(channel, button);
+        }
+        refreshVisibilityButtons();
+    }
+
+    private void toggleVisibility(VirtualEquipmentSnapshots.Channel channel) {
+        if (menu.projected(channel).stack().isEmpty()) {
+            return;
+        }
+        boolean nextVisible = !menu.state().isEquipmentVisible(channel);
+        sendAction(EntityWorkspaceActionPayload.Action.TOGGLE_VISIBILITY, channel);
+        status = Component.translatable(
+                nextVisible
+                        ? "gui.mirage_projector.entity.visibility_shown_status"
+                        : "gui.mirage_projector.entity.visibility_hidden_status",
+                channelComponent(channel)
+        );
+    }
+
+    private void refreshVisibilityButtons() {
+        EntityScanData.Kind kind = menu.effectiveKind();
+        for (Map.Entry<VirtualEquipmentSnapshots.Channel, Button> entry : visibilityButtons.entrySet()) {
+            VirtualEquipmentSnapshots.Channel channel = entry.getKey();
+            Button button = entry.getValue();
+            boolean supported = switch (kind) {
+                case HUMANOID -> channel.humanoid();
+                case HORSE -> channel.horse();
+                case GENERIC -> false;
+            };
+            boolean hasSnapshot = supported && !menu.projected(channel).stack().isEmpty();
+            boolean visible = menu.state().isEquipmentVisible(channel);
+            button.visible = supported;
+            button.active = hasSnapshot;
+            button.setMessage(Component.translatable(
+                    visible
+                            ? "gui.mirage_projector.entity.visibility.on"
+                            : "gui.mirage_projector.entity.visibility.off"
+            ));
+            button.setTooltip(Tooltip.create(Component.translatable(
+                    visible
+                            ? "tooltip.mirage_projector.entity.visibility.hide"
+                            : "tooltip.mirage_projector.entity.visibility.show",
+                    channelComponent(channel)
+            )));
         }
     }
 
@@ -294,6 +351,7 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         super.containerTick();
         updateModeWidgets(false);
         refreshActionableButtons();
+        refreshVisibilityButtons();
         refreshPoseButton();
     }
 
@@ -368,7 +426,8 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.preview"), x + PREVIEW_W / 2, y + 8, 0xFFF2ECFF);
 
         var active = menu.state().activeEntity();
-        boolean bodylessMannequin = active.isEmpty() && menu.state().hasProjectedHumanoidEquipment();
+        boolean storedBodylessEquipment = active.isEmpty() && menu.state().hasProjectedHumanoidEquipment();
+        boolean bodylessMannequin = storedBodylessEquipment && menu.state().hasVisibleProjectedHumanoidEquipment();
         if (active.isPresent() || bodylessMannequin) {
             ProjectionSettings previewSettings = menu.projector() == null
                     ? ProjectionSettings.DEFAULT
@@ -410,7 +469,17 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
             return;
         }
 
-        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.no_body"), x + PREVIEW_W / 2, y + 96, 0xFF9CA3AF);
+        graphics.drawCenteredString(
+                font,
+                Component.translatable(
+                        storedBodylessEquipment
+                                ? "gui.mirage_projector.entity.all_equipment_hidden"
+                                : "gui.mirage_projector.entity.no_body"
+                ),
+                x + PREVIEW_W / 2,
+                y + 96,
+                0xFF9CA3AF
+        );
     }
 
     @Override
@@ -426,7 +495,8 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
 
         graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 18, 106, 0xFFAFD8EE, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.channel"), CHANNEL_X, 106, 0xFFC9CED7, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.projected"), 295, 106, 0xFFB9E4C0, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.projected"), 286, 106, 0xFFB9E4C0, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.visibility"), 347, 106, 0xFFC9CED7, false);
 
         EntityScanData.Kind kind = menu.effectiveKind();
         if (kind == EntityScanData.Kind.HUMANOID) {

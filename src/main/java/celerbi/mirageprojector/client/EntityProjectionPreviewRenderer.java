@@ -43,7 +43,7 @@ public final class EntityProjectionPreviewRenderer {
 
         boolean humanoidPose = state.activeEntity()
                 .map(scan -> scan.kind() == EntityScanData.Kind.HUMANOID)
-                .orElse(state.hasProjectedHumanoidEquipment());
+                .orElse(state.hasVisibleProjectedHumanoidEquipment());
 
         float neutralHeight = Math.max(entity.getBbHeight(), 0.1F);
         float entityWidth = Math.max(entity.getBbWidth(), 0.1F);
@@ -219,7 +219,7 @@ public final class EntityProjectionPreviewRenderer {
 
         Optional<EntityScanData.View> active = state.activeEntity();
         if (active.isEmpty()) {
-            if (!state.hasProjectedHumanoidEquipment()) {
+            if (!state.hasVisibleProjectedHumanoidEquipment()) {
                 cachedEntity = null;
                 cachedScanId = null;
                 cachedEquipmentFingerprint = "";

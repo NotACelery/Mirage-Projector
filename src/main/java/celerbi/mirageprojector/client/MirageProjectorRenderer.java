@@ -54,6 +54,8 @@ import org.joml.Matrix4f;
 
 public final class MirageProjectorRenderer implements BlockEntityRenderer<MirageProjectorBlockEntity> {
     private static final float PIXEL = 1.0F / 16.0F;
+    private static final float ENTITY_NAMEPLATE_GAP = 4.0F * PIXEL;
+    private static final float ENTITY_NAMEPLATE_BOUND_HEIGHT = 0.5F;
     private static final UUID BODYLESS_CACHE_ID = new UUID(0L, 1L);
 
     private static final List<DeferredEntityProjection> DEFERRED_ENTITY_PROJECTIONS = new ArrayList<>();
@@ -349,7 +351,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
 
         var active = blockEntity.entityProjectionState().activeEntity();
         if (active.isEmpty()) {
-            if (!blockEntity.entityProjectionState().hasProjectedHumanoidEquipment()) {
+            if (!blockEntity.entityProjectionState().hasVisibleProjectedHumanoidEquipment()) {
                 entityCache.remove(blockEntity);
                 return null;
             }
@@ -530,7 +532,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                         || !blockEntity.entityProjectionState().hasActiveEntity(),
                 settings.opacityPercent() < 100
         );
-        renderProjectionNameplate(blockEntity, poseStack, bufferSource, projectionLight);
+        renderProjectionNameplate(blockEntity, settings, bob, poseStack, bufferSource, projectionLight);
     }
 
     private static void renderProjectedEntity(
@@ -596,6 +598,8 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
 
     private static void renderProjectionNameplate(
             MirageProjectorBlockEntity blockEntity,
+            ProjectionSettings settings,
+            float bob,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int projectionLight
@@ -605,7 +609,12 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             return;
         }
 
-        float labelY = physicalTop(blockEntity) + 3.0F * PIXEL;
+        EntityProjectionBounds.Bounds bounds = EntityProjectionBounds.projected(
+                blockEntity.entityProjectionState(),
+                settings
+        );
+        float projectionBottom = physicalTop(blockEntity) + settings.liftPixels() * PIXEL + bob;
+        float labelY = projectionBottom + bounds.heightPixels() * PIXEL + ENTITY_NAMEPLATE_GAP;
 
         Minecraft minecraft = Minecraft.getInstance();
         Font font = minecraft.font;
@@ -617,11 +626,15 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         poseStack.scale(-0.025F, -0.025F, 0.025F);
         Matrix4f matrix = poseStack.last().pose();
         float textX = -font.width(label) / 2.0F;
-        int textColor = 0xFFFFFFFF;
-        int backgroundColor = 0x60000000;
+        int textColor = ProjectionRenderBuffers.tintedArgb(settings, 0xFFFFFF);
+        int alpha = (textColor >>> 24) & 0xFF;
+        int seeThroughAlpha = Math.max(1, Math.round(alpha * (96.0F / 255.0F)));
+        int seeThroughColor = (seeThroughAlpha << 24) | (textColor & 0x00FFFFFF);
+        int backgroundAlpha = Math.max(0, Math.round(96.0F * settings.opacity()));
+        int backgroundColor = backgroundAlpha << 24;
 
         font.drawInBatch(
-                label, textX, 0.0F, 0x60FFFFFF, false, matrix, bufferSource,
+                label, textX, 0.0F, seeThroughColor, false, matrix, bufferSource,
                 Font.DisplayMode.SEE_THROUGH, backgroundColor, projectionLight
         );
         font.drawInBatch(
@@ -1328,7 +1341,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                 && !blockEntity.projectedStack().isEmpty();
         boolean entityProjection = settings.sourceMode() == ProjectionSettings.SourceMode.ENTITY
                 && (blockEntity.entityProjectionState().hasActiveEntity()
-                || blockEntity.entityProjectionState().hasProjectedHumanoidEquipment());
+                || blockEntity.entityProjectionState().hasVisibleProjectedHumanoidEquipment());
         boolean imageProjection = settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
                 && (blockEntity.chassisProfile().supportsMultiSourceImageLayout()
                 && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI
@@ -1362,10 +1375,24 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                 || settings.sourceMode() == ProjectionSettings.SourceMode.BANNER)
                 ? Math.max(0.75D, width * Math.sqrt(2.0D) * 0.5D + 0.25D)
                 : Math.max(0.75D, width * 0.5D + 0.25D);
-        double minY = pos.getY() + physicalTop(blockEntity) + settings.liftPixels() * PIXEL
+        double projectionMinY = pos.getY() + physicalTop(blockEntity) + settings.liftPixels() * PIXEL
                 - settings.floatAmplitudePixels() * PIXEL - 0.25D;
-        double maxY = pos.getY() + physicalTop(blockEntity) + settings.liftPixels() * PIXEL
+        double projectionMaxY = pos.getY() + physicalTop(blockEntity) + settings.liftPixels() * PIXEL
                 + height + 0.25D;
+
+        if (entityProjection) {
+            String nameplate = blockEntity.entityProjectionState().projectionNameplate();
+            if (nameplate != null && !nameplate.isBlank()) {
+                double labelHalfWidth = Minecraft.getInstance().font.width(nameplate) * 0.025D * 0.5D + 0.25D;
+                radius = Math.max(radius, labelHalfWidth);
+                projectionMaxY += ENTITY_NAMEPLATE_GAP + ENTITY_NAMEPLATE_BOUND_HEIGHT;
+            }
+        }
+
+        // A BER culling box must cover both the physical machine and its displaced projection.
+        // Otherwise a high-Lift projection can disappear just because the chassis itself left the frustum.
+        double minY = Math.min(pos.getY(), projectionMinY);
+        double maxY = Math.max(pos.getY() + 1.0D, projectionMaxY);
         double centerX = pos.getX() + 0.5D;
         double centerZ = pos.getZ() + 0.5D;
 
@@ -1381,7 +1408,9 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
 
     @Override
     public boolean shouldRenderOffScreen(MirageProjectorBlockEntity blockEntity) {
-        return true;
+        // getRenderBoundingBox() now describes the full projector + projection envelope, so vanilla frustum
+        // culling is safe and avoids submitting giant deferred entities that cannot contribute to the frame.
+        return false;
     }
 
     @Override

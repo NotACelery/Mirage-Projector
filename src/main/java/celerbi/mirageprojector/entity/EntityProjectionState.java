@@ -1,5 +1,6 @@
 package celerbi.mirageprojector.entity;
 
+import java.util.EnumSet;
 import java.util.Optional;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -16,6 +17,8 @@ public final class EntityProjectionState {
     private final VirtualEquipmentSnapshots humanoidProjected = new VirtualEquipmentSnapshots();
     private final VirtualEquipmentSnapshots horseIncoming = new VirtualEquipmentSnapshots();
     private final VirtualEquipmentSnapshots horseProjected = new VirtualEquipmentSnapshots();
+    private final EnumSet<VirtualEquipmentSnapshots.Channel> hiddenEquipmentChannels =
+            EnumSet.noneOf(VirtualEquipmentSnapshots.Channel.class);
 
     public boolean hasActiveEntity() {
         return EntityScanData.readRoot(activeEntityScan).isPresent();
@@ -88,6 +91,56 @@ public final class EntityProjectionState {
                 VirtualEquipmentSnapshots.Channel.SADDLE,
                 VirtualEquipmentSnapshots.Channel.BODY
         );
+    }
+
+    public boolean isEquipmentVisible(VirtualEquipmentSnapshots.Channel channel) {
+        return channel != null && !hiddenEquipmentChannels.contains(channel);
+    }
+
+    public boolean setEquipmentVisible(VirtualEquipmentSnapshots.Channel channel, boolean visible) {
+        if (channel == null) {
+            return false;
+        }
+        boolean changed = visible
+                ? hiddenEquipmentChannels.remove(channel)
+                : hiddenEquipmentChannels.add(channel);
+        return changed;
+    }
+
+    public boolean hasProjectedEquipment(VirtualEquipmentSnapshots.Channel channel) {
+        if (channel == null) {
+            return false;
+        }
+        return channel.humanoid()
+                ? humanoidProjected.has(channel)
+                : channel.horse() && horseProjected.has(channel);
+    }
+
+    public boolean toggleEquipmentVisible(VirtualEquipmentSnapshots.Channel channel) {
+        if (!hasProjectedEquipment(channel)) {
+            return isEquipmentVisible(channel);
+        }
+        boolean next = !isEquipmentVisible(channel);
+        setEquipmentVisible(channel, next);
+        return next;
+    }
+
+    public boolean hasVisibleProjectedHumanoidEquipment() {
+        for (VirtualEquipmentSnapshots.Channel channel : HUMANOID_CHANNELS) {
+            if (isEquipmentVisible(channel) && humanoidProjected.has(channel)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasVisibleProjectedHorseEquipment() {
+        for (VirtualEquipmentSnapshots.Channel channel : EntityScanData.HORSE_CHANNELS) {
+            if (isEquipmentVisible(channel) && horseProjected.has(channel)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean hasProjectedEntityContent() {
@@ -213,6 +266,7 @@ public final class EntityProjectionState {
         } else if (channel.horse()) {
             horseProjected.clear(channel);
         }
+        hiddenEquipmentChannels.remove(channel);
     }
 
     public void clearActiveEntityBody() {
@@ -222,12 +276,18 @@ public final class EntityProjectionState {
     public void clearHumanoidWorkspace() {
         humanoidIncoming.clearAll();
         humanoidProjected.clearAll();
+        for (VirtualEquipmentSnapshots.Channel channel : HUMANOID_CHANNELS) {
+            hiddenEquipmentChannels.remove(channel);
+        }
         humanoidPose = HumanoidPosePreset.STANDING;
     }
 
     public void clearHorseWorkspace() {
         horseIncoming.clearAll();
         horseProjected.clearAll();
+        for (VirtualEquipmentSnapshots.Channel channel : EntityScanData.HORSE_CHANNELS) {
+            hiddenEquipmentChannels.remove(channel);
+        }
         horsePose = HorsePosePreset.IDLE;
     }
 
@@ -243,6 +303,11 @@ public final class EntityProjectionState {
         root.put("HumanoidProjected", humanoidProjected.save(registries));
         root.put("HorseIncoming", horseIncoming.save(registries));
         root.put("HorseProjected", horseProjected.save(registries));
+        CompoundTag visibility = new CompoundTag();
+        for (VirtualEquipmentSnapshots.Channel channel : VirtualEquipmentSnapshots.Channel.values()) {
+            visibility.putBoolean(channel.serializedName(), isEquipmentVisible(channel));
+        }
+        root.put("EquipmentVisibility", visibility);
         return root;
     }
 
@@ -263,6 +328,17 @@ public final class EntityProjectionState {
         humanoidProjected.load(root == null ? new CompoundTag() : root.getCompound("HumanoidProjected"), registries);
         horseIncoming.load(root == null ? new CompoundTag() : root.getCompound("HorseIncoming"), registries);
         horseProjected.load(root == null ? new CompoundTag() : root.getCompound("HorseProjected"), registries);
+        hiddenEquipmentChannels.clear();
+        CompoundTag visibility = root != null && root.contains("EquipmentVisibility")
+                ? root.getCompound("EquipmentVisibility")
+                : new CompoundTag();
+        for (VirtualEquipmentSnapshots.Channel channel : VirtualEquipmentSnapshots.Channel.values()) {
+            if (visibility.contains(channel.serializedName())
+                    && !visibility.getBoolean(channel.serializedName())
+                    && hasProjectedEquipment(channel)) {
+                hiddenEquipmentChannels.add(channel);
+            }
+        }
         pruneProjectedDuplicates(humanoidIncoming, humanoidProjected, HUMANOID_CHANNELS);
         pruneProjectedDuplicates(horseIncoming, horseProjected, EntityScanData.HORSE_CHANNELS);
         pruneIncompatibleWorkspaceForActiveEntity();

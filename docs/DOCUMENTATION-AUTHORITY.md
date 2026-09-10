@@ -1,6 +1,6 @@
 # Mirage Projector — Documentation authority
 
-Current documentation line: **0.1.0-dev.69**.
+Current documentation line: **0.1.0-dev.74**.
 
 This directory was reorganized in dev.59 so current implementation, current backlog and historical design notes are no longer mixed together.
 
@@ -25,7 +25,7 @@ Historical files do not become current requirements merely because they contain 
 - `POWER-AND-CHASSIS.md`: chassis geometry and PU rules.
 - `CORE-BOOSTER-AND-UPGRADES.md`: Core Booster and state-preserving crafting.
 - `CRYING-OBSIDIAN.md`: shard, crystal growth, Beacon absorption and Obsidian Spike.
-- `LIGHT-PROFILE-FOUNDATION.md`: current light-profile architecture plus explicitly reserved advanced-light placeholders.
+- `LIGHT-PROFILE-FOUNDATION.md`: dev.74 forward Mirage Light Engine authority, legacy-relay boundary and reserved advanced-light profiles.
 - `ENTITY-AND-SNAPSHOTS.md`: Item/Banner/Entity virtual snapshot semantics.
 - `ASSET-PIPELINE.md`: image/GIF import, storage and multiplayer transfer.
 - `ROADMAP.md`: only work that remains genuinely unimplemented or unresolved.
@@ -38,13 +38,23 @@ Historical files do not become current requirements merely because they contain 
 - `DEV65-POWERED-CRYING-LIGHT-FIELD.md`: historical first extended-light implementation; topology/tier values are superseded by dev.67–69.
 - `DEV67-BEACON-OPTICS-STABILIZATION.md`: current stage offsets, Core Booster activation plane and beam geometry baseline.
 - `DEV68-CORE-EXTRACTION-AND-INSTANT-LIGHT-TEARDOWN.md`: current Core extraction guard and immediate source-removal reconciliation.
-- `DEV69-OCCLUSION-AWARE-REFLECTED-LIGHT.md`: current Mature Cluster occlusion, reflected Booster identity and residual-ray coupling contract.
+- `DEV69-OCCLUSION-AWARE-REFLECTED-LIGHT.md`: historical first occlusion-aware reflected-light pass; its long Glass face-diagonal world-light branches are superseded by dev.70.
+- `DEV70-INSTANT-OCCLUSION-REBUILD.md`: current same-tick terrain invalidation, strict axial branch cutoff and dev.69 diagonal-node migration contract.
+- `DEV71-EQUIPMENT-VISIBILITY.md`: current render-only Humanoid/Horse per-channel visibility and persistence contract.
+- `DEV72-ENTITY-ENVELOPE-AND-FRUSTUM.md`: current Entity bounds/nameplate/frustum hardening contract.
+- `DEV73-EXPLICIT-HALF-DECAY-RELAYS.md`: historical final physical-relay half-decay attempt; live QA motivated the dev.74 architecture change.
+- `DEV74-MIRAGE-LIGHT-ENGINE-FOUNDATION.md`: current shadow-solver/storage/occlusion architecture and dev.75 handoff boundary.
 - `NEXT-CHAT-HANDOFF-dev64.md`: renderer continuation point for the current Create synthetic-chest QA branch.
 - `NEXT-CHAT-HANDOFF-dev65.md`: dev.65 implementation/QA continuation point.
 - `NEXT-CHAT-HANDOFF-dev66.md`: dev.66 continuation history.
 - `NEXT-CHAT-HANDOFF-dev67.md`: historical optics continuation point.
 - `NEXT-CHAT-HANDOFF-dev68.md`: historical interaction/teardown continuation point.
-- `NEXT-CHAT-HANDOFF-dev69.md`: current reflected-light continuation/QA point.
+- `NEXT-CHAT-HANDOFF-dev69.md`: historical reflected-light continuation point.
+- `NEXT-CHAT-HANDOFF-dev70.md`: historical occlusion/refresh QA continuation point.
+- `NEXT-CHAT-HANDOFF-dev71.md`: historical equipment-visibility continuation point.
+- `NEXT-CHAT-HANDOFF-dev72.md`: historical P2 renderer/entity continuation point.
+- `NEXT-CHAT-HANDOFF-dev73.md`: historical continuation point that recorded the physical-relay QA failures.
+- `NEXT-CHAT-HANDOFF-dev74.md`: current continuation point for virtual-light backend QA and dev.75 integration.
 - `CHANGELOG.md`: chronology.
 - `DEVELOPMENT.md`: project/build conventions.
 - `THIRD_PARTY_NOTICES.md`: bundled third-party notices.

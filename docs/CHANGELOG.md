@@ -1,3 +1,63 @@
+# 0.1.0-dev.74 — Mirage Light Engine foundation
+
+- Added a feature-independent `light.engine` subsystem after live dev.70–73 QA proved physical auxiliary emitters cannot preserve source causality once vanilla begins propagating from each relay.
+- Added immutable `MirageLightSource` / `MirageLightProfile` contracts with conceptual power, fixed-point substeps, shape/direction data, runtime intent and reserved RGB metadata.
+- Added a six-neighbour causal voxel solver. Every accepted cell has a traversable predecessor chain to the source; complete barriers can disconnect a field while finite-wall corner routes consume extra distance.
+- Reused vanilla `LightEngine.getLightBlockInto(...)` edge semantics for full/partial block-light obstruction instead of maintaining block-specific slab/stair rules.
+- Added exact fixed-point Mature half-decay math: no-Booster outward distances 1–30 solve to `15,15,14,14,...,2,2,1,1`; conceptual Booster power above 15 extends the saturated plateau without producing visible values above 15.
+- Added primitive packed-position + energy-bucket solver queues and sparse 16³ per-source section storage.
+- Added per-Level source ownership and an aggregate max virtual-light layer; aggregate sections reference solved source sections instead of duplicating one visible 4096-byte array per source/section.
+- Wired energized Mature Clusters into the virtual solver in **shadow mode** while intentionally retaining the dev.73 physical `crying_light_node` backend as visible/gameplay authority for this foundation snapshot.
+- Terrain invalidation forces affected shadow fields to rebuild in the existing dev.70 end-of-tick coalesced pass; Core Booster material changes also trigger immediate nearby source refresh.
+- Added `/miragelight stats`, `/miragelight probe`, `/miragelight axis <direction>` and `/miragelight rebuild` diagnostics plus pure-model curve/causality verification scripts.
+- Added Level-unload cleanup for virtual-light caches.
+- Network protocol remains 19; no projector NBT/payload schema changes.
+- dev.75 is the planned authority handoff: client/static virtual-light integration, automatic chunk-load invalidation and safe retirement/migration of active physical Mature relays.
+- Source candidate pending Windows Java 21 build and in-game shadow-solver/performance QA.
+
+# 0.1.0-dev.73 — Explicit full-range Mature half-decay relays
+
+- Corrected the Mature Cluster slow-decay lattice after live Simple Light Level QA showed that the sparse dev.67–72 relay pattern only visibly doubled a middle section of the light curve.
+- Replaced odd-distance-only axial sampling with an explicit Mirage relay on every accepted axial air cell.
+- No-Booster target is now directly represented as `15,15,14,14,...,2,2,1,1` across 30 unobstructed blocks.
+- Reflected conceptual power above 15 now extends the saturated level-15 plateau and total tail; real relay emission remains clamped to vanilla 15.
+- Preserved dev.70 source-causal opaque-wall cutoff, partial-block attenuation, same-tick terrain invalidation, overlap reconciliation and removal of long Glass diagonal static relays.
+- Network protocol remains 19; no NBT or payload schema changes.
+- Requires Windows Java 21 build and measured in-game level QA before build-clean acceptance.
+
+# 0.1.0-dev.72 — Entity envelope, nameplate and frustum hardening
+
+- Restored projected Entity nameplates above the actual projection using `Lift + Float + EntityProjectionBounds` instead of the regressed chassis-base anchor.
+- Nameplates now inherit projection Tint and Ghost/opacity while retaining the two-pass vanilla-like readable text path.
+- Extended generic Entity bounds conservatively for visible Humanoid Main/Off Hand, Chest, Head and Horse Body Armor snapshots so preview, clearance and culling better cover renderer geometry outside the vanilla body AABB.
+- Expanded the BER AABB to cover both the physical projector and the displaced projection/nameplate envelope, including high Lift and downward Floating travel.
+- Stopped forcing `shouldRenderOffScreen=true`; vanilla frustum culling can now reject giant projectors whose complete Mirage envelope is outside the camera without adding a quality-reducing LOD path.
+- Network protocol remains 19; no saved/network payload changes.
+- Source candidate pending Windows Java 21 build plus nameplate/high-Lift/screen-edge/Create regression QA. dev.70 light-field QA remains open in parallel.
+
+# 0.1.0-dev.71 — Per-channel Entity equipment visibility
+
+- Added persistent render-only visibility state for Humanoid Head, Chest, Legs, Feet, Main Hand and Off Hand plus Horse Saddle and Body Armor.
+- Added a VIS. control beside every supported Projected equipment row. Hidden snapshots remain visible in the workspace as stored virtual content while their world/preview renderer contribution is suppressed.
+- Re-enabling a hidden channel restores the exact already stored snapshot; toggling visibility never returns, deletes, replaces or recaptures equipment.
+- Added visibility state to Entity projection NBT with backward-compatible default-visible loading. Clearing an individual projected snapshot resets only that channel to visible; incompatible family cleanup resets that family's visibility flags.
+- Made bodyless Humanoid creation visibility-aware so hiding the final visible channel produces no invisible empty mannequin render while keeping source state stored.
+- Included visibility in the equipment cache fingerprint so world and preview projection entities rebuild as soon as the synced toggle changes.
+- Appended `TOGGLE_VISIBILITY` to `EntityWorkspaceActionPayload.Action` and bumped Mirage network protocol from 18 to 19 to prevent mixed-version ordinal ambiguity.
+- Updated the in-game handbook Entity page and active documentation. dev.70 light-field QA remains open in parallel.
+- Source candidate pending Windows Java 21 build and in-game visibility/save/reload/upgrade QA.
+
+# 0.1.0-dev.70 — Instant occlusion rebuild and strict axial relays
+
+- Fixed dev.69 terrain-response latency by coalescing block placement/break changes and rebuilding impacted active Mature fields from `LevelTickEvent.Post` in the same server tick.
+- Reconciles stale downstream Mirage Light Nodes immediately during source refresh instead of scheduling a later node tick.
+- Makes opaque states hard-stop the remainder of an axial relay branch, including blockers sitting exactly on a sampled node position.
+- Removed dev.69's long Glass-driven face-diagonal static-light branches after in-game QA showed that their omnidirectional vanilla emission could leak onto the dark side of walls.
+- Keeps Glass/Diffusion in reflected residual-ray rendering; Quartz/Radiance and Diamond/Focus retain static axial range roles, while Amethyst/Netherite remain dynamic reflection effects.
+- Added one-time reconciliation of legacy dev.69 diagonal Mirage nodes when an affected Mature source first refreshes/removes.
+- Preserved the no-Booster ~29-block axial half-decay baseline, overlap-aware strongest-source reconciliation and protocol 18.
+- Source candidate pending Windows Java 21 build plus dev.70 in-game wall/unblock/overlap QA.
+
 # 0.1.0-dev.69 — Occlusion-aware reflected light and Booster identity
 
 - Reworked Mature Cluster node path validation so fully opaque blockers terminate downstream reflected candidates while partially light-blocking states add attenuation instead of behaving like perfect air.

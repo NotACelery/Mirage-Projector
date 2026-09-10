@@ -27,7 +27,7 @@ Crying Obsidian ecosystem:
 
 Internal runtime-only support block:
 
-- `mirage_projector:crying_light_node` — invisible/replacable extended-light node; no BlockItem, recipe or Creative exposure.
+- `mirage_projector:crying_light_node` — **transitional legacy runtime support in dev.74**. Still supplies dev.73 visible/gameplay Mature lighting while the new virtual solver runs in shadow mode; no BlockItem, recipe or Creative exposure. Planned to leave active runtime in dev.75 after safe migration/cleanup.
 
 ## Active non-block items
 
@@ -66,10 +66,6 @@ The old block-entity registry ID `mirage_projector:improved_core` remains for th
 ## Custom damage type
 
 - `mirage_projector:obsidian_spike`
-
-Internal runtime-only support block:
-
-- `mirage_projector:crying_light_node` — invisible/replacable extended-light node; no BlockItem, recipe or Creative exposure.
 
 ## Creative exposure
 

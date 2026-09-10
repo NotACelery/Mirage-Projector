@@ -105,6 +105,11 @@ public record EntityWorkspaceActionPayload(
                         projector.cycleGenericPose();
                     }
                 }
+                case TOGGLE_VISIBILITY -> {
+                    if (payload.channel() != null) {
+                        projector.toggleProjectedEntityEquipmentVisibility(payload.channel());
+                    }
+                }
             }
         });
     }
@@ -122,7 +127,8 @@ public record EntityWorkspaceActionPayload(
         CLEAR_PROJECTED,
         RETURN_STAGING,
         CAPTURE_EQUIPPED,
-        CYCLE_POSE;
+        CYCLE_POSE,
+        TOGGLE_VISIBILITY;
 
         static Action fromOrdinal(int ordinal) {
             if (ordinal < 0 || ordinal >= values().length) {

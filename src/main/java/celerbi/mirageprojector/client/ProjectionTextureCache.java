@@ -3,11 +3,6 @@ package celerbi.mirageprojector.client;
 import celerbi.mirageprojector.ImageAssetFormat;
 import celerbi.mirageprojector.MirageProjector;
 import com.mojang.blaze3d.platform.NativeImage;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.ResourceLocation;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,8 +14,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import javax.imageio.ImageIO;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.ResourceLocation;
 
-/** Decodes each content-addressed asset once. Animated GIFs keep one registered texture per composed frame. */
 public final class ProjectionTextureCache {
     private static final Map<String, CachedAsset> REGISTERED = new HashMap<>();
 
@@ -31,24 +29,31 @@ public final class ProjectionTextureCache {
         return get(imageId, (System.nanoTime() / 1_000_000L));
     }
 
-    /** Use one sampled clock across a multi-face/layout render to keep identical GIF sources frame-synchronous. */
     public static Optional<ResourceLocation> get(String imageId, long sampleTimeMs) {
-        if (imageId == null || imageId.isBlank()) return Optional.empty();
+        if (imageId == null || imageId.isBlank()) {
+            return Optional.empty();
+        }
         CachedAsset cached = REGISTERED.get(imageId);
         if (cached == null) {
             cached = load(imageId);
-            if (cached == null) return Optional.empty();
+            if (cached == null) {
+                return Optional.empty();
+            }
             REGISTERED.put(imageId, cached);
         }
         return Optional.of(cached.textureAt(sampleTimeMs));
     }
 
     public static boolean isAnimated(String imageId) {
-        if (imageId == null || imageId.isBlank()) return false;
+        if (imageId == null || imageId.isBlank()) {
+            return false;
+        }
         CachedAsset cached = REGISTERED.get(imageId);
         if (cached == null) {
             cached = load(imageId);
-            if (cached == null) return false;
+            if (cached == null) {
+                return false;
+            }
             REGISTERED.put(imageId, cached);
         }
         return cached.animated();
@@ -88,8 +93,8 @@ public final class ProjectionTextureCache {
             MirageProjector.LOGGER.warn("Could not load Mirage image {} from local cache", imageId, exception);
             try {
                 Files.deleteIfExists(file);
-            } catch (IOException ignored) {
-                // Best-effort cache cleanup. The subsequent server request can still recover the asset.
+            } catch (IOException deleteFailure) {
+                MirageProjector.LOGGER.debug("Could not delete invalid Mirage cache {}", file, deleteFailure);
             }
             ClientAssetTransport.requestIfMissing(imageId);
             return null;

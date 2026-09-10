@@ -12,7 +12,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** Merges only image-specific state so presentation settings cannot be overwritten by a source workspace. */
 public record UpdateImageWorkspacePayload(
         BlockPos pos,
         String frontId, int frontWidth, int frontHeight,
@@ -69,7 +68,9 @@ public record UpdateImageWorkspacePayload(
 
     public static void handle(UpdateImageWorkspacePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer player)) return;
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
             BlockPos pos = payload.pos();
             if (player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) > 64.0D
                     || !player.level().hasChunkAt(pos)) return;

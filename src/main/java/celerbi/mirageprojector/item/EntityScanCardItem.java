@@ -1,6 +1,7 @@
 package celerbi.mirageprojector.item;
 
 import celerbi.mirageprojector.entity.EntityScanData;
+import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
@@ -11,15 +12,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 
-import java.util.List;
-
-/**
- * Non-stackable paper scan medium.
- *
- * <p>Its empty state is presented as an Empty Scan Template. Sneak-use on one
- * LivingEntity overwrites the template with a frozen visual scan; the source
- * entity and all of its equipment remain untouched.</p>
- */
 public final class EntityScanCardItem extends Item {
     public EntityScanCardItem(Properties properties) {
         super(properties.stacksTo(1));
@@ -42,19 +34,13 @@ public final class EntityScanCardItem extends Item {
             LivingEntity target,
             InteractionHand hand
     ) {
-        // Normal right-click remains vanilla. The early NeoForge interaction
-        // event handles sneak-use before an entity such as a horse can consume
-        // the action; this override remains as a compatibility fallback.
+
         if (!player.isShiftKeyDown()) {
             return InteractionResult.PASS;
         }
         return scanTarget(stack, player, target);
     }
 
-    /**
-     * Performs one frozen visual scan. Callers are responsible for deciding
-     * whether the current interaction gesture should invoke Mirage scanning.
-     */
     public InteractionResult scanTarget(ItemStack stack, Player player, LivingEntity target) {
         if (target.isPassenger() || target.isVehicle()) {
             if (!player.level().isClientSide) {

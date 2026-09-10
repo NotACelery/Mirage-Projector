@@ -11,7 +11,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
-/** Core Booster socket interaction, including reliable sneak-right-click extraction. */
 @EventBusSubscriber(modid = MirageProjector.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 public final class CoreBoosterInteractionEvents {
     private CoreBoosterInteractionEvents() {
@@ -30,14 +29,25 @@ public final class CoreBoosterInteractionEvents {
             if (booster.empty()) {
                 return;
             }
+            ItemStack expected = booster.material().centerStack();
+            if (!held.isEmpty() && (expected.isEmpty() || !held.is(expected.getItem()))) {
+                return;
+            }
             event.setCancellationResult(InteractionResult.SUCCESS);
             event.setCanceled(true);
             if (event.getLevel().isClientSide) {
                 return;
             }
             ItemStack returned = booster.extractMaterial();
-            if (!returned.isEmpty() && !player.getInventory().add(returned)) {
-                player.drop(returned, false);
+            if (!returned.isEmpty()) {
+                if (held.isEmpty()) {
+                    player.setItemInHand(event.getHand(), returned);
+                } else if (ItemStack.isSameItemSameComponents(held, returned)
+                        && held.getCount() < held.getMaxStackSize()) {
+                    held.grow(1);
+                } else if (!player.getInventory().add(returned)) {
+                    player.drop(returned, false);
+                }
             }
             player.displayClientMessage(Component.translatable("message.mirage_projector.core_booster.extracted"), true);
             return;

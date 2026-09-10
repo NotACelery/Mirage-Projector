@@ -6,9 +6,6 @@ import celerbi.mirageprojector.network.AssetUploadAckPayload;
 import celerbi.mirageprojector.network.DownloadAssetChunkPayload;
 import celerbi.mirageprojector.network.RequestAssetPayload;
 import celerbi.mirageprojector.network.UploadAssetChunkPayload;
-import net.minecraft.client.Minecraft;
-import net.neoforged.neoforge.network.PacketDistributor;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,9 +13,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import net.minecraft.client.Minecraft;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class ClientAssetTransport {
     private static final long REQUEST_RETRY_MS = 5_000L;
@@ -180,7 +179,6 @@ public final class ClientAssetTransport {
         UPLOAD_STATUS.clear();
     }
 
-    /** New generic path. Contents may be normalized PNG or a preserved GIF. */
     public static Path cachePath(String assetId) {
         return Minecraft.getInstance().gameDirectory.toPath()
                 .resolve("mirage_projector")
@@ -188,10 +186,11 @@ public final class ClientAssetTransport {
                 .resolve(assetId + ".asset");
     }
 
-    /** dev.1-dev.38 compatibility: prefer .asset, then fall back to historical .png. */
     public static Path existingCachePath(String assetId) {
         Path generic = cachePath(assetId);
-        if (Files.isRegularFile(generic)) return generic;
+        if (Files.isRegularFile(generic)) {
+            return generic;
+        }
         Path legacy = generic.resolveSibling(assetId + ".png");
         return Files.isRegularFile(legacy) ? legacy : null;
     }

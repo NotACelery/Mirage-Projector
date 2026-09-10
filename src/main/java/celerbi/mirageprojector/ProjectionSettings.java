@@ -4,18 +4,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.util.Mth;
 
-/**
- * Server-authoritative configuration of a Mirage projection.
- *
- * <p>This record deliberately owns its network and NBT serialization. Earlier dev
- * builds duplicated that field order in the block entity, menu and update packet,
- * which made every new setting a protocol-risk. From dev.9 onward there is one
- * canonical serializer.</p>
- *
- * <p>Image Mode stores the Plane Front/Back pair plus Prism-only East/West faces.
- * Front maps to Prism North and Back maps to Prism South so existing worlds migrate
- * naturally when the same image workspace is opened on a Prism chassis.</p>
- */
 public record ProjectionSettings(
         String imageId,
         int imageWidth,
@@ -51,7 +39,7 @@ public record ProjectionSettings(
         boolean debugChassisOverride
 ) {
     public static final int DEBUG_MIN_SCALE_PIXELS = 2;
-    /** Technical safety/search ceilings, not chassis gameplay limits. */
+
     public static final int DEBUG_MAX_SCALE_PIXELS = 512;
     public static final int DEBUG_MAX_LIFT_PIXELS = 512;
     public static final int DEBUG_MAX_FLOAT_PIXELS = 128;
@@ -157,10 +145,6 @@ public record ProjectionSettings(
         return id != null && !id.isBlank() && width > 0 && height > 0;
     }
 
-    /**
-     * User-facing ghost/transparency amount. 0% means fully visible; 90% is the
-     * maximum supported ghost effect so a projection can never become accidentally invisible.
-     */
     public int transparencyPercent() {
         return 100 - opacityPercent;
     }
@@ -469,7 +453,6 @@ public record ProjectionSettings(
         }
     }
 
-    /** Image surface layout. SINGLE is the historical/default continuous Plane. */
     public enum ImageLayoutMode {
         SINGLE,
         MULTI;
@@ -490,15 +473,6 @@ public record ProjectionSettings(
         }
     }
 
-    /**
-     * Plane presentation mode. The historical field name is kept in the record/NBT
-     * for migration compatibility, but from dev.37 it describes the complete
-     * Front/Back behaviour rather than only the rear face.
-     *
-     * <p>Do not reorder the first three values: dev.9-dev.36 persisted their
-     * ordinals. FRONT/BACK are appended so existing worlds retain their chosen
-     * Mirrored/Readable/Independent semantics.</p>
-     */
     public enum BackFaceMode {
         MIRRORED,
         READABLE,

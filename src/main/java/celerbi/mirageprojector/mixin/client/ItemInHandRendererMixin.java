@@ -9,17 +9,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-/**
- * Normalizes every third-person item held by a Mirage projection onto the same
- * colour-only Ghost pipeline used by its body and armor.
- *
- * <p>The normal entity buffer wrapper cannot see every path chosen internally
- * by ItemRenderer: block/item models may request chunk-style solid/cutout
- * layers. Those layers still write depth and caused water behind a projected
- * sword/tool/block to disappear. This hook is active only while Mirage is
- * rendering its temporary entity and replaces just the MultiBufferSource
- * passed to ItemInHandRenderer.</p>
- */
 @Mixin(ItemInHandRenderer.class)
 public abstract class ItemInHandRendererMixin {
     @ModifyVariable(
@@ -33,6 +22,6 @@ public abstract class ItemInHandRendererMixin {
         if (settings == null || settings.opacityPercent() >= 100) {
             return original;
         }
-        return ProjectionRenderBuffers.wrapHeldItem(original, settings);
+        return ProjectionRenderBuffers.wrapHeldItem(original, settings, ProjectionRenderContext.lateDepthStableGhost());
     }
 }

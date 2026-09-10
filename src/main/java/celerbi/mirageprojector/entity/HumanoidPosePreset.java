@@ -2,12 +2,6 @@ package celerbi.mirageprojector.entity;
 
 import java.util.Locale;
 
-/**
- * Persistent pose selection for the virtual Humanoid rig.
- *
- * <p>Pose is intentionally independent from entity scans and equipment snapshot
- * UUIDs: cycling a pose never requires recapturing a body or an ItemStack.</p>
- */
 public enum HumanoidPosePreset {
     STANDING("standing"),
     GUARD("guard"),

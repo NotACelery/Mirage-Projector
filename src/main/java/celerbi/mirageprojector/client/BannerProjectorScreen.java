@@ -14,7 +14,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-/** Dedicated Banner source workspace with virtual Plane/Prism face snapshots. */
 public final class BannerProjectorScreen extends AbstractContainerScreen<BannerProjectorMenu> {
     private static final int W = 420;
     private static final int H = 300;
@@ -128,11 +127,15 @@ public final class BannerProjectorScreen extends AbstractContainerScreen<BannerP
     }
 
     private String fit(String value, int maxWidth) {
-        if (value == null || value.isEmpty() || font.width(value) <= maxWidth) return value == null ? "" : value;
+        if (value == null || value.isEmpty() || font.width(value) <= maxWidth) {
+            return value == null ? "" : value;
+        }
         String ellipsis = "…";
         int target = Math.max(0, maxWidth - font.width(ellipsis));
         int end = value.length();
-        while (end > 0 && font.width(value.substring(0, end)) > target) end--;
+        while (end > 0 && font.width(value.substring(0, end)) > target) {
+            end--;
+        }
         return value.substring(0, Math.max(0, end)) + ellipsis;
     }
 }

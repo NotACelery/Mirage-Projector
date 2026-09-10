@@ -21,14 +21,23 @@ public record BannerWorkspaceActionPayload(BlockPos pos, Action action) implemen
             buffer.writeVarInt(payload.action().ordinal());
         }
     };
-    @Override public Type<BannerWorkspaceActionPayload> type() { return TYPE; }
+    @Override
+    public Type<BannerWorkspaceActionPayload> type() {
+        return TYPE;
+    }
 
     public static void handle(BannerWorkspaceActionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer player)) return;
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
             BlockPos pos = payload.pos();
-            if (player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) > 64.0D || !player.level().hasChunkAt(pos)) return;
-            if (!(player.level().getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector)) return;
+            if (player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) > 64.0D || !player.level().hasChunkAt(pos)) {
+                return;
+            }
+            if (!(player.level().getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector)) {
+                return;
+            }
             switch (payload.action()) {
                 case COPY_PRIMARY_TO_ALL -> projector.copyPrimaryBannerToAllFaces();
                 case CLEAR_ALL -> projector.clearAllBannerSnapshots();

@@ -1,14 +1,11 @@
 package celerbi.mirageprojector.crying;
 
 public enum CryingObsidianCrystalStage {
-    // dev.56 optics contract:
-    // - buds never emit block light;
-    // - each stage below MATURE scales residual ray size/length/frequency by -25%;
-    // - MATURE remains the full-power light thief/source.
-    SMALL(1, 0, 0.75F, 0.34F, 480, 24),
-    MEDIUM(2, 0, 0.50F, 0.68F, 240, 16),
-    LARGE(3, 0, 0.25F, 1.02F, 160, 12),
-    MATURE(4, 15, 0.0F, 1.36F, 120, 8);
+
+    SMALL(1, 0, 0.75F, 0.34F, 480, 24, 4.5F / 16.0F),
+    MEDIUM(2, 0, 0.50F, 0.68F, 240, 16, 6.5F / 16.0F),
+    LARGE(3, 0, 0.25F, 1.02F, 160, 12, 8.5F / 16.0F),
+    MATURE(4, 15, 0.0F, 1.36F, 120, 8, 1.0F);
 
     private final int shardDrops;
     private final int vanillaPoweredLight;
@@ -16,6 +13,7 @@ public enum CryingObsidianCrystalStage {
     private final float residualMaxLength;
     private final int residualCycleTicks;
     private final int growthChanceDenominator;
+    private final float verticalBeamResumeOffset;
 
     CryingObsidianCrystalStage(
             int shardDrops,
@@ -23,7 +21,8 @@ public enum CryingObsidianCrystalStage {
             float verticalTransmission,
             float residualMaxLength,
             int residualCycleTicks,
-            int growthChanceDenominator
+            int growthChanceDenominator,
+            float verticalBeamResumeOffset
     ) {
         this.shardDrops = shardDrops;
         this.vanillaPoweredLight = vanillaPoweredLight;
@@ -31,6 +30,7 @@ public enum CryingObsidianCrystalStage {
         this.residualMaxLength = residualMaxLength;
         this.residualCycleTicks = residualCycleTicks;
         this.growthChanceDenominator = growthChanceDenominator;
+        this.verticalBeamResumeOffset = verticalBeamResumeOffset;
     }
 
     public int shardDrops() {
@@ -68,6 +68,10 @@ public enum CryingObsidianCrystalStage {
 
     public int growthChanceDenominator() {
         return growthChanceDenominator;
+    }
+
+    public float verticalBeamResumeOffset() {
+        return verticalBeamResumeOffset;
     }
 
     public boolean isMature() {

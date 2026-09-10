@@ -2,6 +2,7 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.registry.ModItems;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -28,13 +29,31 @@ public final class ClientRuntimeEvents {
 
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRIPWIRE_BLOCKS) {
+
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_TRIPWIRE_BLOCKS) {
+            MirageProjectorRenderer.flushDeferredEntityProjections(
+                    event.getPoseStack(),
+                    event.getCamera().getPosition(),
+                    false
+            );
             return;
         }
-        MirageProjectorRenderer.flushDeferredEntityProjections(
-                event.getPoseStack(),
-                event.getCamera().getPosition()
-        );
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+            var modelViewStack = RenderSystem.getModelViewStack();
+            modelViewStack.pushMatrix();
+            modelViewStack.mul(event.getModelViewMatrix());
+            RenderSystem.applyModelViewMatrix();
+            try {
+                MirageProjectorRenderer.flushDeferredEntityProjections(
+                        event.getPoseStack(),
+                        event.getCamera().getPosition(),
+                        true
+                );
+            } finally {
+                modelViewStack.popMatrix();
+                RenderSystem.applyModelViewMatrix();
+            }
+        }
     }
 
     @SubscribeEvent

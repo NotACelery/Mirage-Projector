@@ -3,6 +3,7 @@ package celerbi.mirageprojector.client;
 import celerbi.mirageprojector.ProjectionSettings;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.math.Axis;
+import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -13,17 +14,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.UUID;
-
-/**
- * GUI preview for Item Mode.
- *
- * <p>Standalone armor is reconstructed on the same invisible humanoid rig used
- * by the world renderer. Ordinary items/blocks now use their FIXED 3D model in
- * the preview rather than an inventory icon, so blocks remain volumetric and
- * projection Tint/Ghost Effect can be previewed through the same local buffer
- * path as the world hologram.</p>
- */
 public final class ItemProjectionPreviewRenderer {
     private ClientLevel cachedLevel;
     private UUID cachedSnapshotId;

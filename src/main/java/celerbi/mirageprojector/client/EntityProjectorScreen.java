@@ -10,6 +10,8 @@ import celerbi.mirageprojector.menu.EntityProjectorMenu;
 import celerbi.mirageprojector.network.EntityWorkspaceActionPayload;
 import celerbi.mirageprojector.network.OpenProjectorWorkspacePayload;
 import celerbi.mirageprojector.network.SetProjectionSourcePayload;
+import java.util.EnumMap;
+import java.util.Map;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -19,14 +21,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.EnumMap;
-import java.util.Map;
-
-/**
- * Entity workspace arranged around the same centred 9x3 + hotbar footprint as
- * the normal player inventory. Source, equipment, actions and preview have
- * independent regions so translated labels never share button/slot space.
- */
 public final class EntityProjectorScreen extends AbstractContainerScreen<EntityProjectorMenu> {
     private static final int PANEL_WIDTH = 570;
     private static final int PANEL_HEIGHT = 438;

@@ -10,6 +10,11 @@ import celerbi.mirageprojector.network.OpenEntityWorkspacePayload;
 import celerbi.mirageprojector.network.OpenImageWorkspacePayload;
 import celerbi.mirageprojector.network.OpenItemWorkspacePayload;
 import celerbi.mirageprojector.network.UpdateProjectorPayload;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+import java.util.function.IntConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
@@ -20,16 +25,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Function;
-import java.util.function.IntConsumer;
-
-/**
- * Primary projector workspace: global presentation + Core only.
- * Source import/capture/editing is intentionally delegated to dedicated workspaces.
- */
 public final class MirageProjectorScreen extends AbstractContainerScreen<MirageProjectorMenu> {
     private final ProjectionSettings base;
     private int scalePixels;
@@ -121,7 +116,11 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         scaleSlider = addRenderableWidget(new IntSlider(
                 x + 12, y + 76, half, 20,
                 ProjectionSettings.DEBUG_MIN_SCALE_PIXELS, ProjectionSettings.DEBUG_MAX_SCALE_PIXELS, scalePixels,
-                value -> { scalePixels = value; refreshDynamicLimits(true); updateClearance(true); },
+                value -> {
+                    scalePixels = value;
+                    refreshDynamicLimits(true);
+                    updateClearance(true);
+                },
                 value -> Component.translatable("gui.mirage_projector.scale", value).getString()
         ));
         scaleSlider.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.scale.dynamic")));
@@ -129,13 +128,19 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         liftSlider = addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 76, half, 20,
                 0, ProjectionSettings.DEBUG_MAX_LIFT_PIXELS, liftPixels,
-                value -> { liftPixels = value; refreshDynamicLimits(true); updateClearance(true); },
+                value -> {
+                    liftPixels = value;
+                    refreshDynamicLimits(true);
+                    updateClearance(true);
+                },
                 value -> Component.translatable("gui.mirage_projector.lift", value).getString()
         ));
         liftSlider.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.lift.dynamic")));
 
         rotationButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
-            rotationEnabled = !rotationEnabled; refreshLabels(); refreshDynamicLimits(true);
+            rotationEnabled = !rotationEnabled;
+            refreshLabels();
+            refreshDynamicLimits(true);
         }).bounds(x + 12, y + 118, half, 20).build());
         addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 118, half, 20,
@@ -144,18 +149,30 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
                 value -> Component.translatable("gui.mirage_projector.rotation_period", String.format(Locale.ROOT, "%.2f", value / 20.0D)).getString()
         ));
 
-        directionButton = addRenderableWidget(Button.builder(Component.empty(), button -> { clockwise = !clockwise; refreshLabels(); })
+        directionButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            clockwise = !clockwise;
+            refreshLabels();
+        })
                 .bounds(x + 12, y + 142, half, 20).build());
         orientationButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
-            rotationOffsetDegrees = wrap(rotationOffsetDegrees + 90.0F); refreshLabels();
+            rotationOffsetDegrees = wrap(rotationOffsetDegrees + 90.0F);
+            refreshLabels();
         }).bounds(x + 20 + half, y + 142, half, 20).build());
 
-        floatingButton = addRenderableWidget(Button.builder(Component.empty(), button -> { floatingEnabled = !floatingEnabled; refreshLabels(); refreshDynamicLimits(true); })
+        floatingButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            floatingEnabled = !floatingEnabled;
+            refreshLabels();
+            refreshDynamicLimits(true);
+        })
                 .bounds(x + 12, y + 176, half, 20).build());
         floatAmplitudeSlider = addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 176, half, 20,
                 0, ProjectionSettings.DEBUG_MAX_FLOAT_PIXELS, floatAmplitudePixels,
-                value -> { floatAmplitudePixels = value; refreshDynamicLimits(true); updateClearance(true); },
+                value -> {
+                    floatAmplitudePixels = value;
+                    refreshDynamicLimits(true);
+                    updateClearance(true);
+                },
                 value -> Component.translatable("gui.mirage_projector.float_amplitude", value).getString()
         ));
         floatAmplitudeSlider.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.float.dynamic")));
@@ -163,7 +180,9 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         floatModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             floatMode = floatMode == ProjectionSettings.FloatMode.TIME
                     ? ProjectionSettings.FloatMode.ROTATION_SYNCED : ProjectionSettings.FloatMode.TIME;
-            refreshLabels(); refreshFloatTimingSlider(); refreshDynamicLimits(true);
+            refreshLabels();
+            refreshFloatTimingSlider();
+            refreshDynamicLimits(true);
         }).bounds(x + 12, y + 200, half, 20).build());
         floatTimingSlider = addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 200, half, 20,
@@ -172,26 +191,40 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
                 value -> Component.translatable("gui.mirage_projector.float_cycle", String.format(Locale.ROOT, "%.2f", value / 20.0D)).getString()
         ));
 
-        lightingButton = addRenderableWidget(Button.builder(Component.empty(), button -> { fullbright = !fullbright; refreshLabels(); refreshDynamicLimits(true); })
+        lightingButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            fullbright = !fullbright;
+            refreshLabels();
+            refreshDynamicLimits(true);
+        })
                 .bounds(x + 12, y + 234, half, 20).build());
         IntSlider ghost = addRenderableWidget(new IntSlider(
                 x + 20 + half, y + 234, half, 20,
                 0, 90, transparencyPercent,
-                value -> { transparencyPercent = value; refreshDynamicLimits(true); },
+                value -> {
+                    transparencyPercent = value;
+                    refreshDynamicLimits(true);
+                },
                 value -> Component.translatable("gui.mirage_projector.ghost", value).getString()
         ));
         ghost.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.ghost")));
 
-        tintButton = addRenderableWidget(Button.builder(Component.empty(), button -> { tintRgb = nextTint(tintRgb); refreshLabels(); })
+        tintButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            tintRgb = nextTint(tintRgb);
+            refreshLabels();
+        })
                 .bounds(x + 12, y + 258, half, 20).build());
         debugButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             if (minecraft != null && minecraft.player != null && minecraft.player.isCreative()) {
-                debugChassisOverride = !debugChassisOverride; refreshLabels(); refreshDynamicLimits(true); updateClearance(true);
+                debugChassisOverride = !debugChassisOverride;
+                refreshLabels();
+                refreshDynamicLimits(true);
+                updateClearance(true);
             }
         }).bounds(x + 20 + half, y + 258, half, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> {
-            saveSettings(); onClose();
+            saveSettings();
+            onClose();
         }).bounds(x + 12, y + 470, half, 22).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button -> onClose())
                 .bounds(x + 20 + half, y + 470, half, 22).build());
@@ -210,9 +243,7 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         int sourceCount = menu.projectedSourceCount();
 
         if (clampValues) {
-            // dev.38: chassis dimensions are nominal efficiency targets, not hard caps.
-            // These first clamps only enforce global technical safety ceilings (and sane
-            // no-Core/no-content defaults); PU feasibility is resolved immediately below.
+
             ProjectionSettings current = buildSettings();
             scalePixels = clamp(scalePixels, ProjectionSettings.DEBUG_MIN_SCALE_PIXELS,
                     ProjectionPower.maximumStructuralScale(current, core, chassis, hasContent));
@@ -224,11 +255,6 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
             floatAmplitudePixels = clamp(floatAmplitudePixels, 0,
                     ProjectionPower.maximumStructuralFloat(buildSettings(), core, chassis));
 
-            // Normal slider movement is already bounded by the previous effective
-            // maximum, so it should never steal range from another slider. This
-            // recovery path only runs when a Core/feature change makes the current
-            // combination invalid. Prefer dropping optional Float, then Lift, and
-            // reduce Scale only as the final fallback.
             if (core.present() && !ProjectionPower.evaluate(
                     buildSettings(), core, chassis, hasContent, sourceCount).active()) {
                 int feasibleFloat = ProjectionPower.maximumFeasibleFloat(
@@ -269,15 +295,27 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
 
         if (scaleSlider != null) scaleSlider.reconfigure(
                 ProjectionSettings.DEBUG_MIN_SCALE_PIXELS, scaleLimit, scalePixels,
-                value -> { scalePixels = value; refreshDynamicLimits(true); updateClearance(true); },
+                value -> {
+                    scalePixels = value;
+                    refreshDynamicLimits(true);
+                    updateClearance(true);
+                },
                 value -> Component.translatable("gui.mirage_projector.scale", value).getString());
         if (liftSlider != null) liftSlider.reconfigure(
                 0, liftLimit, liftPixels,
-                value -> { liftPixels = value; refreshDynamicLimits(true); updateClearance(true); },
+                value -> {
+                    liftPixels = value;
+                    refreshDynamicLimits(true);
+                    updateClearance(true);
+                },
                 value -> Component.translatable("gui.mirage_projector.lift", value).getString());
         if (floatAmplitudeSlider != null) floatAmplitudeSlider.reconfigure(
                 0, floatLimit, floatAmplitudePixels,
-                value -> { floatAmplitudePixels = value; refreshDynamicLimits(true); updateClearance(true); },
+                value -> {
+                    floatAmplitudePixels = value;
+                    refreshDynamicLimits(true);
+                    updateClearance(true);
+                },
                 value -> Component.translatable("gui.mirage_projector.float_amplitude", value).getString());
     }
 
@@ -286,7 +324,9 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     }
 
     private void refreshFloatTimingSlider() {
-        if (floatTimingSlider == null) return;
+        if (floatTimingSlider == null) {
+            return;
+        }
         if (floatMode == ProjectionSettings.FloatMode.TIME) {
             floatTimingSlider.reconfigure(5, 1200, floatCycleTicks,
                     value -> floatCycleTicks = value,
@@ -299,20 +339,36 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     }
 
     private void refreshLabels() {
-        if (rotationButton != null) rotationButton.setMessage(Component.translatable("gui.mirage_projector.rotation", onOff(rotationEnabled)));
-        if (directionButton != null) directionButton.setMessage(Component.translatable("gui.mirage_projector.direction", Component.translatable(clockwise ? "gui.mirage_projector.clockwise" : "gui.mirage_projector.counterclockwise")));
-        if (orientationButton != null) orientationButton.setMessage(Component.translatable("gui.mirage_projector.orientation", Math.round(rotationOffsetDegrees)));
-        if (floatingButton != null) floatingButton.setMessage(Component.translatable("gui.mirage_projector.floating", onOff(floatingEnabled)));
-        if (floatModeButton != null) floatModeButton.setMessage(Component.translatable("gui.mirage_projector.float_mode", Component.translatable(floatMode == ProjectionSettings.FloatMode.TIME ? "gui.mirage_projector.float_mode.time" : "gui.mirage_projector.float_mode.rotation")));
-        if (lightingButton != null) lightingButton.setMessage(Component.translatable("gui.mirage_projector.lighting", Component.translatable(fullbright ? "gui.mirage_projector.lighting.fullbright" : "gui.mirage_projector.lighting.world")));
-        if (tintButton != null) tintButton.setMessage(Component.translatable("gui.mirage_projector.tint", tintName(tintRgb)));
+        if (rotationButton != null) {
+            rotationButton.setMessage(Component.translatable("gui.mirage_projector.rotation", onOff(rotationEnabled)));
+        }
+        if (directionButton != null) {
+            directionButton.setMessage(Component.translatable("gui.mirage_projector.direction", Component.translatable(clockwise ? "gui.mirage_projector.clockwise" : "gui.mirage_projector.counterclockwise")));
+        }
+        if (orientationButton != null) {
+            orientationButton.setMessage(Component.translatable("gui.mirage_projector.orientation", Math.round(rotationOffsetDegrees)));
+        }
+        if (floatingButton != null) {
+            floatingButton.setMessage(Component.translatable("gui.mirage_projector.floating", onOff(floatingEnabled)));
+        }
+        if (floatModeButton != null) {
+            floatModeButton.setMessage(Component.translatable("gui.mirage_projector.float_mode", Component.translatable(floatMode == ProjectionSettings.FloatMode.TIME ? "gui.mirage_projector.float_mode.time" : "gui.mirage_projector.float_mode.rotation")));
+        }
+        if (lightingButton != null) {
+            lightingButton.setMessage(Component.translatable("gui.mirage_projector.lighting", Component.translatable(fullbright ? "gui.mirage_projector.lighting.fullbright" : "gui.mirage_projector.lighting.world")));
+        }
+        if (tintButton != null) {
+            tintButton.setMessage(Component.translatable("gui.mirage_projector.tint", tintName(tintRgb)));
+        }
         if (debugButton != null) {
             debugButton.visible = minecraft != null && minecraft.player != null && minecraft.player.isCreative();
             debugButton.setMessage(Component.translatable("gui.mirage_projector.debug", onOff(debugChassisOverride)));
         }
     }
 
-    private Component onOff(boolean value) { return Component.translatable(value ? "gui.mirage_projector.on" : "gui.mirage_projector.off"); }
+    private Component onOff(boolean value) {
+        return Component.translatable(value ? "gui.mirage_projector.on" : "gui.mirage_projector.off");
+    }
 
     private ProjectionSettings buildSettings() {
         return base.withPresentation(
@@ -338,10 +394,14 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         section(graphics, x + 8, y + 220, imageWidth - 16, 60);
         section(graphics, x + 8, y + 282, imageWidth - 16, 88);
         drawSlotFrame(graphics, x + MirageProjectorMenu.CORE_SLOT_X - 1, y + MirageProjectorMenu.CORE_SLOT_Y - 1);
-        for (int row = 0; row < 3; row++) for (int col = 0; col < 9; col++)
-            drawSlotFrame(graphics, x + MirageProjectorMenu.PLAYER_INV_X + col * 18 - 1, y + MirageProjectorMenu.PLAYER_INV_Y + row * 18 - 1);
-        for (int col = 0; col < 9; col++)
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                drawSlotFrame(graphics, x + MirageProjectorMenu.PLAYER_INV_X + col * 18 - 1, y + MirageProjectorMenu.PLAYER_INV_Y + row * 18 - 1);
+            }
+        }
+        for (int col = 0; col < 9; col++) {
             drawSlotFrame(graphics, x + MirageProjectorMenu.PLAYER_INV_X + col * 18 - 1, y + MirageProjectorMenu.PLAYER_INV_Y + 58 - 1);
+        }
     }
 
     private static void section(GuiGraphics graphics, int x, int y, int w, int h) {
@@ -372,8 +432,6 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         ProjectionPower.Overdrive overdrive = ProjectionPower.overdrive(
                 buildSettings(), chassis, menu.hasProjectedSourceContent());
 
-        // dev.40: reserve the left column for the physical Core slot. The old
-        // Power copy started at x=20 and was literally painted over the slot.
         int coreTextX = 50;
         if (core.present()) {
             graphics.drawString(font, fitText(Component.translatable("gui.mirage_projector.power.core_output",
@@ -396,8 +454,6 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         graphics.drawString(font, fitText(loadText, 342), coreTextX, 316,
                 power.active() ? 0xFF9FDBA9 : 0xFFFFA87A, false);
 
-        // Capacity bar is intentionally visual and compact. The detailed formula
-        // lives behind the small '?' hotspot instead of hijacking the whole panel.
         int barX = coreTextX;
         int barY = 328;
         int barWidth = 342;
@@ -470,14 +526,14 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     }
 
     private void renderPowerBreakdownTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
-        // dev.40: the breakdown is intentionally opt-in. Hovering anywhere in
-        // POWER / CAPACITY used to cover half the screen with a giant tooltip.
-        // Only the small '?' in the section header owns this tooltip now.
+
         int minX = leftPos + imageWidth - 26;
         int maxX = leftPos + imageWidth - 14;
         int minY = topPos + 284;
         int maxY = topPos + 296;
-        if (mouseX < minX || mouseX >= maxX || mouseY < minY || mouseY >= maxY) return;
+        if (mouseX < minX || mouseX >= maxX || mouseY < minY || mouseY >= maxY) {
+            return;
+        }
 
         ProjectionCoreProfile core = menu.coreProfile();
         ProjectionChassisProfile chassis = menu.chassisProfile();
@@ -506,10 +562,14 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     }
 
     private void renderEmptyCoreTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
-        if (!menu.coreStack().isEmpty()) return;
+        if (!menu.coreStack().isEmpty()) {
+            return;
+        }
         int x = leftPos + MirageProjectorMenu.CORE_SLOT_X;
         int y = topPos + MirageProjectorMenu.CORE_SLOT_Y;
-        if (mouseX < x || mouseX >= x + 18 || mouseY < y || mouseY >= y + 18) return;
+        if (mouseX < x || mouseX >= x + 18 || mouseY < y || mouseY >= y + 18) {
+            return;
+        }
         List<Component> lines = new ArrayList<>();
         lines.add(Component.translatable("tooltip.mirage_projector.core.accepted"));
         java.util.Arrays.stream(ProjectionCoreProfile.values())
@@ -538,9 +598,14 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
 
     private void updateClearance(boolean force) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) { clearance = ProjectionClearance.Result.UNKNOWN; return; }
+        if (mc.level == null) {
+            clearance = ProjectionClearance.Result.UNKNOWN;
+            return;
+        }
         long tick = mc.level.getGameTime();
-        if (!force && lastClearanceTick != Long.MIN_VALUE && tick - lastClearanceTick < 10) return;
+        if (!force && lastClearanceTick != Long.MIN_VALUE && tick - lastClearanceTick < 10) {
+            return;
+        }
         lastClearanceTick = tick;
         clearance = ProjectionClearance.scan(
                 mc.level,
@@ -560,7 +625,9 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     }
 
     private static String clearanceEnvelopeSummary(ProjectionClearance.Result result) {
-        if (result == null || !result.hasEnvelope()) return "?";
+        if (result == null || !result.hasEnvelope()) {
+            return "?";
+        }
         int x = Math.max(1, (int) Math.ceil(result.envelope().getXsize() * 16.0D));
         int y = Math.max(1, (int) Math.ceil(result.envelope().getYsize() * 16.0D));
         int z = Math.max(1, (int) Math.ceil(result.envelope().getZsize() * 16.0D));
@@ -568,16 +635,29 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     }
 
     private String fitText(String value, int maxWidth) {
-        if (value == null || font.width(value) <= maxWidth) return value == null ? "" : value;
+        if (value == null || font.width(value) <= maxWidth) {
+            return value == null ? "" : value;
+        }
         String ellipsis = "…";
         int target = Math.max(0, maxWidth - font.width(ellipsis));
         int end = value.length();
-        while (end > 0 && font.width(value.substring(0, end)) > target) end--;
+        while (end > 0 && font.width(value.substring(0, end)) > target) {
+            end--;
+        }
         return value.substring(0, Math.max(0, end)) + ellipsis;
     }
 
-    @Override public void onClose() { ProjectionClearancePreviewRenderer.clear(); super.onClose(); }
-    @Override public void removed() { ProjectionClearancePreviewRenderer.clear(); super.removed(); }
+    @Override
+    public void onClose() {
+        ProjectionClearancePreviewRenderer.clear();
+        super.onClose();
+    }
+
+    @Override
+    public void removed() {
+        ProjectionClearancePreviewRenderer.clear();
+        super.removed();
+    }
 
     private static Component sourceName(ProjectionSettings.SourceMode mode) {
         return Component.translatable("gui.mirage_projector.source." + mode.name().toLowerCase());
@@ -585,14 +665,23 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
 
     private static int nextTint(int current) {
         int[] presets = {0xFFFFFF, 0x8FE8FF, 0xC7A4FF, 0xFF9BD7, 0xFFD27A, 0x9CFFB1, 0xFF9A9A};
-        for (int i = 0; i < presets.length; i++) if ((current & 0xFFFFFF) == presets[i]) return presets[(i + 1) % presets.length];
+        for (int i = 0; i < presets.length; i++) {
+            if ((current & 0xFFFFFF) == presets[i]) {
+                return presets[(i + 1) % presets.length];
+            }
+        }
         return presets[0];
     }
 
     private static Component tintName(int rgb) {
         String key = switch (rgb & 0xFFFFFF) {
-            case 0xFFFFFF -> "white"; case 0x8FE8FF -> "cyan"; case 0xC7A4FF -> "amethyst";
-            case 0xFF9BD7 -> "rose"; case 0xFFD27A -> "amber"; case 0x9CFFB1 -> "green"; case 0xFF9A9A -> "red";
+            case 0xFFFFFF -> "white";
+            case 0x8FE8FF -> "cyan";
+            case 0xC7A4FF -> "amethyst";
+            case 0xFF9BD7 -> "rose";
+            case 0xFFD27A -> "amber";
+            case 0x9CFFB1 -> "green";
+            case 0xFF9A9A -> "red";
             default -> null;
         };
         return key == null ? Component.literal(String.format(Locale.ROOT, "#%06X", rgb & 0xFFFFFF))
@@ -618,17 +707,45 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
 
         private IntSlider(int x, int y, int width, int height, int min, int max, int current, IntConsumer setter, Function<Integer, String> formatter) {
             super(x, y, width, height, Component.empty(), normalize(current, min, max));
-            this.min = min; this.max = max; this.setter = setter; this.formatter = formatter; this.current = clamp(current, min, max); updateMessage();
+            this.min = min;
+            this.max = max;
+            this.setter = setter;
+            this.formatter = formatter;
+            this.current = clamp(current, min, max);
+            updateMessage();
         }
 
         void reconfigure(int min, int max, int current, IntConsumer setter, Function<Integer, String> formatter) {
-            this.min = min; this.max = max; this.setter = setter; this.formatter = formatter; this.current = clamp(current, min, max);
-            this.value = normalize(this.current, min, max); updateMessage();
+            this.min = min;
+            this.max = max;
+            this.setter = setter;
+            this.formatter = formatter;
+            this.current = clamp(current, min, max);
+            this.value = normalize(this.current, min, max);
+            updateMessage();
         }
 
-        @Override protected void updateMessage() { if (formatter != null) setMessage(Component.literal(formatter.apply(current))); }
-        @Override protected void applyValue() { current = min + (int)Math.round(value * (max - min)); current = clamp(current, min, max); setter.accept(current); updateMessage(); }
-        private static double normalize(int value, int min, int max) { return max <= min ? 0.0D : (clamp(value, min, max) - min) / (double)(max - min); }
-        private static int clamp(int value, int min, int max) { return Math.max(min, Math.min(max, value)); }
+        @Override
+        protected void updateMessage() {
+            if (formatter != null) {
+                setMessage(Component.literal(formatter.apply(current)));
+            }
+        }
+
+        @Override
+        protected void applyValue() {
+            current = min + (int) Math.round(value * (max - min));
+            current = clamp(current, min, max);
+            setter.accept(current);
+            updateMessage();
+        }
+
+        private static double normalize(int value, int min, int max) {
+            return max <= min ? 0.0D : (clamp(value, min, max) - min) / (double) (max - min);
+        }
+
+        private static int clamp(int value, int min, int max) {
+            return Math.max(min, Math.min(max, value));
+        }
     }
 }

@@ -12,8 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
 
 public final class CryingObsidianGrowthHooks {
-    // Match vanilla amethyst-style 20% success on an eligible random tick.
-    // The old 1/32 gate made the first bud impractically rare in real QA.
+
     private static final int NUCLEATION_CHANCE_DENOMINATOR = 5;
 
     private CryingObsidianGrowthHooks() {
@@ -57,9 +56,7 @@ public final class CryingObsidianGrowthHooks {
     }
 
     private static boolean hasLavaAbove(ServerLevel level, BlockPos pos) {
-        // FluidTags.LAVA deliberately accepts both source and flowing lava.
-        // Visually, if the Crying Obsidian is in a valid lava-drip setup, it is
-        // eligible; requiring a source block made flowing-lava farms silently fail.
+
         return level.getFluidState(pos).is(FluidTags.LAVA);
     }
 }

@@ -1,24 +1,12 @@
 package celerbi.mirageprojector.entity;
 
+import java.util.Optional;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.Optional;
-
-/**
- * Persistent render state for Entity and Humanoid Entity modes.
- *
- * <p>The staged physical scan card is deliberately not owned here. Importing a
- * card copies its frozen entity body into this state and copies card equipment
- * into incoming virtual channels. Removing a Humanoid card may leave its virtual
- * mannequin equipment available while the workspace is bodyless, but inserting a
- * card whose kind exposes a different slot set immediately clears every virtual
- * equipment workspace that is no longer valid. This prevents invisible armor/hand
- * snapshots from surviving behind Generic or Horse GUIs and later reappearing.</p>
- */
 public final class EntityProjectionState {
     private CompoundTag activeEntityScan = new CompoundTag();
     private HumanoidPosePreset humanoidPose = HumanoidPosePreset.STANDING;
@@ -126,14 +114,6 @@ public final class EntityProjectionState {
         return horseProjected;
     }
 
-    /**
-     * Captures the player's currently equipped humanoid loadout into virtual
-     * Incoming snapshots without moving or changing any real inventory stack.
-     * Empty equipment slots clear the matching virtual Incoming channel so one
-     * capture represents the complete six-channel loadout at that moment.
-     *
-     * @return number of non-empty equipment snapshots captured
-     */
     public int captureEquippedHumanoidLoadout(Player player) {
         if (player == null) {
             return 0;
@@ -149,20 +129,13 @@ public final class EntityProjectionState {
                 humanoidIncoming.put(channel, stack);
                 captured++;
             } else {
-                // Nothing new to accept: keep Incoming visually/semantically empty.
+
                 humanoidIncoming.clear(channel);
             }
         }
         return captured;
     }
 
-    /**
-     * Copies a scan card into projector-owned render state.
-     *
-     * <p>The entity body becomes active immediately. Equipment never overwrites
-     * the active/projected side: scanned equipment is staged on the incoming side
-     * and must later be accepted channel-by-channel by the GUI.</p>
-     */
     public boolean importFromCard(ItemStack card, HolderLookup.Provider registries) {
         Optional<CompoundTag> root = EntityScanData.copyRoot(card);
         Optional<EntityScanData.View> view = EntityScanData.read(card);
@@ -172,10 +145,6 @@ public final class EntityProjectionState {
 
         EntityScanData.View scan = view.get();
 
-        // A change of entity kind also changes which equipment rows exist in the
-        // workspace. Virtual snapshots belonging to rows that disappear must be
-        // destroyed immediately instead of remaining hidden in NBT/memory and
-        // resurfacing when the card is removed later.
         switch (scan.kind()) {
             case HUMANOID -> clearHorseWorkspace();
             case HORSE -> clearHumanoidWorkspace();
@@ -203,19 +172,12 @@ public final class EntityProjectionState {
                     EntityScanData.HORSE_CHANNELS
             );
             case GENERIC -> {
-                // Generic entity-specific visual layers stay inside EntityData.
-                // No editable equipment rows are fabricated here.
+
             }
         }
         return true;
     }
 
-    /**
-     * Removing the physical scan card removes the entity body supplied by that
-     * card. Humanoid equipment channels deliberately survive so the workspace
-     * remains a body-optional virtual mannequin. Horse-only channels are tied to
-     * horse context and are torn down together with the horse body.
-     */
     public void onStagedCardRemoved(EntityScanData.Kind removedKind) {
         clearActiveEntityBody();
         if (removedKind == EntityScanData.Kind.HORSE) {
@@ -232,9 +194,7 @@ public final class EntityProjectionState {
             return ApplyResult.EMPTY_INCOMING;
         }
         if (destinationSet.visuallyEquals(channel, incoming)) {
-            // Accepting an Incoming snapshot is a move in workspace semantics,
-            // even when the projected side already looks identical. Keeping a
-            // second virtual copy made the UI look duplicated and ambiguous.
+
             sourceSet.clear(channel);
             return ApplyResult.ALREADY_APPLIED;
         }
@@ -308,12 +268,6 @@ public final class EntityProjectionState {
         pruneIncompatibleWorkspaceForActiveEntity();
     }
 
-    /**
-     * dev.38 migration/repair pass for worlds saved by builds that could retain
-     * invisible virtual equipment behind a different active entity family.
-     * A truly bodyless workspace is intentionally left untouched so the supported
-     * Humanoid mannequin-without-card state survives reloads.
-     */
     private void pruneIncompatibleWorkspaceForActiveEntity() {
         if (!hasActiveEntity()) {
             return;

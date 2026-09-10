@@ -1,22 +1,23 @@
 package celerbi.mirageprojector.blockentity;
 
-import celerbi.mirageprojector.ProjectorStateTransfer;
 import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
-import celerbi.mirageprojector.menu.MirageProjectorMenu;
+import celerbi.mirageprojector.ProjectorStateTransfer;
+import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.entity.EntityProjectionState;
-import celerbi.mirageprojector.entity.EquipmentSnapshotRules;
 import celerbi.mirageprojector.entity.EntityScanData;
-import celerbi.mirageprojector.entity.HumanoidPosePreset;
-import celerbi.mirageprojector.entity.HorsePosePreset;
+import celerbi.mirageprojector.entity.EquipmentSnapshotRules;
 import celerbi.mirageprojector.entity.GenericPosePreset;
+import celerbi.mirageprojector.entity.HorsePosePreset;
+import celerbi.mirageprojector.entity.HumanoidPosePreset;
 import celerbi.mirageprojector.entity.VirtualEquipmentSnapshots;
 import celerbi.mirageprojector.item.EntityScanCardItem;
-import celerbi.mirageprojector.block.MirageProjectorBlock;
+import celerbi.mirageprojector.menu.MirageProjectorMenu;
 import celerbi.mirageprojector.registry.ModBlockEntities;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -37,17 +38,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.UUID;
-
 public final class MirageProjectorBlockEntity extends BlockEntity implements MenuProvider {
     private ProjectionSettings settings = ProjectionSettings.DEFAULT;
     private final ImageSourceBank imageSourceBank = new ImageSourceBank();
 
-    /**
-     * Render-only snapshot storage. This is deliberately not a physical inventory:
-     * the stack is a one-count serialized copy used only to reproduce the source's
-     * appearance. Menu interaction never transfers this stack to or from a player.
-     */
     private final ItemStackHandler projectionSnapshot = new ItemStackHandler(1) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -63,11 +57,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     @Nullable
     private UUID projectionSnapshotId;
 
-    /**
-     * Virtual banner snapshots. Index 0 is Plane Front / Prism North; 1..3 are
-     * Prism East/South/West. Like Item Mode these are render-only copies and
-     * never consume or retain the player's real banner item.
-     */
     private final ItemStackHandler bannerSnapshots = new ItemStackHandler(4) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -84,12 +73,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             return stack.getItem() instanceof BannerItem;
         }
     };
-    /**
-     * dev.11 and older physically stored the projected item. On first load in
-     * dev.12 we keep that real stack only as a migration return item while also
-     * creating a non-obtainable snapshot copy. It is returned when the projector
-     * is broken, preventing an old test world from silently losing equipment.
-     */
+
     private final ItemStackHandler legacyProjectionReturnItem = new ItemStackHandler(1) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -102,11 +86,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         }
     };
 
-
-    /**
-     * Physical staging slot for a populated Entity Scan Card. The card itself is
-     * never the projection: inserting it imports a frozen copy into entityProjectionState.
-     */
     private final ItemStackHandler entityScanCard = new ItemStackHandler(1) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -128,7 +107,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     private EntityScanData.Kind stagedEntityCardKind = EntityScanData.Kind.GENERIC;
     private boolean loadingEntityProjectionState;
 
-    /** Physical sources used only to create future Humanoid equipment snapshots. */
     private final ItemStackHandler humanoidStagingItems = new ItemStackHandler(EntityScanData.HUMANOID_SLOTS.length) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -150,7 +128,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         }
     };
 
-    /** Horse-only physical staging sources. Cleared/returned when Horse context is torn down. */
     private final ItemStackHandler horseStagingItems = new ItemStackHandler(EntityScanData.HORSE_CHANNELS.length) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -186,20 +163,12 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         }
     };
 
-
-    /**
-     * Transient one-shot drop prepared immediately before an ordinary Survival
-     * player breaks the projector. onRemove uses its presence to avoid ejecting
-     * physical staging/Core contents separately, because they already live inside
-     * this packed projector ItemStack. Never serialized to world NBT.
-     */
     @Nullable
     private ItemStack pendingPackedPlayerBreakDrop;
 
     public MirageProjectorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MIRAGE_PROJECTOR.get(), pos, state);
-        // Compact keeps the dev.8 migration/default Glass Core. New chassis start
-        // with an empty socket so placing and breaking them cannot generate free cores.
+
         if (MirageProjectorBlock.chassisProfile(state) == ProjectionChassisProfile.COMPACT) {
             coreItem.setStackInSlot(0, new ItemStack(Blocks.GLASS));
         }
@@ -226,10 +195,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         settings = next;
         imageSourceBank.clearAll();
         if (bank != null) {
-            // Preserve the complete legacy bank on write even when this chassis no
-            // longer consumes every slot. Rendering/Power only inspect the active
-            // Wide/Tall 0-3 range; keeping 4-8 prevents dev.33 Field data from
-            // being destroyed merely by opening/applying the corrected workspace.
+
             for (int i = 0; i < ImageSourceBank.PERSISTED_COMPAT_SLOTS; i++) {
                 imageSourceBank.set(i, bank.get(i));
             }
@@ -400,10 +366,18 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
                     yield hasPlaneImageContent(settings) ? 1 : 0;
                 }
                 int count = 0;
-                if (settings.hasImage()) count++;
-                if (settings.hasEastImage()) count++;
-                if (settings.hasBackImage()) count++;
-                if (settings.hasWestImage()) count++;
+                if (settings.hasImage()) {
+                    count++;
+                }
+                if (settings.hasEastImage()) {
+                    count++;
+                }
+                if (settings.hasBackImage()) {
+                    count++;
+                }
+                if (settings.hasWestImage()) {
+                    count++;
+                }
                 yield count;
             }
             case ITEM -> projectedStack().isEmpty() ? 0 : 1;
@@ -412,14 +386,15 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
                 int limit = chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM ? 4 : 1;
                 int count = 0;
                 for (int face = 0; face < limit; face++) {
-                    if (!bannerSnapshot(face).isEmpty()) count++;
+                    if (!bannerSnapshot(face).isEmpty()) {
+                        count++;
+                    }
                 }
                 yield count;
             }
         };
     }
 
-    /** Whether the currently selected source actually has something renderable. */
     public boolean hasProjectedSourceContent() {
         return switch (settings.sourceMode()) {
             case IMAGE -> chassisProfile().supportsMultiSourceImageLayout() && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI
@@ -467,7 +442,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         setChangedAndSync();
     }
 
-    /** Captures the player's worn/held Humanoid loadout into virtual Incoming state. */
     public int captureEquippedHumanoidLoadout(Player player) {
         int captured = entityProjectionState.captureEquippedHumanoidLoadout(player);
         setChangedAndSync();
@@ -504,12 +478,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         return false;
     }
 
-    /**
-     * Returns only physical staging sources. Virtual card-derived snapshots are
-     * untouched because there is no real item to return.
-     *
-     * @return number of physical stacks removed from staging and returned or dropped
-     */
     public int returnPhysicalStagingTo(Player player) {
         int returned = returnHandlerToPlayer(humanoidStagingItems, player);
         returned += returnHandlerToPlayer(horseStagingItems, player);
@@ -519,10 +487,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         return returned;
     }
 
-    /**
-     * Returns one accepted physical staging source immediately. Overflow is
-     * dropped at the player instead of leaving a real item trapped in Mirage.
-     */
     public boolean returnPhysicalStagingChannelTo(
             VirtualEquipmentSnapshots.Channel channel,
             Player player
@@ -594,9 +558,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
 
         player.getInventory().add(moving);
         if (!moving.isEmpty()) {
-            // Inventory.add mutates the remainder. Anything that does not fit is
-            // a real item, so fail safe by dropping it instead of persisting it
-            // in a hidden staging slot.
+
             player.drop(moving, false);
         }
         return true;
@@ -698,14 +660,10 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         if (tag.contains("ImageSourceBank")) {
             imageSourceBank.load(tag.getCompound("ImageSourceBank"));
         } else if (chassisProfile().supportsMultiSourceImageLayout() && settings.hasImage()) {
-            // Keep a seed for the optional four-source mode without changing the
-            // historical/default continuous single-image Plane.
+
             imageSourceBank.set(0, settings.imageId(), settings.imageWidth(), settings.imageHeight());
         }
 
-        // dev.33-dev.37 accidentally made Wide/Tall multi-source mandatory and
-        // Field a 3x3 grid. Recover slot 1 as the continuous Front image when an
-        // affected world has no legacy Front asset, then default back to SINGLE.
         if (!tag.contains("ImageLayoutMode") && !settings.hasImage()) {
             ImageSourceBank.Asset legacySlot = imageSourceBank.get(0);
             if (legacySlot.present()) {
@@ -760,8 +718,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
                 legacyProjectionReturnItem.deserializeNBT(registries, tag.getCompound("LegacyProjectionReturnItem"));
             }
         } else if (tag.contains("ProjectionItem")) {
-            // dev.11 migration: preserve the old real item for later return, but
-            // render a virtual copy from this point forward.
+
             ItemStackHandler oldPhysicalSlot = new ItemStackHandler(1);
             oldPhysicalSlot.deserializeNBT(registries, tag.getCompound("ProjectionItem"));
             ItemStack oldStack = oldPhysicalSlot.getStackInSlot(0);
@@ -778,7 +735,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
                 coreItem.setStackInSlot(0, ItemStack.EMPTY);
             }
         } else if (chassisProfile() == ProjectionChassisProfile.COMPACT) {
-            // Migration path for pre-Core Compact worlds.
+
             coreItem.setStackInSlot(0, new ItemStack(Blocks.GLASS));
         } else {
             coreItem.setStackInSlot(0, ItemStack.EMPTY);

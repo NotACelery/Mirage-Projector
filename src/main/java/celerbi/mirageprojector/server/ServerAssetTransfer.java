@@ -5,16 +5,15 @@ import celerbi.mirageprojector.ProjectionAssetRules;
 import celerbi.mirageprojector.network.AssetUploadAckPayload;
 import celerbi.mirageprojector.network.DownloadAssetChunkPayload;
 import celerbi.mirageprojector.network.UploadAssetChunkPayload;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.PacketDistributor;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class ServerAssetTransfer {
     private static final long SESSION_TIMEOUT_MS = 30_000L;

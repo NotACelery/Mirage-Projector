@@ -1,26 +1,13 @@
 package celerbi.mirageprojector;
 
+import java.util.Arrays;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
-import java.util.Arrays;
-
-/**
- * Persistent virtual image sources used by the multi-source Plane chassis.
- *
- * <p>The bank is intentionally separate from ProjectionSettings. Presentation
- * settings remain one global state while Wide/Tall own a set of independent
- * image sources. Slots contain only asset identity + original pixel dimensions;
- * no local filename is persisted or sent over the network.</p>
- */
 public final class ImageSourceBank {
-    /** Active Wide/Tall MULTI layouts use exactly four slots. */
+
     public static final int ACTIVE_MULTI_SLOTS = 4;
 
-    /**
-     * Nine slots remain serialized only for dev.33-dev.37 migration compatibility.
-     * Slots 4-8 are never active gameplay sources in the current chassis contract.
-     */
     public static final int PERSISTED_COMPAT_SLOTS = 9;
 
     private final Asset[] slots = new Asset[PERSISTED_COMPAT_SLOTS];
@@ -40,17 +27,23 @@ public final class ImageSourceBank {
     }
 
     public void set(int slot, String id, int width, int height) {
-        if (!validSlot(slot)) return;
+        if (!validSlot(slot)) {
+            return;
+        }
         slots[slot] = sanitize(id, width, height);
     }
 
     public void set(int slot, Asset asset) {
-        if (!validSlot(slot)) return;
+        if (!validSlot(slot)) {
+            return;
+        }
         slots[slot] = asset == null ? Asset.EMPTY : sanitize(asset.id(), asset.width(), asset.height());
     }
 
     public void clear(int slot) {
-        if (validSlot(slot)) slots[slot] = Asset.EMPTY;
+        if (validSlot(slot)) {
+            slots[slot] = Asset.EMPTY;
+        }
     }
 
     public void clearAll() {
@@ -65,17 +58,23 @@ public final class ImageSourceBank {
         int safeLimit = Math.max(0, Math.min(limit, PERSISTED_COMPAT_SLOTS));
         int count = 0;
         for (int i = 0; i < safeLimit; i++) {
-            if (slots[i].present()) count++;
+            if (slots[i].present()) {
+                count++;
+            }
         }
         return count;
     }
 
     public void copySlotToEmpty(int source, int limit) {
         Asset asset = get(source);
-        if (!asset.present()) return;
+        if (!asset.present()) {
+            return;
+        }
         int safeLimit = Math.max(0, Math.min(limit, PERSISTED_COMPAT_SLOTS));
         for (int i = 0; i < safeLimit; i++) {
-            if (!slots[i].present()) slots[i] = asset;
+            if (!slots[i].present()) {
+                slots[i] = asset;
+            }
         }
     }
 
@@ -83,7 +82,9 @@ public final class ImageSourceBank {
         CompoundTag tag = new CompoundTag();
         for (int i = 0; i < PERSISTED_COMPAT_SLOTS; i++) {
             Asset asset = slots[i];
-            if (!asset.present()) continue;
+            if (!asset.present()) {
+                continue;
+            }
             CompoundTag entry = new CompoundTag();
             entry.putString("Id", asset.id());
             entry.putInt("Width", asset.width());
@@ -95,10 +96,14 @@ public final class ImageSourceBank {
 
     public void load(CompoundTag tag) {
         clearAll();
-        if (tag == null) return;
+        if (tag == null) {
+            return;
+        }
         for (int i = 0; i < PERSISTED_COMPAT_SLOTS; i++) {
             String key = "Slot" + i;
-            if (!tag.contains(key)) continue;
+            if (!tag.contains(key)) {
+                continue;
+            }
             CompoundTag entry = tag.getCompound(key);
             set(i, entry.getString("Id"), entry.getInt("Width"), entry.getInt("Height"));
         }

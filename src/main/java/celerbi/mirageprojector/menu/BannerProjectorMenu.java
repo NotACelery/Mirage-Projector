@@ -16,7 +16,6 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
 
-/** Dedicated virtual Banner source workspace. No real banner is stored by the projector. */
 public final class BannerProjectorMenu extends AbstractContainerMenu {
     public static final int FACE_COUNT = 4;
     public static final int[] FACE_X = {42, 104, 166, 228};
@@ -55,11 +54,26 @@ public final class BannerProjectorMenu extends AbstractContainerMenu {
             int x = prism ? FACE_X[face] : (face == 0 ? PLANE_FACE_X : -1000);
             int y = face == 0 || prism ? FACE_Y : -1000;
             addSlot(new SlotItemHandler(handler, face, x, y) {
-                @Override public int getMaxStackSize() { return 1; }
-                @Override public boolean mayPickup(Player player) { return false; }
-                @Override public boolean mayPlace(ItemStack stack) { return stack.getItem() instanceof BannerItem; }
-                @Override public boolean isFake() { return true; }
-                @Override public boolean isActive() { return faceIndex == 0 || prism; }
+                @Override
+                public int getMaxStackSize() {
+                    return 1;
+                }
+                @Override
+                public boolean mayPickup(Player player) {
+                    return false;
+                }
+                @Override
+                public boolean mayPlace(ItemStack stack) {
+                    return stack.getItem() instanceof BannerItem;
+                }
+                @Override
+                public boolean isFake() {
+                    return true;
+                }
+                @Override
+                public boolean isActive() {
+                    return faceIndex == 0 || prism;
+                }
             });
         }
     }
@@ -75,9 +89,16 @@ public final class BannerProjectorMenu extends AbstractContainerMenu {
         }
     }
 
-    public BlockPos projectorPos() { return projectorPos; }
-    @Nullable public MirageProjectorBlockEntity projector() { return projector; }
-    public boolean prism() { return prism; }
+    public BlockPos projectorPos() {
+        return projectorPos;
+    }
+    @Nullable
+    public MirageProjectorBlockEntity projector() {
+        return projector;
+    }
+    public boolean prism() {
+        return prism;
+    }
     public ItemStack bannerSnapshot(int face) {
         return face >= 0 && face < FACE_COUNT ? getSlot(face).getItem() : ItemStack.EMPTY;
     }
@@ -85,18 +106,26 @@ public final class BannerProjectorMenu extends AbstractContainerMenu {
     @Override
     public void clicked(int slotId, int button, ClickType clickType, Player player) {
         if (slotId >= 0 && slotId < FACE_COUNT) {
-            if (projector == null || player.level().isClientSide || !projector.bannerFaceAvailable(slotId)) return;
+            if (projector == null || player.level().isClientSide || !projector.bannerFaceAvailable(slotId)) {
+                return;
+            }
             switch (clickType) {
                 case PICKUP -> {
                     ItemStack carried = getCarried();
-                    if (carried.isEmpty()) projector.clearBannerSnapshot(slotId);
+                    if (carried.isEmpty()) {
+                        projector.clearBannerSnapshot(slotId);
+                    }
                     else if (carried.getItem() instanceof BannerItem) projector.captureBannerSnapshot(slotId, carried);
                 }
                 case SWAP -> {
                     ItemStack source = ItemStack.EMPTY;
-                    if (button >= 0 && button < 9) source = player.getInventory().getItem(button);
+                    if (button >= 0 && button < 9) {
+                        source = player.getInventory().getItem(button);
+                    }
                     else if (button == 40) source = player.getOffhandItem();
-                    if (source.getItem() instanceof BannerItem) projector.captureBannerSnapshot(slotId, source);
+                    if (source.getItem() instanceof BannerItem) {
+                        projector.captureBannerSnapshot(slotId, source);
+                    }
                 }
                 case QUICK_MOVE, THROW -> projector.clearBannerSnapshot(slotId);
                 case CLONE, QUICK_CRAFT, PICKUP_ALL -> { }
@@ -114,9 +143,13 @@ public final class BannerProjectorMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
-        if (index < 0 || index >= slots.size()) return ItemStack.EMPTY;
+        if (index < 0 || index >= slots.size()) {
+            return ItemStack.EMPTY;
+        }
         Slot slot = slots.get(index);
-        if (!slot.hasItem()) return ItemStack.EMPTY;
+        if (!slot.hasItem()) {
+            return ItemStack.EMPTY;
+        }
         if (index < FACE_COUNT) {
             if (projector != null && !player.level().isClientSide && projector.bannerFaceAvailable(index)) {
                 projector.clearBannerSnapshot(index);

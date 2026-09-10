@@ -7,7 +7,6 @@ import celerbi.mirageprojector.entity.HorsePosePreset;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 
-/** Species-aware projected dimensions derived from the scanned EntityType footprint. */
 public final class EntityProjectionBounds {
     private EntityProjectionBounds() {
     }
@@ -44,9 +43,7 @@ public final class EntityProjectionBounds {
             width = Math.max(width,
                     targetLargestPixels * HumanoidPoseController.horizontalExtentMultiplier(state.humanoidPose()));
         } else if (kind == EntityScanData.Kind.HORSE && state.horsePose() == HorsePosePreset.REARING) {
-            // Vanilla horse rearing raises the forequarters well beyond the standing
-            // hitbox. Keep a conservative renderer envelope while preserving the
-            // species width instead of reverting to a square Scale×Scale volume.
+
             height = Math.max(height, targetLargestPixels * 1.35F);
             width = Math.max(width, targetLargestPixels * 0.72F);
         }

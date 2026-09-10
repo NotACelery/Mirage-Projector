@@ -1,6 +1,5 @@
 package celerbi.mirageprojector.entity;
 
-/** Optional pose presets for generic tameable entities such as cats and wolves. */
 public enum GenericPosePreset {
     IDLE("idle"),
     SITTING("sitting");

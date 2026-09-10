@@ -1,6 +1,0 @@
-{
-  "parent": "mirage_projector:item/improved_core_item_base",
-  "textures": {
-    "core": "minecraft:block/glass"
-  }
-}

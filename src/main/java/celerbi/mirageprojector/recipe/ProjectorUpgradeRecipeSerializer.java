@@ -6,7 +6,6 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 
-/** Serializer for the compact data-driven {"upgrade":"..."} recipe files. */
 public final class ProjectorUpgradeRecipeSerializer implements RecipeSerializer<ProjectorUpgradeRecipe> {
     private static final Codec<ProjectorUpgradePath> PATH_CODEC = Codec.STRING.xmap(
             ProjectorUpgradePath::byId,

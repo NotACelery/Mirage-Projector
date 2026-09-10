@@ -7,6 +7,7 @@ set "DIST_ROOT=%CD%\.gradle-dist"
 set "DIST_DIR=%DIST_ROOT%\gradle-%GRADLE_VERSION%"
 set "DIST_ZIP=%DIST_ROOT%\gradle-%GRADLE_VERSION%-bin.zip"
 set "JAVA_EXE="
+set "BUILD_EXIT=1"
 
 set "MOD_VERSION="
 for /f "tokens=2 delims==" %%V in ('findstr /b /c:"mod_version=" "gradle.properties" 2^>nul') do set "MOD_VERSION=%%V"
@@ -19,6 +20,10 @@ echo          MIRAGE PROJECTOR - BUILD %MOD_VERSION%
 echo ============================================================
 echo Directorio: %CD%
 echo.
+
+if not exist "gradle.properties" goto :wrong_folder
+findstr /b /c:"mod_id=mirage_projector" "gradle.properties" >nul 2>nul
+if errorlevel 1 goto :wrong_folder
 
 call :find_java21
 if not defined JAVA_EXE goto :java_missing
@@ -61,9 +66,17 @@ if not exist "%DIST_DIR%\bin\gradle.bat" goto :gradle_missing
 echo.
 echo Compilando Mirage Projector %MOD_VERSION%...
 echo La primera compilacion puede descargar dependencias de NeoForge.
+echo Este BAT no ejecuta limpieza ni mueve archivos del proyecto.
 echo.
-call "%DIST_DIR%\bin\gradle.bat" --no-daemon clean build --stacktrace
-if errorlevel 1 goto :build_failed
+echo Iniciando Gradle...
+echo ------------------------------------------------------------
+
+cmd /d /s /c ""%DIST_DIR%\bin\gradle.bat" --no-daemon clean build --stacktrace"
+set "BUILD_EXIT=%ERRORLEVEL%"
+
+echo ------------------------------------------------------------
+echo Gradle termino con codigo: %BUILD_EXIT%
+if not "%BUILD_EXIT%"=="0" goto :build_failed
 
 set "JAR_FILE="
 for /f "delims=" %%F in ('dir /b /a-d "build\libs\*.jar" 2^>nul') do if not defined JAR_FILE set "JAR_FILE=build\libs\%%F"
@@ -78,21 +91,16 @@ echo ============================================================
 goto :success
 
 :find_java21
-rem 1) Variables explicitas, si ya apuntan a un JDK 21.
 if defined JAVA_HOME call :try_jdk "%JAVA_HOME%"
 if defined JAVA_EXE exit /b 0
 if defined JAVA_HOME_21_X64 call :try_jdk "%JAVA_HOME_21_X64%"
 if defined JAVA_EXE exit /b 0
 if defined JDK21_HOME call :try_jdk "%JDK21_HOME%"
 if defined JAVA_EXE exit /b 0
-
-rem 2) Temurin / Adoptium. Esta es la ubicacion usada por nuestros otros mods.
 for /d %%D in ("%ProgramFiles%\Eclipse Adoptium\jdk-21*") do if not defined JAVA_EXE call :try_jdk "%%~fD"
 if defined JAVA_EXE exit /b 0
 for /d %%D in ("%LOCALAPPDATA%\Programs\Eclipse Adoptium\jdk-21*") do if not defined JAVA_EXE call :try_jdk "%%~fD"
 if defined JAVA_EXE exit /b 0
-
-rem 3) Otros proveedores comunes.
 for /d %%D in ("%ProgramFiles%\Java\jdk-21*") do if not defined JAVA_EXE call :try_jdk "%%~fD"
 if defined JAVA_EXE exit /b 0
 for /d %%D in ("%ProgramFiles%\Microsoft\jdk-21*") do if not defined JAVA_EXE call :try_jdk "%%~fD"
@@ -101,12 +109,8 @@ for /d %%D in ("%ProgramFiles%\Amazon Corretto\jdk21*") do if not defined JAVA_E
 if defined JAVA_EXE exit /b 0
 for /d %%D in ("%USERPROFILE%\.jdks\*21*") do if not defined JAVA_EXE call :try_jdk "%%~fD"
 if defined JAVA_EXE exit /b 0
-
-rem 4) Java de Prism Launcher. Se busca recursivamente y se valida la version.
 for /f "usebackq delims=" %%J in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$roots=@($env:APPDATA+'\PrismLauncher\java',$env:LOCALAPPDATA+'\PrismLauncher\java',$env:LOCALAPPDATA+'\Programs\PrismLauncher\java',$env:ProgramFiles+'\PrismLauncher\java'); foreach($root in $roots){if(Test-Path -LiteralPath $root){Get-ChildItem -LiteralPath $root -Filter java.exe -File -Recurse -ErrorAction SilentlyContinue ^| Where-Object {$_.FullName -match '\\bin\\java\.exe$'} ^| ForEach-Object {$_.FullName}}}"`) do if not defined JAVA_EXE call :try_java_exe "%%J"
 if defined JAVA_EXE exit /b 0
-
-rem 5) PATH como ultimo recurso. Java 25 se ignora; solo se acepta Java 21.
 for /f "delims=" %%J in ('where java.exe 2^>nul') do if not defined JAVA_EXE call :try_java_exe "%%J"
 exit /b 0
 
@@ -131,13 +135,16 @@ if "!JAVA_VERSION_MATCH!"=="0" (
 )
 exit /b 0
 
+:wrong_folder
+echo.
+echo ERROR: Este BAT debe estar en la raiz de Mirage Projector.
+echo No encontre gradle.properties con mod_id=mirage_projector.
+goto :failure
+
 :java_missing
 echo.
 echo ERROR: No encontre un JDK 21 ejecutable.
-echo.
 echo Mirage Projector requiere Java 21.
-echo El build busca automaticamente Temurin/Adoptium y otros JDK comunes.
-echo.
 echo Ubicacion habitual de Temurin 21:
 echo   C:\Program Files\Eclipse Adoptium\jdk-21*\bin\java.exe
 goto :failure
@@ -154,8 +161,6 @@ goto :failure
 echo.
 echo ERROR: No se pudo descargar Gradle %GRADLE_VERSION%.
 echo Revisa internet, antivirus, proxy o firewall.
-echo URL:
-echo https://services.gradle.org/distributions/gradle-%GRADLE_VERSION%-bin.zip
 goto :failure
 
 :extract_failed
@@ -172,21 +177,24 @@ echo.
 echo ============================================================
 echo LA COMPILACION FALLO
 echo Copia desde "FAILURE: Build failed" hasta el final y enviamelo.
+echo Codigo de salida de Gradle: %BUILD_EXIT%
 echo ============================================================
 goto :failure
 
 :jar_missing
-echo ERROR: Gradle termino, pero no encontre ningun JAR en build\libs\.
+echo ERROR: Gradle termino correctamente, pero no encontre ningun JAR en build\libs\.
 goto :failure
 
 :failure
 echo.
-echo La ventana quedara abierta para que puedas leer o copiar el error.
-pause
+echo La ventana queda abierta para poder leer o copiar el error.
+echo Presiona una tecla solo cuando hayas terminado de revisarlo.
+pause >nul
 endlocal & exit /b 1
 
 :success
 echo.
 echo El JAR esta listo para probar en la instancia de Minecraft.
-pause
+echo Presiona una tecla para cerrar esta ventana.
+pause >nul
 endlocal & exit /b 0

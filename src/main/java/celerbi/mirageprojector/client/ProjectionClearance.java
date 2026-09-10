@@ -3,15 +3,14 @@ package celerbi.mirageprojector.client;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
-import celerbi.mirageprojector.entity.HumanoidPosePreset;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.entity.EntityProjectionState;
+import celerbi.mirageprojector.entity.HumanoidPosePreset;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public final class ProjectionClearance {
     private static final double PIXEL = 1.0D / 16.0D;
@@ -93,8 +92,7 @@ public final class ProjectionClearance {
             halfX = radius;
             halfZ = radius;
         } else if (prism) {
-            // Prism is an open four-sided square of quads. Static clearance follows
-            // its current rotation; animated rotation reserves the complete sweep.
+
             double radius = Math.max(0.05D, width * 0.5D);
             if (s.rotationEnabled()) {
                 double swept = radius * Math.sqrt(2.0D);
@@ -107,12 +105,12 @@ public final class ProjectionClearance {
                 halfZ = axisExtent;
             }
         } else if (s.rotationEnabled()) {
-            // A rotating Plane sweeps around the Y axis.
+
             double radius = Math.max(0.05D, width * 0.5D);
             halfX = radius;
             halfZ = radius;
         } else {
-            // A stationary 2D plane uses a thin oriented envelope to avoid false positives.
+
             double halfWidth = width * 0.5D;
             double radians = Math.toRadians(orientationDegrees);
             double thickness = 0.01D;
@@ -158,8 +156,7 @@ public final class ProjectionClearance {
             ProjectionChassisProfile chassis,
             ProjectionSettings settings
     ) {
-        // Prism Image/Banner slots are true world-cardinal faces. Physical block
-        // placement does not remap North/East/South/West.
+
         if (chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM
                 && (settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
                 || settings.sourceMode() == ProjectionSettings.SourceMode.BANNER)) {
@@ -178,7 +175,6 @@ public final class ProjectionClearance {
         };
     }
 
-    /** Compatibility overload retained for Compact-only callers. */
     public static Result scan(Level level, BlockPos projectorPos, ProjectionSettings settings, boolean hasProjectedItem) {
         return scan(level, projectorPos, settings, ProjectionChassisProfile.COMPACT, hasProjectedItem);
     }

@@ -1,23 +1,15 @@
 package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.entity.HumanoidPosePreset;
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.WeakHashMap;
-
-/**
- * Client-only bridge between projector-owned pose data and vanilla HumanoidModel.
- *
- * <p>Only temporary Mirage render entities are bound here. A weak-key map keeps
- * the mixin inert for every real entity in the world and lets discarded preview
- * entities disappear without lifecycle hooks.</p>
- */
 public final class HumanoidPoseController {
     private static final Map<LivingEntity, HumanoidPosePreset> ACTIVE =
             Collections.synchronizedMap(new WeakHashMap<>());
@@ -45,7 +37,6 @@ public final class HumanoidPoseController {
         boolean mainRight = entity.getMainArm() == HumanoidArm.RIGHT;
         Definition definition = definition(pose, mainRight);
 
-        // Head remains camera/look aware; presets add an intentional offset.
         model.head.xRot += radians(definition.head.x);
         model.head.yRot += radians(definition.head.y);
         model.head.zRot += radians(definition.head.z);
@@ -58,7 +49,6 @@ public final class HumanoidPoseController {
         model.hat.copyFrom(model.head);
     }
 
-    /** Conservative horizontal extension used by clearance/render bounds. */
     public static float horizontalExtentMultiplier(HumanoidPosePreset pose) {
         return switch (pose == null ? HumanoidPosePreset.STANDING : pose) {
             case STANDING -> 0.58F;
@@ -71,7 +61,6 @@ public final class HumanoidPoseController {
         };
     }
 
-    /** Conservative vertical extension relative to a neutral humanoid height. */
     public static float verticalExtentMultiplier(HumanoidPosePreset pose) {
         return switch (pose == null ? HumanoidPosePreset.STANDING : pose) {
             case RAISED_MAIN_HAND, RAISED_OFF_HAND, DUAL_WIELD -> 1.16F;

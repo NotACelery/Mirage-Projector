@@ -1,0 +1,9 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "mirage_projector:block/crying_light_node"
+      }
+    }
+  ]
+}

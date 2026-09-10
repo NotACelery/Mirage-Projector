@@ -11,17 +11,9 @@ import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.Level;
 
-/**
- * Exact 3x3 state-preserving chassis upgrade.
- *
- * <p>The center projector is a real ingredient and is consumed normally. Its
- * canonical BlockEntity payload is transferred to the target chassis during
- * assemble(), so imported assets/cards/snapshots/settings are not recreated or
- * hand-copied by this recipe.</p>
- */
 public final class ProjectorUpgradeRecipe implements CraftingRecipe {
     private static final String GROUP = "mirage_projector_chassis_upgrades";
 

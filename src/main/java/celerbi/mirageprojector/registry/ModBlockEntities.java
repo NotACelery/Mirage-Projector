@@ -2,8 +2,8 @@ package celerbi.mirageprojector.registry;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import celerbi.mirageprojector.blockentity.LegacyImprovedCoreBlockEntity;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
-import celerbi.mirageprojector.blockentity.ImprovedCoreBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -33,15 +33,15 @@ public final class ModBlockEntities {
                             ModBlocks.CORE_BOOSTER.get()
                     ).build(null));
 
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ImprovedCoreBlockEntity>> IMPROVED_CORE =
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<LegacyImprovedCoreBlockEntity>> LEGACY_IMPROVED_CORE =
             BLOCK_ENTITY_TYPES.register("improved_core", () ->
                     BlockEntityType.Builder.of(
-                            ImprovedCoreBlockEntity::new,
-                            ModBlocks.IMPROVED_GLASS_CORE.get(),
-                            ModBlocks.IMPROVED_QUARTZ_CORE.get(),
-                            ModBlocks.IMPROVED_AMETHYST_CORE.get(),
-                            ModBlocks.IMPROVED_DIAMOND_CORE.get(),
-                            ModBlocks.IMPROVED_NETHERITE_CORE.get()
+                            LegacyImprovedCoreBlockEntity::new,
+                            ModBlocks.LEGACY_IMPROVED_GLASS_CORE.get(),
+                            ModBlocks.LEGACY_IMPROVED_QUARTZ_CORE.get(),
+                            ModBlocks.LEGACY_IMPROVED_AMETHYST_CORE.get(),
+                            ModBlocks.LEGACY_IMPROVED_DIAMOND_CORE.get(),
+                            ModBlocks.LEGACY_IMPROVED_NETHERITE_CORE.get()
                     ).build(null));
 
     private ModBlockEntities() {

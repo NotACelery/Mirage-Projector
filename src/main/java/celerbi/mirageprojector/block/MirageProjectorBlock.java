@@ -85,8 +85,7 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
 
     public MirageProjectorBlock(BlockBehaviour.Properties properties) {
         super(properties);
-        // SOUTH preserves the historical pre-facing projection orientation for
-        // worlds upgraded from older dev builds. Newly placed blocks face the player.
+
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.SOUTH));
     }
 
@@ -223,18 +222,12 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) {
-            // Ordinary Survival mining is packed into one stateful projector ItemStack.
-            // In that path the Core/card/staging stacks must not also eject here.
+
             if (projector.hasPendingPackedPlayerBreakDrop()) {
                 super.onRemove(state, level, pos, newState, movedByPiston);
                 return;
             }
 
-            // Non-player destruction keeps the historical safe fallback: virtual
-            // snapshots are lost with the chassis, but real physical contents are
-            // still ejected rather than silently deleted.
-            // Render snapshots are virtual copies and never drop as obtainable items.
-            // Only a real pre-dev.12 item retained for migration is returned here.
             ItemStack legacyStored = projector.extractLegacyProjectionReturnItem();
             if (!legacyStored.isEmpty()) {
                 Containers.dropItemStack(level, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, legacyStored);

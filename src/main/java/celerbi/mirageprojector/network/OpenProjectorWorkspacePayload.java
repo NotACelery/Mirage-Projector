@@ -11,7 +11,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.extensions.IPlayerExtension;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** Returns from a source workspace to the primary global presentation/Core editor. */
 public record OpenProjectorWorkspacePayload(BlockPos pos) implements CustomPacketPayload {
     public static final Type<OpenProjectorWorkspacePayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "open_projector_workspace")

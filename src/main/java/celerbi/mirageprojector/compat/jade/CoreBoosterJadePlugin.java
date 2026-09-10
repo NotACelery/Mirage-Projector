@@ -13,7 +13,6 @@ import snownee.jade.api.IWailaPlugin;
 import snownee.jade.api.WailaPlugin;
 import snownee.jade.api.config.IPluginConfig;
 
-/** Optional Jade component; Jade is never required to run Mirage Projector. */
 @WailaPlugin
 public final class CoreBoosterJadePlugin implements IWailaPlugin {
     private static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(
@@ -40,6 +39,10 @@ public final class CoreBoosterJadePlugin implements IWailaPlugin {
                         booster.material().displayComponent()
                 ));
                 tooltip.add(Component.translatable("jade.mirage_projector.core_booster.amplification", "1.50"));
+                tooltip.add(Component.translatable(
+                        "jade.mirage_projector.core_booster.beacon_effect",
+                        booster.material().beaconEffectComponent()
+                ));
             } else {
                 tooltip.add(Component.translatable("jade.mirage_projector.core_booster.empty"));
             }

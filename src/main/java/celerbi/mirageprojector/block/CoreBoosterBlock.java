@@ -25,7 +25,6 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
-/** Single configurable replacement for the five dev.46 Improved Core blocks. */
 public final class CoreBoosterBlock extends BaseEntityBlock {
     public static final MapCodec<CoreBoosterBlock> CODEC = simpleCodec(CoreBoosterBlock::new);
     public static final EnumProperty<CoreBoosterMaterial> MATERIAL = EnumProperty.create("material", CoreBoosterMaterial.class);
@@ -117,10 +116,9 @@ public final class CoreBoosterBlock extends BaseEntityBlock {
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof CoreBoosterBlockEntity booster) {
-            // Correct-tool player mining packs the material into the dropped Booster.
+
             if (!booster.hasPendingPackedPlayerBreakDrop() && !booster.suppressRemovalDrops()) {
-                // Other destruction paths still return the real inserted mineral
-                // rather than silently deleting it.
+
                 ItemStack core = booster.extractMaterial();
                 if (!core.isEmpty()) {
                     Containers.dropItemStack(level, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, core);

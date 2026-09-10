@@ -8,7 +8,6 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
-/** Five one-way chassis upgrades introduced by dev.45. */
 public enum ProjectorUpgradePath {
     DISPLAY("display", new String[]{"QSA", "SMS", "ASQ"}),
     WIDE("wide", new String[]{"SSS", "GDG", "SSS"}),

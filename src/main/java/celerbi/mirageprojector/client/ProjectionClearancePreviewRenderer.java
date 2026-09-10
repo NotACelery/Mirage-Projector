@@ -14,10 +14,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
-/**
- * In-world editing preview for the conservative projection clearance envelope.
- * It exists only while a Mirage Projector screen is open and never changes blocks.
- */
 @EventBusSubscriber(modid = MirageProjector.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
 public final class ProjectionClearancePreviewRenderer {
     private static BlockPos projectorPos;

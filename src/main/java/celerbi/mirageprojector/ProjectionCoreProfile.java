@@ -7,21 +7,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 
-/**
- * Material profile for the removable Projection Core socket.
- *
- * <p>dev.38 power-system contract:</p>
- * <ul>
- *     <li>A Core contributes only a base PU output plus an amplification multiplier.</li>
- *     <li>A Core no longer owns hard Scale/Lift/Float caps.</li>
- *     <li>The chassis multiplies the Core output and supplies nominal geometry/efficiency targets.</li>
- *     <li>Improved crafted cores keep their material's base PU and raise only
- *     {@link #amplificationMultiplier()} (dev.46 initial balance: x1.50).</li>
- * </ul>
- *
- * <p>Raw-material cores are STANDARD grade at x1.00. dev.54 replaces the five
- * user-facing Improved Core items with one stateful Core Booster at x1.50.</p>
- */
 public enum ProjectionCoreProfile {
     NONE(0, 0.0F),
     GLASS(32, 1.0F),
@@ -50,15 +35,10 @@ public enum ProjectionCoreProfile {
                 Component.translatable("gui.mirage_projector.core." + name().toLowerCase()));
     }
 
-    /** Raw PU produced by the material before chassis efficiency/amplification are applied. */
     public int basePower() {
         return basePower;
     }
 
-    /**
-     * Core-grade multiplier. Standard raw-material cores are x1.00. dev.46 Improved
-     * Cores use x1.50 while retaining the same material basePower.
-     */
     public float amplificationMultiplier() {
         return amplificationMultiplier;
     }
@@ -75,7 +55,6 @@ public enum ProjectionCoreProfile {
         if (stack.is(ModItems.CORE_BOOSTER.get())) {
             return CoreBoosterBlockEntity.materialFromStack(stack).improvedProfile();
         }
-
 
         if (stack.is(Blocks.GLASS.asItem())) {
             return GLASS;
@@ -95,7 +74,6 @@ public enum ProjectionCoreProfile {
         return NONE;
     }
 
-    /** Effective output before chassis efficiency, useful for ordered UI lists. */
     public float materialOutput() {
         return basePower * amplificationMultiplier;
     }

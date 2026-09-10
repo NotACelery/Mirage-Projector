@@ -1,19 +1,11 @@
 package celerbi.mirageprojector;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.Item;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.util.StringRepresentable;
 
-/**
- * The five removable raw materials supported by a Core Booster.
- *
- * <p>The Booster owns the x1.50 grade; the inserted material still owns the
- * established Base PU curve. EMPTY is a physical shell but not a valid
- * projector Core.</p>
- */
 public enum CoreBoosterMaterial implements StringRepresentable {
     EMPTY,
     GLASS,
@@ -21,7 +13,6 @@ public enum CoreBoosterMaterial implements StringRepresentable {
     AMETHYST,
     DIAMOND,
     NETHERITE;
-
 
     @Override
     public String getSerializedName() {
@@ -34,6 +25,10 @@ public enum CoreBoosterMaterial implements StringRepresentable {
 
     public Component displayComponent() {
         return Component.translatable("gui.mirage_projector.core_booster.material." + name().toLowerCase());
+    }
+
+    public Component beaconEffectComponent() {
+        return Component.translatable("gui.mirage_projector.core_booster.effect." + name().toLowerCase());
     }
 
     public ItemStack centerStack() {

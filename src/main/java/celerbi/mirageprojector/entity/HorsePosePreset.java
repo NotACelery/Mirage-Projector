@@ -2,7 +2,6 @@ package celerbi.mirageprojector.entity;
 
 import java.util.Locale;
 
-/** Projection-only Horse pose presets. These never tick horse AI or mutate the scan card. */
 public enum HorsePosePreset {
     IDLE("idle"),
     REARING("rearing");

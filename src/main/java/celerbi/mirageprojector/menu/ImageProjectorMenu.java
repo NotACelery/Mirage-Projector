@@ -12,7 +12,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.jetbrains.annotations.Nullable;
 
-/** Source-specific menu for image/face assignment. No physical inventory is stored here. */
 public final class ImageProjectorMenu extends AbstractContainerMenu {
     private final BlockPos projectorPos;
     private final ProjectionSettings initialSettings;

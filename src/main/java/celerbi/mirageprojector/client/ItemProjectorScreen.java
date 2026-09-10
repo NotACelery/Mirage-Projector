@@ -13,7 +13,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-/** Focused Item Snapshot workspace laid out around a vanilla-width inventory grid. */
 public final class ItemProjectorScreen extends AbstractContainerScreen<ItemProjectorMenu> {
     private static final int W = 360;
     private static final int H = 270;

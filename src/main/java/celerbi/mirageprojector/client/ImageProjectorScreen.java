@@ -2,12 +2,14 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.MirageProjector;
-import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.ProjectionImageSizing;
+import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.menu.ImageProjectorMenu;
 import celerbi.mirageprojector.network.OpenImageWorkspacePayload;
 import celerbi.mirageprojector.network.OpenProjectorWorkspacePayload;
 import celerbi.mirageprojector.network.UpdateImageWorkspacePayload;
+import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -20,10 +22,6 @@ import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
-import java.nio.file.Path;
-import java.util.concurrent.CompletableFuture;
-
-/** Dedicated 2D source/face assignment workspace. Presentation controls live in the primary GUI. */
 public final class ImageProjectorScreen extends AbstractContainerScreen<ImageProjectorMenu> {
     private String frontId;
     private int frontWidth;
@@ -93,8 +91,7 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
                 && backFaceMode != ProjectionSettings.BackFaceMode.FRONT
                 && backFaceMode != ProjectionSettings.BackFaceMode.MIRRORED
                 && backFaceMode != ProjectionSettings.BackFaceMode.READABLE) {
-            // Multi-source Plane layouts have one bank today. Never fake a rear
-            // Independent/BACK bank by silently reusing the front sources.
+
             backFaceMode = ProjectionSettings.BackFaceMode.FRONT;
         }
         flipVertical = s.flipVertical();
@@ -115,9 +112,6 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
                         ? ProjectionSettings.ImageLayoutMode.MULTI
                         : ProjectionSettings.ImageLayoutMode.SINGLE;
 
-                // Switching presentation modes must not make an existing image appear to vanish.
-                // Seed the first cell from Front when entering MULTI, or recover slot 1 as Front
-                // when returning to SINGLE and no continuous Front asset exists yet.
                 if (next == ProjectionSettings.ImageLayoutMode.MULTI
                         && !sourceBank.hasAny(menu.imageLayoutSlots())
                         && frontId != null && !frontId.isBlank() && frontWidth > 0 && frontHeight > 0) {
@@ -293,19 +287,33 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     }
 
     private void refreshLabels() {
-        if (layoutModeButton != null) layoutModeButton.setMessage(Component.translatable("gui.mirage_projector.image.layout_mode", Component.translatable(imageLayoutMode == ProjectionSettings.ImageLayoutMode.MULTI ? "gui.mirage_projector.image.layout.multi" : "gui.mirage_projector.image.layout.single")));
-        if (frontButton != null) frontButton.setMessage(isPrism() ? faceImportLabel(Face.NORTH) : frontImportLabel());
-        if (eastButton != null) eastButton.setMessage(faceImportLabel(Face.EAST));
-        if (backButton != null) backButton.setMessage(isPrism() ? faceImportLabel(Face.SOUTH) : backImportLabel());
-        if (westButton != null) westButton.setMessage(faceImportLabel(Face.WEST));
+        if (layoutModeButton != null) {
+            layoutModeButton.setMessage(Component.translatable("gui.mirage_projector.image.layout_mode", Component.translatable(imageLayoutMode == ProjectionSettings.ImageLayoutMode.MULTI ? "gui.mirage_projector.image.layout.multi" : "gui.mirage_projector.image.layout.single")));
+        }
+        if (frontButton != null) {
+            frontButton.setMessage(isPrism() ? faceImportLabel(Face.NORTH) : frontImportLabel());
+        }
+        if (eastButton != null) {
+            eastButton.setMessage(faceImportLabel(Face.EAST));
+        }
+        if (backButton != null) {
+            backButton.setMessage(isPrism() ? faceImportLabel(Face.SOUTH) : backImportLabel());
+        }
+        if (westButton != null) {
+            westButton.setMessage(faceImportLabel(Face.WEST));
+        }
         if (backModeButton != null) {
             Component mode = isMultiSource()
                     ? Component.translatable("gui.mirage_projector.image.bank.back_mode", multiBackModeName())
                     : Component.translatable("gui.mirage_projector.image.back_mode", backModeName());
             backModeButton.setMessage(mode);
         }
-        if (flipButton != null) flipButton.setMessage(Component.translatable("gui.mirage_projector.image.flip", onOff(flipVertical)));
-        if (scanlinesButton != null) scanlinesButton.setMessage(Component.translatable("gui.mirage_projector.image.scanlines", onOff(scanlines)));
+        if (flipButton != null) {
+            flipButton.setMessage(Component.translatable("gui.mirage_projector.image.flip", onOff(flipVertical)));
+        }
+        if (scanlinesButton != null) {
+            scanlinesButton.setMessage(Component.translatable("gui.mirage_projector.image.scanlines", onOff(scanlines)));
+        }
         if (bankImportButton != null) {
             bankImportButton.setMessage(Component.translatable(
                     sourceBank.get(selectedBankSlot).present()
@@ -314,8 +322,12 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
                     selectedBankSlot + 1
             ));
         }
-        if (bankClearButton != null) bankClearButton.active = sourceBank.get(selectedBankSlot).present();
-        if (bankCopyButton != null) bankCopyButton.active = sourceBank.get(selectedBankSlot).present();
+        if (bankClearButton != null) {
+            bankClearButton.active = sourceBank.get(selectedBankSlot).present();
+        }
+        if (bankCopyButton != null) {
+            bankCopyButton.active = sourceBank.get(selectedBankSlot).present();
+        }
     }
 
     private Component frontImportLabel() {
@@ -365,10 +377,26 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
 
     private void clearFace(Face face) {
         switch (face) {
-            case NORTH -> { frontId = ""; frontWidth = 0; frontHeight = 0; }
-            case EAST -> { eastId = ""; eastWidth = 0; eastHeight = 0; }
-            case SOUTH -> { backId = ""; backWidth = 0; backHeight = 0; }
-            case WEST -> { westId = ""; westWidth = 0; westHeight = 0; }
+            case NORTH -> {
+                frontId = "";
+                frontWidth = 0;
+                frontHeight = 0;
+            }
+            case EAST -> {
+                eastId = "";
+                eastWidth = 0;
+                eastHeight = 0;
+            }
+            case SOUTH -> {
+                backId = "";
+                backWidth = 0;
+                backHeight = 0;
+            }
+            case WEST -> {
+                westId = "";
+                westWidth = 0;
+                westHeight = 0;
+            }
         }
         status = Component.translatable("gui.mirage_projector.image.face_cleared", faceLabel(face.serializedName));
         refreshLabels();
@@ -660,10 +688,27 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         Path selected = chooseImageFile(Component.translatable(pickerKey).getString());
         importSelectedFile(selected, imported -> {
             switch (face) {
-                case NORTH -> { frontId = imported.hash(); frontWidth = imported.width(); frontHeight = imported.height(); }
-                case EAST -> { eastId = imported.hash(); eastWidth = imported.width(); eastHeight = imported.height(); }
-                case SOUTH -> { backId = imported.hash(); backWidth = imported.width(); backHeight = imported.height(); backFaceMode = ProjectionSettings.BackFaceMode.INDEPENDENT; }
-                case WEST -> { westId = imported.hash(); westWidth = imported.width(); westHeight = imported.height(); }
+                case NORTH -> {
+                    frontId = imported.hash();
+                    frontWidth = imported.width();
+                    frontHeight = imported.height();
+                }
+                case EAST -> {
+                    eastId = imported.hash();
+                    eastWidth = imported.width();
+                    eastHeight = imported.height();
+                }
+                case SOUTH -> {
+                    backId = imported.hash();
+                    backWidth = imported.width();
+                    backHeight = imported.height();
+                    backFaceMode = ProjectionSettings.BackFaceMode.INDEPENDENT;
+                }
+                case WEST -> {
+                    westId = imported.hash();
+                    westWidth = imported.width();
+                    westHeight = imported.height();
+                }
             }
             status = Component.translatable("gui.mirage_projector.image.imported",
                     faceLabel(isPrism() ? face.serializedName : face == Face.NORTH ? "front" : "back"), imported.width(), imported.height());
@@ -718,6 +763,8 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     private enum Face {
         NORTH("north"), EAST("east"), SOUTH("south"), WEST("west");
         private final String serializedName;
-        Face(String serializedName) { this.serializedName = serializedName; }
+        Face(String serializedName) {
+            this.serializedName = serializedName;
+        }
     }
 }

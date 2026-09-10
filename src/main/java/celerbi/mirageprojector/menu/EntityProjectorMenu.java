@@ -2,8 +2,8 @@ package celerbi.mirageprojector.menu;
 
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.entity.EntityProjectionState;
-import celerbi.mirageprojector.entity.EquipmentSnapshotRules;
 import celerbi.mirageprojector.entity.EntityScanData;
+import celerbi.mirageprojector.entity.EquipmentSnapshotRules;
 import celerbi.mirageprojector.entity.VirtualEquipmentSnapshots;
 import celerbi.mirageprojector.registry.ModMenus;
 import net.minecraft.core.BlockPos;
@@ -18,13 +18,6 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Dedicated backend for Entity/Humanoid projection editing.
- *
- * <p>Only physical scan cards and physical staging sources are vanilla menu
- * slots. Incoming card snapshots and projected snapshots remain render-only
- * data and are drawn/edited by explicit GUI actions.</p>
- */
 public final class EntityProjectorMenu extends AbstractContainerMenu {
     public static final int CARD_X = 28;
     public static final int CARD_Y = 59;
@@ -195,8 +188,7 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
         if (projector != null && !projector.stagedEntityCard().isEmpty()) {
             return projector.stagedEntityCardKind();
         }
-        // Empty Entity workspace intentionally falls back to Humanoid so the six
-        // mannequin channels remain usable without requiring a body scan card.
+
         return EntityScanData.Kind.HUMANOID;
     }
 
@@ -230,12 +222,6 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
                 : state().horseProjected().get(channel);
     }
 
-    /**
-     * Whether the Incoming side has a distinct action left to perform. Physical
-     * staging always counts so an identical real item can still be accepted and
-     * returned immediately; duplicate virtual snapshots do not keep the left
-     * rail visually occupied after they are already Projected.
-     */
     public boolean hasActionableIncoming(VirtualEquipmentSnapshots.Channel channel) {
         ItemStack physical = physicalStaging(channel);
         if (!physical.isEmpty()) {
@@ -332,13 +318,11 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
                 : HUMANOID_FIRST_SLOT_INDEX + 4;
     }
 
-
     @Override
     public void removed(Player player) {
         super.removed(player);
         if (!player.level().isClientSide && projector != null) {
-            // Leaving the workspace must never leave real staging items trapped
-            // inside Mirage. Inventory overflow is dropped by the BlockEntity.
+
             projector.returnPhysicalStagingTo(player);
         }
     }

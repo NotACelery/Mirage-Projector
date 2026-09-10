@@ -2,6 +2,7 @@ package celerbi.mirageprojector.menu;
 
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.registry.ModMenus;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
@@ -14,9 +15,6 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.UUID;
-
-/** Dedicated Item Snapshot workspace. The source slot is virtual and never stores the real item. */
 public final class ItemProjectorMenu extends AbstractContainerMenu {
     public static final int SNAPSHOT_X = 30;
     public static final int SNAPSHOT_Y = 68;
@@ -47,9 +45,18 @@ public final class ItemProjectorMenu extends AbstractContainerMenu {
 
     private void addSnapshotSlot(ItemStackHandler handler) {
         addSlot(new SlotItemHandler(handler, 0, SNAPSHOT_X, SNAPSHOT_Y) {
-            @Override public int getMaxStackSize() { return 1; }
-            @Override public boolean mayPickup(Player player) { return false; }
-            @Override public boolean isFake() { return true; }
+            @Override
+            public int getMaxStackSize() {
+                return 1;
+            }
+            @Override
+            public boolean mayPickup(Player player) {
+                return false;
+            }
+            @Override
+            public boolean isFake() {
+                return true;
+            }
         });
     }
 
@@ -64,26 +71,44 @@ public final class ItemProjectorMenu extends AbstractContainerMenu {
         }
     }
 
-    public BlockPos projectorPos() { return projectorPos; }
-    @Nullable public MirageProjectorBlockEntity projector() { return projector; }
-    public ItemStack snapshotStack() { return getSlot(SNAPSHOT_SLOT_INDEX).getItem(); }
-    @Nullable public UUID snapshotId() { return projector == null ? null : projector.projectionSnapshotId(); }
+    public BlockPos projectorPos() {
+        return projectorPos;
+    }
+    @Nullable
+    public MirageProjectorBlockEntity projector() {
+        return projector;
+    }
+    public ItemStack snapshotStack() {
+        return getSlot(SNAPSHOT_SLOT_INDEX).getItem();
+    }
+    @Nullable
+    public UUID snapshotId() {
+        return projector == null ? null : projector.projectionSnapshotId();
+    }
 
     @Override
     public void clicked(int slotId, int button, ClickType clickType, Player player) {
         if (slotId == SNAPSHOT_SLOT_INDEX) {
-            if (projector == null || player.level().isClientSide) return;
+            if (projector == null || player.level().isClientSide) {
+                return;
+            }
             switch (clickType) {
                 case PICKUP -> {
                     ItemStack carried = getCarried();
-                    if (carried.isEmpty()) projector.clearProjectionSnapshot();
+                    if (carried.isEmpty()) {
+                        projector.clearProjectionSnapshot();
+                    }
                     else projector.captureProjectionSnapshot(carried);
                 }
                 case SWAP -> {
                     ItemStack source = ItemStack.EMPTY;
-                    if (button >= 0 && button < 9) source = player.getInventory().getItem(button);
+                    if (button >= 0 && button < 9) {
+                        source = player.getInventory().getItem(button);
+                    }
                     else if (button == 40) source = player.getOffhandItem();
-                    if (!source.isEmpty()) projector.captureProjectionSnapshot(source);
+                    if (!source.isEmpty()) {
+                        projector.captureProjectionSnapshot(source);
+                    }
                 }
                 case QUICK_MOVE, THROW -> projector.clearProjectionSnapshot();
                 case CLONE, QUICK_CRAFT, PICKUP_ALL -> { }
@@ -101,11 +126,17 @@ public final class ItemProjectorMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
-        if (index < 0 || index >= slots.size()) return ItemStack.EMPTY;
+        if (index < 0 || index >= slots.size()) {
+            return ItemStack.EMPTY;
+        }
         Slot slot = slots.get(index);
-        if (!slot.hasItem()) return ItemStack.EMPTY;
+        if (!slot.hasItem()) {
+            return ItemStack.EMPTY;
+        }
         if (index == SNAPSHOT_SLOT_INDEX) {
-            if (projector != null && !player.level().isClientSide) projector.clearProjectionSnapshot();
+            if (projector != null && !player.level().isClientSide) {
+                projector.clearProjectionSnapshot();
+            }
             return ItemStack.EMPTY;
         }
         if (projector != null && !player.level().isClientSide) {

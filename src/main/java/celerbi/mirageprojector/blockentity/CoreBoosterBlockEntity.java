@@ -17,13 +17,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Persistent material socket for the single Core Booster block.
- *
- * <p>Its material is synced through the normal BlockEntity update packet, so
- * the center hologram is available immediately when a chunk is loaded rather
- * than waiting for an unrelated neighboring block update.</p>
- */
 public final class CoreBoosterBlockEntity extends BlockEntity {
     public static final String MATERIAL_TAG = "CoreMaterial";
 
@@ -156,9 +149,7 @@ public final class CoreBoosterBlockEntity extends BlockEntity {
     @Override
     public void onLoad() {
         super.onLoad();
-        // Migration path for dev.54 worlds: older Core Boosters stored their material
-        // only in BlockEntity NBT. Mirror that value into the new authoritative
-        // blockstate once the server has attached this BlockEntity to a level.
+
         if (level != null && !level.isClientSide && legacyLoadedMaterial.present()) {
             BlockState state = getBlockState();
             if (state.hasProperty(CoreBoosterBlock.MATERIAL)

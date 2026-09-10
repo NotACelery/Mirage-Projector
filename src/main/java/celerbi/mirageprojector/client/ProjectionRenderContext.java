@@ -4,14 +4,6 @@ import celerbi.mirageprojector.ProjectionSettings;
 import net.minecraft.world.entity.LivingEntity;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Thread-local marker for the very small window in which Mirage asks vanilla
- * to render one projection entity.
- *
- * <p>This lets client mixins distinguish a temporary Mirage render from every
- * normal entity render in the world without mutating the entity, renderer or
- * any global shader state.</p>
- */
 public final class ProjectionRenderContext {
     private static final ThreadLocal<State> ACTIVE = new ThreadLocal<>();
 
@@ -19,10 +11,15 @@ public final class ProjectionRenderContext {
     }
 
     public static Scope push(LivingEntity entity, ProjectionSettings settings) {
+        return push(entity, settings, false);
+    }
+
+    public static Scope push(LivingEntity entity, ProjectionSettings settings, boolean lateDepthStableGhost) {
         State previous = ACTIVE.get();
         ACTIVE.set(new State(
                 entity,
-                settings == null ? ProjectionSettings.DEFAULT : settings.sanitized()
+                settings == null ? ProjectionSettings.DEFAULT : settings.sanitized(),
+                lateDepthStableGhost
         ));
         return new Scope(previous);
     }
@@ -39,6 +36,12 @@ public final class ProjectionRenderContext {
         return state == null ? null : state.settings();
     }
 
+    @Nullable
+    public static LivingEntity activeEntity() {
+        State state = ACTIVE.get();
+        return state == null ? null : state.entity();
+    }
+
     public static boolean ghostActive() {
         ProjectionSettings settings = activeSettings();
         return settings != null && settings.opacityPercent() < 100;
@@ -49,7 +52,16 @@ public final class ProjectionRenderContext {
         return settings != null && settings.opacityPercent() < 100;
     }
 
-    private record State(LivingEntity entity, ProjectionSettings settings) {
+    public static boolean lateDepthStableGhost() {
+        State state = ACTIVE.get();
+        return state != null && state.lateDepthStableGhost() && state.settings().opacityPercent() < 100;
+    }
+
+    private record State(
+            LivingEntity entity,
+            ProjectionSettings settings,
+            boolean lateDepthStableGhost
+    ) {
     }
 
     public static final class Scope implements AutoCloseable {

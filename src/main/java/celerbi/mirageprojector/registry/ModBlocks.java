@@ -1,10 +1,11 @@
 package celerbi.mirageprojector.registry;
 
 import celerbi.mirageprojector.MirageProjector;
-import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
 import celerbi.mirageprojector.block.CoreBoosterBlock;
+import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
+import celerbi.mirageprojector.block.CryingObsidianLightNodeBlock;
+import celerbi.mirageprojector.block.LegacyImprovedCoreBlock;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
-import celerbi.mirageprojector.block.ImprovedCoreBlock;
 import celerbi.mirageprojector.block.ObsidianSpikeBlock;
 import celerbi.mirageprojector.crying.CryingObsidianCrystalStage;
 import net.minecraft.world.level.block.SoundType;
@@ -32,13 +33,11 @@ public final class ModBlocks {
                     .requiresCorrectToolForDrops())
     );
 
-    // Hidden legacy dev-build IDs retained so old QA worlds do not lose placed blocks.
-    // New crafting and creative exposure use only CORE_BOOSTER.
-    public static final DeferredBlock<ImprovedCoreBlock> IMPROVED_GLASS_CORE = registerImprovedCore("improved_glass_core");
-    public static final DeferredBlock<ImprovedCoreBlock> IMPROVED_QUARTZ_CORE = registerImprovedCore("improved_quartz_core");
-    public static final DeferredBlock<ImprovedCoreBlock> IMPROVED_AMETHYST_CORE = registerImprovedCore("improved_amethyst_core");
-    public static final DeferredBlock<ImprovedCoreBlock> IMPROVED_DIAMOND_CORE = registerImprovedCore("improved_diamond_core");
-    public static final DeferredBlock<ImprovedCoreBlock> IMPROVED_NETHERITE_CORE = registerImprovedCore("improved_netherite_core");
+    public static final DeferredBlock<LegacyImprovedCoreBlock> LEGACY_IMPROVED_GLASS_CORE = registerLegacyImprovedCore("improved_glass_core");
+    public static final DeferredBlock<LegacyImprovedCoreBlock> LEGACY_IMPROVED_QUARTZ_CORE = registerLegacyImprovedCore("improved_quartz_core");
+    public static final DeferredBlock<LegacyImprovedCoreBlock> LEGACY_IMPROVED_AMETHYST_CORE = registerLegacyImprovedCore("improved_amethyst_core");
+    public static final DeferredBlock<LegacyImprovedCoreBlock> LEGACY_IMPROVED_DIAMOND_CORE = registerLegacyImprovedCore("improved_diamond_core");
+    public static final DeferredBlock<LegacyImprovedCoreBlock> LEGACY_IMPROVED_NETHERITE_CORE = registerLegacyImprovedCore("improved_netherite_core");
 
     public static final DeferredBlock<CryingObsidianCrystalBlock> SMALL_CRYING_OBSIDIAN_BUD =
             registerCrystal("small_crying_obsidian_bud", CryingObsidianCrystalStage.SMALL, 3.0F, 4.0F);
@@ -48,6 +47,16 @@ public final class ModBlocks {
             registerCrystal("large_crying_obsidian_bud", CryingObsidianCrystalStage.LARGE, 5.0F, 3.0F);
     public static final DeferredBlock<CryingObsidianCrystalBlock> CRYING_OBSIDIAN_CLUSTER =
             registerCrystal("crying_obsidian_cluster", CryingObsidianCrystalStage.MATURE, 7.0F, 3.0F);
+    public static final DeferredBlock<CryingObsidianLightNodeBlock> CRYING_LIGHT_NODE = BLOCKS.register(
+            "crying_light_node",
+            () -> new CryingObsidianLightNodeBlock(BlockBehaviour.Properties.of()
+                    .air()
+                    .replaceable()
+                    .noCollission()
+                    .noOcclusion()
+                    .noLootTable()
+                    .lightLevel(state -> state.getValue(CryingObsidianLightNodeBlock.LIGHT_LEVEL)))
+    );
 
     public static final DeferredBlock<ObsidianSpikeBlock> OBSIDIAN_SPIKE = BLOCKS.register(
             "obsidian_spike",
@@ -78,20 +87,18 @@ public final class ModBlocks {
                                 .sound(SoundType.AMETHYST_CLUSTER)
                                 .noOcclusion()
                                 .randomTicks()
-                                .emissiveRendering((state, level, pos) -> stage.isMature()
-                                        && state.getValue(CryingObsidianCrystalBlock.ENERGIZED))
-                                .lightLevel(state -> stage.isMature()
-                                        && state.getValue(CryingObsidianCrystalBlock.ENERGIZED)
+                                .emissiveRendering((state, level, pos) -> state.getValue(CryingObsidianCrystalBlock.ENERGIZED))
+                                .lightLevel(state -> state.getValue(CryingObsidianCrystalBlock.ENERGIZED)
                                         ? stage.vanillaPoweredLight()
                                         : 0)
                 )
         );
     }
 
-    private static DeferredBlock<ImprovedCoreBlock> registerImprovedCore(String name) {
+    private static DeferredBlock<LegacyImprovedCoreBlock> registerLegacyImprovedCore(String name) {
         return BLOCKS.register(
                 name,
-                () -> new ImprovedCoreBlock(BlockBehaviour.Properties.of()
+                () -> new LegacyImprovedCoreBlock(BlockBehaviour.Properties.of()
                         .strength(3.0F, 9.0F)
                         .sound(SoundType.GLASS)
                         .noOcclusion())

@@ -8,7 +8,7 @@ version="${mod_version}"
 displayName="${mod_name}"
 authors="Celerbi"
 description='''
-Decorative Mirage projection system for floating images and items with configurable animation, presentation, removable Projection Cores and multiplayer image synchronization.
+Decorative holographic projection system for images, GIFs, items, banners and frozen entity snapshots with configurable presentation, Projection Cores, Core Boosters and multiplayer asset synchronization.
 '''
 
 [[mixins]]

@@ -9,14 +9,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-/**
- * Makes vanilla/NeoForge humanoid armor participate in Mirage's ghost pass.
- *
- * <p>Armor is rendered after the base body and chooses its RenderType inside
- * HumanoidArmorLayer. The two descriptors cover the vanilla HumanoidModel path
- * and NeoForge's more generic Model hook path. ProjectionRenderContext keeps
- * the redirect inert for every normal world entity.</p>
- */
 @Mixin(HumanoidArmorLayer.class)
 public abstract class HumanoidArmorLayerMixin {
     @Redirect(
@@ -32,7 +24,9 @@ public abstract class HumanoidArmorLayerMixin {
     )
     private RenderType mirageProjector$ghostArmor(ResourceLocation texture) {
         if (ProjectionRenderContext.ghostActive()) {
-            return ProjectionRenderTypes.ghostEntity(texture);
+            return ProjectionRenderContext.lateDepthStableGhost()
+                    ? ProjectionRenderTypes.lateGhostEntity(texture)
+                    : ProjectionRenderTypes.ghostEntity(texture);
         }
         return RenderType.armorCutoutNoCull(texture);
     }

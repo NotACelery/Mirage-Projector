@@ -1,6 +1,8 @@
 package celerbi.mirageprojector.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -9,17 +11,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * Development handbook using the vanilla book renderer as the page surface,
- * but presented as a larger centred manual with lightweight category tabs.
- *
- * <p>The tab model intentionally mirrors the useful part of guide-book mods:
- * one stable section per physical Mirage chassis instead of one long linear
- * document. No external guide-book dependency is required for the debug item.</p>
- */
 public final class DebugHandbookScreen extends BookViewScreen {
     private static final int TAB_WIDTH = 58;
     private static final int TAB_HEIGHT = 18;
@@ -91,20 +82,10 @@ public final class DebugHandbookScreen extends BookViewScreen {
         Minecraft.getInstance().setScreen(new DebugHandbookScreen());
     }
 
-    /**
-     * Keep Esc as the close gesture and reserve the area below/right of the
-     * enlarged book for the category treatment rather than the vanilla 200px
-     * Done button.
-     */
     @Override
     protected void createMenuControls() {
     }
 
-    /**
-     * BookViewScreen normally positions its 192px texture close to the top of
-     * the screen. We keep its page renderer and buttons but move/scale that
-     * logical 192x192 surface around the actual screen centre.
-     */
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         guiGraphics.fill(0, 0, this.width, this.height, SCREEN_DIM);
@@ -124,7 +105,6 @@ public final class DebugHandbookScreen extends BookViewScreen {
         renderSectionTabs(guiGraphics, mouseX, mouseY, scale);
     }
 
-    /** BookViewScreen calls this from render(); the local dim is drawn above. */
     @Override
     public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     }
@@ -214,7 +194,7 @@ public final class DebugHandbookScreen extends BookViewScreen {
     }
 
     private static float baseBookCenterY() {
-        // Vanilla BookViewScreen draws BOOK_LOCATION at y=2.
+
         return 2.0F + IMAGE_HEIGHT * 0.5F;
     }
 
@@ -226,7 +206,6 @@ public final class DebugHandbookScreen extends BookViewScreen {
         return baseBookCenterY() + (mouseY - this.height * 0.5D) / scale;
     }
 
-    /** One explanatory paragraph per physical page keeps translations safe. */
     private static List<Component> buildPages(Section section) {
         Component heading = Component.translatable(section.titleKey()).copy()
                 .withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD);

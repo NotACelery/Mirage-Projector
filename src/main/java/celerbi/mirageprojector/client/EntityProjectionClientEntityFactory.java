@@ -2,11 +2,13 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.entity.EntityProjectionState;
 import celerbi.mirageprojector.entity.EntityScanData;
-import celerbi.mirageprojector.entity.HorsePosePreset;
 import celerbi.mirageprojector.entity.EquipmentSnapshotRules;
+import celerbi.mirageprojector.entity.HorsePosePreset;
 import celerbi.mirageprojector.entity.VirtualEquipmentSnapshots;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import java.util.UUID;
+import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.RemotePlayer;
@@ -19,19 +21,15 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
-import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.animal.horse.Horse;
-import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.UUID;
-import java.util.function.Supplier;
-
-/** Shared client-side reconstruction rules for GUI and world entity projections. */
 public final class EntityProjectionClientEntityFactory {
     private static final UUID BODYLESS_MANNEQUIN_UUID = UUID.fromString("9b36b3b0-570b-4a09-949e-f3457581698d");
 
@@ -68,9 +66,7 @@ public final class EntityProjectionClientEntityFactory {
             if (!scan.playerSource() && scan.hadCustomName()) {
                 String frozenName = scan.projectionNameplateText();
                 if (!frozenName.isBlank()) {
-                    // Keep the reconstructed entity semantically named as well as
-                    // drawing Mirage's dedicated projection label. Vanilla's own
-                    // nameplate remains disabled to avoid a duplicate tag.
+
                     living.setCustomName(Component.literal(frozenName));
                     living.setCustomNameVisible(false);
                 }
@@ -86,13 +82,11 @@ public final class EntityProjectionClientEntityFactory {
             applyProjectedEquipment(living, state, scan.kind());
             return living;
         } catch (Throwable ignored) {
-            // Malformed or modded scan data must fail closed without crashing the
-            // render loop. The frozen snapshot remains intact for later recovery.
+
             return null;
         }
     }
 
-    /** Creates a bodyless player rig for one standalone equippable Item snapshot. */
     public static LivingEntity createEquippedItem(ItemStack stack, ClientLevel level) {
         EquipmentSlot slot = standaloneEquipmentSlot(stack);
         if (slot == null) {
@@ -118,14 +112,6 @@ public final class EntityProjectionClientEntityFactory {
         };
     }
 
-    /**
-     * Creates the body-optional Humanoid mannequin used when no Entity Scan Card
-     * body is active but projected armor or hand snapshots still exist.
-     *
-     * <p>The vanilla LivingEntity renderer skips an invisible base model while
-     * still running equipment render layers, giving Mirage a real armor/hand rig
-     * without drawing an armor stand or fake player body.</p>
-     */
     public static LivingEntity createBodylessHumanoid(EntityProjectionState state, ClientLevel level) {
         if (!state.hasProjectedHumanoidEquipment()) {
             return null;
@@ -139,7 +125,6 @@ public final class EntityProjectionClientEntityFactory {
         return mannequin;
     }
 
-    /** Advances visual-only clocks without ticking AI, sounds, movement, or world interaction. */
     public static void prepareVisualFrame(LivingEntity entity, int visualTick) {
         if (entity == null) {
             return;
@@ -150,10 +135,6 @@ public final class EntityProjectionClientEntityFactory {
         entity.yBodyRotO = entity.yBodyRot;
         entity.yHeadRotO = entity.yHeadRot;
 
-        // Do not call entity.tick()/aiStep() on projection-only entities: those
-        // paths can play sounds, emit particles, move, query world AI, or mutate
-        // game state. Special renderers that need extra visual history receive
-        // explicit side-effect-free adapters instead.
         if (entity instanceof EnderDragon dragon) {
             prepareDragonVisualFrame(dragon, safeTick);
         }
@@ -166,9 +147,6 @@ public final class EntityProjectionClientEntityFactory {
         dragon.dragonDeathTime = 0;
         dragon.nearestCrystal = null;
 
-        // EnderDragonRenderer samples a 64-entry latency history even for a
-        // purely visual instance. Seed a stable zero-motion history so the
-        // renderer can animate wings/body without ever ticking dragon AI.
         if (dragon.posPointer < 0) {
             dragon.posPointer = 0;
         }
@@ -237,12 +215,6 @@ public final class EntityProjectionClientEntityFactory {
         living.yHeadRot = 0.0F;
         living.yHeadRotO = 0.0F;
 
-        // Projection-only entities must not react visually to the dimension in
-        // which the projector happens to be placed. Piglins and Hoglins report
-        // an active zombification conversion while rendered in a non-piglin-safe
-        // dimension, and vanilla renderers deliberately shake converting mobs.
-        // The Mirage clone never ticks or converts, so force immunity only on the
-        // temporary client-side copy. The frozen scan/NBT is left untouched.
         if (living instanceof AbstractPiglin piglin) {
             piglin.setImmuneToZombification(true);
         }
@@ -303,7 +275,6 @@ public final class EntityProjectionClientEntityFactory {
             VirtualEquipmentSnapshots.Channel.BODY
     };
 
-    /** Horse projection whose saddle visibility follows the virtual saddle inventory slot client-side. */
     private static final class MirageProjectionHorse extends Horse {
         private final HorsePosePreset pose;
 
@@ -319,13 +290,11 @@ public final class EntityProjectionClientEntityFactory {
 
         @Override
         public float getStandAnim(float partialTick) {
-            // Projection-only pose selector. Idle suppresses the standing counter;
-            // Rearing uses the complete vanilla stand animation without ticking AI.
+
             return pose == HorsePosePreset.REARING ? 1.0F : 0.0F;
         }
     }
 
-    /** RemotePlayer whose skin resolves from the frozen profile property on the scan itself. */
     private static final class MirageRemotePlayer extends RemotePlayer {
         private final Supplier<PlayerSkin> frozenSkin;
         private final PlayerSkin.Model frozenModel;
@@ -362,8 +331,7 @@ public final class EntityProjectionClientEntityFactory {
 
         @Override
         public boolean isInvisibleTo(Player player) {
-            // Suppress vanilla overhead player nametags. Mirage renders its own
-            // selective nameplate near the projector base instead.
+
             return true;
         }
     }

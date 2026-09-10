@@ -2,13 +2,6 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.ImageAssetFormat;
 import celerbi.mirageprojector.ProjectionAssetRules;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.metadata.IIOMetadata;
-import javax.imageio.stream.ImageInputStream;
 import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -18,11 +11,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.stream.ImageInputStream;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
 
-/**
- * Bounded GIF compositor used by Mirage animated Image sources.
- * Frames are fully composed once at load time, including offsets, transparency and disposal.
- */
 public final class GifAssetDecoder {
     private GifAssetDecoder() {}
 
@@ -35,9 +30,13 @@ public final class GifAssetDecoder {
         }
 
         try (ImageInputStream stream = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
-            if (stream == null) throw new IOException("Could not open GIF stream.");
+            if (stream == null) {
+                throw new IOException("Could not open GIF stream.");
+            }
             Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName("gif");
-            if (!readers.hasNext()) throw new IOException("No GIF decoder is available.");
+            if (!readers.hasNext()) {
+                throw new IOException("No GIF decoder is available.");
+            }
             ImageReader reader = readers.next();
             try {
                 reader.setInput(stream, false, false);
@@ -80,7 +79,6 @@ public final class GifAssetDecoder {
                     FrameInfo info = frameInfo(reader.getImageMetadata(i), reader.getWidth(i), reader.getHeight(i));
                     validateFrameRect(info, canvasWidth, canvasHeight);
 
-                    // Apply the previous frame disposal before drawing the current frame.
                     if (i > 0 && previousRect != null) {
                         if (previousDisposal == Disposal.BACKGROUND) {
                             Graphics2D clear = canvas.createGraphics();
@@ -102,7 +100,9 @@ public final class GifAssetDecoder {
                     }
 
                     BufferedImage beforeCurrent = null;
-                    if (info.disposal == Disposal.PREVIOUS) beforeCurrent = deepCopy(canvas);
+                    if (info.disposal == Disposal.PREVIOUS) {
+                        beforeCurrent = deepCopy(canvas);
+                    }
 
                     BufferedImage raw = reader.read(i);
                     Graphics2D draw = canvas.createGraphics();
@@ -166,25 +166,37 @@ public final class GifAssetDecoder {
     }
 
     private static Node safeTree(IIOMetadata metadata, String format) {
-        try { return metadata == null ? null : metadata.getAsTree(format); }
-        catch (RuntimeException ignored) { return null; }
+        try {
+            return metadata == null ? null : metadata.getAsTree(format);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private static Node child(Node root, String name) {
-        if (root == null) return null;
+        if (root == null) {
+            return null;
+        }
         for (Node node = root.getFirstChild(); node != null; node = node.getNextSibling()) {
-            if (name.equals(node.getNodeName())) return node;
+            if (name.equals(node.getNodeName())) {
+                return node;
+            }
         }
         return null;
     }
 
     private static int intAttr(Node node, String name, int fallback) {
-        try { return Integer.parseInt(stringAttr(node, name, Integer.toString(fallback))); }
-        catch (NumberFormatException ignored) { return fallback; }
+        try {
+            return Integer.parseInt(stringAttr(node, name, Integer.toString(fallback)));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
     }
 
     private static String stringAttr(Node node, String name, String fallback) {
-        if (node == null) return fallback;
+        if (node == null) {
+            return fallback;
+        }
         NamedNodeMap attrs = node.getAttributes();
         Node attr = attrs == null ? null : attrs.getNamedItem(name);
         return attr == null ? fallback : attr.getNodeValue();
@@ -196,15 +208,21 @@ public final class GifAssetDecoder {
         try {
             g.setComposite(AlphaComposite.Src);
             g.drawImage(source, 0, 0, null);
-        } finally { g.dispose(); }
+        } finally {
+            g.dispose();
+        }
         return copy;
     }
 
     private enum Disposal {
         NONE, BACKGROUND, PREVIOUS;
         static Disposal from(String value) {
-            if ("restoreToBackgroundColor".equals(value)) return BACKGROUND;
-            if ("restoreToPrevious".equals(value)) return PREVIOUS;
+            if ("restoreToBackgroundColor".equals(value)) {
+                return BACKGROUND;
+            }
+            if ("restoreToPrevious".equals(value)) {
+                return PREVIOUS;
+            }
             return NONE;
         }
     }
@@ -213,12 +231,16 @@ public final class GifAssetDecoder {
 
     public record DecodedGif(int width, int height, List<BufferedImage> frames, int[] delaysMs, long loopDurationMs) {
         public int frameIndexAt(long timeMs) {
-            if (frames.isEmpty() || loopDurationMs <= 0) return 0;
+            if (frames.isEmpty() || loopDurationMs <= 0) {
+                return 0;
+            }
             long cursor = Math.floorMod(timeMs, loopDurationMs);
             long elapsed = 0L;
             for (int i = 0; i < delaysMs.length; i++) {
                 elapsed += delaysMs[i];
-                if (cursor < elapsed) return i;
+                if (cursor < elapsed) {
+                    return i;
+                }
             }
             return delaysMs.length - 1;
         }

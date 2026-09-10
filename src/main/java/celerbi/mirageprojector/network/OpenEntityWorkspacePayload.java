@@ -14,7 +14,6 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.neoforged.neoforge.common.extensions.IPlayerExtension;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** Opens the dedicated Entity/Humanoid workspace for one nearby projector. */
 public record OpenEntityWorkspacePayload(BlockPos pos) implements CustomPacketPayload {
     public static final Type<OpenEntityWorkspacePayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "open_entity_workspace")

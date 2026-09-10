@@ -2,14 +2,13 @@ package celerbi.mirageprojector.item;
 
 import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.block.Block;
-
-import java.util.List;
 
 public final class CoreBoosterItem extends BlockItem {
     public CoreBoosterItem(Block block, Properties properties) {
@@ -33,6 +32,10 @@ public final class CoreBoosterItem extends BlockItem {
                     "tooltip.mirage_projector.core_booster.amplification",
                     "1.50"
             ).withStyle(ChatFormatting.GRAY));
+            tooltipComponents.add(Component.translatable(
+                    "tooltip.mirage_projector.core_booster.beacon_effect",
+                    material.beaconEffectComponent()
+            ).withStyle(ChatFormatting.DARK_PURPLE));
         } else {
             tooltipComponents.add(Component.translatable(
                     "tooltip.mirage_projector.core_booster.empty"

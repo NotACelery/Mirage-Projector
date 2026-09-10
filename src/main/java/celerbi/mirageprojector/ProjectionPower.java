@@ -2,29 +2,18 @@ package celerbi.mirageprojector;
 
 import net.minecraft.util.Mth;
 
-/**
- * Shared Projection Power, overdrive and dynamic-control model.
- *
- * <p><strong>dev.38 replaces the legacy Core-cap model.</strong> Core materials no
- * longer hard-cap Scale/Lift/Float. A Core produces base PU, the chassis multiplies
- * that output, and projection settings consume the resulting effective capacity.
- * Chassis geometry/Lift/Float values are nominal efficiency targets: exceeding them
- * is legal when sufficient PU exists, but the corresponding cost receives a squared
- * overdrive penalty.</p>
- */
 public final class ProjectionPower {
     private ProjectionPower() {
     }
 
-    /** One fully occupied 16x16 projection surface costs one base geometry PU. */
     public static final int GEOMETRY_PIXELS_PER_PU = 256;
-    /** Lift cost before overdrive: one PU per 16 Minecraft pixels. */
+
     public static final int LIFT_PIXELS_PER_PU = 16;
-    /** Float amplitude is intentionally expensive: one PU per two Minecraft pixels. */
+
     public static final int FLOAT_PIXELS_PER_PU = 2;
-    /** Every non-empty active projection pays a tiny fixed emitter/stability cost. */
+
     public static final int BASE_EMITTER_COST = 2;
-    /** At Ghost 90% the discount is capped mathematically at 3% of non-base load. */
+
     public static final int GHOST_REBATE_DIVISOR = 3000;
 
     public static Status evaluate(
@@ -53,8 +42,6 @@ public final class ProjectionPower {
             return new Status(false, breakdown.totalPower(), 0, Failure.NO_CORE);
         }
 
-        // Float is an oscillation around the configured Lift. Allowing amplitude
-        // above Lift would physically swing through the projector/floor.
         if (safe.floatingEnabled() && safe.floatAmplitudePixels() > safe.liftPixels()) {
             return new Status(false, breakdown.totalPower(), available, Failure.PHYSICAL_FLOAT_LIMIT);
         }
@@ -65,13 +52,6 @@ public final class ProjectionPower {
         return new Status(true, breakdown.totalPower(), available, Failure.NONE);
     }
 
-    /**
-     * Effective PU budget after the two independent multipliers are applied.
-     *
-     * <pre>
-     * effectiveCapacity = Core base PU × chassis multiplier × Core amplification
-     * </pre>
-     */
     public static int effectiveCapacity(ProjectionCoreProfile core, ProjectionChassisProfile chassis) {
         ProjectionCoreProfile safeCore = core == null ? ProjectionCoreProfile.NONE : core;
         ProjectionChassisProfile safeChassis = chassis == null ? ProjectionChassisProfile.COMPACT : chassis;
@@ -85,10 +65,6 @@ public final class ProjectionPower {
         ));
     }
 
-    /**
-     * Global technical search ceiling. This is not a chassis gameplay cap; normal
-     * slider maxima are reduced from this ceiling by {@link #maximumFeasibleScale}.
-     */
     public static int maximumStructuralScale(
             ProjectionSettings settings,
             ProjectionCoreProfile core,
@@ -103,7 +79,6 @@ public final class ProjectionPower {
         return ProjectionSettings.DEBUG_MAX_SCALE_PIXELS;
     }
 
-    /** Technical Lift ceiling; PU determines the actual interactive maximum. */
     public static int maximumStructuralLift(
             ProjectionSettings settings,
             ProjectionCoreProfile core,
@@ -117,7 +92,6 @@ public final class ProjectionPower {
         return ProjectionSettings.DEBUG_MAX_LIFT_PIXELS;
     }
 
-    /** Technical Float ceiling; PU and Lift determine the actual interactive maximum. */
     public static int maximumStructuralFloat(
             ProjectionSettings settings,
             ProjectionCoreProfile core,
@@ -135,7 +109,6 @@ public final class ProjectionPower {
         return Math.max(0, max);
     }
 
-    /** Dynamic Scale slider ceiling including all other currently selected PU costs. */
     public static int maximumFeasibleScale(
             ProjectionSettings settings,
             ProjectionCoreProfile core,
@@ -150,7 +123,7 @@ public final class ProjectionPower {
             return maximumStructuralScale(safe, safeCore, safeChassis, hasProjectedItem);
         }
         for (int candidate = ProjectionSettings.DEBUG_MAX_SCALE_PIXELS;
-             candidate >= ProjectionSettings.DEBUG_MIN_SCALE_PIXELS; candidate--) {
+            candidate >= ProjectionSettings.DEBUG_MIN_SCALE_PIXELS; candidate--) {
             if (evaluate(safe.withScalePixels(candidate), safeCore, safeChassis,
                     hasProjectedItem, projectedSourceCount).active()) {
                 return candidate;
@@ -159,7 +132,6 @@ public final class ProjectionPower {
         return ProjectionSettings.DEBUG_MIN_SCALE_PIXELS;
     }
 
-    /** Dynamic Lift slider ceiling including Scale/Float/features already selected. */
     public static int maximumFeasibleLift(
             ProjectionSettings settings,
             ProjectionCoreProfile core,
@@ -182,7 +154,6 @@ public final class ProjectionPower {
         return 0;
     }
 
-    /** Dynamic Float slider ceiling including Scale/Lift/features already selected. */
     public static int maximumFeasibleFloat(
             ProjectionSettings settings,
             ProjectionCoreProfile core,
@@ -208,7 +179,6 @@ public final class ProjectionPower {
         return 0;
     }
 
-    /** Compatibility helper for old call sites that still mean the Compact body. */
     public static Status evaluate(
             ProjectionSettings settings,
             ProjectionCoreProfile core,
@@ -221,10 +191,6 @@ public final class ProjectionPower {
         return dimensions(s, hasProjectedItem, ProjectionChassisProfile.COMPACT);
     }
 
-    /**
-     * Actual projected dimensions, in Minecraft pixels, after preserving source
-     * aspect ratio. Multi-source Wide/Tall return their complete four-cell layout.
-     */
     public static Dimensions dimensions(
             ProjectionSettings s,
             boolean hasProjectedItem,
@@ -314,10 +280,6 @@ public final class ProjectionPower {
         return calculateBreakdown(s, hasProjectedItem, chassis, projectedSourceCount).totalPower();
     }
 
-    /**
-     * Exact dev.38 PU formula. Keeping the components explicit makes balancing and
-     * GUI/tooltips auditable instead of hiding magic numbers in one total.
-     */
     public static Breakdown calculateBreakdown(
             ProjectionSettings s,
             boolean hasProjectedItem,
@@ -397,7 +359,6 @@ public final class ProjectionPower {
         };
     }
 
-    /** Base geometry charge before chassis overdrive is applied. */
     private static int rawGeometryCost(
             ProjectionSettings safe,
             ProjectionChassisProfile chassis,
@@ -440,15 +401,13 @@ public final class ProjectionPower {
                 return imagePower(true, safe.backImageWidth(), safe.backImageHeight(), safe.scalePixels());
             }
             if (safe.hasImage()) {
-                // FRONT/MIRRORED/READABLE and INDEPENDENT share one physical Plane;
-                // a separate rear texture adds source complexity, not a second plane area.
+
                 return imagePower(true, safe.imageWidth(), safe.imageHeight(), safe.scalePixels());
             }
             return imagePower(true, safe.backImageWidth(), safe.backImageHeight(), safe.scalePixels());
         }
         return 1;
     }
-
 
     private static int prismGeometryCost(ProjectionSettings safe) {
         int total = 0;
@@ -460,7 +419,9 @@ public final class ProjectionPower {
     }
 
     private static int prismFaceGeometryCost(boolean present, int sourceW, int sourceH, int scalePixels) {
-        if (!present) return 0;
+        if (!present) {
+            return 0;
+        }
         ProjectionImageSizing.Size size = ProjectionImageSizing.size(sourceW, sourceH, scalePixels);
         ProjectionImageSizing.NominalEnvelope nominal = ProjectionImageSizing.prismNominal(sourceW, sourceH);
         int base = areaPower(size.widthPixels(), size.heightPixels());
@@ -492,10 +453,6 @@ public final class ProjectionPower {
         };
     }
 
-    /**
-     * Chassis overdrive is quadratic: x1.25 beyond nominal costs x1.5625 for that
-     * component; x2 beyond nominal costs x4. Values at/below nominal remain x1.
-     */
     private static int applyOverdrive(int baseCost, double ratio) {
         if (baseCost <= 0) {
             return 0;
@@ -522,7 +479,9 @@ public final class ProjectionPower {
             ProjectionChassisProfile chassis,
             boolean debugChassisOverride
     ) {
-        if (debugChassisOverride || dims == null || dims.empty()) return 1.0D;
+        if (debugChassisOverride || dims == null || dims.empty()) {
+            return 1.0D;
+        }
         if (settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
                 && chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM) {
             double worst = 1.0D;
@@ -538,7 +497,9 @@ public final class ProjectionPower {
     }
 
     private static double prismFaceOverdrive(boolean present, int sourceW, int sourceH, int scalePixels) {
-        if (!present) return 1.0D;
+        if (!present) {
+            return 1.0D;
+        }
         ProjectionImageSizing.Size size = ProjectionImageSizing.size(sourceW, sourceH, scalePixels);
         ProjectionImageSizing.NominalEnvelope nominal = ProjectionImageSizing.prismNominal(sourceW, sourceH);
         double wr = size.widthPixels() / (double)Math.max(1, nominal.widthPixels());
@@ -546,7 +507,6 @@ public final class ProjectionPower {
         return Math.max(1.0D, Math.max(wr, hr));
     }
 
-    /** Current largest chassis overdrive ratio, useful for UI/diagnostics. */
     public static Overdrive overdrive(
             ProjectionSettings settings,
             ProjectionChassisProfile chassis,
@@ -566,11 +526,6 @@ public final class ProjectionPower {
         return new Overdrive(geometry, lift, floating);
     }
 
-    /**
-     * Ghost is a deliberately tiny optical-efficiency bonus, not a balance lever.
-     * Formula: floor(non-base gross PU × Ghost% / 3000). At the maximum 90% Ghost
-     * this can never exceed 3% of the non-base load.
-     */
     private static int calculateGhostSavings(int grossPower, int ghostPercent) {
         int eligible = Math.max(0, grossPower - BASE_EMITTER_COST);
         int safeGhost = Mth.clamp(ghostPercent, 0, 90);
@@ -578,10 +533,6 @@ public final class ProjectionPower {
         return Math.min(Math.max(0, grossPower - 1), Math.max(0, savings));
     }
 
-    /**
-     * Optional four-source strips use four equal square cells. At Scale 80,
-     * Wide MULTI is 80x20 (4 cells of 20x20) and Tall MULTI is 20x80.
-     */
     private static Dimensions multiSourceLayoutDimensions(int scalePixels, ProjectionChassisProfile chassis) {
         int longest = Math.max(1, scalePixels);
         int cross = Math.max(1, Mth.ceil(longest / 4.0D));

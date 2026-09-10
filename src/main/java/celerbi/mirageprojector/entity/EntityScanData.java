@@ -1,9 +1,14 @@
 package celerbi.mirageprojector.entity;
 
-import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.properties.Property;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,20 +26,6 @@ import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
-
-/**
- * Frozen visual scan serialized inside an Empty Scan Template after capture.
- *
- * <p>The source UUID is provenance only. Projection must not require the source
- * entity to remain loaded or alive. Editable equipment is split away from the
- * base entity snapshot so Humanoid/Horse projector workspaces can resolve each
- * equipment channel independently.</p>
- */
 public final class EntityScanData {
     public static final String ROOT_KEY = "MirageEntityScan";
     public static final int DATA_VERSION = 5;
@@ -122,17 +113,10 @@ public final class EntityScanData {
         CompoundTag entityData = root.contains("EntityData") ? root.getCompound("EntityData").copy() : new CompoundTag();
         CompoundTag equipment = root.contains("Equipment") ? root.getCompound("Equipment").copy() : new CompoundTag();
 
-        // Player scans always expose their frozen profile/display name.
         if (nameplateText.isBlank() && playerSource) {
             nameplateText = displayName;
         }
 
-        // CustomName is frozen explicitly from v5 onward, but DisplayName is
-        // also a trustworthy recovery signal for a named mob: vanilla getName()
-        // returns the nametag text when one exists. Keep this fallback for every
-        // scan version instead of restricting it to legacy cards; that makes the
-        // projection resilient when a loader/modded entity reports CustomName
-        // metadata differently while still exposing the visible renamed name.
         if (!playerSource && nameplateText.isBlank()) {
             if (hadCustomName && !customNameText.isBlank()) {
                 nameplateText = customNameText;
@@ -243,7 +227,6 @@ public final class EntityScanData {
         }
         return Kind.GENERIC;
     }
-
 
     public static boolean supportsSittingPose(ResourceLocation entityType) {
         if (entityType == null) {
@@ -358,7 +341,6 @@ public final class EntityScanData {
         return result;
     }
 
-
     private static String decodePlayerSkinModel(String textureValue) {
         if (textureValue == null || textureValue.isBlank()) {
             return "";
@@ -465,11 +447,6 @@ public final class EntityScanData {
             return equipment.contains(slotName);
         }
 
-        /**
-         * Canonical projection label. dev.35 no longer trusts only the legacy
-         * NameplateText field: named mobs resolve from the explicitly frozen
-         * CustomName first, while players fall back to their frozen display name.
-         */
         public String projectionNameplateText() {
             if (!playerSource && hadCustomName && customNameText != null && !customNameText.isBlank()) {
                 return customNameText;

@@ -3,14 +3,15 @@ package celerbi.mirageprojector.block;
 import celerbi.mirageprojector.crying.CryingObsidianCrystalOptics;
 import celerbi.mirageprojector.crying.CryingObsidianCrystalStage;
 import celerbi.mirageprojector.crying.CryingObsidianGrowthHooks;
+import celerbi.mirageprojector.crying.CryingObsidianLightField;
 import celerbi.mirageprojector.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AmethystClusterBlock;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -48,6 +49,9 @@ public final class CryingObsidianCrystalBlock extends AmethystClusterBlock {
         super.onPlace(state, level, pos, oldState, movedByPiston);
         if (!level.isClientSide) {
             level.scheduleTick(pos, this, 1);
+            if (level instanceof ServerLevel serverLevel) {
+                CryingObsidianLightField.refresh(serverLevel, pos, state);
+            }
             if (stage.isMature() && level.getBlockState(pos.below()).is(Blocks.BEACON)) {
                 level.getLightEngine().checkBlock(pos.below());
             }
@@ -56,14 +60,20 @@ public final class CryingObsidianCrystalBlock extends AmethystClusterBlock {
 
     @Override
     protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+        boolean wasEnergized = state.getValue(ENERGIZED);
         boolean energized = CryingObsidianCrystalOptics.isBeaconEnergized(level, pos);
         BlockState current = state;
-        if (state.getValue(ENERGIZED) != energized) {
+        if (wasEnergized != energized) {
             current = state.setValue(ENERGIZED, energized);
             level.setBlock(pos, current, 3);
             if (stage.isMature() && level.getBlockState(pos.below()).is(Blocks.BEACON)) {
                 level.getLightEngine().checkBlock(pos.below());
             }
+        }
+        if (stage.isMature() && wasEnergized && !energized) {
+            CryingObsidianLightField.removeSourceNow(level, pos);
+        } else {
+            CryingObsidianLightField.refresh(level, pos, current);
         }
         level.scheduleTick(pos, current.getBlock(), OPTICS_RECHECK_TICKS);
     }
@@ -71,7 +81,13 @@ public final class CryingObsidianCrystalBlock extends AmethystClusterBlock {
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         super.onRemove(state, level, pos, newState, movedByPiston);
-        if (!level.isClientSide && stage.isMature() && level.getBlockState(pos.below()).is(Blocks.BEACON)) {
+        if (!state.is(newState.getBlock()) && !level.isClientSide && level instanceof ServerLevel serverLevel) {
+            CryingObsidianLightField.removeSourceNow(serverLevel, pos);
+        }
+        if (!state.is(newState.getBlock())
+                && !level.isClientSide
+                && stage.isMature()
+                && level.getBlockState(pos.below()).is(Blocks.BEACON)) {
             level.getLightEngine().checkBlock(pos.below());
         }
     }

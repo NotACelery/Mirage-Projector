@@ -10,7 +10,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
-/** Gives deliberate scan-card sneak-use priority over vanilla entity interactions. */
 @EventBusSubscriber(modid = MirageProjector.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 public final class EntityScanInteractionEvents {
     private EntityScanInteractionEvents() {

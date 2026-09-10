@@ -5,6 +5,8 @@ import celerbi.mirageprojector.entity.EntityProjectionState;
 import celerbi.mirageprojector.entity.EntityScanData;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
+import java.util.Optional;
+import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -15,18 +17,6 @@ import net.minecraft.world.entity.LivingEntity;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import java.util.Optional;
-import java.util.UUID;
-
-/**
- * Client-only reconstruction and GUI rendering of one frozen entity projection.
- *
- * <p>The preview entity is never added to the world. It exists only as a local
- * render object rebuilt from the frozen scan and the projector's projected
- * equipment snapshots. The preview owns a small copy of vanilla's inventory
- * entity transform so Mirage can inject its projection-local tint/alpha buffer
- * without touching global shader state.</p>
- */
 public final class EntityProjectionPreviewRenderer {
     private static final UUID BODYLESS_CACHE_ID = new UUID(0L, 1L);
     private ClientLevel cachedLevel;
@@ -35,11 +25,6 @@ public final class EntityProjectionPreviewRenderer {
     private LivingEntity cachedEntity;
     private boolean creationFailed;
 
-    /**
-     * Renders the active entity into a bounded GUI viewport.
-     *
-     * @return true when a real reconstructed entity was rendered
-     */
     public boolean render(
             GuiGraphics graphics,
             EntityProjectionState state,
@@ -113,12 +98,6 @@ public final class EntityProjectionPreviewRenderer {
         creationFailed = false;
     }
 
-    /**
-     * Vanilla inventory-style camera tracking with a projection-local render
-     * buffer. Kept here instead of calling InventoryScreen directly because the
-     * vanilla helper hardcodes GuiGraphics.bufferSource() and therefore cannot
-     * preview Ghost Effect/Tint safely.
-     */
     public static void renderEntityInViewportFollowsMouse(
             GuiGraphics graphics,
             int left,

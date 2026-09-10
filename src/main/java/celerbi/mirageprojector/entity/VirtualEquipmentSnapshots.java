@@ -1,21 +1,14 @@
 package celerbi.mirageprojector.entity;
 
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.UUID;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.UUID;
-
-/**
- * Render-only equipment snapshots used by Entity/Humanoid workspaces.
- *
- * <p>Every stored stack is one-count and owns a Mirage snapshot UUID. These
- * entries are not inventories and must never be exposed as obtainable items.</p>
- */
 public final class VirtualEquipmentSnapshots {
     private final EnumMap<Channel, Snapshot> snapshots = new EnumMap<>(Channel.class);
 

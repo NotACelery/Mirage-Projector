@@ -1,0 +1,155 @@
+Mirage Projector dev.60 - complete full-project cleanup audit
+
+Uploaded project files: 492
+Clean dev.60 reference files: 361
+Obsolete/extra files found: 133
+Historical docs incorrectly left at active docs root: 111
+Obsolete runtime/source/resource files: 22
+
+RUNTIME/SOURCE/RESOURCE FILES DELETED:
+src/main/java/celerbi/mirageprojector/block/ImprovedCoreBlock.java
+src/main/java/celerbi/mirageprojector/blockentity/ImprovedCoreBlockEntity.java
+src/main/java/celerbi/mirageprojector/client/ImprovedCoreRenderer.java
+src/main/java/celerbi/mirageprojector/mixin/client/CryingObsidianGrowthMixin.java
+src/main/java/celerbi/mirageprojector/mixin/client/CryingObsidianRandomTickStateMixin.java
+src/main/java/celerbi/mirageprojector/mixin/client/RenderLayerMixin.java
+src/main/resources/assets/mirage_projector/models/item/improved_amethyst_core.json
+src/main/resources/assets/mirage_projector/models/item/improved_core_item_base.json
+src/main/resources/assets/mirage_projector/models/item/improved_diamond_core.json
+src/main/resources/assets/mirage_projector/models/item/improved_glass_core.json
+src/main/resources/assets/mirage_projector/models/item/improved_netherite_core.json
+src/main/resources/assets/mirage_projector/models/item/improved_quartz_core.json
+src/main/resources/data/mirage_projector/loot_table/blocks/improved_amethyst_core.json
+src/main/resources/data/mirage_projector/loot_table/blocks/improved_diamond_core.json
+src/main/resources/data/mirage_projector/loot_table/blocks/improved_glass_core.json
+src/main/resources/data/mirage_projector/loot_table/blocks/improved_netherite_core.json
+src/main/resources/data/mirage_projector/loot_table/blocks/improved_quartz_core.json
+src/main/resources/data/mirage_projector/recipe/improved_amethyst_core.json
+src/main/resources/data/mirage_projector/recipe/improved_diamond_core.json
+src/main/resources/data/mirage_projector/recipe/improved_glass_core.json
+src/main/resources/data/mirage_projector/recipe/improved_netherite_core.json
+src/main/resources/data/mirage_projector/recipe/improved_quartz_core.json
+
+HISTORICAL DOCS REMOVED FROM ACTIVE docs/ ROOT:
+docs/BANNER-MODE-dev28.md
+docs/BUILD-FIX-dev18.md
+docs/BUILD-FIX-dev25.md
+docs/CHASSIS-IMAGE-LAYOUT-POWER-UX-dev38.md
+docs/CODE-QUALITY-AUDIT-dev41.md
+docs/CORES-AND-UPGRADES-dev41.md
+docs/CORES-AND-UPGRADES-dev42.md
+docs/CORES-AND-UPGRADES-dev43.md
+docs/CORES-AND-UPGRADES-dev44.md
+docs/CORES-AND-UPGRADES-dev45.md
+docs/CORES-AND-UPGRADES-dev46.md
+docs/CRYING-OBSIDIAN-ECOSYSTEM-dev41.md
+docs/CRYING-OBSIDIAN-ECOSYSTEM-dev42.md
+docs/CRYING-OBSIDIAN-ECOSYSTEM-dev43.md
+docs/CRYING-OBSIDIAN-ECOSYSTEM-dev44.md
+docs/CRYING-OBSIDIAN-ECOSYSTEM-dev45.md
+docs/CURRENT-IMPLEMENTATION-AUDIT-dev38.md
+docs/CURRENT-IMPLEMENTATION-AUDIT-dev39.md
+docs/CURRENT-IMPLEMENTATION-AUDIT-dev40.md
+docs/CURRENT-IMPLEMENTATION-AUDIT-dev41.md
+docs/CURRENT-IMPLEMENTATION-AUDIT-dev42.md
+docs/CURRENT-IMPLEMENTATION-AUDIT-dev43.md
+docs/CURRENT-IMPLEMENTATION-AUDIT-dev44.md
+docs/CURRENT-IMPLEMENTATION-AUDIT-dev45.md
+docs/CURRENT-IMPLEMENTATION-AUDIT-dev46.md
+docs/CURRENT-STATE-ROADMAP-dev41.md
+docs/CURRENT-STATE-ROADMAP-dev42.md
+docs/CURRENT-STATE-ROADMAP-dev43.md
+docs/CURRENT-STATE-ROADMAP-dev44.md
+docs/CURRENT-STATE-ROADMAP-dev45.md
+docs/CURRENT-STATE-ROADMAP-dev46.md
+docs/DEBUG-HANDBOOK-BLUR-dev32.md
+docs/DEV38-CLOSURE-QA.md
+docs/DEV39-GIF-QA.md
+docs/DEV40-UI-ENTITY-QA.md
+docs/DEV41-CONSOLIDATION-QA.md
+docs/DEV42-MATERIAL-CHAMBER-CHASSIS.md
+docs/DEV42-QA.md
+docs/DEV43-CRYSTAL-BEACON-QA.md
+docs/DEV44-OBSIDIAN-SPIKE-QA.md
+docs/DEV45-COMPILE-REPAIR.md
+docs/DEV45-PROJECTOR-UPGRADE-QA.md
+docs/DEV46-IMPROVED-CORES-QA.md
+docs/DEV46-STATIC-QA.md
+docs/DEV47-QA-POLISH-NOTES.md
+docs/DEV48-CRYING-OBSIDIAN-NUCLEATION-FIX.md
+docs/DEV49-RANDOM-TICK-DISPATCH-FIX.md
+docs/DEV50-RENDERLAYER-BOOT-CRASH-FIX.md
+docs/DEV51-QA-CORRECTIONS.md
+docs/DEV52-VISUAL-POLISH-NOTES.md
+docs/DEV53-CANONICAL-AMETHYST-ALIGNMENT.md
+docs/DEV54-CORE-BOOSTER-REDESIGN.md
+docs/DEV55-CORE-BOOSTER-CLEANUP.md
+docs/DEV56-BEACON-OPTICS-REWORK.md
+docs/DEV56-COMPILE-REPAIR.md
+docs/DEV56-RAY-ORIGIN-POLISH.md
+docs/DEV57-TRANSPARENCY-COMPOSITION-FIX.md
+docs/DOCUMENTATION-AUTHORITY-dev41.md
+docs/DOCUMENTATION-AUTHORITY-dev42.md
+docs/DOCUMENTATION-AUTHORITY-dev43.md
+docs/DOCUMENTATION-AUTHORITY-dev44.md
+docs/DOCUMENTATION-AUTHORITY-dev45.md
+docs/DOCUMENTATION-AUTHORITY-dev46.md
+docs/ENTITY-BOUNDS-dev30.md
+docs/ENTITY-DIMENSION-NORMALIZATION-dev40.md
+docs/ENTITY-FIDELITY-dev31.md
+docs/ENTITY-GHOST-LAYOUT-dev24.md
+docs/ENTITY-INTERACTION-LOADOUT-dev20.md
+docs/ENTITY-NAMEPLATE-DEPTH-ORDER-dev36.md
+docs/ENTITY-NAMEPLATE-HANDBOOK-dev34.md
+docs/ENTITY-NAMEPLATE-HANDBOOK-dev35.md
+docs/ENTITY-PREVIEW-RENDERER-dev15.md
+docs/ENTITY-PROJECTION-CONTRACT.md
+docs/ENTITY-RENDERER-dev16.md
+docs/ENTITY-SCAN-WORKSPACE-dev14.md
+docs/ENTITY-UX-RECOVERY-dev23.md
+docs/ENTITY-WORKSPACE-LIFETIME-dev38.md
+docs/GHOST-3D-RENDERER-dev17.md
+docs/GHOST-DEPTH-ARMOR-dev26.md
+docs/GHOST-HELD-ITEMS-dev27.md
+docs/GIF-ANIMATED-IMAGE-dev39.md
+docs/GUI-ARCHITECTURE-dev19.md
+docs/HUMANOID-POSES-dev22.md
+docs/IMAGE-FORMAT-IMPORT-CONTRACT-dev39.md
+docs/ITEM-ARMOR-SNAPSHOT-CONTRACT.md
+docs/MULTI-SOURCE-IMAGE-LAYOUTS-dev33.md
+docs/NEXT-CHAT-HANDOFF-dev41.md
+docs/NEXT-CHAT-HANDOFF-dev42.md
+docs/NEXT-CHAT-HANDOFF-dev43.md
+docs/NEXT-CHAT-HANDOFF-dev44.md
+docs/NEXT-CHAT-HANDOFF-dev45.md
+docs/NEXT-CHAT-HANDOFF-dev46.md
+docs/NEXT-CHAT-HANDOFF-dev47.md
+docs/NEXT-CHAT-HANDOFF-dev48.md
+docs/NEXT-CHAT-HANDOFF-dev49.md
+docs/NEXT-CHAT-HANDOFF-dev50.md
+docs/NEXT-CHAT-HANDOFF-dev51.md
+docs/NEXT-CHAT-HANDOFF-dev52.md
+docs/NEXT-CHAT-HANDOFF-dev53.md
+docs/NEXT-CHAT-HANDOFF-dev54.md
+docs/NEXT-CHAT-HANDOFF-dev55.md
+docs/NEXT-CHAT-HANDOFF-dev56.md
+docs/NEXT-CHAT-HANDOFF-dev57.md
+docs/NEXT-CHAT-HANDOFF-dev59.md
+docs/OBSIDIAN-SPIKE-dev44.md
+docs/POWER-POSE-UX-dev29.md
+docs/POWER-SYSTEM-REWORK-dev38.md
+docs/PRISM-ADAPTIVE-ASPECT-dev39.md
+docs/PRISM-FOUR-FACE-dev21.md
+docs/RENDER-ORDER-HANDBOOK-RECOVERY-dev37.md
+docs/WIDE-TALL-SINGLE-ASPECT-dev39.md
+
+PROJECT INTEGRITY DIFFERENCES FOUND:
+- gradle/wrapper/gradle-wrapper.properties was missing; cleanup BAT restores it.
+- docs/DEV60-STALE-SOURCE-CLEANUP.md was missing; documentation-only.
+- build.bat was the earlier partial-cleanup version; updated build.bat is included in the patch.
+- docs/NEXT-CHAT-HANDOFF-dev60.md differs from the clean V2 handoff; documentation-only.
+
+PRESERVATION RULE:
+Historical docs already identical to docs/archive/pre-dev59 are deleted from active docs/.
+Historical docs that differ are moved to docs/archive/pre-dev59/overlay-leftovers so no historical edits are lost.
+run/, .gradle-dist/, worlds and user configs are never deleted by this cleanup.

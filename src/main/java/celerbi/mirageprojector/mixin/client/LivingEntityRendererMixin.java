@@ -11,7 +11,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Routes only Mirage's base LivingEntity body through the no-depth-write ghost pass. */
 @Mixin(LivingEntityRenderer.class)
 public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extends EntityModel<T>> {
     @Inject(method = "getRenderType", at = @At("HEAD"), cancellable = true)
@@ -28,6 +27,9 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
         }
 
         LivingEntityRenderer<T, M> renderer = (LivingEntityRenderer<T, M>) (Object) this;
-        callback.setReturnValue(ProjectionRenderTypes.ghostEntity(renderer.getTextureLocation(entity)));
+        RenderType renderType = ProjectionRenderContext.lateDepthStableGhost()
+                ? ProjectionRenderTypes.lateGhostEntity(renderer.getTextureLocation(entity))
+                : ProjectionRenderTypes.ghostEntity(renderer.getTextureLocation(entity));
+        callback.setReturnValue(renderType);
     }
 }

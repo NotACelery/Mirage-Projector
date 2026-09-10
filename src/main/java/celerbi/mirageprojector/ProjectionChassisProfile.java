@@ -1,18 +1,5 @@
 package celerbi.mirageprojector;
 
-/**
- * Physical/efficiency contract for the six currently implemented Mirage Projector bodies.
- *
- * <p>Future chassis must not be added here as placeholder enum values. Add a profile only when
- * a real registered block/menu/render contract exists; this keeps ordinal-based menu transport
- * aligned with actual gameplay chassis.</p>
- *
- * <p>Since dev.38 the geometry values are <strong>nominal efficiency targets</strong>,
- * not absolute hard caps. A sufficiently strong Core may overdrive a chassis beyond
- * its nominal Scale/Lift/Float, but the PU cost rises progressively. This prevents
- * unused Core power from becoming dead capacity while still keeping larger chassis
- * materially more efficient for large projections.</p>
- */
 public enum ProjectionChassisProfile {
     COMPACT("Compact", Geometry.PLANE, 10, 10, 32, 4, 1.00F, 5, 3.0F),
     DISPLAY("Display", Geometry.PLANE, 32, 32, 48, 12, 1.50F, 6, 4.0F),
@@ -29,7 +16,7 @@ public enum ProjectionChassisProfile {
     private final int nominalFloatPixels;
     private final float powerMultiplier;
     private final int physicalTopPixels;
-    /** Center Y of the universal 4x4x4 Core Chamber, in model pixels above the block floor. */
+
     private final float coreChamberCenterYPixels;
 
     ProjectionChassisProfile(
@@ -70,7 +57,6 @@ public enum ProjectionChassisProfile {
         return nominalHeightPixels;
     }
 
-    /** Largest nominal dimension, useful for a generic Scale reference. */
     public int nominalScalePixels() {
         return Math.max(nominalWidthPixels, nominalHeightPixels);
     }
@@ -83,17 +69,10 @@ public enum ProjectionChassisProfile {
         return nominalFloatPixels;
     }
 
-    /** Multiplies Core base PU before projection costs are validated. */
     public float powerMultiplier() {
         return powerMultiplier;
     }
 
-    /**
-     * Chassis that optionally divide one Plane into four independent image cells.
-     * Wide/Tall may switch between one continuous image and a 4-source strip/stack.
-     * Field deliberately remains one continuous large Plane; the old dev.33 3x3
-     * behaviour was never part of the intended chassis contract.
-     */
     public boolean supportsMultiSourceImageLayout() {
         return this == WIDE || this == TALL;
     }
@@ -110,12 +89,10 @@ public enum ProjectionChassisProfile {
         return supportsMultiSourceImageLayout() ? 4 : 1;
     }
 
-    /** Height of the physical projector body/emitter above the block floor. */
     public int physicalTopPixels() {
         return physicalTopPixels;
     }
 
-    /** Center of the universal 4x4x4 glass Core Chamber. */
     public float coreChamberCenterYPixels() {
         return coreChamberCenterYPixels;
     }

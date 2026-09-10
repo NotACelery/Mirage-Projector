@@ -12,7 +12,6 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 
-/** Renders the inserted Core material as one clockwise full-bright hologram. */
 public final class CoreBoosterRenderer implements BlockEntityRenderer<CoreBoosterBlockEntity> {
     public CoreBoosterRenderer(BlockEntityRendererProvider.Context context) {
     }

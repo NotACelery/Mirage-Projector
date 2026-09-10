@@ -6,7 +6,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
 
-/** Shared slot matching rules for virtual equipment capture and staging. */
 public final class EquipmentSnapshotRules {
     private EquipmentSnapshotRules() {
     }

@@ -10,7 +10,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-/** Temporary in-game manual for the active development line. Pages are translated client-side. */
 public final class MirageDebugHandbookItem extends Item {
     public MirageDebugHandbookItem(Properties properties) {
         super(properties.stacksTo(1));

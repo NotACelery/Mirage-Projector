@@ -1,14 +1,14 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "celerbi.mirageprojector.mixin.client",
+  "package": "celerbi.mirageprojector.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "HumanoidModelMixin",
-    "HumanoidArmorLayerMixin",
-    "LivingEntityRendererMixin",
-    "ItemInHandRendererMixin",
-    "BeaconRendererMixin"
+    "client.HumanoidModelMixin",
+    "client.HumanoidArmorLayerMixin",
+    "client.LivingEntityRendererMixin",
+    "client.ItemInHandRendererMixin",
+    "client.BeaconRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

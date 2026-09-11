@@ -1,6 +1,6 @@
 # Mirage Projector — development guide
 
-Current source line: **0.1.0-dev.74**.
+Current source line: **0.1.0-dev.75d**.
 
 This file describes how the current project is organized and maintained. Chronology belongs in `CHANGELOG.md`; current feature truth belongs in `CURRENT-IMPLEMENTATION.md`; pending work belongs in `ROADMAP.md`. The root keeps `README.md`; the remaining project documentation belongs under `docs/`.
 
@@ -11,7 +11,7 @@ This file describes how the current project is organized and maintained. Chronol
 - Java 21
 - Gradle 9.2.1
 - Parchment 2024.11.17
-- Mirage network protocol 19
+- Mirage network protocol 21
 
 `MirageProjector.NETWORK_PROTOCOL` is the single protocol authority. Do not scatter protocol literals through payload registration.
 
@@ -23,7 +23,7 @@ Windows development entry point:
 build.bat
 ```
 
-dev.61 removed the Create Backtank crash, dev.62 restored late Entity transform/depth, and dev.64 switched the synthetic Create chest to a single Ghost surface. Live QA confirms the Netherite Backtank can fade completely. dev.70–73 exposed the architectural limits of physical auxiliary light emitters. dev.74 therefore adds the new Mirage Light Engine as a server-side shadow solver/storage layer while leaving the dev.73 physical backend active for safety. Windows build plus `/miragelight` solver/performance QA are required before dev.75 can make the virtual field authoritative.
+dev.61 removed the Create Backtank crash, dev.62 restored late Entity transform/depth, and dev.64 switched the synthetic Create chest to a single Ghost surface. dev.70–73 exposed the limits of physical auxiliary emitters; dev.74 validated the causal fixed-point Mirage solver; dev.75a/75b made the virtual field authoritative with chunk lifecycle and tracking-scoped source sync; dev.75c corrected vanilla opacity handoff; dev.75d adds obstacle-only detour decay and protocol 21. Windows build plus in-game 3-D shadow/lifecycle/performance QA remain required before build-clean acceptance.
 
 Do not package generated/cache directories in source snapshots:
 
@@ -143,7 +143,7 @@ Current growth, harvesting, Beacon attenuation and residual-ray behavior is in `
 
 ## 11. Renderer stabilization
 
-The current unresolved P0 is dev.58 semi-transparent Entity composition.
+The current renderer line is accumulated through dev.72; remaining renderer work is targeted P2 QA/adapters rather than another broad rewrite.
 
 Regression targets include:
 
@@ -188,16 +188,16 @@ Whenever a feature changes:
 
 Do not duplicate the detailed list here. `ROADMAP.md` is the single waitlist authority.
 
-Immediate order:
+Immediate order after dev.75d:
 
-1. compile and in-game QA dev.70 same-tick Mature Cluster occlusion/rebuild behavior;
-2. compile and in-game QA dev.71 Humanoid/Horse per-channel visibility and persistence;
-3. verify Quartz/Diamond reflected range plus Glass residual-only Diffusion after the dev.69 rollback;
-4. harden entity/render compatibility and release QA;
-5. defer Scan Codex to 1.1.0+.
+1. Windows Java 21 build + dev.75d static-light acceptance (open curve, walls/L-corner, partial blocks, chunks, overlap/performance);
+2. **dev.76 dynamic/mobile light source foundation** using a controlled moving test source;
+3. resume targeted P2 renderer/entity hardening only where live QA demonstrates a concrete failure;
+4. mounted/composite scan design;
+5. release-hardening matrix toward 0.1.0;
+6. Scan Codex remains 1.1.0+.
 
-Effigy/Colossal are not current promised chassis. Wide/Tall Banner MULTI is not implied by Image MULTI. Glowstone has no assigned role.
-
+Effigy/Colossal are not promised chassis. Wide/Tall Banner MULTI is not implied by Image MULTI. Glowstone has no assigned role. Physical `crying_light_node` must not return as forward light architecture.
 
 ## dev.68 interaction and light teardown
 
@@ -228,3 +228,12 @@ When an opaque state intersects an axial branch, the branch is marked blocked fo
 Clearing a specific projected snapshot resets only that channel to visible. Clearing an incompatible Humanoid/Horse workspace resets that family's visibility flags along with its snapshots. Chassis state transfer requires no dedicated copy list because `EntityProjectionState` remains inside the canonical BlockEntity NBT transferred by `ProjectorStateTransfer`.
 
 `EntityWorkspaceActionPayload.Action.TOGGLE_VISIBILITY` is appended after existing ordinals. Protocol 19 intentionally prevents dev.70 protocol-18 peers from silently treating the new action as a different command.
+
+
+## dev.74–75d Mirage Light Engine development boundary
+
+The static Mature implementation is now source/profile driven. New lighting features must not bypass `MirageLightSource` / `MirageLightProfile` / solver/backends.
+
+Important dev.75d profile rule: open traversal cost and obstacle-detour extra cost are independent parameters. Do not hard-code Cluster-specific wall rules in the solver. Network protocol 21 carries the detour field so deterministic server/client solves use identical profiles.
+
+For dev.76 moving sources, do not reuse `STATIC_WORLD` by simply moving/rebuilding it every frame. Establish a `DYNAMIC_VISUAL` lifecycle/backend designed for high-frequency source transforms and retain static gameplay-light authority independently.

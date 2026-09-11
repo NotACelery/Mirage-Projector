@@ -16,6 +16,7 @@ public record MirageLightProfile(
         int conceptualLight,
         int substepsPerLightLevel,
         int airStepCostUnits,
+        int detourExtraCostUnits,
         int maxRadius,
         LightDecayMode decayMode,
         MirageLightShape shape,
@@ -29,6 +30,7 @@ public record MirageLightProfile(
         conceptualLight = Mth.clamp(conceptualLight, 0, 31);
         substepsPerLightLevel = Mth.clamp(substepsPerLightLevel, 1, 8);
         airStepCostUnits = Mth.clamp(airStepCostUnits, 1, substepsPerLightLevel * 8);
+        detourExtraCostUnits = Mth.clamp(detourExtraCostUnits, 0, substepsPerLightLevel * 8);
         maxRadius = Mth.clamp(maxRadius, 0, MAX_SAFE_RADIUS);
         decayMode = decayMode == null ? LightDecayMode.VANILLA : decayMode;
         shape = shape == null ? MirageLightShape.OMNIDIRECTIONAL : shape;
@@ -43,6 +45,7 @@ public record MirageLightProfile(
                 safe,
                 1,
                 1,
+                0,
                 safe,
                 LightDecayMode.VANILLA,
                 MirageLightShape.OMNIDIRECTIONAL,
@@ -63,6 +66,7 @@ public record MirageLightProfile(
                 safeConceptual,
                 safeSubsteps,
                 1,
+                Math.max(0, safeSubsteps - 1),
                 Math.min(MAX_SAFE_RADIUS, safeConceptual * safeSubsteps),
                 LightDecayMode.EXTEND,
                 MirageLightShape.OMNIDIRECTIONAL,
@@ -91,6 +95,21 @@ public record MirageLightProfile(
         }
         int visible = (energyUnits + substepsPerLightLevel - 1) / substepsPerLightLevel;
         return Mth.clamp(visible, 0, 15);
+    }
+
+    /**
+     * Additional fixed-point cost assigned to each path step that exists only because
+     * geometry forced a detour beyond the source-to-voxel Manhattan minimum.
+     *
+     * A cardinal step that moves back toward the source reduces Manhattan distance by
+     * one while increasing travelled path length by one, so it accounts for two detour
+     * steps at once. The solver therefore applies {@code 2 * detourExtraCostUnits} on
+     * that backtracking edge. For half-decay EXTEND (substeps=2, air cost=1), the
+     * default extra cost is 1: open travel costs half a visible level per block, while
+     * obstacle-only extra travel costs one full visible level per block overall.
+     */
+    public int detourBacktrackPenaltyUnits() {
+        return detourExtraCostUnits * 2;
     }
 
     public Vec3 normalizedDirection() {

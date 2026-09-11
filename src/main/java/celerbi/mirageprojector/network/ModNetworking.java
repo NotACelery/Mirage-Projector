@@ -86,5 +86,10 @@ public final class ModNetworking {
                 OpenDebugHandbookPayload.STREAM_CODEC,
                 OpenDebugHandbookPayload::handle
         );
+        registrar.playToClient(
+                MirageLightSourceSyncPayload.TYPE,
+                MirageLightSourceSyncPayload.STREAM_CODEC,
+                MirageLightSourceSyncPayload::handle
+        );
     }
 }

@@ -245,7 +245,7 @@ Historical regression only: confirm the internal Mirage light-node block remains
 
 ## dev.71 per-channel Entity equipment visibility
 
-- Build on Windows/Java 21 and confirm both client/server register protocol 19.
+- Historical dev.71 build used protocol 19; current dev.75d protocol is 21. Build on Windows/Java 21 and confirm both client/server agree on the current protocol.
 - Humanoid: populate all six Projected channels, toggle each independently, and verify only the selected renderer contribution disappears/reappears.
 - Horse: toggle Saddle and Body Armor separately. OFF must not clear their Projected slot/snapshot.
 - Hide the only item on a bodyless Humanoid mannequin. No empty phantom body/render should remain; turning the channel ON must restore the same snapshot immediately.
@@ -283,3 +283,36 @@ Historical regression only: confirm the internal Mirage light-node block remains
 - Run `/miragelight stats` and `/miragelight axis ...` / `rebuild` around one, several and overlapping sources. Record solve milliseconds, lit voxels and section counts. Visible server hitching is a regression worth addressing before dev.75 authority handoff.
 - Re-run the existing dev.70 physical wall tests only as a regression check for the transitional backend; failure of old physical relays does not invalidate the new shadow solver if `/miragelight` shows correct causality.
 - Re-run Entity Ghost/Create Backtank and dev.72 high-Lift/frustum smoke tests to ensure the new server-side light foundation did not touch rendering/network behavior.
+
+
+## dev.75a–75b authoritative virtual-light lifecycle
+
+- Build with Windows Java 21. Protocol 20 was introduced in dev.75a; current dev.75d protocol is 21.
+- Confirm no current runtime path creates `mirage_projector:crying_light_node`; load an old dev.73/74 world and verify only Mirage legacy nodes are cleaned.
+- Simple Light Level/world render should reflect `max(vanilla, Mirage)`. `/miragelight probe` distinguishes raw vanilla storage from Mirage/effective.
+- Cross chunk borders with the field. Destination chunk unload/reload must remove/recreate only geometry-dependent portions after lifecycle solve; source-origin unload must retract/re-discover the source.
+- Relog, same-dimension respawn and dimension change must not leave stale/missing client fields.
+- Multiplayer: move a second client into/out of watched chunks and verify source descriptor delivery/retraction without disturbing other clients.
+- Terrain mutations through place/multi-place/break/fluid/crop/feature/piston/explosion must coalesce and rebuild affected fields.
+- Overlapping Mature sources aggregate by max; removing the stronger source must reveal the surviving weaker value.
+
+## dev.75c vanilla opacity / face-occlusion
+
+- Re-run iron-wall comparison beside a vanilla source. Mirage must not traverse an opaque wall directly.
+- Test 1-, 2- and 3-block-high finite walls: hidden-side light may return only by a real route over/under/around an edge.
+- Test slabs, stairs, transparent/partial-opacity blocks and at least one modded block with nontrivial shape. Do not require Mirage-specific block tables; behavior should follow vanilla state opacity/face semantics.
+- A complete separating barrier inside the propagation budget must yield zero contribution from that source on the disconnected side.
+
+## dev.75d obstacle-detour penalty
+
+- Network protocol must be **21** on both peers.
+- Open no-Booster axis remains exactly `15,15,14,14,...,1,1` at 1–30. Any open-space change is a regression.
+- Repeat the same finite wall at several heights. The direct side remains half-decay; hidden positions reached only by wrapping must lose more light than dev.75c because obstacle-only route distance is penalized.
+- L-shaped 3-block-high wall: compare exposed edge, middle pocket and deepest inner corner. Values should form a gradual shadow gradient; there must be no abrupt global switch to vanilla decay behind the first collision.
+- Extend the L arms or raise the wall. Deep-pocket light must be non-increasing as the cheapest causal route becomes longer; if an alternate shorter edge route appears, the solver may legitimately choose it.
+- Build a wall that leaves two alternate routes (short/long). Probe should reflect the stronger/cheaper route, not the first route visited by iteration order.
+- Remove one wall block. Same-tick/coalesced rebuild should immediately improve the cheapest route and brighten affected cells.
+- `/miragelight probe` behind obstacles should show `cost=... (direct=..., extra=...)`; open monotonic cells should have `extra=0` unless partial opacity contributes additional cost.
+- Partial-opacity blocks may add to `extra` even without geometric detour; this is intentional diagnostic aggregation of non-direct traversal cost.
+- Quartz/Diamond reinforced fields must obey the exact same wall/detour rules. Booster power extends available energy; it never grants penetration.
+- Stress several overlapping radius-30/38 fields with walls; record solve ms/server tick/frame impact before considering incremental invalidation.

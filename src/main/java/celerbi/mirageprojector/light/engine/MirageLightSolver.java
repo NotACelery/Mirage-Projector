@@ -75,6 +75,7 @@ public final class MirageLightSolver {
             settledNodes++;
 
             BlockPos currentPos = BlockPos.of(currentKey);
+            int currentDirectDistance = manhattanDistance(origin, currentPos);
             for (Direction direction : Direction.values()) {
                 BlockPos nextPos = currentPos.relative(direction);
                 if (level.isOutsideBuildHeight(nextPos) || !level.hasChunkAt(nextPos)) {
@@ -89,6 +90,20 @@ public final class MirageLightSolver {
                 if (edgeCost == MirageLightOcclusion.BLOCKED) {
                     blockedEdges++;
                     continue;
+                }
+
+                /*
+                 * dev.75d detour penalty. In open space an optimal path moves monotonically
+                 * away from the source, so every step keeps the profile's normal half-decay
+                 * cost. Geometry can force a path to overshoot and later move back toward
+                 * the source. That inward step represents two units of (pathLength - direct
+                 * Manhattan distance), so charge two detour extras here. This makes only
+                 * obstacle-caused travel pay the stronger vanilla-like decay; there is no
+                 * abrupt global mode switch behind a wall.
+                 */
+                int nextDirectDistance = manhattanDistance(origin, nextPos);
+                if (nextDirectDistance < currentDirectDistance) {
+                    edgeCost += profile.detourBacktrackPenaltyUnits();
                 }
 
                 int nextEnergy = energy - edgeCost;
@@ -165,10 +180,13 @@ public final class MirageLightSolver {
     }
 
     private static boolean withinRadius(BlockPos origin, BlockPos pos, int maxRadius) {
-        int distance = Math.abs(pos.getX() - origin.getX())
+        return manhattanDistance(origin, pos) <= maxRadius;
+    }
+
+    private static int manhattanDistance(BlockPos origin, BlockPos pos) {
+        return Math.abs(pos.getX() - origin.getX())
                 + Math.abs(pos.getY() - origin.getY())
                 + Math.abs(pos.getZ() - origin.getZ());
-        return distance <= maxRadius;
     }
 
     private static void setFieldEnergy(

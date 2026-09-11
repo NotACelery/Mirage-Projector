@@ -19,7 +19,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
-/** Diagnostics for the dev.74 shadow light solver. `rebuild` only mutates the shadow cache. */
+/** Diagnostics for the authoritative Mirage Light Engine. */
 @EventBusSubscriber(modid = MirageProjector.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 public final class MirageLightDebugCommands {
     private MirageLightDebugCommands() {
@@ -45,7 +45,7 @@ public final class MirageLightDebugCommands {
         MirageLightWorld.WorldStats stats = MirageLightEngine.stats(level);
         source.sendSuccess(
                 () -> Component.literal(
-                        "MirageLight shadow: " + stats.sources() + " source(s), "
+                        "MirageLight authoritative: " + stats.sources() + " source(s), "
                                 + stats.sections() + " section(s), " + stats.litCells() + " lit voxel(s)"
                 ),
                 false
@@ -57,15 +57,28 @@ public final class MirageLightDebugCommands {
         ServerLevel level = player.serverLevel();
         BlockPos pos = player.blockPosition();
         int virtual = MirageLightEngine.virtualBlockLight(level, pos);
-        int vanilla = level.getBrightness(LightLayer.BLOCK, pos);
+        int vanillaStorage = level.getLightEngine().getLayerListener(LightLayer.BLOCK).getLightValue(pos);
+        int effective = level.getBrightness(LightLayer.BLOCK, pos);
         MirageLightSource source = nearestSource(level, pos);
         MirageLightField field = source == null ? null : MirageLightEngine.field(level, source.id());
         int nearestContribution = field == null ? 0 : field.visibleLevelAt(pos);
         String sourceText = source == null ? "none" : source.origin().toShortString();
+        String costText = "";
+        if (field != null && source != null) {
+            int energy = field.energyAt(pos);
+            if (energy > 0) {
+                int weightedCost = Math.max(0, source.profile().initialEnergyUnits() - energy);
+                int directDistance = manhattanDistance(source.origin(), pos);
+                int directCost = directDistance * source.profile().airStepCostUnits();
+                int extraCost = Math.max(0, weightedCost - directCost);
+                costText = ", cost=" + weightedCost + " (direct=" + directCost + ", extra=" + extraCost + ")";
+            }
+        }
         player.sendSystemMessage(Component.literal(
-                "MirageLight @ " + pos.toShortString() + ": aggregate=" + virtual
+                "MirageLight @ " + pos.toShortString() + ": mirage=" + virtual
                         + ", nearest=" + nearestContribution + " from " + sourceText
-                        + ", vanilla=" + vanilla
+                        + costText
+                        + ", vanillaStorage=" + vanillaStorage + ", effective=" + effective
         ));
         return virtual;
     }
@@ -80,6 +93,9 @@ public final class MirageLightDebugCommands {
         }
 
         MirageLightWorld.UpdateResult result = MirageLightEngine.updateSource(level, source, true);
+        if (result.rebuilt()) {
+            celerbi.mirageprojector.network.MirageLightNetwork.broadcastUpsert(level, source);
+        }
         MirageLightField field = MirageLightEngine.field(level, source.id());
         if (!result.rebuilt() || field == null || result.solveStats() == null) {
             player.sendSystemMessage(Component.literal("MirageLight rebuild did not produce a field."));
@@ -145,6 +161,12 @@ public final class MirageLightDebugCommands {
         long dy = (long) a.getY() - b.getY();
         long dz = (long) a.getZ() - b.getZ();
         return dx * dx + dy * dy + dz * dz;
+    }
+
+    private static int manhattanDistance(BlockPos a, BlockPos b) {
+        return Math.abs(a.getX() - b.getX())
+                + Math.abs(a.getY() - b.getY())
+                + Math.abs(a.getZ() - b.getZ());
     }
 
     private static Direction direction(String value) {

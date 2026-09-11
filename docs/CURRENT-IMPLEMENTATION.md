@@ -1,12 +1,29 @@
 # Mirage Projector — Current implementation
 
-Version line: **0.1.0-dev.74**  
+Version line: **0.1.0-dev.75d**  
 Minecraft: **1.21.1**  
 NeoForge: **21.1.244**  
 Java: **21**  
-Network protocol: **19**
+Network protocol: **21**
 
-Status: live Simple Light Level QA on dev.70–73 proved that physical auxiliary Light Nodes cannot reliably represent the desired Mature Cluster field: once placed, each node becomes an independent omnidirectional vanilla source and can refill hidden regions or distort the target curve. dev.74 therefore adds the new Mirage Light Engine as a server-side shadow solver/storage layer. It computes causally connected fixed-point voxel fields and aggregate virtual light without placing emitters, while the dev.73 physical backend remains active temporarily for visible/gameplay safety. dev.70 same-tick invalidation, dev.71 equipment visibility and dev.72 Entity envelope/frustum hardening remain accumulated. Windows `build.bat` plus `/miragelight` shadow-solver QA are required before dev.75 can make the virtual field authoritative.
+Status: `dev.75d` is the consolidated static Mirage Light Engine candidate before dev.76. dev.74–75b established virtual authority, source sync, chunk/tracking lifecycle and physical-relay retirement; dev.75c corrected real vanilla block opacity/face occlusion; dev.75d separates open-space decay from obstacle-detour decay so a wall is routed around naturally but the extra route loses energy faster. Physical `crying_light_node` relays are migration-only. dev.71 equipment visibility and dev.72 Entity envelope/frustum hardening remain accumulated. Windows Java 21 build plus in-game QA are still required before build-clean status.
+
+## dev.75b authoritative virtual-light lifecycle
+
+The dev.75 authority handoff is complete and remains accumulated in dev.75d:
+
+- server/client fields solve from source descriptors; voxel arrays are never network-synchronized;
+- source delivery is scoped to watched chunks and retracts when no watched chunk needs the source;
+- same-level respawn can CLEAR/repopulate without depending on vanilla chunk retransmission;
+- server/client chunk geometry changes are coalesced and relevant fields re-solve;
+- source-origin unload removes that source; destination chunk arrival can refill the surviving field;
+- client changes dirty old/new render sections;
+- terrain invalidation covers block place/multi-place/break, fluids, crop/feature growth, pistons and explosions;
+- Core Booster swaps refresh nearby Mature sources;
+- loaded chunks palette-scan for orphan legacy `crying_light_node`; current runtime never creates one;
+- effective reads are `max(vanilla, Mirage)` without injecting Mirage into vanilla propagation.
+
+dev.75c then fixed the destination-opacity argument passed to vanilla edge occlusion. dev.75d adds the profile-level detour penalty described below. Current source-descriptor schema requires protocol **21**.
 
 ## Projector family
 
@@ -166,7 +183,7 @@ Current Beacon crystal behavior:
 - occasional side rays originate at centered X/Z and approximately pixel Y=2, appear instantly at full length, hold about one second, then retract while fading;
 - younger stages scale ray width, length and frequency down from Mature.
 
-Core Booster Beacon relay modifiers are implemented in dev.60. Glass = Diffusion (+35 percentage points width), Quartz = Radiance (+25 points plus hotter beam color), Amethyst = Resonance (+25 points and ×1.25 rotation speed per effective Amethyst, capped near ×2), Diamond = Focus (+25 points with a tighter inner beam), and Netherite = Inversion (+25 points and reversed outgoing rotation). A maximum of four loaded Boosters contribute and total incoming-beam width is capped near ×2 vanilla. Generic incoming-beam width is not converted into a world-light range tier. Quartz reinforces the static reflected field, Diamond adds a smaller focused axial bonus, Glass broadens residual reflected-ray geometry only in dev.70, Amethyst increases residual-ray resonance, and Netherite preserves reflected rotation inversion. dev.69's long Glass face-diagonal static relays are intentionally removed because each auxiliary node emits scalar omnidirectional vanilla block light and could brighten the dark side of walls. All actual block/node emission remains vanilla-capped at level 15.
+Core Booster Beacon relay modifiers are implemented in dev.60. Glass = Diffusion (+35 percentage points width), Quartz = Radiance (+25 points plus hotter beam color), Amethyst = Resonance (+25 points and ×1.25 rotation speed per effective Amethyst, capped near ×2), Diamond = Focus (+25 points with a tighter inner beam), and Netherite = Inversion (+25 points and reversed outgoing rotation). A maximum of four loaded Boosters contribute and total incoming-beam width is capped near ×2 vanilla. Generic incoming-beam width is not converted into a world-light range tier. Quartz reinforces the static reflected field, Diamond adds a smaller focused axial bonus, Glass broadens residual reflected-ray geometry, Amethyst increases residual-ray resonance, and Netherite preserves reflected rotation inversion. dev.69's long Glass face-diagonal static relays are historical and remain removed because each physical auxiliary node became an omnidirectional vanilla emitter. Current Mature world light is virtual; exposed scalar block-light output remains capped to level 15.
 
 ## Stateful drops and upgrades
 
@@ -179,57 +196,33 @@ dev.57 was tested in-game and did not solve cloud/entity composition. dev.58 mov
 
 ## dev.65–73 physical light-field history
 
-dev.65 introduced Mirage-owned `crying_light_node` blocks. dev.67 made only energized Mature Crying Obsidian drive the slow-decay world-light field; dev.69 separated Core Booster reflected identities; dev.70 added same-tick terrain invalidation and removed unsafe long Glass diagonal relay branches; dev.73 placed explicit per-cell axial relays after Simple Light Level exposed sparse-lattice decay errors.
+dev.65–73 used physical `crying_light_node` relays. Those experiments established the desired Mature half-decay and Core Booster identities but live numbered-floor/wall QA proved the architecture itself unsafe: every relay becomes an independent omnidirectional vanilla source, producing cross-shaped overfill, wall leakage and a final field that cannot remain source-causal.
 
-Further dev.73 QA showed the physical-relay architecture itself is the remaining problem. Every accepted `crying_light_node` is still a real omnidirectional vanilla emitter after placement. As a result, six valid relay lines can create a cross-shaped filled region, light can be re-propagated behind geometry, and the final measured field is not guaranteed to match Mirage's intended per-voxel curve. These relays remain active in dev.74 only as a temporary compatibility/visible-light backend while the replacement is tested in shadow mode.
+The retained lessons are now implemented by the virtual engine: exact fixed-point half-decay, source ownership, same-tick/coalesced invalidation, Quartz/Diamond static reinforcement, Glass/Amethyst/Netherite reflected visual identities and immediate source teardown. Physical relays have no current gameplay authority and exist only for old-world migration.
 
-The stabilized optical behavior from this line remains accumulated:
+## Mirage Light Engine runtime
 
-- Core Booster relay effects begin at `8.5/16`;
-- Small/Medium/Large continuation heights are `4.5/16`, `6.5/16`, `8.5/16`;
-- Mature remains the complete vertical Beacon stop;
-- residual-ray collision ignores the source crystal's own collider but not later obstacles;
-- Small/Medium/Large remain optical-only and zero block-light;
-- Quartz/Radiance is the main static power reinforcement, Diamond/Focus a smaller reinforcement, Glass/Diffusion visual widening, Amethyst/Resonance dynamic activity and Netherite/Inversion reversed rotation;
-- terrain edits remain coalesced to `LevelTickEvent.Post`;
-- Booster material swaps explicitly refresh nearby Mature fields;
-- source removal/de-energization still reconciles the legacy backend while dev.74 is transitional.
+The authoritative runtime is documented exhaustively in `MIRAGE-LIGHT-ENGINE.md`. Core behavior in dev.75d:
 
-## dev.74 Mirage Light Engine foundation
+- six-neighbour causal weighted flood;
+- fixed-point no-Booster open curve exactly `15,15,14,14,...,1,1` over 30 blocks;
+- real destination `getLightBlock(...)` opacity plus vanilla face-shape occlusion;
+- fully opaque edges are impossible; finite walls can only be reached around real geometry;
+- `detourExtraCostUnits` separates open decay from obstacle-only extra route cost; current Mature profile uses substeps=2, air=1, detourExtra=1;
+- an optimal open route remains half-decay; every extra block of route forced by geometry costs a full visible level overall;
+- sparse per-source 16³ sections and aggregate max layer provide O(1) reads;
+- source descriptors are tracking-scoped and include detour parameters; protocol is **21**;
+- `/miragelight probe` reports Mirage/nearest/vanilla/effective plus weighted `direct` and `extra` cost;
+- physical legacy nodes are cleanup-only.
 
-The forward architecture is now `celerbi.mirageprojector.light.engine`.
-
-- `MirageLightSource` gives each light source a stable identity, origin, profile and runtime intent.
-- `MirageLightProfile` stores conceptual power, fixed-point substeps, traversal cost, radius, shape/direction and future RGB metadata.
-- `MirageLightSolver` propagates through six adjacent voxels, so every solved voxel remains causally connected to the source.
-- `MirageLightOcclusion` delegates per-edge block/face obstruction to vanilla `LightEngine.getLightBlockInto(...)`.
-- `MirageLightSection` stores per-source fixed-point energy sparsely in 16×16×16 sections.
-- `MirageLightWorld` keeps source contributions separate and exposes an aggregate max layer for O(1) virtual-light lookup.
-- the solver uses packed long positions, primitive fastutil maps and energy-bucket FIFO queues instead of object-heavy per-voxel queue nodes.
-- Level unload clears the per-Level virtual state.
-
-For the no-Booster Mature profile, the pure fixed-point result at outward distances 1–30 is exactly:
-
-```text
-15 15 14 14 13 13 12 12 11 11 10 10 9 9 8 8 7 7 6 6 5 5 4 4 3 3 2 2 1 1
-```
-
-Conceptual Booster power above 15 extends the saturated 15 plateau while final visible values remain capped to 15. A complete barrier can disconnect a region; a finite obstacle may still be routed around by a longer/weaker path, preserving vanilla-style grid behavior without teleporting new emitters.
-
-dev.74 is intentionally **shadow-only**. It does not inject into vanilla/client light queries and does not remove the physical `crying_light_node` backend yet. Use `/miragelight stats`, `/miragelight probe`, `/miragelight axis <direction>` and `/miragelight rebuild` to inspect the new field. Simple Light Level continues to display the legacy physical result until dev.75.
-
-Network protocol remains 19 and no new projector NBT contract is introduced by the foundation.
+Quartz/Radiance and Diamond/Focus increase conceptual Mature power; visible output remains capped at 15. Glass/Amethyst/Netherite keep reflected visual roles and do not create independent static side emitters.
 
 ## Advanced Mirage Light Engine boundary
 
-Only omnidirectional VANILLA/EXTEND-style scalar propagation is runtime-solved in dev.74. The source/profile contract reserves, but does not yet execute:
+The static Mature consumer is now the reference implementation. dev.76 begins dynamic/mobile-light foundation rather than reopening the physical-relay design. Reserved runtime work includes `DYNAMIC_VISUAL`, moving/portable sources, directional/rotating spotlights, rectangular frustum, plane/projected-surface emission and RGB-preserving visual lighting.
 
-- `CONCENTRATE`;
-- `DIRECTIONAL_SPOT`;
-- `ROTATING_DIRECTIONAL_SPOT`;
-- directional cone / rectangular frustum / plane shapes;
-- `DYNAMIC_VISUAL` moving-source behavior;
-- RGB/color-light rendering.
+The scalar static engine may continue serving gameplay/light-level semantics, while future moving visual emitters must avoid rebuilding server world-light every render frame. Third-party consumers that bypass normal brightness APIs receive targeted compatibility only after concrete QA demonstrates a need.
 
-The next authority step is dev.75: make the virtual static field visible/gameplay-authoritative without feeding solved virtual voxels back into vanilla as new block emitters, add chunk-load invalidation/synchronization and migrate away from active physical relays.
+## Post-dev.75d roadmap consolidation
 
+Runtime remains dev.75d/protocol 21. The project roadmap is now split by release scope. 1.0.0 retains the current fixed-projector feature set and must establish extension seams for projection-source registration, chassis capabilities, forward-compatible presentation transforms, generic renderer/interaction providers, dynamic-vs-static light backend separation and non-Core energy consumers. User-facing lanterns/Glow Dust batteries/Scan Codex/portable projectors belong to 1.1.0; direct hologram grab/free rotation belongs to 1.2.0; Create Blueprint projection remains an optional bridge addon.

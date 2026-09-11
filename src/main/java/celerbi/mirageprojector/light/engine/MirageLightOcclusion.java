@@ -28,6 +28,18 @@ public final class MirageLightOcclusion {
          * from the old source-to-node ray tests: slabs, stairs and modded states can use
          * the same per-edge light-occlusion semantics as the real LightEngine.
          */
+        /*
+         * Vanilla does not pass a constant here: BlockLightEngine first resolves the
+         * destination state's real light-block value and supplies that as the simple
+         * opacity fallback. Passing 1 (the old dev.74/75 behaviour) effectively made
+         * full opaque blocks look air-like unless a face-shape special case happened
+         * to reject the edge. That is why Mirage light could cross iron walls.
+         */
+        int destinationOpacity = Math.max(1, toState.getLightBlock(level, toPos));
+        if (destinationOpacity >= 15) {
+            return BLOCKED;
+        }
+
         int vanillaOpacity = LightEngine.getLightBlockInto(
                 level,
                 fromState,
@@ -35,7 +47,7 @@ public final class MirageLightOcclusion {
                 toState,
                 toPos,
                 direction,
-                1
+                destinationOpacity
         );
         if (vanillaOpacity >= 15) {
             return BLOCKED;

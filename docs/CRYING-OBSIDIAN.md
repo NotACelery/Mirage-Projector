@@ -105,32 +105,31 @@ It is a low obstacle with nine visible points, hinders living-entity movement an
 
 ## Extended useful-light field
 
-Only an energized Mature Cluster is intended to own the useful world-light field. Small/Medium/Large remain zero-block-light optical stages.
+Only an energized Mature Cluster owns the useful static world-light field. Small/Medium/Large remain zero-block-light optical stages.
 
-Live dev.70–73 QA showed that the physical `crying_light_node` strategy cannot be the final implementation. Even a node placed on a valid source path becomes an independent omnidirectional vanilla emitter and can radiate sideways or refill a region hidden from the original Cluster. The measured result therefore diverged from both wall causality and the exact half-decay target.
+The authoritative field is virtual: no physical relay blocks are created. Open no-Booster propagation is exact half-decay over 30 blocks (`15,15,14,14,...,1,1`). `MirageLightOcclusion` uses real vanilla destination opacity/face shape, so solid walls cannot be crossed. A finite wall may be routed around only through adjacent traversable voxels.
 
-dev.74 begins the replacement with a parallel server-side Mirage Light Engine shadow source. It uses fixed-point energy and six-neighbour voxel propagation, so every solved cell is connected to the Cluster through an actual traversable path. Per-edge opacity/face blocking delegates to vanilla light-occlusion semantics. A full separating barrier disconnects the shadow field; a finite wall can still be routed around at the cost of a longer/weaker path.
+dev.75d makes that wrap more natural: direct/open distance keeps half-decay, while route distance that exists only because the obstacle forced a detour receives additional decay. There is no abrupt "everything behind the wall becomes vanilla" switch; deeper shadow pockets simply require a more expensive best path.
 
-The no-Booster virtual target at outward distances 1–30 is exactly:
-
-```text
-15 15 14 14 13 13 12 12 11 11 10 10 9 9 8 8 7 7 6 6 5 5 4 4 3 3 2 2 1 1
-```
-
-Quartz/Radiance and Diamond/Focus still feed conceptual scalar reinforcement into the Mature shadow profile, with Quartz stronger. Final virtual visible values remain capped to 15; extra conceptual power extends the saturated plateau/tail. Glass, Amethyst and Netherite keep their reflected visual identities without seeding independent side emitters.
-
-For transition safety, dev.74 still leaves the dev.73 physical nodes active as visible/gameplay light. `/miragelight` commands inspect the new virtual field separately. dev.75 is responsible for the authoritative backend handoff and legacy-node cleanup.
+Effective block light is `max(vanilla, Mirage)` at read time. Virtual cells are final contributions, never new vanilla emission sources. The old `crying_light_node` block is migration-only. Full details: `MIRAGE-LIGHT-ENGINE.md`.
 
 ## Half-decay source lifecycle
 
-The Mature field is not gated by Core Boosters. An energized Mature source registers even at reflected tier zero. Terrain place/break edits remain coalesced until the end of the same server tick, then affected Mature sources are refreshed once against the committed geometry. Core Booster material changes explicitly trigger the same nearby source refresh.
+The Mature field is baseline behavior and does not require a Booster. Mature + energized registers the source; de-energizing/removing it tears down only that source contribution and reveals any overlapping survivor.
 
-Breaking or de-energizing a Mature source removes its dev.74 virtual contribution immediately from the per-Level aggregate. Other source contributions remain and become visible through max aggregation. The legacy physical-node reconciliation remains active only for the dev.74 transition.
+Server terrain edits are coalesced and rebuild impacted fields against the committed geometry. Current event coverage includes place/multi-place/break, fluid placement, crop/feature growth, pistons, explosions and Core Booster-driven refresh. The solver never force-loads chunks. Source/destination chunk lifecycle is handled by the dev.75b authoritative backend and clients solve synchronized source descriptors against their own loaded geometry.
 
-The solver never force-loads chunks. During dev.74 shadow QA, `/miragelight rebuild` can refresh the nearest source after a relevant chunk loads. Automatic chunk-load invalidation becomes mandatory before dev.75 virtual light is authoritative.
+`/miragelight stats`, `probe`, `axis` and `rebuild` are the diagnostic surface. dev.75d `probe` reports weighted direct/extra cost in addition to Mirage/vanilla/effective levels.
 
 ## Reflected Booster light
 
-Crying Obsidian consumes dedicated reflected relay properties rather than raw incoming Beacon width as a generic power tier. Quartz reinforces static Radiance, Diamond adds smaller Focus reinforcement, Amethyst increases residual Resonance/cadence and Netherite preserves Inversion. Glass broadens reflected residual-ray geometry without creating static secondary world-light branches.
+Crying Obsidian consumes dedicated reflected relay identities instead of treating generic Beacon width as world-light power. Up to four effective Boosters are resolved before the Mature source profile is built.
 
-Residual purple rays keep the same material identity: Quartz raises alpha/length, Glass broadens the beam, Amethyst increases excitation/rotation, Diamond narrows/focuses the beam while adding modest length, and Netherite reverses rotation. The existing four-effective-Booster cap remains unchanged.
+- Quartz/Radiance contributes +1 conceptual static-light tier each.
+- Diamond/Focus contributes a smaller static bonus: +1 tier per two effective Diamond, rounded up.
+- Total reflected static boost is capped at +4, so Mature conceptual power is 15–19 and nominal open radius 30–38.
+- Glass/Diffusion broadens residual reflected-ray geometry but creates no independent static side field.
+- Amethyst/Resonance increases residual excitation/rotation activity.
+- Netherite/Inversion reverses reflected rotation.
+
+All static reinforcement uses the same causal occlusion + dev.75d detour solver. Quartz/Diamond therefore improve open persistence but do not grant wall penetration. Residual rays keep their dedicated brightness/radius/length/excitation identities.

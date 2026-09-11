@@ -10,11 +10,13 @@ import java.util.WeakHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.jetbrains.annotations.Nullable;
 
 /** Per-Level source fields plus an O(1) max-light aggregate layer. */
 public final class MirageLightWorld {
     private static final Map<Level, LevelState> STATES = Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Map<LevelLightEngine, LevelState> ENGINE_STATES = Collections.synchronizedMap(new WeakHashMap<>());
 
     private MirageLightWorld() {
     }
@@ -36,11 +38,12 @@ public final class MirageLightWorld {
             }
 
             MirageLightField field = MirageLightSolver.solve(level, source);
-            if (previous != null) {
-                state.removeFieldContribution(previous.field);
-            }
             state.sources.put(source.id(), new SourceEntry(source, field));
-            state.addFieldContribution(field);
+            if (previous == null) {
+                state.addFieldContribution(field);
+            } else {
+                state.replaceFieldContribution(previous.field, field);
+            }
             return new UpdateResult(true, false, field.stats());
         }
     }
@@ -67,7 +70,21 @@ public final class MirageLightWorld {
         if (level == null || pos == null) {
             return 0;
         }
-        LevelState state = existingState(level);
+        return levelAt(existingState(level), pos);
+    }
+
+    public static int levelAt(LevelLightEngine lightEngine, BlockPos pos) {
+        if (lightEngine == null || pos == null) {
+            return 0;
+        }
+        LevelState state;
+        synchronized (ENGINE_STATES) {
+            state = ENGINE_STATES.get(lightEngine);
+        }
+        return levelAt(state, pos);
+    }
+
+    private static int levelAt(@Nullable LevelState state, BlockPos pos) {
         if (state == null) {
             return 0;
         }
@@ -112,17 +129,38 @@ public final class MirageLightWorld {
         }
     }
 
+    public static Set<Long> sectionKeys(Level level) {
+        LevelState state = existingState(level);
+        if (state == null) {
+            return Set.of();
+        }
+        synchronized (state) {
+            return Set.copyOf(state.aggregateSections.keySet());
+        }
+    }
+
     public static void clear(Level level) {
-        if (level != null) {
-            synchronized (STATES) {
-                STATES.remove(level);
+        if (level == null) {
+            return;
+        }
+        LevelState removed;
+        synchronized (STATES) {
+            removed = STATES.remove(level);
+        }
+        if (removed != null) {
+            synchronized (ENGINE_STATES) {
+                ENGINE_STATES.remove(level.getLightEngine());
             }
         }
     }
 
     private static LevelState state(Level level) {
         synchronized (STATES) {
-            return STATES.computeIfAbsent(level, ignored -> new LevelState());
+            LevelState state = STATES.computeIfAbsent(level, ignored -> new LevelState());
+            synchronized (ENGINE_STATES) {
+                ENGINE_STATES.put(level.getLightEngine(), state);
+            }
+            return state;
         }
     }
 
@@ -174,6 +212,31 @@ public final class MirageLightWorld {
                 }
             }
             emptySections.forEach(aggregateSections::remove);
+        }
+
+        void replaceFieldContribution(MirageLightField previous, MirageLightField updated) {
+            MirageLightSourceId sourceId = updated.source().id();
+            MirageLightProfile profile = updated.source().profile();
+            Set<Long> touched = new HashSet<>(previous.sections().keySet());
+            touched.addAll(updated.sections().keySet());
+            for (Long sectionKey : touched) {
+                MirageLightSection replacement = updated.sections().get(sectionKey);
+                AggregateSection aggregate = aggregateSections.get(sectionKey);
+                if (replacement == null) {
+                    if (aggregate != null) {
+                        aggregate.remove(sourceId);
+                        if (aggregate.empty()) {
+                            aggregateSections.remove(sectionKey);
+                        }
+                    }
+                    continue;
+                }
+                if (aggregate == null) {
+                    aggregate = new AggregateSection();
+                    aggregateSections.put(sectionKey, aggregate);
+                }
+                aggregate.put(sourceId, replacement, profile);
+            }
         }
     }
 

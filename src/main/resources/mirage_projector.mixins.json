@@ -8,12 +8,15 @@
     "client.HumanoidArmorLayerMixin",
     "client.LivingEntityRendererMixin",
     "client.ItemInHandRendererMixin",
-    "client.BeaconRendererMixin"
+    "client.BeaconRendererMixin",
+    "client.RenderChunkRegionMirageLightMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixins": [
-    "CryingObsidianRandomTickStateMixin"
+    "CryingObsidianRandomTickStateMixin",
+    "LevelMirageLightMixin",
+    "LevelLightEngineMirageLightMixin"
   ]
 }

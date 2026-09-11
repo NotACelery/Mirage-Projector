@@ -62,5 +62,6 @@ public final class ClientRuntimeEvents {
         ClientAssetTransport.resetSession();
         ProjectionClearancePreviewRenderer.clear();
         MirageProjectorRenderer.clearDeferredEntityProjections();
+        ClientMirageLightSync.resetSession();
     }
 }

@@ -1,6 +1,5 @@
 package celerbi.mirageprojector.block;
 
-import celerbi.mirageprojector.crying.CryingObsidianLightField;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -57,16 +56,10 @@ public final class CryingObsidianLightNodeBlock extends Block {
 
     @Override
     protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
-        int desired = CryingObsidianLightField.desiredLevelAt(level, pos);
-        if (desired <= 0) {
-            level.removeBlock(pos, false);
-            level.getLightEngine().checkBlock(pos);
-            return;
-        }
-        if (state.getValue(LIGHT_LEVEL) != desired) {
-            level.setBlock(pos, state.setValue(LIGHT_LEVEL, desired), Block.UPDATE_CLIENTS);
-            level.getLightEngine().checkBlock(pos);
-        }
-        level.scheduleTick(pos, this, RECHECK_TICKS);
+        // dev.75a: this block is legacy migration data only. The authoritative
+        // Mirage field lives in virtual section storage and must not emit from
+        // physical relay blocks anymore.
+        level.removeBlock(pos, false);
+        level.getLightEngine().checkBlock(pos);
     }
 }

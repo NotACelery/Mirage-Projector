@@ -31,13 +31,13 @@ Owns the loaded Core Booster material for item persistence/migration while `Core
 
 ### Mirage Light Engine
 
-The forward light architecture now lives under `celerbi.mirageprojector.light.engine`. `MirageLightSource` describes an emitter independently of the feature that owns it; `MirageLightProfile` describes fixed-point decay/shape/direction/RGB metadata; `MirageLightSolver` computes one causally connected voxel field; `MirageLightSection` stores fixed-point per-source energy sparsely by 16³ section; and `MirageLightWorld` aggregates overlapping fields by maximum visible contribution.
+The authoritative light subsystem lives under `celerbi.mirageprojector.light.engine` and is feature-independent. `MirageLightSource` describes an emitter; `MirageLightProfile` describes conceptual power, fixed-point precision, open-air cost, obstacle-detour extra cost, radius, shape/direction and reserved RGB metadata; `MirageLightSolver` computes a causally connected field; `MirageLightSection` stores per-source energy by 16³ section; `MirageLightWorld` owns fields and aggregate max light.
 
-The solver walks six adjacent voxels and delegates edge obstruction/opacity to vanilla `LightEngine.getLightBlockInto(...)`. It does not place blocks and does not turn solved voxels into new vanilla emitters. This is the architectural correction required by live dev.70–73 QA, where physical auxiliary emitters lost source causality after placement and refilled hidden regions.
+The solver walks six adjacent voxels. `MirageLightOcclusion` delegates destination opacity and face-shape blocking to vanilla `LightEngine.getLightBlockInto(...)`. dev.75d adds weighted detour semantics: monotonic open travel keeps the profile's ordinary cost, while steps that prove the route had to overshoot/backtrack because of geometry receive `detourExtraCostUnits`. This creates gradual shadows without a hard mode switch behind walls.
 
-dev.74 runs this system as a server-side **shadow layer** only. The Mature Cluster registers a `STATIC_WORLD` source in parallel, while the dev.73 physical `crying_light_node` backend remains visible/gameplay authority until dev.75. Terrain edits use the existing end-of-tick coalesced source invalidation and force shadow re-solves. Unchanged periodic source refreshes reuse the cached field.
+Final Mirage values merge with vanilla at read time and are never fed back into vanilla block-light propagation. `crying_light_node` is migration-only. Network protocol 21 synchronizes compact source/profile descriptors—including detour cost—not solved voxels. Server/client chunk lifecycle re-solves against locally loaded geometry.
 
-The old `LightProfile`, `LightDecayMode` and `LightProfileMath` remain compatibility/design inputs while callers migrate. `CONCENTRATE`, `DIRECTIONAL_SPOT` and `ROTATING_DIRECTIONAL_SPOT`, plus new directional/frustum/plane shapes, are reserved rather than runtime-enabled in dev.74. `DYNAMIC_VISUAL` is reserved for portable/moving projectors and must not imply server block-light rebuilds every render tick.
+`STATIC_WORLD` is implemented for Mature Clusters. `DYNAMIC_VISUAL`, directional/frustum/plane shapes and RGB rendering are the dev.76+ boundary; moving visual sources must not turn into per-frame server gameplay-light rebuilds. See `MIRAGE-LIGHT-ENGINE.md`.
 
 ## Renderer families
 

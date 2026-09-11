@@ -25,9 +25,9 @@ Crying Obsidian ecosystem:
 - `mirage_projector:crying_obsidian_cluster`
 - `mirage_projector:obsidian_spike`
 
-Internal runtime-only support block:
+Migration-only internal block ID:
 
-- `mirage_projector:crying_light_node` — **transitional legacy runtime support in dev.74**. Still supplies dev.73 visible/gameplay Mature lighting while the new virtual solver runs in shadow mode; no BlockItem, recipe or Creative exposure. Planned to leave active runtime in dev.75 after safe migration/cleanup.
+- `mirage_projector:crying_light_node` — **legacy migration only since dev.75a**. Current runtime never creates it. It stays registered/modelled so dev.65–74 development worlds load safely; source-centered and chunk palette-scanned cleanup removes only this Mirage block. It has no BlockItem, recipe or Creative exposure.
 
 ## Active non-block items
 

@@ -1,3 +1,46 @@
+# dev.75d documentation recovery — versioned roadmap consolidation
+
+- No runtime/version/protocol change.
+- Split the monolithic waitlist into General, 1.0.0, 1.1.0 and 1.2.0 authorities.
+- Froze 1.1.0 as Portable Illumination, Capture & Projection Expansion: dynamic light, rechargeable Glow Dust, lanterns, Scan Codex, copy lectern and portable/presentation projectors.
+- Froze 1.2.0 direction around direct hologram grab/free rotation.
+- Added optional Create Blueprint/schematic bridge roadmap and explicit chassis compatibility.
+- Added a 1.0.0 future-proofing contract so projection source types, transforms, light backends, energy and future interactions do not remain closed/hard-coded.
+
+# 0.1.0-dev.75d — Obstacle-detour decay and static-light consolidation
+
+- Added `detourExtraCostUnits` to `MirageLightProfile`, separating open-space decay from obstacle-forced route decay.
+- Current half-decay EXTEND profile uses substeps 2, air cost 1 and detour extra 1: direct/open travel remains 1/2 visible level per block, while each extra path block caused by obstacle routing costs one full visible level overall.
+- `MirageLightSolver` detects detour increment without storing complete paths: an edge moving back toward the source reduces Manhattan distance while path length still grows, representing two accumulated detour steps and receiving `2 * detourExtraCostUnits` additional fixed-point cost.
+- Open no-Booster `15,15,14,14,...,1,1` sequence remains unchanged.
+- No abrupt shadow-region mode switch is introduced; finite-wall/L-corner light forms a gradual gradient from the cheapest actual causal route.
+- Synchronized the new profile field in `MirageLightSourceSyncPayload`; network protocol intentionally moves **20 -> 21**.
+- `/miragelight probe` now reports weighted/direct/extra nearest-source cost for obstacle QA.
+- Added `verify_mirage_light_detour_penalty.py` regression fixture: open probe level 13 vs routed finite-wall level 11 while unaffected monotonic positions remain unchanged.
+- Added full static-light authority/consolidation docs (`MIRAGE-LIGHT-ENGINE.md`, dev.75c/dev.75d notes, refreshed CURRENT/ARCHITECTURE/ROADMAP/QA/DEVELOPMENT/registry/handbook) and moves the next implementation target to dev.76 dynamic/mobile light foundation.
+- No projector NBT change. Physical Crying Light Nodes remain migration-only.
+- Source candidate pending Windows Java 21 build and in-game 3-D wall/L-corner/partial-block/chunk/multiplayer/performance QA.
+
+# 0.1.0-dev.75c — Vanilla opacity handoff fix
+
+- Fixed authoritative Mirage-light wall occlusion: `MirageLightOcclusion` now passes the destination block's real `getLightBlock(...)` opacity into vanilla `LightEngine.getLightBlockInto(...)` instead of the erroneous hard-coded value `1`.
+- Fully opaque destinations (`>=15`) are rejected before propagation; face-shape occlusion remains delegated to vanilla for slabs/stairs/modded states.
+- The causal flood solver is unchanged: walls must now be routed around voxel-by-voxel, so every extra surface/path step consumes Mirage fixed-point energy rather than allowing light to cross the wall.
+- Network protocol remains 20; no NBT or payload schema change.
+
+# 0.1.0-dev.75b — Authoritative Mirage-light lifecycle
+
+- Completed the dev.75 authority handoff after dev.74 in-game solver QA confirmed the causal fixed-point field.
+- Scoped Mirage source descriptors to watched chunks instead of dimension-wide fanout; UnWatch/source removal retract stale client fields.
+- Preserved watched-chunk state across same-level respawn so CLEAR/resync does not depend on vanilla retransmitting already watched chunks.
+- Added coalesced server chunk-load discovery, orphan legacy-node cleanup and re-solves for sources whose radius intersects newly loaded geometry; source-origin unload removes the authoritative source.
+- Added coalesced client chunk load/unload geometry rebuilds plus old/new render-section dirtying.
+- Extended terrain invalidation to fluid placement, crop/feature growth, piston paths and explosions in addition to player place/break, while keeping one rebuild per impacted source per tick.
+- Optimized source replacement so aggregate sections rebuild once across the union of old/new touched sections instead of remove+add double work.
+- Physical `mirage_projector:crying_light_node` creation remains disabled; loaded chunks palette-scan and remove orphan legacy nodes only.
+- Network protocol remains 20 from dev.75a source-descriptor sync. No new projector NBT contract.
+- Source candidate pending Windows Java 21 build and in-game wall/chunk/relog/multiplayer/performance QA.
+
 # 0.1.0-dev.74 — Mirage Light Engine foundation
 
 - Added a feature-independent `light.engine` subsystem after live dev.70–73 QA proved physical auxiliary emitters cannot preserve source causality once vanilla begins propagating from each relay.

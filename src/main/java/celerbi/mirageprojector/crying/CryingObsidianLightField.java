@@ -1,8 +1,7 @@
 package celerbi.mirageprojector.crying;
 
-import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
-import celerbi.mirageprojector.block.CryingObsidianLightNodeBlock;
 import celerbi.mirageprojector.MirageProjector;
+import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
 import celerbi.mirageprojector.light.LightProfile;
 import celerbi.mirageprojector.light.engine.MirageLightEngine;
 import celerbi.mirageprojector.light.engine.MirageLightProfile;
@@ -10,6 +9,7 @@ import celerbi.mirageprojector.light.engine.MirageLightRuntimeMode;
 import celerbi.mirageprojector.light.engine.MirageLightSource;
 import celerbi.mirageprojector.light.engine.MirageLightSourceId;
 import celerbi.mirageprojector.light.engine.MirageLightWorld;
+import celerbi.mirageprojector.network.MirageLightNetwork;
 import celerbi.mirageprojector.registry.ModBlocks;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,43 +20,40 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.util.Mth;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import org.jetbrains.annotations.Nullable;
 
+/**
+ * Mature Crying Obsidian -> Mirage Light Engine adapter.
+ *
+ * dev.75d retains the authoritative virtual-light lifecycle and obstacle-detour decay. The old
+ * mirage_projector:crying_light_node block remains registered only so worlds from
+ * dev.65-dev.74 can load and clean those legacy relays safely.
+ */
 public final class CryingObsidianLightField {
     private static final int MAX_EFFECTIVE_REFLECTED_BOOST = BeaconRelayState.MAX_EFFECTIVE_BOOSTERS;
     private static final int MAX_CONCEPTUAL_LIGHT = 15 + MAX_EFFECTIVE_REFLECTED_BOOST;
-    private static final int MAX_NODE_DISTANCE = MAX_CONCEPTUAL_LIGHT * 2;
-    private static final int AXIAL_RAY_COUNT = 6;
+    private static final int MAX_FIELD_RADIUS = MAX_CONCEPTUAL_LIGHT * 2;
     private static final String MIRAGE_LIGHT_SOURCE_KIND = "mature_crying_cluster";
     private static final int CRYING_LIGHT_RGB = 0xA84CFF;
 
-    /*
-     * dev.70 keeps world-light relays on six causal axial branches only. dev.69's
-     * long face-diagonal Glass branches looked attractive in open air, but every
-     * auxiliary block is an omnidirectional vanilla light source. Those diagonal
-     * relays could therefore illuminate the dark side of a wall even when the
-     * corresponding axial branch was correctly blocked. Glass still affects the
-     * reflected/residual beam renderer; a safe widened static-light topology can be
-     * reintroduced later only if it preserves source causality through geometry.
-     */
-    private static final List<NodeOffset> OFFSETS = createOffsets();
+    private static final List<NodeOffset> LEGACY_AXIAL_OFFSETS = createLegacyAxialOffsets();
     private static final List<NodeOffset> LEGACY_DEV69_DIFFUSE_OFFSETS = createLegacyDiffuseOffsets();
 
-    /*
-     * Active sources are indexed per ServerLevel so player terrain edits can request
-     * a one-tick refresh instead of waiting for the 20-tick optics fallback. The map
-     * is weak by level and stores immutable positions only; the server thread owns all
-     * mutations.
-     */
+    /** Server-side source registry used by same-tick terrain invalidation. */
     private static final Map<ServerLevel, Set<BlockPos>> ACTIVE_SOURCES =
-            Collections.synchronizedMap(new WeakHashMap<>());
-    private static final Map<ServerLevel, Set<BlockPos>> DEV69_DIFFUSE_CLEANED =
             Collections.synchronizedMap(new WeakHashMap<>());
 
     private CryingObsidianLightField() {
+    }
+
+    public static void clearLevel(ServerLevel level) {
+        if (level != null) {
+            ACTIVE_SOURCES.remove(level);
+        }
     }
 
     public static void refresh(ServerLevel level, BlockPos sourcePos, BlockState sourceState) {
@@ -67,127 +64,205 @@ public final class CryingObsidianLightField {
             ServerLevel level,
             BlockPos sourcePos,
             BlockState sourceState,
-            boolean forceMirageSolverRebuild
+            boolean forceRebuild
     ) {
         SourceFieldSpec spec = sourceFieldSpec(level, sourcePos, sourceState);
         if (!spec.active()) {
             unregisterSource(level, sourcePos);
-            MirageLightEngine.removeSource(level, mirageSourceId(sourcePos));
+            removeMirageSource(level, sourcePos);
+            cleanupLegacyPhysicalRelays(level, sourcePos);
             return;
         }
+
         registerSource(level, sourcePos);
-        refreshMirageSolverField(level, sourcePos, spec, forceMirageSolverRebuild);
-
-        /*
-         * dev.74 foundation runs the new voxel solver in parallel with the dev.73
-         * physical relay backend. The relays remain authoritative for visible/gameplay
-         * light until dev.75 wires the virtual section layer into Minecraft queries.
-         */
-        boolean[] blockedRays = new boolean[AXIAL_RAY_COUNT];
-        for (NodeOffset offset : OFFSETS) {
-            BlockPos nodePos = sourcePos.offset(offset.dx(), offset.dy(), offset.dz());
-            if (level.isOutsideBuildHeight(nodePos) || !level.hasChunkAt(nodePos)) {
-                continue;
-            }
-
-            BlockState existing = level.getBlockState(nodePos);
-            int desired = 0;
-            if (!blockedRays[offset.rayIndex()]) {
-                int pathPenalty = tracePathPenalty(level, sourcePos, offset);
-                if (pathPenalty == Integer.MAX_VALUE) {
-                    blockedRays[offset.rayIndex()] = true;
-                } else {
-                    desired = desiredFromSpec(spec, offset, pathPenalty);
-                    if (isFullOpaqueBlock(level, nodePos, existing)) {
-                        // The obstacle sits exactly on a sampled relay position. It is
-                        // not part of tracePathPenalty (which excludes the endpoint),
-                        // so explicitly terminate the entire downstream branch here.
-                        desired = 0;
-                        blockedRays[offset.rayIndex()] = true;
-                    }
-                }
-            }
-
-            if (desired > 0 && canHost(existing)) {
-                applyDesiredNode(level, nodePos, existing, desired);
-            } else if (existing.is(ModBlocks.CRYING_LIGHT_NODE.get())) {
-                // dev.69 deferred this to a scheduled node tick. Reconcile now so a
-                // newly placed wall removes every stale relay in the same refresh.
-                reconcileNodeNow(level, nodePos);
-            }
-        }
-        cleanupLegacyDev69DiffuseNodes(level, sourcePos);
-    }
-
-    public static int desiredLevelAt(ServerLevel level, BlockPos nodePos) {
-        return desiredLevelAt(level, nodePos, null);
+        refreshMirageSolverField(level, sourcePos, forceRebuild);
     }
 
     public static void removeSourceNow(ServerLevel level, BlockPos sourcePos) {
         unregisterSource(level, sourcePos);
-        MirageLightEngine.removeSource(level, mirageSourceId(sourcePos));
-        for (NodeOffset offset : OFFSETS) {
-            BlockPos nodePos = sourcePos.offset(offset.dx(), offset.dy(), offset.dz());
-            if (level.isOutsideBuildHeight(nodePos) || !level.hasChunkAt(nodePos)) {
-                continue;
-            }
-            BlockState existing = level.getBlockState(nodePos);
-            if (!existing.is(ModBlocks.CRYING_LIGHT_NODE.get())) {
-                continue;
-            }
-            int desired = desiredLevelAt(level, nodePos, sourcePos);
-            if (desired <= 0) {
-                level.removeBlock(nodePos, false);
-                level.getLightEngine().checkBlock(nodePos);
-                continue;
-            }
-            if (existing.getValue(CryingObsidianLightNodeBlock.LIGHT_LEVEL) != desired) {
-                level.setBlock(
-                        nodePos,
-                        existing.setValue(CryingObsidianLightNodeBlock.LIGHT_LEVEL, desired),
-                        Block.UPDATE_CLIENTS
-                );
-                level.getLightEngine().checkBlock(nodePos);
-            }
-        }
-        cleanupLegacyDev69DiffuseNodes(level, sourcePos);
-        // cleanupLegacyDev69DiffuseNodes records one-time migration state; make sure a
-        // source that has just been removed does not leave a dead registry entry behind.
-        unregisterSource(level, sourcePos);
+        removeMirageSource(level, sourcePos);
+        cleanupLegacyPhysicalRelays(level, sourcePos);
         level.getLightEngine().checkBlock(sourcePos);
     }
 
-    private static int desiredLevelAt(
-            ServerLevel level,
-            BlockPos nodePos,
-            @Nullable BlockPos excludedSource
-    ) {
-        int desired = 0;
-        for (NodeOffset offset : OFFSETS) {
-            BlockPos sourcePos = nodePos.offset(-offset.dx(), -offset.dy(), -offset.dz());
-            if (excludedSource != null && sourcePos.equals(excludedSource)) {
+
+    /**
+     * Chunk-load discovery is the persistence bridge for virtual light. Mature
+     * crystals do not own a BlockEntity, so sources are rediscovered from block
+     * states whenever their chunk becomes live.
+     */
+    public static void discoverSourcesInChunk(ServerLevel level, ChunkAccess chunk) {
+        if (level == null || chunk == null) {
+            return;
+        }
+        LevelChunkSection[] sections = chunk.getSections();
+        ChunkPos chunkPos = chunk.getPos();
+        for (int sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
+            LevelChunkSection section = sections[sectionIndex];
+            if (section.hasOnlyAir() || !section.maybeHas(CryingObsidianLightField::isMatureCrystalState)) {
                 continue;
             }
-            if (level.isOutsideBuildHeight(sourcePos) || !level.hasChunkAt(sourcePos)) {
-                continue;
-            }
-            BlockState sourceState = level.getBlockState(sourcePos);
-            int candidate = desiredFromSource(level, sourcePos, sourceState, offset);
-            if (candidate > desired) {
-                desired = candidate;
-                if (desired >= 15) {
-                    return 15;
+            int sectionY = level.getSectionYFromSectionIndex(sectionIndex);
+            int baseY = sectionY << 4;
+            for (int localY = 0; localY < 16; localY++) {
+                for (int localZ = 0; localZ < 16; localZ++) {
+                    for (int localX = 0; localX < 16; localX++) {
+                        BlockState state = section.getBlockState(localX, localY, localZ);
+                        if (!isMatureCrystalState(state)) {
+                            continue;
+                        }
+                        BlockPos pos = new BlockPos(
+                                chunkPos.getBlockX(localX),
+                                baseY + localY,
+                                chunkPos.getBlockZ(localZ)
+                        );
+                        level.scheduleTick(pos, state.getBlock(), 1);
+                        if (isActiveMatureState(state)) {
+                            registerSource(level, pos);
+                        }
+                    }
                 }
             }
         }
-        return desired;
+    }
+
+    /** Remove authoritative sources whose origin chunk is leaving the live level. */
+    public static void removeSourcesInChunk(ServerLevel level, ChunkPos chunkPos) {
+        Set<BlockPos> sources = ACTIVE_SOURCES.get(level);
+        if (sources == null || sources.isEmpty()) {
+            return;
+        }
+        List<BlockPos> leaving = new ArrayList<>();
+        for (BlockPos sourcePos : sources) {
+            if (new ChunkPos(sourcePos).equals(chunkPos)) {
+                leaving.add(sourcePos);
+            }
+        }
+        for (BlockPos sourcePos : leaving) {
+            unregisterSource(level, sourcePos);
+            removeMirageSource(level, sourcePos);
+        }
     }
 
     /**
-     * Legacy/general profile tier now represents reflected power only. Glass no longer
-     * grants generic extra range merely because the incoming Beacon beam became wider.
-     * Quartz adds Radiance and Diamond adds focused axial reach; the four-effective-Core
-     * cap means the combined reflected power tier remains bounded to 0..4.
+     * Re-solve loaded sources whose horizontal radius intersects newly arrived
+     * chunk geometry. Multiple chunk-load events are coalesced by the lifecycle
+     * event bridge before this method is called.
+     */
+    public static void refreshSourcesForLoadedChunks(ServerLevel level, Iterable<ChunkPos> loadedChunks) {
+        Set<BlockPos> sources = ACTIVE_SOURCES.get(level);
+        if (sources == null || sources.isEmpty()) {
+            return;
+        }
+        List<ChunkPos> chunks = new ArrayList<>();
+        loadedChunks.forEach(chunks::add);
+        if (chunks.isEmpty()) {
+            return;
+        }
+
+        List<BlockPos> impacted = new ArrayList<>();
+        List<BlockPos> stale = new ArrayList<>();
+        for (BlockPos sourcePos : sources) {
+            if (!level.hasChunkAt(sourcePos)) {
+                continue;
+            }
+            BlockState state = level.getBlockState(sourcePos);
+            if (!isActiveMatureState(state)) {
+                stale.add(sourcePos);
+                continue;
+            }
+            MirageLightSource source = sourceFor(level, sourcePos, state);
+            if (source == null) {
+                continue;
+            }
+            for (ChunkPos chunkPos : chunks) {
+                if (MirageLightEngine.sourceTouchesChunk(source, chunkPos)) {
+                    impacted.add(sourcePos);
+                    break;
+                }
+            }
+        }
+
+        for (BlockPos stalePos : stale) {
+            unregisterSource(level, stalePos);
+            removeMirageSource(level, stalePos);
+        }
+        for (BlockPos sourcePos : impacted) {
+            refreshInternal(level, sourcePos, level.getBlockState(sourcePos), true);
+        }
+    }
+
+    /**
+     * Global migration sweep for the internal relay block. Palette prefiltering
+     * keeps ordinary chunks cheap; only sections that may contain our legacy block
+     * are walked voxel-by-voxel.
+     */
+    public static int cleanupLegacyNodesInChunk(ServerLevel level, ChunkAccess chunk) {
+        if (level == null || chunk == null) {
+            return 0;
+        }
+        List<BlockPos> legacy = new ArrayList<>();
+        LevelChunkSection[] sections = chunk.getSections();
+        ChunkPos chunkPos = chunk.getPos();
+        for (int sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
+            LevelChunkSection section = sections[sectionIndex];
+            if (section.hasOnlyAir()
+                    || !section.maybeHas(state -> state.is(ModBlocks.CRYING_LIGHT_NODE.get()))) {
+                continue;
+            }
+            int sectionY = level.getSectionYFromSectionIndex(sectionIndex);
+            int baseY = sectionY << 4;
+            for (int localY = 0; localY < 16; localY++) {
+                for (int localZ = 0; localZ < 16; localZ++) {
+                    for (int localX = 0; localX < 16; localX++) {
+                        if (!section.getBlockState(localX, localY, localZ)
+                                .is(ModBlocks.CRYING_LIGHT_NODE.get())) {
+                            continue;
+                        }
+                        legacy.add(new BlockPos(
+                                chunkPos.getBlockX(localX),
+                                baseY + localY,
+                                chunkPos.getBlockZ(localZ)
+                        ));
+                    }
+                }
+            }
+        }
+        for (BlockPos pos : legacy) {
+            level.removeBlock(pos, false);
+            level.getLightEngine().checkBlock(pos);
+        }
+        return legacy.size();
+    }
+
+    private static boolean isMatureCrystalState(BlockState state) {
+        return state.getBlock() instanceof CryingObsidianCrystalBlock crystal && crystal.stage().isMature();
+    }
+
+    private static boolean isActiveMatureState(BlockState state) {
+        return isMatureCrystalState(state) && state.getValue(CryingObsidianCrystalBlock.ENERGIZED);
+    }
+
+    private static MirageLightSource sourceFor(ServerLevel level, BlockPos sourcePos, BlockState sourceState) {
+        SourceFieldSpec spec = sourceFieldSpec(level, sourcePos, sourceState);
+        if (!spec.active()) {
+            return null;
+        }
+        MirageLightProfile profile = MirageLightProfile.halfDecayExtended(
+                spec.conceptualLight(),
+                CRYING_LIGHT_RGB
+        );
+        return new MirageLightSource(
+                mirageSourceId(sourcePos),
+                sourcePos,
+                profile,
+                MirageLightRuntimeMode.STATIC_WORLD
+        );
+    }
+
+    /**
+     * Reflected power tier. Quartz supplies radiance; Diamond supplies a smaller
+     * focus contribution. Glass/Amethyst/Netherite keep their separate visual roles.
      */
     public static int fieldTier(BeaconRelayState relay) {
         if (relay == null || !relay.modified()) {
@@ -206,13 +281,68 @@ public final class CryingObsidianLightField {
         return LightProfile.extended(15, conceptualLight * 2, 20);
     }
 
-    private static int desiredFromSource(
-            ServerLevel level,
-            BlockPos sourcePos,
-            BlockState sourceState,
-            NodeOffset offset
-    ) {
-        return desiredFromSpec(level, sourcePos, sourceFieldSpec(level, sourcePos, sourceState), offset);
+    /**
+     * Rebuild each loaded Mature source touched by one or more terrain changes.
+     * Block events are coalesced until LevelTickEvent.Post by
+     * CryingObsidianLightInvalidationEvents, so each source solves at most once for the
+     * final world state of that server tick.
+     */
+    public static void refreshSourcesNearNow(ServerLevel level, Iterable<BlockPos> changedPositions) {
+        Set<BlockPos> sources = ACTIVE_SOURCES.get(level);
+        if (sources == null || sources.isEmpty()) {
+            return;
+        }
+
+        boolean any = false;
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (BlockPos pos : changedPositions) {
+            any = true;
+            minX = Math.min(minX, pos.getX());
+            minY = Math.min(minY, pos.getY());
+            minZ = Math.min(minZ, pos.getZ());
+            maxX = Math.max(maxX, pos.getX());
+            maxY = Math.max(maxY, pos.getY());
+            maxZ = Math.max(maxZ, pos.getZ());
+        }
+        if (!any) {
+            return;
+        }
+
+        List<BlockPos> impacted = new ArrayList<>();
+        List<BlockPos> stale = new ArrayList<>();
+        for (BlockPos sourcePos : sources) {
+            if (!level.hasChunkAt(sourcePos)) {
+                continue;
+            }
+            BlockState state = level.getBlockState(sourcePos);
+            if (!isActiveMatureState(state)) {
+                stale.add(sourcePos);
+                continue;
+            }
+
+            if (sourcePos.getX() >= minX - MAX_FIELD_RADIUS
+                    && sourcePos.getX() <= maxX + MAX_FIELD_RADIUS
+                    && sourcePos.getY() >= minY - MAX_FIELD_RADIUS
+                    && sourcePos.getY() <= maxY + MAX_FIELD_RADIUS
+                    && sourcePos.getZ() >= minZ - MAX_FIELD_RADIUS
+                    && sourcePos.getZ() <= maxZ + MAX_FIELD_RADIUS) {
+                impacted.add(sourcePos);
+            }
+        }
+
+        for (BlockPos stalePos : stale) {
+            unregisterSource(level, stalePos);
+            removeMirageSource(level, stalePos);
+            cleanupLegacyPhysicalRelays(level, stalePos);
+        }
+        for (BlockPos sourcePos : impacted) {
+            refreshInternal(level, sourcePos, level.getBlockState(sourcePos), true);
+        }
     }
 
     private static SourceFieldSpec sourceFieldSpec(
@@ -232,41 +362,8 @@ public final class CryingObsidianLightField {
         }
 
         BeaconRelayState relay = CryingObsidianCrystalOptics.relayStateBelow(level, sourcePos);
-        int axialConceptualLight = Math.min(MAX_CONCEPTUAL_LIGHT, baseLight + fieldTier(relay));
-        double axialMaxDistance = axialConceptualLight * 2.0D;
-        return new SourceFieldSpec(axialConceptualLight, axialMaxDistance);
-    }
-
-    private static int desiredFromSpec(
-            SourceFieldSpec spec,
-            NodeOffset offset,
-            int pathPenalty
-    ) {
-        if (!spec.active() || offset.euclideanDistance() > spec.axialMaxDistance() + 1.0E-6D) {
-            return 0;
-        }
-        int halfDecaySteps = Math.max(0, (int) Math.floor((offset.euclideanDistance() - 1.0D) / 2.0D));
-        return Mth.clamp(spec.axialConceptualLight() - halfDecaySteps - pathPenalty, 0, 15);
-    }
-
-    private static int desiredFromSpec(
-            ServerLevel level,
-            BlockPos sourcePos,
-            SourceFieldSpec spec,
-            NodeOffset offset
-    ) {
-        if (!spec.active() || offset.euclideanDistance() > spec.axialMaxDistance() + 1.0E-6D) {
-            return 0;
-        }
-        int pathPenalty = tracePathPenalty(level, sourcePos, offset);
-        if (pathPenalty == Integer.MAX_VALUE) {
-            return 0;
-        }
-        BlockPos nodePos = sourcePos.offset(offset.dx(), offset.dy(), offset.dz());
-        if (isFullOpaqueBlock(level, nodePos, level.getBlockState(nodePos))) {
-            return 0;
-        }
-        return desiredFromSpec(spec, offset, pathPenalty);
+        int conceptualLight = Math.min(MAX_CONCEPTUAL_LIGHT, baseLight + fieldTier(relay));
+        return new SourceFieldSpec(conceptualLight);
     }
 
     private static MirageLightSourceId mirageSourceId(BlockPos sourcePos) {
@@ -276,24 +373,22 @@ public final class CryingObsidianLightField {
     private static void refreshMirageSolverField(
             ServerLevel level,
             BlockPos sourcePos,
-            SourceFieldSpec spec,
             boolean forceRebuild
     ) {
-        MirageLightProfile profile = MirageLightProfile.halfDecayExtended(
-                spec.axialConceptualLight(),
-                CRYING_LIGHT_RGB
-        );
-        MirageLightSource source = new MirageLightSource(
-                mirageSourceId(sourcePos),
-                sourcePos,
-                profile,
-                MirageLightRuntimeMode.STATIC_WORLD
-        );
+        MirageLightSource source = sourceFor(level, sourcePos, level.getBlockState(sourcePos));
+        if (source == null) {
+            removeMirageSource(level, sourcePos);
+            return;
+        }
+
         MirageLightWorld.UpdateResult result = MirageLightEngine.updateSource(level, source, forceRebuild);
+        if (result.rebuilt()) {
+            MirageLightNetwork.broadcastUpsert(level, source);
+        }
         if (result.rebuilt() && result.solveStats() != null) {
             var solvedField = MirageLightEngine.field(level, source.id());
             MirageProjector.LOGGER.debug(
-                    "Mirage shadow light solved at {}: {} voxels / {} sections / {} ms",
+                    "Mirage authoritative light solved at {}: {} voxels / {} sections / {} ms",
                     sourcePos,
                     result.solveStats().litVoxels(),
                     solvedField == null ? 0 : solvedField.sectionCount(),
@@ -302,59 +397,34 @@ public final class CryingObsidianLightField {
         }
     }
 
-    private static void applyDesiredNode(ServerLevel level, BlockPos nodePos, BlockState existing, int desired) {
-        int effectiveDesired = desired;
-        if (existing.is(ModBlocks.CRYING_LIGHT_NODE.get())
-                && existing.getValue(CryingObsidianLightNodeBlock.LIGHT_LEVEL) != desired) {
-            effectiveDesired = Math.max(desired, desiredLevelAt(level, nodePos));
+    private static void removeMirageSource(ServerLevel level, BlockPos sourcePos) {
+        MirageLightSourceId id = mirageSourceId(sourcePos);
+        if (MirageLightEngine.removeSource(level, id)) {
+            MirageLightNetwork.broadcastRemove(level, id, sourcePos);
         }
-
-        if (existing.is(ModBlocks.CRYING_LIGHT_NODE.get())) {
-            if (existing.getValue(CryingObsidianLightNodeBlock.LIGHT_LEVEL) != effectiveDesired) {
-                level.setBlock(
-                        nodePos,
-                        existing.setValue(CryingObsidianLightNodeBlock.LIGHT_LEVEL, effectiveDesired),
-                        Block.UPDATE_CLIENTS
-                );
-                level.getLightEngine().checkBlock(nodePos);
-            }
-            return;
-        }
-
-        level.setBlock(
-                nodePos,
-                ModBlocks.CRYING_LIGHT_NODE.get().defaultBlockState()
-                        .setValue(CryingObsidianLightNodeBlock.LIGHT_LEVEL, effectiveDesired),
-                Block.UPDATE_CLIENTS
-        );
-        level.getLightEngine().checkBlock(nodePos);
     }
 
-    private static void reconcileNodeNow(ServerLevel level, BlockPos nodePos) {
-        BlockState existing = level.getBlockState(nodePos);
-        if (!existing.is(ModBlocks.CRYING_LIGHT_NODE.get())) {
+    /**
+     * Migration-only cleanup for the physical relay lattices used by dev.65-dev.74.
+     * Never removes minecraft:light or any other mod's block.
+     */
+    private static void cleanupLegacyPhysicalRelays(ServerLevel level, BlockPos sourcePos) {
+        for (NodeOffset offset : LEGACY_AXIAL_OFFSETS) {
+            removeLegacyNode(level, sourcePos.offset(offset.dx(), offset.dy(), offset.dz()));
+        }
+        for (NodeOffset offset : LEGACY_DEV69_DIFFUSE_OFFSETS) {
+            removeLegacyNode(level, sourcePos.offset(offset.dx(), offset.dy(), offset.dz()));
+        }
+    }
+
+    private static void removeLegacyNode(ServerLevel level, BlockPos nodePos) {
+        if (level.isOutsideBuildHeight(nodePos) || !level.hasChunkAt(nodePos)) {
             return;
         }
-        int desired = desiredLevelAt(level, nodePos);
-        if (desired <= 0) {
+        if (level.getBlockState(nodePos).is(ModBlocks.CRYING_LIGHT_NODE.get())) {
             level.removeBlock(nodePos, false);
             level.getLightEngine().checkBlock(nodePos);
-            return;
         }
-        if (existing.getValue(CryingObsidianLightNodeBlock.LIGHT_LEVEL) != desired) {
-            level.setBlock(
-                    nodePos,
-                    existing.setValue(CryingObsidianLightNodeBlock.LIGHT_LEVEL, desired),
-                    Block.UPDATE_CLIENTS
-            );
-            level.getLightEngine().checkBlock(nodePos);
-        }
-    }
-
-    private static boolean isFullOpaqueBlock(ServerLevel level, BlockPos pos, BlockState state) {
-        return !state.is(ModBlocks.CRYING_LIGHT_NODE.get())
-                && !state.isAir()
-                && state.getLightBlock(level, pos) >= 15;
     }
 
     private static void registerSource(ServerLevel level, BlockPos sourcePos) {
@@ -364,253 +434,79 @@ public final class CryingObsidianLightField {
 
     private static void unregisterSource(ServerLevel level, BlockPos sourcePos) {
         Set<BlockPos> sources = ACTIVE_SOURCES.get(level);
-        if (sources != null) {
-            sources.remove(sourcePos);
-            if (sources.isEmpty()) {
-                ACTIVE_SOURCES.remove(level);
-            }
-        }
-        Set<BlockPos> cleaned = DEV69_DIFFUSE_CLEANED.get(level);
-        if (cleaned != null) {
-            cleaned.remove(sourcePos);
-            if (cleaned.isEmpty()) {
-                DEV69_DIFFUSE_CLEANED.remove(level);
-            }
-        }
-    }
-
-    /**
-     * Rebuild each active Mature source touched by one or more terrain changes. The
-     * event bridge calls this from LevelTickEvent.Post, after placement/break logic has
-     * committed the final block states. Each source is refreshed at most once per tick
-     * even if the player edited several blocks around it.
-     */
-    public static void refreshSourcesNearNow(ServerLevel level, Iterable<BlockPos> changedPositions) {
-        Set<BlockPos> sources = ACTIVE_SOURCES.get(level);
-        if (sources == null || sources.isEmpty()) {
+        if (sources == null) {
             return;
         }
-
-        List<BlockPos> changes = new ArrayList<>();
-        changedPositions.forEach(pos -> changes.add(pos.immutable()));
-        if (changes.isEmpty()) {
-            return;
-        }
-
-        List<BlockPos> impacted = new ArrayList<>();
-        List<BlockPos> stale = new ArrayList<>();
-        for (BlockPos sourcePos : sources) {
-            if (!level.hasChunkAt(sourcePos)) {
-                continue;
-            }
-            BlockState state = level.getBlockState(sourcePos);
-            if (!(state.getBlock() instanceof CryingObsidianCrystalBlock crystal)
-                    || !crystal.stage().isMature()
-                    || !state.getValue(CryingObsidianCrystalBlock.ENERGIZED)) {
-                stale.add(sourcePos);
-                continue;
-            }
-            for (BlockPos changedPos : changes) {
-                if (Math.abs(sourcePos.getX() - changedPos.getX()) <= MAX_NODE_DISTANCE
-                        && Math.abs(sourcePos.getY() - changedPos.getY()) <= MAX_NODE_DISTANCE
-                        && Math.abs(sourcePos.getZ() - changedPos.getZ()) <= MAX_NODE_DISTANCE) {
-                    impacted.add(sourcePos);
-                    break;
-                }
-            }
-        }
-        for (BlockPos stalePos : stale) {
-            unregisterSource(level, stalePos);
-            MirageLightEngine.removeSource(level, mirageSourceId(stalePos));
-        }
-        for (BlockPos sourcePos : impacted) {
-            BlockState state = level.getBlockState(sourcePos);
-            refreshInternal(level, sourcePos, state, true);
+        sources.remove(sourcePos);
+        if (sources.isEmpty()) {
+            ACTIVE_SOURCES.remove(level);
         }
     }
 
-    private static boolean canHost(BlockState state) {
-        return state.is(ModBlocks.CRYING_LIGHT_NODE.get()) || state.isAir();
-    }
-
-    /**
-     * Preserve source causality for each reflected branch. Fully opaque blocks terminate
-     * the branch, so no downstream Mirage node can teleport light behind a wall. Partial
-     * light blockers add extra loss on top of the half-speed distance decay instead of
-     * being treated as transparent. Once nodes are placed, Minecraft's own block-light
-     * engine still performs local spreading/AO around geometry, including natural corner
-     * wrap, so Mirage does not try to paint individual block faces itself.
-     */
-    private static int tracePathPenalty(ServerLevel level, BlockPos sourcePos, NodeOffset offset) {
-        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-        BlockPos previous = sourcePos;
-        int penalty = 0;
-
-        for (int step = 1; step < offset.pathSteps(); step++) {
-            float progress = step / (float) offset.pathSteps();
-            int x = sourcePos.getX() + Math.round(offset.dx() * progress);
-            int y = sourcePos.getY() + Math.round(offset.dy() * progress);
-            int z = sourcePos.getZ() + Math.round(offset.dz() * progress);
-            cursor.set(x, y, z);
-            if (cursor.equals(previous)) {
-                continue;
-            }
-
-            BlockState state = level.getBlockState(cursor);
-            if (!state.is(ModBlocks.CRYING_LIGHT_NODE.get())) {
-                int lightBlock = state.getLightBlock(level, cursor);
-                if (lightBlock >= 15) {
-                    return Integer.MAX_VALUE;
-                }
-                if (lightBlock > 1) {
-                    penalty += lightBlock - 1;
-                    if (penalty >= 15) {
-                        return Integer.MAX_VALUE;
-                    }
-                }
-            }
-            previous = cursor.immutable();
-        }
-        return penalty;
-    }
-
-    private static void cleanupLegacyDev69DiffuseNodes(ServerLevel level, BlockPos sourcePos) {
-        Set<BlockPos> cleaned = DEV69_DIFFUSE_CLEANED.computeIfAbsent(
-                level,
-                ignored -> ConcurrentHashMap.newKeySet()
-        );
-        if (!cleaned.add(sourcePos.immutable())) {
-            return;
-        }
-        for (NodeOffset offset : LEGACY_DEV69_DIFFUSE_OFFSETS) {
-            BlockPos nodePos = sourcePos.offset(offset.dx(), offset.dy(), offset.dz());
-            if (level.isOutsideBuildHeight(nodePos) || !level.hasChunkAt(nodePos)) {
-                continue;
-            }
-            if (level.getBlockState(nodePos).is(ModBlocks.CRYING_LIGHT_NODE.get())) {
-                reconcileNodeNow(level, nodePos);
-            }
-        }
-    }
-
-    private static List<NodeOffset> createLegacyDiffuseOffsets() {
+    private static List<NodeOffset> createLegacyAxialOffsets() {
         List<NodeOffset> offsets = new ArrayList<>();
-        int[][] diffuseDirections = {
-                {1, 1, 0}, {1, -1, 0}, {-1, 1, 0}, {-1, -1, 0},
-                {1, 0, 1}, {1, 0, -1}, {-1, 0, 1}, {-1, 0, -1},
-                {0, 1, 1}, {0, 1, -1}, {0, -1, 1}, {0, -1, -1}
-        };
-        int rayIndex = AXIAL_RAY_COUNT;
-        for (int[] direction : diffuseDirections) {
-            addLegacySampledRayOffsets(offsets, rayIndex++, direction[0], direction[1], direction[2], 25);
-        }
-        return List.copyOf(offsets);
-    }
-
-    private static List<NodeOffset> createOffsets() {
-        List<NodeOffset> offsets = new ArrayList<>();
-        int[][] axialDirections = {
+        int[][] directions = {
                 {1, 0, 0}, {-1, 0, 0},
                 {0, 1, 0}, {0, -1, 0},
                 {0, 0, 1}, {0, 0, -1}
         };
-        for (int rayIndex = 0; rayIndex < axialDirections.length; rayIndex++) {
-            int[] direction = axialDirections[rayIndex];
-            addDenseAxialRayOffsets(
-                    offsets,
-                    rayIndex,
-                    direction[0],
-                    direction[1],
-                    direction[2],
-                    MAX_NODE_DISTANCE
-            );
+        for (int[] direction : directions) {
+            for (int distance = 1; distance <= MAX_FIELD_RADIUS; distance++) {
+                offsets.add(new NodeOffset(
+                        direction[0] * distance,
+                        direction[1] * distance,
+                        direction[2] * distance
+                ));
+            }
         }
         return List.copyOf(offsets);
     }
 
     /**
-     * dev.73 makes the half-decay contract explicit in world state instead of relying
-     * on vanilla propagation to fill every second sample. Every axial air cell gets a
-     * Mirage relay with the exact target level for that distance:
-     * 15,15,14,14,...,1,1. This removes the dev.72 QA failure where only a middle
-     * section of the curve visibly held each level for two blocks.
+     * Exact dev.69 sampled face-diagonal lattice, retained only for cleanup.
      */
-    private static void addDenseAxialRayOffsets(
-            List<NodeOffset> offsets,
-            int rayIndex,
-            int dirX,
-            int dirY,
-            int dirZ,
-            int maxDistance
-    ) {
-        double directionLength = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
-        int maxSteps = Math.max(1, (int) Math.ceil(maxDistance / directionLength));
-        for (int step = 1; step <= maxSteps; step++) {
-            int dx = dirX * step;
-            int dy = dirY * step;
-            int dz = dirZ * step;
-            double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (distance > maxDistance + 1.0E-6D) {
-                break;
+    private static List<NodeOffset> createLegacyDiffuseOffsets() {
+        List<NodeOffset> offsets = new ArrayList<>();
+        int[][] directions = {
+                {1, 1, 0}, {1, -1, 0}, {-1, 1, 0}, {-1, -1, 0},
+                {1, 0, 1}, {1, 0, -1}, {-1, 0, 1}, {-1, 0, -1},
+                {0, 1, 1}, {0, 1, -1}, {0, -1, 1}, {0, -1, -1}
+        };
+        for (int[] direction : directions) {
+            double directionLength = Math.sqrt(
+                    direction[0] * direction[0]
+                            + direction[1] * direction[1]
+                            + direction[2] * direction[2]
+            );
+            int maxSteps = Math.max(1, (int) Math.ceil(25.0D / directionLength));
+            int previousDecayBucket = Integer.MIN_VALUE;
+            for (int step = 1; step <= maxSteps; step++) {
+                int dx = direction[0] * step;
+                int dy = direction[1] * step;
+                int dz = direction[2] * step;
+                double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (distance > 25.0D + 1.0E-6D) {
+                    break;
+                }
+                int decayBucket = Math.max(0, (int) Math.floor((distance - 1.0D) / 2.0D));
+                if (decayBucket == previousDecayBucket) {
+                    continue;
+                }
+                previousDecayBucket = decayBucket;
+                offsets.add(new NodeOffset(dx, dy, dz));
             }
-            offsets.add(new NodeOffset(rayIndex, dx, dy, dz, step, distance));
         }
+        return List.copyOf(offsets);
     }
 
-    /**
-     * dev.69 created diagonal Glass relays only once per half-decay bucket. Keep that
-     * exact historical lattice for migration cleanup instead of scanning the new dense
-     * axial topology in directions that never existed as current world-light branches.
-     */
-    private static void addLegacySampledRayOffsets(
-            List<NodeOffset> offsets,
-            int rayIndex,
-            int dirX,
-            int dirY,
-            int dirZ,
-            int maxDistance
-    ) {
-        double directionLength = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
-        int maxSteps = Math.max(1, (int) Math.ceil(maxDistance / directionLength));
-        int previousDecayBucket = Integer.MIN_VALUE;
-
-        for (int step = 1; step <= maxSteps; step++) {
-            int dx = dirX * step;
-            int dy = dirY * step;
-            int dz = dirZ * step;
-            double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (distance > maxDistance + 1.0E-6D) {
-                break;
-            }
-
-            int decayBucket = Math.max(0, (int) Math.floor((distance - 1.0D) / 2.0D));
-            if (decayBucket == previousDecayBucket) {
-                continue;
-            }
-            previousDecayBucket = decayBucket;
-            offsets.add(new NodeOffset(rayIndex, dx, dy, dz, step, distance));
-        }
-    }
-
-
-    private record SourceFieldSpec(
-            int axialConceptualLight,
-            double axialMaxDistance
-    ) {
-        private static final SourceFieldSpec INACTIVE = new SourceFieldSpec(0, 0.0D);
+    private record SourceFieldSpec(int conceptualLight) {
+        private static final SourceFieldSpec INACTIVE = new SourceFieldSpec(0);
 
         private boolean active() {
-            return axialConceptualLight > 0;
+            return conceptualLight > 0;
         }
     }
 
-    private record NodeOffset(
-            int rayIndex,
-            int dx,
-            int dy,
-            int dz,
-            int pathSteps,
-            double euclideanDistance
-    ) {
+    private record NodeOffset(int dx, int dy, int dz) {
     }
 }

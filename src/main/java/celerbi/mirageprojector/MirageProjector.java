@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 public final class MirageProjector {
     public static final String MOD_ID = "mirage_projector";
 
-    public static final String NETWORK_PROTOCOL = "21";
+    public static final String NETWORK_PROTOCOL = "25";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public MirageProjector(IEventBus modEventBus) {
@@ -37,11 +37,17 @@ public final class MirageProjector {
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(ModItems.MIRAGE_PROJECTOR.get());
+            event.accept(ModItems.MIRAGE_PROJECTOR_ALT.get());
             event.accept(ModItems.MIRAGE_DISPLAY.get());
+            event.accept(ModItems.MIRAGE_DISPLAY_ALT.get());
             event.accept(ModItems.WIDE_MIRAGE_PROJECTOR.get());
+            event.accept(ModItems.WIDE_MIRAGE_PROJECTOR_ALT.get());
             event.accept(ModItems.TALL_MIRAGE_PROJECTOR.get());
+            event.accept(ModItems.TALL_MIRAGE_PROJECTOR_ALT.get());
             event.accept(ModItems.MIRAGE_FIELD_PROJECTOR.get());
+            event.accept(ModItems.MIRAGE_FIELD_PROJECTOR_ALT.get());
             event.accept(ModItems.MIRAGE_PRISM.get());
+            event.accept(ModItems.MIRAGE_PRISM_ALT.get());
             event.accept(ModItems.CORE_BOOSTER.get());
             event.accept(CoreBoosterBlockEntity.stackForMaterial(CoreBoosterMaterial.GLASS));
             event.accept(CoreBoosterBlockEntity.stackForMaterial(CoreBoosterMaterial.QUARTZ));

@@ -1,3 +1,13 @@
+# dev.76 STATIC_WORLD authority update
+
+`STATIC_WORLD` no longer synchronizes source descriptors for client-side re-solving. The server is the only geometry authority. It runs the existing causal fixed-point solver, aggregates overlapping sources by maximum visible Mirage level, and synchronizes final 16×16×16 section values to clients already watching the corresponding vanilla chunk. Levels are nibble-packed (4 bits/voxel, 2048 bytes/full section). Clients mirror the section and answer effective block light as `max(vanilla, Mirage)`.
+
+This intentionally does **not** inject Mirage values into vanilla `BlockLightEngine` propagation, so virtual values cannot become recursive secondary emitters. Client section install/removal publishes `onLightUpdate(BLOCK, section)` for render/cache consumers.
+
+`DYNAMIC_VISUAL` remains a distinct future backend for lanterns, handheld projectors and other moving emitters; it must not rebuild/synchronize static section voxels every frame. Network protocol: **22**.
+
+---
+
 # Mirage Projector — Mirage Light Engine authority
 
 Current line: **0.1.0-dev.75d**. Network protocol: **21**.
@@ -303,3 +313,7 @@ Reserved work:
 - concrete third-party brightness compatibility bridges if real QA proves they are needed.
 
 Dynamic visual light must not rebuild server gameplay-light fields every render frame. It should reuse source/profile semantics while using a backend appropriate to moving visual emitters.
+
+## Atomic publication (dev.76c)
+
+Server-authoritative does not mean partial authoritative. A `STATIC_WORLD` source is publishable only when its complete horizontal dependency window is queryable on the server. Missing dependencies place the source into a pending rebuild set. Pending sources are retried every tick without force-loading chunks. The solver also refuses to commit any candidate that reports `unloadedEdges > 0`, preserving the previous complete field until a full replacement is available.

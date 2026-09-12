@@ -79,13 +79,13 @@ assert wall_field[side_probe] == open_field[side_probe]
 # 4) Source code/profile/network must expose the explicit detour contract.
 profile = (ROOT / 'src/main/java/celerbi/mirageprojector/light/engine/MirageLightProfile.java').read_text(encoding='utf-8')
 solver = (ROOT / 'src/main/java/celerbi/mirageprojector/light/engine/MirageLightSolver.java').read_text(encoding='utf-8')
-payload = (ROOT / 'src/main/java/celerbi/mirageprojector/network/MirageLightSourceSyncPayload.java').read_text(encoding='utf-8')
+payload = (ROOT / 'src/main/java/celerbi/mirageprojector/network/MirageLightChunkSnapshotPayload.java').read_text(encoding='utf-8')
 main = (ROOT / 'src/main/java/celerbi/mirageprojector/MirageProjector.java').read_text(encoding='utf-8')
 assert 'detourExtraCostUnits' in profile
 assert 'detourBacktrackPenaltyUnits' in profile
 assert 'nextDirectDistance < currentDirectDistance' in solver
-assert 'detourExtraCostUnits' in payload
-assert 'NETWORK_PROTOCOL = "21"' in main
+assert 'PACKED_SECTION_BYTES' in payload and 'revision' in payload
+assert 'NETWORK_PROTOCOL = "25"' in main
 
 print('dev.75d Mirage Light detour-penalty verification: PASS')
 print('open probe level:', visible(open_field[probe]), 'wall-routed probe level:', visible(wall_field[probe]))

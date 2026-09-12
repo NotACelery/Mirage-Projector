@@ -161,19 +161,19 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
 
     public static ProjectionChassisProfile chassisProfile(BlockState state) {
         if (state != null) {
-            if (state.is(ModBlocks.MIRAGE_DISPLAY.get())) {
+            if (state.is(ModBlocks.MIRAGE_DISPLAY.get()) || state.is(ModBlocks.MIRAGE_DISPLAY_ALT.get())) {
                 return ProjectionChassisProfile.DISPLAY;
             }
-            if (state.is(ModBlocks.WIDE_MIRAGE_PROJECTOR.get())) {
+            if (state.is(ModBlocks.WIDE_MIRAGE_PROJECTOR.get()) || state.is(ModBlocks.WIDE_MIRAGE_PROJECTOR_ALT.get())) {
                 return ProjectionChassisProfile.WIDE;
             }
-            if (state.is(ModBlocks.TALL_MIRAGE_PROJECTOR.get())) {
+            if (state.is(ModBlocks.TALL_MIRAGE_PROJECTOR.get()) || state.is(ModBlocks.TALL_MIRAGE_PROJECTOR_ALT.get())) {
                 return ProjectionChassisProfile.TALL;
             }
-            if (state.is(ModBlocks.MIRAGE_FIELD_PROJECTOR.get())) {
+            if (state.is(ModBlocks.MIRAGE_FIELD_PROJECTOR.get()) || state.is(ModBlocks.MIRAGE_FIELD_PROJECTOR_ALT.get())) {
                 return ProjectionChassisProfile.FIELD;
             }
-            if (state.is(ModBlocks.MIRAGE_PRISM.get())) {
+            if (state.is(ModBlocks.MIRAGE_PRISM.get()) || state.is(ModBlocks.MIRAGE_PRISM_ALT.get())) {
                 return ProjectionChassisProfile.PRISM;
             }
         }

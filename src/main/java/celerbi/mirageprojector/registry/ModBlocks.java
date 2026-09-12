@@ -24,6 +24,13 @@ public final class ModBlocks {
     public static final DeferredBlock<MirageProjectorBlock> MIRAGE_FIELD_PROJECTOR = registerProjector("mirage_field_projector");
     public static final DeferredBlock<MirageProjectorBlock> MIRAGE_PRISM = registerProjector("mirage_prism");
 
+    public static final DeferredBlock<MirageProjectorBlock> MIRAGE_PROJECTOR_ALT = registerProjector("mirage_projector_alt");
+    public static final DeferredBlock<MirageProjectorBlock> MIRAGE_DISPLAY_ALT = registerProjector("mirage_display_alt");
+    public static final DeferredBlock<MirageProjectorBlock> WIDE_MIRAGE_PROJECTOR_ALT = registerProjector("wide_mirage_projector_alt");
+    public static final DeferredBlock<MirageProjectorBlock> TALL_MIRAGE_PROJECTOR_ALT = registerProjector("tall_mirage_projector_alt");
+    public static final DeferredBlock<MirageProjectorBlock> MIRAGE_FIELD_PROJECTOR_ALT = registerProjector("mirage_field_projector_alt");
+    public static final DeferredBlock<MirageProjectorBlock> MIRAGE_PRISM_ALT = registerProjector("mirage_prism_alt");
+
     public static final DeferredBlock<CoreBoosterBlock> CORE_BOOSTER = BLOCKS.register(
             "core_booster",
             () -> new CoreBoosterBlock(BlockBehaviour.Properties.of()

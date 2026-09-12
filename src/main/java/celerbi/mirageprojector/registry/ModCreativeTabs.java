@@ -20,11 +20,17 @@ public final class ModCreativeTabs {
                     .icon(() -> ModItems.MIRAGE_PROJECTOR.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.MIRAGE_PROJECTOR.get());
+                        output.accept(ModItems.MIRAGE_PROJECTOR_ALT.get());
                         output.accept(ModItems.MIRAGE_DISPLAY.get());
+                        output.accept(ModItems.MIRAGE_DISPLAY_ALT.get());
                         output.accept(ModItems.WIDE_MIRAGE_PROJECTOR.get());
+                        output.accept(ModItems.WIDE_MIRAGE_PROJECTOR_ALT.get());
                         output.accept(ModItems.TALL_MIRAGE_PROJECTOR.get());
+                        output.accept(ModItems.TALL_MIRAGE_PROJECTOR_ALT.get());
                         output.accept(ModItems.MIRAGE_FIELD_PROJECTOR.get());
+                        output.accept(ModItems.MIRAGE_FIELD_PROJECTOR_ALT.get());
                         output.accept(ModItems.MIRAGE_PRISM.get());
+                        output.accept(ModItems.MIRAGE_PRISM_ALT.get());
                         output.accept(ModItems.CORE_BOOSTER.get());
                         output.accept(CoreBoosterBlockEntity.stackForMaterial(CoreBoosterMaterial.GLASS));
                         output.accept(CoreBoosterBlockEntity.stackForMaterial(CoreBoosterMaterial.QUARTZ));

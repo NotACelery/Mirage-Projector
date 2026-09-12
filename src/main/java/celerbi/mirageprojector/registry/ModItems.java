@@ -25,6 +25,18 @@ public final class ModItems {
             ITEMS.registerSimpleBlockItem("mirage_field_projector", ModBlocks.MIRAGE_FIELD_PROJECTOR);
     public static final DeferredItem<BlockItem> MIRAGE_PRISM =
             ITEMS.registerSimpleBlockItem("mirage_prism", ModBlocks.MIRAGE_PRISM);
+    public static final DeferredItem<BlockItem> MIRAGE_PROJECTOR_ALT =
+            ITEMS.registerSimpleBlockItem("mirage_projector_alt", ModBlocks.MIRAGE_PROJECTOR_ALT);
+    public static final DeferredItem<BlockItem> MIRAGE_DISPLAY_ALT =
+            ITEMS.registerSimpleBlockItem("mirage_display_alt", ModBlocks.MIRAGE_DISPLAY_ALT);
+    public static final DeferredItem<BlockItem> WIDE_MIRAGE_PROJECTOR_ALT =
+            ITEMS.registerSimpleBlockItem("wide_mirage_projector_alt", ModBlocks.WIDE_MIRAGE_PROJECTOR_ALT);
+    public static final DeferredItem<BlockItem> TALL_MIRAGE_PROJECTOR_ALT =
+            ITEMS.registerSimpleBlockItem("tall_mirage_projector_alt", ModBlocks.TALL_MIRAGE_PROJECTOR_ALT);
+    public static final DeferredItem<BlockItem> MIRAGE_FIELD_PROJECTOR_ALT =
+            ITEMS.registerSimpleBlockItem("mirage_field_projector_alt", ModBlocks.MIRAGE_FIELD_PROJECTOR_ALT);
+    public static final DeferredItem<BlockItem> MIRAGE_PRISM_ALT =
+            ITEMS.registerSimpleBlockItem("mirage_prism_alt", ModBlocks.MIRAGE_PRISM_ALT);
     public static final DeferredItem<CoreBoosterItem> CORE_BOOSTER =
             ITEMS.register("core_booster", () -> new CoreBoosterItem(ModBlocks.CORE_BOOSTER.get(), new Item.Properties()));
     public static final DeferredItem<BlockItem> SMALL_CRYING_OBSIDIAN_BUD =

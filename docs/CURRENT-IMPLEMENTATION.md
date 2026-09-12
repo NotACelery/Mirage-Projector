@@ -1,21 +1,21 @@
 # Mirage Projector — Current implementation
 
-Version line: **0.1.0-dev.75d**  
+Version line: **0.1.0-dev.76h**  
 Minecraft: **1.21.1**  
 NeoForge: **21.1.244**  
 Java: **21**  
 Network protocol: **21**
 
-Status: `dev.75d` is the consolidated static Mirage Light Engine candidate before dev.76. dev.74–75b established virtual authority, source sync, chunk/tracking lifecycle and physical-relay retirement; dev.75c corrected real vanilla block opacity/face occlusion; dev.75d separates open-space decay from obstacle-detour decay so a wall is routed around naturally but the extra route loses energy faster. Physical `crying_light_node` relays are migration-only. dev.71 equipment visibility and dev.72 Entity envelope/frustum hardening remain accumulated. Windows Java 21 build plus in-game QA are still required before build-clean status.
+Status: `dev.76` replaces client STATIC_WORLD re-solving with server-authoritative solved-section synchronization. `dev.76e` removes Mirage's duplicate watched-chunk registry and adds an explicit client chunk-load snapshot handshake so every loaded chunk can recover its authoritative Mirage sections. `dev.76c` adds an atomic publication gate: incomplete server solves are never published; a source waits until its full dependency chunk window is queryable and then publishes the complete section result in one commit. The server alone computes static Mirage fields; clients mirror final per-section levels and merge them with vanilla at query/render time. Physical `crying_light_node` relays remain migration-only. Windows Java 21 build plus in-game regression QA are still required before build-clean status.
 
 ## dev.75b authoritative virtual-light lifecycle
 
 The dev.75 authority handoff is complete and remains accumulated in dev.75d:
 
-- server/client fields solve from source descriptors; voxel arrays are never network-synchronized;
+- server alone solves STATIC_WORLD fields; clients receive packed final visible levels per chunk section;
 - source delivery is scoped to watched chunks and retracts when no watched chunk needs the source;
 - same-level respawn can CLEAR/repopulate without depending on vanilla chunk retransmission;
-- server/client chunk geometry changes are coalesced and relevant fields re-solve;
+- server chunk/terrain geometry changes re-solve relevant static sources and publish affected aggregate sections;
 - source-origin unload removes that source; destination chunk arrival can refill the surviving field;
 - client changes dirty old/new render sections;
 - terrain invalidation covers block place/multi-place/break, fluids, crop/feature growth, pistons and explosions;
@@ -211,7 +211,7 @@ The authoritative runtime is documented exhaustively in `MIRAGE-LIGHT-ENGINE.md`
 - `detourExtraCostUnits` separates open decay from obstacle-only extra route cost; current Mature profile uses substeps=2, air=1, detourExtra=1;
 - an optimal open route remains half-decay; every extra block of route forced by geometry costs a full visible level overall;
 - sparse per-source 16³ sections and aggregate max layer provide O(1) reads;
-- source descriptors are tracking-scoped and include detour parameters; protocol is **21**;
+- static section payloads are tracking-scoped to watched chunks; protocol is **22**;
 - `/miragelight probe` reports Mirage/nearest/vanilla/effective plus weighted `direct` and `extra` cost;
 - physical legacy nodes are cleanup-only.
 
@@ -225,4 +225,4 @@ The scalar static engine may continue serving gameplay/light-level semantics, wh
 
 ## Post-dev.75d roadmap consolidation
 
-Runtime remains dev.75d/protocol 21. The project roadmap is now split by release scope. 1.0.0 retains the current fixed-projector feature set and must establish extension seams for projection-source registration, chassis capabilities, forward-compatible presentation transforms, generic renderer/interaction providers, dynamic-vs-static light backend separation and non-Core energy consumers. User-facing lanterns/Glow Dust batteries/Scan Codex/portable projectors belong to 1.1.0; direct hologram grab/free rotation belongs to 1.2.0; Create Blueprint projection remains an optional bridge addon.
+Runtime static-light architecture is dev.76/protocol 22. The project roadmap is now split by release scope. 1.0.0 retains the current fixed-projector feature set and must establish extension seams for projection-source registration, chassis capabilities, forward-compatible presentation transforms, generic renderer/interaction providers, dynamic-vs-static light backend separation and non-Core energy consumers. User-facing lanterns/Glow Dust batteries/Scan Codex/portable projectors belong to 1.1.0; direct hologram grab/free rotation belongs to 1.2.0; Create Blueprint projection remains an optional bridge addon.

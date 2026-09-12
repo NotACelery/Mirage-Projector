@@ -1,6 +1,6 @@
 # Mirage Projector — development guide
 
-Current source line: **0.1.0-dev.75d**.
+Current source line: **0.1.0-dev.76h**.
 
 This file describes how the current project is organized and maintained. Chronology belongs in `CHANGELOG.md`; current feature truth belongs in `CURRENT-IMPLEMENTATION.md`; pending work belongs in `ROADMAP.md`. The root keeps `README.md`; the remaining project documentation belongs under `docs/`.
 
@@ -11,7 +11,7 @@ This file describes how the current project is organized and maintained. Chronol
 - Java 21
 - Gradle 9.2.1
 - Parchment 2024.11.17
-- Mirage network protocol 21
+- Mirage network protocol 22
 
 `MirageProjector.NETWORK_PROTOCOL` is the single protocol authority. Do not scatter protocol literals through payload registration.
 
@@ -23,7 +23,7 @@ Windows development entry point:
 build.bat
 ```
 
-dev.61 removed the Create Backtank crash, dev.62 restored late Entity transform/depth, and dev.64 switched the synthetic Create chest to a single Ghost surface. dev.70–73 exposed the limits of physical auxiliary emitters; dev.74 validated the causal fixed-point Mirage solver; dev.75a/75b made the virtual field authoritative with chunk lifecycle and tracking-scoped source sync; dev.75c corrected vanilla opacity handoff; dev.75d adds obstacle-only detour decay and protocol 21. Windows build plus in-game 3-D shadow/lifecycle/performance QA remain required before build-clean acceptance.
+dev.61 removed the Create Backtank crash, dev.62 restored late Entity transform/depth, and dev.64 switched the synthetic Create chest to a single Ghost surface. dev.70–73 exposed the limits of physical auxiliary emitters; dev.74 validated the causal fixed-point Mirage solver; dev.75 established virtual source authority/occlusion/detour; dev.76 moves STATIC_WORLD to server-resolved section synchronization and protocol 22, eliminating client static re-solving. Windows build plus in-game 3-D shadow/lifecycle/performance QA remain required before build-clean acceptance.
 
 Do not package generated/cache directories in source snapshots:
 
@@ -234,6 +234,6 @@ Clearing a specific projected snapshot resets only that channel to visible. Clea
 
 The static Mature implementation is now source/profile driven. New lighting features must not bypass `MirageLightSource` / `MirageLightProfile` / solver/backends.
 
-Important dev.75d profile rule: open traversal cost and obstacle-detour extra cost are independent parameters. Do not hard-code Cluster-specific wall rules in the solver. Network protocol 21 carries the detour field so deterministic server/client solves use identical profiles.
+Important solver rule retained from dev.75d: open traversal cost and obstacle-detour extra cost are independent parameters. Do not hard-code Cluster-specific wall rules in the solver. Since dev.76 the client no longer needs the profile over the wire for STATIC_WORLD; protocol 22 transports the server-resolved section result instead.
 
 For dev.76 moving sources, do not reuse `STATIC_WORLD` by simply moving/rebuilding it every frame. Establish a `DYNAMIC_VISUAL` lifecycle/backend designed for high-frequency source transforms and retain static gameplay-light authority independently.

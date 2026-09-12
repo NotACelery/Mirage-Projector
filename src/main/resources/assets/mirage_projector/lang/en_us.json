@@ -437,5 +437,11 @@
   "tooltip.mirage_projector.entity.visibility.show": "Show projected %s using the already stored snapshot.",
   "gui.mirage_projector.entity.visibility_hidden_status": "Hidden projected %s; snapshot kept",
   "gui.mirage_projector.entity.visibility_shown_status": "Shown projected %s from stored snapshot",
-  "gui.mirage_projector.entity.all_equipment_hidden": "All projected equipment is hidden"
+  "gui.mirage_projector.entity.all_equipment_hidden": "All projected equipment is hidden",
+  "block.mirage_projector.mirage_projector_alt": "Mirage Projector (Alt)",
+  "block.mirage_projector.mirage_display_alt": "Mirage Display (Alt)",
+  "block.mirage_projector.wide_mirage_projector_alt": "Wide Mirage Projector (Alt)",
+  "block.mirage_projector.tall_mirage_projector_alt": "Tall Mirage Projector (Alt)",
+  "block.mirage_projector.mirage_field_projector_alt": "Mirage Field Projector (Alt)",
+  "block.mirage_projector.mirage_prism_alt": "Mirage Prism (Alt)"
 }

@@ -2,185 +2,158 @@ package celerbi.mirageprojector.network;
 
 import celerbi.mirageprojector.light.engine.MirageLightEngine;
 import celerbi.mirageprojector.light.engine.MirageLightSource;
-import celerbi.mirageprojector.light.engine.MirageLightSourceId;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
-import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-/**
- * Tracking-scoped source synchronization for the authoritative Mirage light backend.
- *
- * dev.75b no longer fans every source update to every player in a dimension. A client
- * receives a source descriptor only while at least one chunk touched by that source's
- * solved radius is actually being sent/watched by that player. We also remember which
- * descriptors were delivered so UnWatch/source removal can retract stale client fields.
- */
+/** Server-authoritative STATIC_WORLD Mirage chunk transport. */
 public final class MirageLightNetwork {
-    private static final Map<ServerPlayer, PlayerTrackingState> TRACKING =
+    public static final int MAX_CLIENT_SYNC_CHUNK_DISTANCE = 64;
+
+    private static final Map<ServerLevel, Map<Long, Long>> CHUNK_REVISIONS =
             Collections.synchronizedMap(new WeakHashMap<>());
 
     private MirageLightNetwork() {
     }
 
-    public static void broadcastUpsert(ServerLevel level, MirageLightSource source) {
-        if (level == null || source == null) {
+    /**
+     * Any aggregate section change promotes the containing chunk to a new revision and sends
+     * one complete atomic snapshot of that chunk. No per-section delta/clear packets remain.
+     */
+    public static void broadcastSections(ServerLevel level, Iterable<Long> sectionKeys) {
+        if (level == null || sectionKeys == null) {
             return;
         }
-        MirageLightSourceSyncPayload payload = MirageLightSourceSyncPayload.upsert(source);
-        for (ServerPlayer player : level.players()) {
-            PlayerTrackingState state = state(player, level);
-            boolean shouldHave = touchesAnyWatchedChunk(source, state.watchedChunks);
-            if (shouldHave) {
-                PacketDistributor.sendToPlayer(player, payload);
-                state.deliveredSources.put(source.id(), source.origin());
-            } else {
-                retractIfDelivered(player, state, source.id());
+        Set<Long> chunks = new HashSet<>();
+        for (Long sectionKey : sectionKeys) {
+            if (sectionKey == null) {
+                continue;
+            }
+            SectionPos section = SectionPos.of(sectionKey);
+            chunks.add(ChunkPos.asLong(section.x(), section.z()));
+        }
+        for (long chunkKey : chunks) {
+            ChunkPos chunkPos = new ChunkPos(chunkKey);
+            long revision = bumpRevision(level, chunkKey);
+            MirageLightChunkSnapshotPayload payload = snapshot(level, chunkPos, revision);
+            for (ServerPlayer player : level.players()) {
+                if (isNearChunk(player, chunkPos)) {
+                    PacketDistributor.sendToPlayer(player, payload);
+                }
             }
         }
     }
 
-    public static void broadcastRemove(ServerLevel level, MirageLightSourceId sourceId, BlockPos origin) {
-        if (level == null || sourceId == null) {
-            return;
-        }
-        for (ServerPlayer player : level.players()) {
-            PlayerTrackingState state = state(player, level);
-            BlockPos deliveredOrigin = state.deliveredSources.remove(sourceId);
-            if (deliveredOrigin != null) {
-                PacketDistributor.sendToPlayer(
-                        player,
-                        MirageLightSourceSyncPayload.remove(sourceId, deliveredOrigin)
-                );
-            }
-        }
+    /** Called after vanilla transmits a watched chunk. */
+    public static void onChunkSent(ServerPlayer player, ServerLevel level, ChunkPos chunkPos) {
+        sendChunkSnapshot(player, level, chunkPos);
     }
+
 
     /**
-     * Reset the client's Mirage-light session. When the player is still in the same
-     * ServerLevel (notably same-dimension respawn), preserve the watched-chunk set and
-     * immediately repopulate descriptors; those chunks may not be transmitted again.
-     * Login/dimension switches start from an empty watch set and Chunk Sent events fill it.
+     * dev.76g source-centric watchdog heartbeat.
+     *
+     * A Mature Cluster advertises only chunk revision numbers for its local watch
+     * window. This is intentionally tiny compared with section snapshots. Clients
+     * request a full snapshot only when their installed revision is missing/stale.
      */
-    public static void syncAll(ServerPlayer player) {
-        if (player == null) {
+    public static void broadcastRevisionManifestForSource(ServerLevel level, MirageLightSource source) {
+        if (level == null || source == null || !source.active()) {
             return;
         }
-        PacketDistributor.sendToPlayer(player, MirageLightSourceSyncPayload.clear());
-        ServerLevel level = player.serverLevel();
-        PlayerTrackingState current = TRACKING.get(player);
-        if (current != null && current.level == level) {
-            current.deliveredSources.clear();
-            reconcilePlayer(player, level, current);
-            return;
-        }
-        TRACKING.put(player, new PlayerTrackingState(level));
-    }
-
-    /** Called after vanilla has transmitted a watched chunk to the client. */
-    public static void onChunkSent(ServerPlayer player, ServerLevel level, ChunkPos chunkPos) {
-        if (player == null || chunkPos == null) {
-            return;
-        }
-        PlayerTrackingState state = state(player, level);
-        state.watchedChunks.add(chunkPos.toLong());
-        reconcilePlayer(player, level, state);
-    }
-
-    public static void onChunkUnwatch(ServerPlayer player, ServerLevel level, ChunkPos chunkPos) {
-        if (player == null || chunkPos == null) {
-            return;
-        }
-        PlayerTrackingState state = existingState(player, level);
-        if (state == null) {
-            return;
-        }
-        state.watchedChunks.remove(chunkPos.toLong());
-        reconcilePlayer(player, level, state);
-    }
-
-    public static void forgetPlayer(ServerPlayer player) {
-        if (player != null) {
-            TRACKING.remove(player);
-        }
-    }
-
-    private static void reconcilePlayer(ServerPlayer player, ServerLevel level, PlayerTrackingState state) {
-        Map<MirageLightSourceId, MirageLightSource> desired = new HashMap<>();
-        for (MirageLightSource source : MirageLightEngine.sources(level)) {
-            if (touchesAnyWatchedChunk(source, state.watchedChunks)) {
-                desired.put(source.id(), source);
+        int chunkRadius = Math.max(2, (source.profile().maxRadius() + 15) / 16);
+        ChunkPos sourceChunk = new ChunkPos(source.origin());
+        List<MirageLightChunkRevisionManifestPayload.Entry> entries = new ArrayList<>();
+        for (int dx = -chunkRadius; dx <= chunkRadius; dx++) {
+            for (int dz = -chunkRadius; dz <= chunkRadius; dz++) {
+                ChunkPos chunkPos = new ChunkPos(sourceChunk.x + dx, sourceChunk.z + dz);
+                if (level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z) == null) {
+                    continue;
+                }
+                long chunkKey = chunkPos.toLong();
+                entries.add(new MirageLightChunkRevisionManifestPayload.Entry(
+                        chunkKey,
+                        currentRevision(level, chunkKey),
+                        MirageLightEngine.aggregateSectionKeysForChunk(level, chunkPos).size()
+                ));
             }
         }
-
-        Set<MirageLightSourceId> stale = new HashSet<>(state.deliveredSources.keySet());
-        stale.removeAll(desired.keySet());
-        for (MirageLightSourceId sourceId : stale) {
-            retractIfDelivered(player, state, sourceId);
+        if (entries.isEmpty()) {
+            return;
         }
-
-        for (MirageLightSource source : desired.values()) {
-            if (!state.deliveredSources.containsKey(source.id())) {
-                PacketDistributor.sendToPlayer(player, MirageLightSourceSyncPayload.upsert(source));
-                state.deliveredSources.put(source.id(), source.origin());
+        MirageLightChunkRevisionManifestPayload payload = new MirageLightChunkRevisionManifestPayload(
+                source.origin().asLong(),
+                List.copyOf(entries)
+        );
+        for (ServerPlayer player : level.players()) {
+            if (isNearChunk(player, sourceChunk)) {
+                PacketDistributor.sendToPlayer(player, payload);
             }
         }
     }
 
-    private static void retractIfDelivered(
-            ServerPlayer player,
-            PlayerTrackingState state,
-            MirageLightSourceId sourceId
-    ) {
-        BlockPos deliveredOrigin = state.deliveredSources.remove(sourceId);
-        if (deliveredOrigin != null) {
-            PacketDistributor.sendToPlayer(
-                    player,
-                    MirageLightSourceSyncPayload.remove(sourceId, deliveredOrigin)
-            );
+
+    public static void clearLevel(ServerLevel level) {
+        synchronized (CHUNK_REVISIONS) {
+            CHUNK_REVISIONS.remove(level);
         }
     }
 
-    private static boolean touchesAnyWatchedChunk(MirageLightSource source, Set<Long> watchedChunks) {
-        if (watchedChunks.isEmpty()) {
-            return false;
+    public static void sendChunkSnapshot(ServerPlayer player, ServerLevel level, ChunkPos chunkPos) {
+        if (player == null || level == null || chunkPos == null || player.serverLevel() != level) {
+            return;
         }
-        for (long packedChunk : watchedChunks) {
-            if (MirageLightEngine.sourceTouchesChunk(source, new ChunkPos(packedChunk))) {
-                return true;
+        if (!isNearChunk(player, chunkPos)) {
+            return;
+        }
+        long chunkKey = chunkPos.toLong();
+        PacketDistributor.sendToPlayer(player, snapshot(level, chunkPos, currentRevision(level, chunkKey)));
+    }
+
+    private static MirageLightChunkSnapshotPayload snapshot(ServerLevel level, ChunkPos chunkPos, long revision) {
+        List<MirageLightChunkSnapshotPayload.SectionData> sections = new ArrayList<>();
+        List<Long> keys = new ArrayList<>(MirageLightEngine.aggregateSectionKeysForChunk(level, chunkPos));
+        keys.sort(Long::compare);
+        for (long sectionKey : keys) {
+            byte[] levels = MirageLightEngine.copyAggregateSectionLevels(level, sectionKey);
+            if (levels == null) {
+                continue;
             }
+            sections.add(MirageLightChunkSnapshotPayload.section(SectionPos.of(sectionKey).y(), levels));
         }
-        return false;
+        return new MirageLightChunkSnapshotPayload(chunkPos.toLong(), revision, List.copyOf(sections));
     }
 
-    private static PlayerTrackingState state(ServerPlayer player, ServerLevel level) {
-        PlayerTrackingState current = TRACKING.get(player);
-        if (current == null || current.level != level) {
-            current = new PlayerTrackingState(level);
-            TRACKING.put(player, current);
+    private static long currentRevision(ServerLevel level, long chunkKey) {
+        synchronized (CHUNK_REVISIONS) {
+            return CHUNK_REVISIONS
+                    .computeIfAbsent(level, ignored -> new HashMap<>())
+                    .getOrDefault(chunkKey, 0L);
         }
-        return current;
     }
 
-    private static PlayerTrackingState existingState(ServerPlayer player, ServerLevel level) {
-        PlayerTrackingState current = TRACKING.get(player);
-        return current != null && current.level == level ? current : null;
+    private static long bumpRevision(ServerLevel level, long chunkKey) {
+        synchronized (CHUNK_REVISIONS) {
+            Map<Long, Long> revisions = CHUNK_REVISIONS.computeIfAbsent(level, ignored -> new HashMap<>());
+            long next = revisions.getOrDefault(chunkKey, 0L) + 1L;
+            revisions.put(chunkKey, next);
+            return next;
+        }
     }
 
-    private static final class PlayerTrackingState {
-        private final ServerLevel level;
-        private final Set<Long> watchedChunks = new HashSet<>();
-        private final Map<MirageLightSourceId, BlockPos> deliveredSources = new HashMap<>();
-
-        private PlayerTrackingState(ServerLevel level) {
-            this.level = level;
-        }
+    private static boolean isNearChunk(ServerPlayer player, ChunkPos chunkPos) {
+        ChunkPos playerChunk = player.chunkPosition();
+        return Math.abs(chunkPos.x - playerChunk.x) <= MAX_CLIENT_SYNC_CHUNK_DISTANCE
+                && Math.abs(chunkPos.z - playerChunk.z) <= MAX_CLIENT_SYNC_CHUNK_DISTANCE;
     }
 }

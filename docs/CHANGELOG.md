@@ -1,3 +1,125 @@
+## 0.1.0-dev.76h
+- Fixed vertical section-boundary invalidation for server-authoritative Mirage light. A changed Mirage light section now also invalidates the section immediately below, covering floor/top-face consumers whose sampled light lives one section above their cached block labels.
+- Chunk snapshots now invalidate all carried sections even when authoritative bytes are unchanged, so a post-load handshake can refresh downstream light caches that scanned too early.
+- Fixed the dev.76g watchdog client shape check to count authoritative mirrored sections instead of the client-empty aggregate solver store.
+- Protocol remains 25; no packet schema changes.
+
+## 0.1.0-dev.76g
+
+- Replaces the increasingly complex chunk-order repair strategy with a source-centric watchdog owned by each energized Mature Crying Obsidian Cluster.
+- Base radius-30 fields continuously watch at least +/-2 chunks (5x5); boosted radius-38 fields automatically widen to +/-3 chunks (7x7). The watchdog never force-loads chunks.
+- Chunk load/unload and relevant geometry updates bump cheap per-chunk epochs. A changed watch signature force-rebuilds the complete source from its origin, while MirageLightSolver remains authoritative for wall/face occlusion and detour decay.
+- Adds a lightweight once-per-second revision manifest (`chunk + revision + section count`). Clients compare it against their installed mirror and request only missing/stale/mismatched chunks, with retry cooldown instead of full-section heartbeat spam.
+- Network protocol 25.
+
+## 0.1.0-dev.76f
+- Replaced per-section Mirage network deltas with one revisioned atomic snapshot per chunk.
+- Removed server `CLEAR_ALL` on login/respawn/dimension change; client/world teardown owns session cleanup.
+- Removed destructive chunk-unload/unwatch cleanup from the correctness path to prevent stale lifecycle events from erasing newer snapshots.
+- Client ignores older chunk revisions and atomically replaces all Mirage sections for a chunk.
+- Network protocol 24.
+
+## 0.1.0-dev.76e
+- Removed the private Mirage watched-chunk registry from correctness-critical section delivery.
+- Added client chunk-load -> server authoritative Mirage snapshot handshake.
+- Chunk snapshots now clear-and-replace their Mirage section mirror atomically.
+- Protocol 23.
+
+## 0.1.0-dev.76d
+
+- Build stabilization for the dev.76c atomic STATIC_WORLD architecture.
+- Restored the missing `java.util.Map` import in `MirageLightLifecycleEvents`.
+- Replaced the oversized historical-doc cleanup pass with a focused cumulative pre-build cleanup intended for overlaying snapshots on Windows.
+- Automatic cleanup now removes known obsolete runtime files and `build/`, does not pause, and returns directly to `build.bat`.
+- Historical documentation is no longer re-archived on every build.
+
+## 0.1.0-dev.76c
+- STATIC_WORLD publication is now atomic: a source is not published/replaced until its entire dependency chunk window is queryable on the authoritative server.
+- Added per-source pending rebuilds retried every server tick without chunk tickets or force-loading. Initial world-load light now stays vanilla until the complete Mirage field can be solved, then switches to the full field in one publication.
+- Added a defensive solver commit guard: any STATIC_WORLD candidate reporting unloaded edges is discarded instead of replacing the previous complete field.
+- Removed the old readiness-fingerprint convergence loop from the server lifecycle; dev.76c uses an explicit pending/ready state instead.
+- `/miragelight stats` now reports solved and pending source counts.
+- Network protocol remains 22.
+
+## 0.1.0-dev.76b
+- `build.bat` now runs the cumulative cleanup automatically before compilation.
+- Cleanup is non-interactive and removes stale `MirageLightSourceSyncPayload.java` left by overlaying older snapshots.
+- Removed the dev.76a legacy payload tombstone from canonical source; cleanup now owns stale-file migration.
+
+# 0.1.0-dev.76a — Legacy payload tombstone build fix
+
+- Fixed the Windows cumulative-checkout compile failure caused by an obsolete `MirageLightSourceSyncPayload.java` surviving when dev.76 was copied over a dev.75 checkout.
+- Added a non-network compatibility tombstone at the old source path so overlay extraction overwrites the stale dev.75 implementation instead of leaving it compilable.
+- The tombstone implements no packet interface, owns no codec/type, is not registered, and cannot participate in runtime networking. STATIC_WORLD still uses only `MirageLightSectionSyncPayload`.
+- No lighting, solver, section transport, protocol, asset, projector, or gameplay behavior changed from dev.76. Network protocol remains 22.
+
+# 0.1.0-dev.76 — Server-authoritative static section light
+
+- Replaced the dev.75 source-descriptor/client-resolve architecture for `STATIC_WORLD` with server-authoritative solved section transport.
+- The server is now the only side that runs `MirageLightSolver` for Mature Cluster world light. Client chunk readiness/order can no longer produce a different static field.
+- Added `MirageLightSectionSyncPayload`: final visible Mirage levels are packed at 4 bits per voxel, exactly 2048 bytes for a non-empty 16×16×16 section.
+- Added a client authoritative-section mirror inside `MirageLightWorld`; Level/LevelLightEngine/RenderChunkRegion still merge with vanilla using `max(vanilla, Mirage)` without feeding Mirage values back into vanilla propagation.
+- Section delivery is tracking-scoped: `ChunkWatchEvent.Sent` sends current Mirage sections for that chunk; field rebuilds update only watched affected sections; `UnWatch`, chunk unload and session reset clear mirrored data.
+- Every installed/cleared section emits vanilla-style `ClientChunkCache.onLightUpdate(BLOCK, section)` plus renderer dirtiness so renderers and cached light-level overlays observe the same authoritative values.
+- Removed client STATIC_WORLD solver retries, readiness fingerprints, quiet-settle passes and late verification from the live path. Those dev.75 mechanisms are no longer responsible for correctness.
+- Source teardown and old-world ghost cleanup remain server-authoritative. Multiple static sources continue to aggregate by max before section synchronization.
+- `STATIC_WORLD` and `DYNAMIC_VISUAL` are now explicit backend responsibilities: future lanterns/handheld projectors must use the dynamic path rather than rewriting static sections every frame.
+- Network protocol intentionally moves **21 -> 22**.
+- Accumulates the temporary alternate projector comparison line from dev.75e.
+
+# 0.1.0-dev.75j — Virtual light invalidation bridge
+
+- Diagnosed a major QA observer-cache issue using the private NeoForge 1.21.1 LightLevelSimple backport: its labels are cached per chunk section and invalidated by vanilla `ClientChunkCache.onLightUpdate` / block-change callbacks, while Mirage previously only called `LevelRenderer#setSectionDirty`.
+- Mirage client field replacement/removal now emits `ClientChunkCache.onLightUpdate(LightLayer.BLOCK, SectionPos)` for every affected section, then keeps the explicit renderer dirtiness fallback.
+- This does **not** inject virtual light into vanilla BlockLightEngine storage and does not create secondary emitters; it only publishes the correct client invalidation signal for renderers/debug overlays/other cached light consumers.
+- Retains dev.75f stale-source cleanup, dev.75h dependency-window tracking, and dev.75i client settle/source-sync behavior unchanged so the next QA can distinguish true field errors from stale observer caches.
+
+# 0.1.0-dev.75i — Client settle barrier and descriptor-sync separation
+
+- Stops server-side chunk-readiness-only field rebuilds from broadcasting redundant unchanged source UPSERTs. Client chunk geometry has its own lifecycle, so these packets could race and overwrite an already-converged client field with a solve taken at a worse instant.
+- Keeps initial/new source descriptors and real terrain/source changes synchronized normally. A source that is newly created is still delivered even if creation happens through a server chunk refresh path.
+- Client handling now distinguishes an identical descriptor from a true source/profile replacement: identical UPSERTs trigger a geometry re-solve without tearing down identity/readiness state.
+- Adds a per-source quiet-settle rebuild after 12 ticks without dependent chunk activity plus one bounded late verification pass at 80 ticks. This covers LevelChunks that are already returned by `getChunkNow()` while their packet/section attachment is still settling, which simple queryable-set membership cannot observe.
+- Any dependent chunk load/unload resets only that source's quiet window. No chunks are force-loaded and there is no permanent polling/rebuild loop after the bounded settle passes complete.
+- Retains dev.75f stale-source cleanup and dev.75h full dependency-window readiness tracking.
+
+# 0.1.0-dev.75h — Dependency-window stable solve
+
+- Fixed a remaining chunk-border race proven by dev.75g QA: readiness was being snapshotted after a solve, allowing a chunk to become queryable after the flood had already stopped at its border and then be falsely recorded as part of that solve.
+- The readiness fingerprint associated with every client/server rebuild is now captured before the solve. If availability changes during solving, the next convergence pass is guaranteed to detect it; the client also requests a stabilization pass immediately.
+- Added an explicit source chunk dependency window derived from `origin ± maxRadius`. Base Mature Cluster fields therefore monitor up to a 5×5 chunk area depending on source position; boosted profiles expand automatically from their real radius.
+- Dependency monitoring does not force-load chunks. It only checks `ChunkSource#getChunkNow()` for the small fixed window around each source.
+- Chunk-load fast paths now use the broad dependency window while source delivery still uses the exact touched footprint.
+- Retains dev.75f origin-authoritative stale-source cleanup and dev.75e alternate projector comparison models.
+
+# 0.1.0-dev.75g — Source-centric chunk convergence
+
+- Replaced `Level.hasChunkAt()` as the Mirage solver readiness gate with the non-loading `ChunkSource#getChunkNow()` predicate shared by server, client and lifecycle convergence.
+- Fixed radius-order accounting so out-of-radius unloaded chunks no longer masquerade as incomplete solver geometry.
+- Added `MirageLightEngine.queryableChunksTouched(...)`: every source now has an explicit snapshot of the complete set of currently queryable chunks intersecting its Manhattan footprint.
+- Client no longer trusts chunk events as authority. Even with zero pending chunk events, every tick it compares each source's current queryable footprint to the footprint used by the previous solve; any change re-solves the entire field from the original source and dirties old/new render sections.
+- Server adds the same source-centric readiness audit every 2 ticks as an event-independent safety net. A changed footprint forces a whole-source authoritative rebuild and normal UPSERT synchronization.
+- This specifically targets the QA failure where reload produced a one-chunk/vanilla-sized Mirage island and each manual block update advanced propagation by only one additional chunk.
+- Retains dev.75f origin-authoritative stale-source cleanup and the temporary alternate projector comparison line.
+- Protocol remains 21; no payload/NBT schema change.
+
+# 0.1.0-dev.75f — Chunk-readiness lifecycle and stale-source teardown hardening
+
+- Fixed the deterministic chunk-border hole found in live QA after world join/reload: `ChunkEvent.Load` is no longer treated as proof that the chunk is immediately queryable by `Level.hasChunkAt()` / `getChunkNow()`.
+- Server chunk-load entries remain pending until `ServerChunkCache#getChunkNow` exposes the chunk; unavailable events are retried instead of consumed and forgotten.
+- Client load/unload queues are now separate. A client LOAD remains pending until the same `hasChunkAt()` readiness gate used by the solver succeeds; UNLOAD cancels unresolved loads immediately.
+- Preserved a short full client stabilization pass after source UPSERT, while later chunk arrivals continue to trigger deterministic per-source rebuilds.
+- Hardened Mature Cluster teardown: removal is origin-authoritative, sends a tombstone even if the current server registry already lost the descriptor, and removes every client/server Mirage source anchored at that BlockPos.
+- Added once-per-second server/client stale Mature source audits as migration/recovery insurance for older development worlds and unusual block-replacement paths.
+- Keeps protocol 21; no new payload/NBT schema.
+- Accumulates the temporary dev.75e alternate projector comparison models.
+
+# 0.1.0-dev.75e — Alternate projector visual comparison line
+
+- Added six temporary `*_alt` projector blocks/items so original and candidate chassis can be placed side by side in-game.
+- Alternate models reuse vanilla Crying Obsidian / Obsidian / Purple Stained Glass plus the existing Mirage purple emitter texture; no new texture atlas assets are required.
+- Alt blocks share the same projector BlockEntity/GUI/source behavior and are intentionally Creative-only comparison candidates for now.
+
 # dev.75d documentation recovery — versioned roadmap consolidation
 
 - No runtime/version/protocol change.

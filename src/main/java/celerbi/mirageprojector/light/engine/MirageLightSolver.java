@@ -38,7 +38,10 @@ public final class MirageLightSolver {
 
         MirageLightProfile profile = source.profile();
         BlockPos origin = source.origin();
-        if (level.isOutsideBuildHeight(origin) || !level.hasChunkAt(origin)) {
+        if (level.isOutsideBuildHeight(origin)) {
+            return emptyField(source, sections, started, 0);
+        }
+        if (!MirageLightEngine.isChunkQueryable(level, origin)) {
             return emptyField(source, sections, started, 1);
         }
 
@@ -78,11 +81,17 @@ public final class MirageLightSolver {
             int currentDirectDistance = manhattanDistance(origin, currentPos);
             for (Direction direction : Direction.values()) {
                 BlockPos nextPos = currentPos.relative(direction);
-                if (level.isOutsideBuildHeight(nextPos) || !level.hasChunkAt(nextPos)) {
-                    unloadedEdges++;
+                if (level.isOutsideBuildHeight(nextPos)) {
                     continue;
                 }
+                // Radius is checked before chunk readiness so unloadedEdges means exactly
+                // "geometry required by this source footprint is not queryable yet" rather
+                // than counting arbitrary unloaded chunks just outside the light radius.
                 if (!withinRadius(origin, nextPos, profile.maxRadius())) {
+                    continue;
+                }
+                if (!MirageLightEngine.isChunkQueryable(level, nextPos)) {
+                    unloadedEdges++;
                     continue;
                 }
 

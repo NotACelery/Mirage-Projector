@@ -114,5 +114,6 @@ public final class CryingObsidianLightInvalidationEvents {
 
     private static void queue(ServerLevel level, BlockPos pos) {
         PENDING_CHANGES.computeIfAbsent(level, ignored -> new HashSet<>()).add(pos.immutable());
+        CryingObsidianLightField.noteBlockChanged(level, pos);
     }
 }

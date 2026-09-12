@@ -35,7 +35,7 @@ The authoritative light subsystem lives under `celerbi.mirageprojector.light.eng
 
 The solver walks six adjacent voxels. `MirageLightOcclusion` delegates destination opacity and face-shape blocking to vanilla `LightEngine.getLightBlockInto(...)`. dev.75d adds weighted detour semantics: monotonic open travel keeps the profile's ordinary cost, while steps that prove the route had to overshoot/backtrack because of geometry receive `detourExtraCostUnits`. This creates gradual shadows without a hard mode switch behind walls.
 
-Final Mirage values merge with vanilla at read time and are never fed back into vanilla block-light propagation. `crying_light_node` is migration-only. Network protocol 21 synchronizes compact source/profile descriptors—including detour cost—not solved voxels. Server/client chunk lifecycle re-solves against locally loaded geometry.
+Final Mirage values merge with vanilla at read time and are never fed back into vanilla block-light propagation. `crying_light_node` is migration-only. Since dev.76/protocol 22, `STATIC_WORLD` is solved only on the server and synchronized as final packed 16×16×16 light sections to watched clients. Clients do not run the static solver. `DYNAMIC_VISUAL` is deliberately separate for future moving/portable emitters.
 
 `STATIC_WORLD` is implemented for Mature Clusters. `DYNAMIC_VISUAL`, directional/frustum/plane shapes and RGB rendering are the dev.76+ boundary; moving visual sources must not turn into per-frame server gameplay-light rebuilds. See `MIRAGE-LIGHT-ENGINE.md`.
 

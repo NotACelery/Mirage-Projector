@@ -23,7 +23,13 @@ public final class ModBlockEntities {
                             ModBlocks.WIDE_MIRAGE_PROJECTOR.get(),
                             ModBlocks.TALL_MIRAGE_PROJECTOR.get(),
                             ModBlocks.MIRAGE_FIELD_PROJECTOR.get(),
-                            ModBlocks.MIRAGE_PRISM.get()
+                            ModBlocks.MIRAGE_PRISM.get(),
+                            ModBlocks.MIRAGE_PROJECTOR_ALT.get(),
+                            ModBlocks.MIRAGE_DISPLAY_ALT.get(),
+                            ModBlocks.WIDE_MIRAGE_PROJECTOR_ALT.get(),
+                            ModBlocks.TALL_MIRAGE_PROJECTOR_ALT.get(),
+                            ModBlocks.MIRAGE_FIELD_PROJECTOR_ALT.get(),
+                            ModBlocks.MIRAGE_PRISM_ALT.get()
                     ).build(null));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CoreBoosterBlockEntity>> CORE_BOOSTER =

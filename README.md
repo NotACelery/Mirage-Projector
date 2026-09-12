@@ -2,7 +2,7 @@
 
 Mirage Projector is a NeoForge 1.21.1 mod by **Celerbi** for configurable decorative holographic projections. The current development line supports images/GIFs, items, banners and frozen entity snapshots across six state-preserving projector chassis.
 
-**Current source line:** `0.1.0-dev.75d` — authoritative static Mirage Light Engine with causal vanilla-compatible occlusion plus obstacle-only detour decay. Open Mature light keeps exact half-decay; extra path forced by walls is penalized more strongly so shadows remain gradual without an abrupt mode switch.
+**Current source line:** `0.1.0-dev.76h` — STATIC_WORLD Mirage lighting remains server-authoritative, but energized Mature Clusters now own a source-centric chunk watchdog. A normal radius-30 field watches a 5x5 chunk window, rebuilds from the Cluster when watched chunk lifecycle/geometry changes, and sends lightweight revision manifests so clients self-request only missing/stale chunk snapshots. Wall/shape blocking is still decided exclusively by the causal Mirage solver.
 
 Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in `docs/CURRENT-IMPLEMENTATION.md`; genuinely pending work lives only in `docs/ROADMAP.md`.
 
@@ -13,7 +13,7 @@ Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in 
 - Java 21
 - Gradle 9.2.1
 - Parchment 2024.11.17
-- Network protocol 21
+- Network protocol 22
 
 ## Projector chassis
 
@@ -102,7 +102,7 @@ Implemented systems include:
 
 Loaded Core Boosters relay active Beacon columns. Glass provides Diffusion, Quartz Radiance, Amethyst Resonance, Diamond Focus and Netherite Inversion, with at most four effective Boosters. Only an energized Mature Cluster is a static world-light source.
 
-The forward **Mirage Light Engine** is now authoritative for energized Mature Cluster world light. dev.74 introduced causal fixed-point virtual fields; dev.75a/75b moved authority away from physical relays, synchronized compact source descriptors, added chunk/tracking lifecycle and legacy-node cleanup; dev.75c corrected vanilla opacity handoff; dev.75d adds profile-level obstacle detour penalty. Open no-Booster light remains exactly `15,15,14,14,...,1,1`, while distance that exists only because light had to route around geometry decays at a stronger vanilla-like rate.
+The forward **Mirage Light Engine** is authoritative for energized Mature Cluster world light. dev.76 keeps the causal fixed-point solver, vanilla-shape occlusion and obstacle detour penalty, but moves STATIC_WORLD publication to a server-resolved section channel. Clients no longer receive source descriptors or run the static solver: watched chunks receive final Mirage light sections (4 bits per voxel) and read `max(vanilla, Mirage)`. Open no-Booster light remains exactly `15,15,14,14,...,1,1`. `DYNAMIC_VISUAL` remains a separate backend reserved for the portable illumination/projector work in 1.1.0.
 
 Physical `crying_light_node` blocks are migration-only and are never created by current runtime. Effective scalar light is `max(vanilla, Mirage)` at read time; Mirage virtual cells are never fed back into vanilla propagation as new emitters. See `docs/MIRAGE-LIGHT-ENGINE.md` for the complete runtime, networking, chunk, occlusion, debugging and future-backend contract.
 

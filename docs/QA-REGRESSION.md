@@ -316,3 +316,22 @@ Historical regression only: confirm the internal Mirage light-node block remains
 - Partial-opacity blocks may add to `extra` even without geometric detour; this is intentional diagnostic aggregation of non-direct traversal cost.
 - Quartz/Diamond reinforced fields must obey the exact same wall/detour rules. Booster power extends available energy; it never grants penetration.
 - Stress several overlapping radius-30/38 fields with walls; record solve ms/server tick/frame impact before considering incremental invalidation.
+
+## dev.76 server-authoritative STATIC_WORLD section QA
+
+- Repeat login at the existing flat iron test platform at least 5 times. The Mirage pattern must be identical each login; there must be no client-side late re-solve shape changes.
+- With LightLevelSimple enabled, verify labels update without touching blocks because section install/removal emits `onLightUpdate(BLOCK, section)`.
+- Remove/re-place an energized Mature Cluster. All affected watched sections must clear/restore without manual block updates.
+- F3+G: verify no persistent chunk-border islands. Walking far enough to unwatch/re-watch a chunk must restore the exact same authoritative section snapshot.
+- Place the source close to a chunk edge/corner and repeat.
+- Test base radius and Quartz/Diamond boosted radii.
+- Test two overlapping clusters; removing one must preserve the max contribution of the other without flicker/stale zero sections.
+- Test finite wall, L-corner, slab/stair and partial/modded shapes to ensure server solver occlusion/detour behavior is unchanged.
+- Multiplayer: clients with different watched chunks receive only the relevant Mirage sections and converge to the same values in shared watched areas.
+
+### dev.76c atomic publication regression
+- On login, a source may remain pending while its complete dependency window attaches, but no partial Mirage section mosaic may be published.
+- `/miragelight stats` may briefly report `0 solved source(s), 1 pending`; it must converge to `1 solved, 0 pending` once the dependency window is available.
+- Repeat relog at least 10 times: the first visible Mirage field must already have the complete radius/shape.
+- Removing/replacing the Mature Cluster must not progressively fill chunk by chunk.
+- No chunk tickets or forced loads are permitted for this gate.

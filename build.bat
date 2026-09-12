@@ -25,6 +25,14 @@ if not exist "gradle.properties" goto :wrong_folder
 findstr /b /c:"mod_id=mirage_projector" "gradle.properties" >nul 2>nul
 if errorlevel 1 goto :wrong_folder
 
+echo Ejecutando limpieza acumulativa previa al build...
+if not exist "CLEAN-MIRAGE-PROJECTOR.bat" goto :cleanup_missing
+call "%CD%\CLEAN-MIRAGE-PROJECTOR.bat" --from-build
+set "CLEANUP_EXIT=%ERRORLEVEL%"
+if not "%CLEANUP_EXIT%"=="0" goto :cleanup_failed
+echo Limpieza previa terminada correctamente.
+echo.
+
 call :find_java21
 if not defined JAVA_EXE goto :java_missing
 
@@ -66,7 +74,7 @@ if not exist "%DIST_DIR%\bin\gradle.bat" goto :gradle_missing
 echo.
 echo Compilando Mirage Projector %MOD_VERSION%...
 echo La primera compilacion puede descargar dependencias de NeoForge.
-echo Este BAT no ejecuta limpieza ni mueve archivos del proyecto.
+echo Este BAT ejecuta CLEAN-MIRAGE-PROJECTOR.bat antes de compilar.
 echo.
 echo Iniciando Gradle...
 echo ------------------------------------------------------------

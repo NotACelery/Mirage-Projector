@@ -437,5 +437,11 @@
   "tooltip.mirage_projector.entity.visibility.show": "Vuelve a mostrar %s proyectado usando el snapshot que ya está guardado.",
   "gui.mirage_projector.entity.visibility_hidden_status": "%s proyectado oculto; snapshot conservado",
   "gui.mirage_projector.entity.visibility_shown_status": "%s proyectado visible otra vez desde el snapshot guardado",
-  "gui.mirage_projector.entity.all_equipment_hidden": "Todo el equipo proyectado está oculto"
+  "gui.mirage_projector.entity.all_equipment_hidden": "Todo el equipo proyectado está oculto",
+  "block.mirage_projector.mirage_projector_alt": "Proyector Mirage (Alt)",
+  "block.mirage_projector.mirage_display_alt": "Pantalla Mirage (Alt)",
+  "block.mirage_projector.wide_mirage_projector_alt": "Proyector Mirage Ancho (Alt)",
+  "block.mirage_projector.tall_mirage_projector_alt": "Proyector Mirage Alto (Alt)",
+  "block.mirage_projector.mirage_field_projector_alt": "Proyector de Campo Mirage (Alt)",
+  "block.mirage_projector.mirage_prism_alt": "Prisma Mirage (Alt)"
 }

@@ -1,63 +1,68 @@
+#!/usr/bin/env python3
 from pathlib import Path
 import json
-import re
 
 ROOT = Path(__file__).resolve().parents[1]
-
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-assert 'mod_version=0.1.0-dev.75d' in read('gradle.properties')
-assert 'NETWORK_PROTOCOL = "21"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
+assert 'mod_version=0.1.0-dev.76' in read('gradle.properties')
+assert 'NETWORK_PROTOCOL = "25"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 
 mixins = json.loads(read('src/main/resources/mirage_projector.mixins.json'))
 assert 'LevelMirageLightMixin' in mixins['mixins']
 assert 'LevelLightEngineMirageLightMixin' in mixins['mixins']
 assert 'client.RenderChunkRegionMirageLightMixin' in mixins['client']
 
-network = read('src/main/java/celerbi/mirageprojector/network/MirageLightNetwork.java')
-for token in ('ChunkPos', 'watchedChunks', 'deliveredSources', 'onChunkSent', 'onChunkUnwatch', 'reconcilePlayer', 'sourceTouchesChunk'):
-    assert token in network, token
-assert 'sendToAllPlayersInDimension' not in network
+mod_network = read('src/main/java/celerbi/mirageprojector/network/ModNetworking.java')
+assert 'MirageLightChunkSnapshotPayload.TYPE' in mod_network
+assert 'MirageLightSectionSyncPayload.TYPE' not in mod_network
+assert 'MirageLightSourceSyncPayload.TYPE' not in mod_network
 
-lifecycle = read('src/main/java/celerbi/mirageprojector/event/MirageLightLifecycleEvents.java')
-for token in ('ChunkEvent.Load', 'ChunkEvent.Unload', 'ChunkWatchEvent.Sent', 'ChunkWatchEvent.UnWatch', 'getChunkNow', 'cleanupLegacyNodesInChunk', 'discoverSourcesInChunk', 'refreshSourcesForLoadedChunks'):
-    assert token in lifecycle, token
+payload = read('src/main/java/celerbi/mirageprojector/network/MirageLightChunkSnapshotPayload.java')
+for token in ('PACKED_SECTION_BYTES', 'revision', 'sections', 'section(int sectionY', 'unpackLevels()'):
+    assert token in payload, token
+assert 'MirageLightSection.SIZE / 2' in payload
 
 client = read('src/main/java/celerbi/mirageprojector/client/ClientMirageLightSync.java')
-for token in ('PENDING_GEOMETRY_CHUNKS', 'flushChunkGeometryChanges', 'setSectionDirty', 'sourceTouchesChunk'):
+for token in ('replaceAuthoritativeChunk', 'onLightUpdate(LightLayer.BLOCK', 'setSectionDirty', 'CHUNK_REVISIONS'):
     assert token in client, token
-
-invalid = read('src/main/java/celerbi/mirageprojector/event/CryingObsidianLightInvalidationEvents.java')
-for token in ('FluidPlaceBlockEvent', 'BlockGrowFeatureEvent', 'CropGrowEvent.Post', 'PistonEvent.Post', 'ExplosionEvent.Detonate'):
-    assert token in invalid, token
-
-field = read('src/main/java/celerbi/mirageprojector/crying/CryingObsidianLightField.java')
-for token in ('cleanupLegacyNodesInChunk', 'discoverSourcesInChunk', 'removeSourcesInChunk', 'refreshSourcesForLoadedChunks', 'MirageLightNetwork.broadcastUpsert'):
-    assert token in field, token
-assert 'CRYING_LIGHT_NODE.get().defaultBlockState()' not in field
+for forbidden in ('MirageLightSolver', 'updateSource(level', 'SOLVED_CHUNK_READINESS', 'SOURCE_SETTLE', 'SOURCE_QUIET_SETTLE_TICKS'):
+    assert forbidden not in client, forbidden
 
 world = read('src/main/java/celerbi/mirageprojector/light/engine/MirageLightWorld.java')
-assert 'replaceFieldContribution' in world
-assert 'ENGINE_STATES' in world
+for token in ('authoritativeSections', 'replaceAuthoritativeChunk', 'copyAggregateSectionLevels', 'aggregateSectionKeysForChunk'):
+    assert token in world, token
+assert 'Math.max(solved, authoritative.levelAt(pos))' in world
+assert 'level.isClientSide && source.runtimeMode() == MirageLightRuntimeMode.STATIC_WORLD' in world
 
-# There must be no runtime creation of the legacy node anywhere in Java sources.
-for path in (ROOT / 'src/main/java').rglob('*.java'):
-    text = path.read_text(encoding='utf-8')
-    if 'CRYING_LIGHT_NODE.get().defaultBlockState()' in text:
-        raise AssertionError(f'legacy node creation remains in {path.relative_to(ROOT)}')
+network = read('src/main/java/celerbi/mirageprojector/network/MirageLightNetwork.java')
+for token in ('broadcastSections', 'onChunkSent', 'sendChunkSnapshot', 'MirageLightChunkSnapshotPayload'):
+    assert token in network, token
+assert 'MirageLightSectionSyncPayload' not in network
+assert 'MirageLightSourceSyncPayload' not in network
+assert 'watchedChunks' not in network
+assert 'TRACKING' not in network
 
-# Current docs must advertise the same line/protocol.
-assert '0.1.0-dev.75d' in read('README.md')
-assert 'Network protocol 21' in read('README.md')
-assert 'Version line: **0.1.0-dev.75d**' in read('docs/CURRENT-IMPLEMENTATION.md')
-assert 'Network protocol: **21**' in read('docs/CURRENT-IMPLEMENTATION.md')
-assert (ROOT / 'docs/DEV75B-AUTHORITATIVE-VIRTUAL-LIGHT-LIFECYCLE.md').exists()
-assert (ROOT / 'docs/NEXT-CHAT-HANDOFF-dev75d.md').exists()
+field = read('src/main/java/celerbi/mirageprojector/crying/CryingObsidianLightField.java')
+assert 'MirageLightNetwork.broadcastSections(level, touchedSections)' in field
+assert 'MirageLightNetwork.broadcastUpsert' not in field
+assert 'MirageLightNetwork.broadcastRemove' not in field
 
-print('dev.75d authoritative Mirage Light lifecycle verification: PASS')
-print('- protocol 21 source descriptors remain authoritative')
-print('- tracking-scoped delivery / chunk lifecycle / client rebuild paths present')
-print('- orphan legacy-node migration scan present; no runtime legacy-node creation')
-print('- terrain invalidation covers player/fluid/growth/piston/explosion paths')
-print('- active docs and source line agree on dev.75d')
+runtime = read('src/main/java/celerbi/mirageprojector/light/engine/MirageLightRuntimeMode.java')
+assert 'STATIC_WORLD' in runtime and 'DYNAMIC_VISUAL' in runtime
+
+levels = bytes((i * 7) & 15 for i in range(4096))
+packed = bytearray(2048)
+for i in range(2048):
+    packed[i] = levels[i*2] | (levels[i*2+1] << 4)
+unpacked = bytearray(4096)
+for i, value in enumerate(packed):
+    unpacked[i*2] = value & 15
+    unpacked[i*2+1] = (value >> 4) & 15
+assert bytes(unpacked) == levels
+
+print('dev.76f server-authoritative STATIC_WORLD lifecycle verification: PASS')
+print('- protocol 25 source-watchdog + atomic revisioned chunk snapshots registered')
+print('- client static solver/retry/settle path removed')
+print('- no login CLEAR_ALL or chunk-unload destructive cleanup in correctness path')

@@ -1,6 +1,7 @@
 package celerbi.mirageprojector.event;
 
 import celerbi.mirageprojector.MirageProjector;
+import celerbi.mirageprojector.crying.CryingObsidianLightField;
 import celerbi.mirageprojector.light.engine.MirageLightEngine;
 import celerbi.mirageprojector.light.engine.MirageLightField;
 import celerbi.mirageprojector.light.engine.MirageLightSource;
@@ -31,6 +32,7 @@ public final class MirageLightDebugCommands {
                 Commands.literal("miragelight")
                         .then(Commands.literal("stats").executes(context -> stats(context.getSource().getLevel(), context.getSource())))
                         .then(Commands.literal("probe").executes(context -> probe(context.getSource().getPlayerOrException())))
+                        .then(Commands.literal("chunks").executes(context -> chunks(context.getSource().getPlayerOrException())))
                         .then(Commands.literal("rebuild").executes(context -> rebuild(context.getSource().getPlayerOrException())))
                         .then(Commands.literal("axis")
                                 .then(Commands.argument("direction", StringArgumentType.word())
@@ -45,7 +47,8 @@ public final class MirageLightDebugCommands {
         MirageLightWorld.WorldStats stats = MirageLightEngine.stats(level);
         source.sendSuccess(
                 () -> Component.literal(
-                        "MirageLight authoritative: " + stats.sources() + " source(s), "
+                        "MirageLight authoritative: " + stats.sources() + " solved source(s), "
+                                + CryingObsidianLightField.pendingSourceCount(level) + " pending, "
                                 + stats.sections() + " section(s), " + stats.litCells() + " lit voxel(s)"
                 ),
                 false
@@ -84,6 +87,29 @@ public final class MirageLightDebugCommands {
     }
 
 
+    private static int chunks(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+        MirageLightSource source = nearestSource(level, player.blockPosition());
+        if (source == null) {
+            player.sendSystemMessage(Component.literal("No solved MirageLight source is loaded in this dimension."));
+            return 0;
+        }
+
+        var dependencies = MirageLightEngine.dependencyChunks(source);
+        var queryable = MirageLightEngine.queryableDependencyChunks(level, source);
+        MirageLightField field = MirageLightEngine.field(level, source.id());
+        int unloadedEdges = field == null ? -1 : field.stats().unloadedEdges();
+        int watchRadiusChunks = Math.max(2, (source.profile().maxRadius() + 15) / 16);
+        player.sendSystemMessage(Component.literal(
+                "MirageLight chunks @ " + source.origin().toShortString()
+                        + ": queryable=" + queryable.size() + "/" + dependencies.size()
+                        + ", radius=" + source.profile().maxRadius()
+                        + ", watchdog=+/-" + watchRadiusChunks + " chunks"
+                        + ", unloadedEdges=" + unloadedEdges
+        ));
+        return queryable.size();
+    }
+
     private static int rebuild(ServerPlayer player) {
         ServerLevel level = player.serverLevel();
         MirageLightSource source = nearestSource(level, player.blockPosition());
@@ -93,10 +119,10 @@ public final class MirageLightDebugCommands {
         }
 
         MirageLightWorld.UpdateResult result = MirageLightEngine.updateSource(level, source, true);
-        if (result.rebuilt()) {
-            celerbi.mirageprojector.network.MirageLightNetwork.broadcastUpsert(level, source);
-        }
         MirageLightField field = MirageLightEngine.field(level, source.id());
+        if (result.rebuilt() && !result.changedSections().isEmpty()) {
+            celerbi.mirageprojector.network.MirageLightNetwork.broadcastSections(level, result.changedSections());
+        }
         if (!result.rebuilt() || field == null || result.solveStats() == null) {
             player.sendSystemMessage(Component.literal("MirageLight rebuild did not produce a field."));
             return 0;

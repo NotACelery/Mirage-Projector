@@ -71,6 +71,11 @@ public final class ModNetworking {
                 RequestAssetPayload.STREAM_CODEC,
                 RequestAssetPayload::handle
         );
+        registrar.playToServer(
+                RequestMirageLightChunkPayload.TYPE,
+                RequestMirageLightChunkPayload.STREAM_CODEC,
+                RequestMirageLightChunkPayload::handle
+        );
         registrar.playToClient(
                 DownloadAssetChunkPayload.TYPE,
                 DownloadAssetChunkPayload.STREAM_CODEC,
@@ -87,9 +92,14 @@ public final class ModNetworking {
                 OpenDebugHandbookPayload::handle
         );
         registrar.playToClient(
-                MirageLightSourceSyncPayload.TYPE,
-                MirageLightSourceSyncPayload.STREAM_CODEC,
-                MirageLightSourceSyncPayload::handle
+                MirageLightChunkSnapshotPayload.TYPE,
+                MirageLightChunkSnapshotPayload.STREAM_CODEC,
+                MirageLightChunkSnapshotPayload::handle
+        );
+        registrar.playToClient(
+                MirageLightChunkRevisionManifestPayload.TYPE,
+                MirageLightChunkRevisionManifestPayload.STREAM_CODEC,
+                MirageLightChunkRevisionManifestPayload::handle
         );
     }
 }

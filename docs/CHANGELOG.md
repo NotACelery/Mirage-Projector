@@ -51,5 +51,6 @@ First stable Mirage Projector release for Minecraft 1.21.1 / NeoForge 21.1.244+.
 - JEI projector crafting extension and ingredient guidance.
 - Final mod logo/metadata integration.
 - Public handbook/documentation cleanup and release audit.
+- Responsive vertical scrolling for projector GUIs on constrained GUI heights.
 
 Development-version chronology is preserved in `docs/history/development-notes/CHANGELOG-DEVELOPMENT.md`.

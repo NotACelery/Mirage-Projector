@@ -26,6 +26,7 @@ SUITE = [
     'verify_dev82_projection_source_foundation.py',
     'verify_dev82_mod_logo_integration.py',
     'verify_dev86a_compile_hotfix.py',
+    'verify_release_responsive_scroll.py',
     'verify_release_1_0_0.py',
 ]
 

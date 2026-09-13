@@ -13,7 +13,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -21,7 +20,7 @@ import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
-public final class ImageProjectorScreen extends AbstractContainerScreen<ImageProjectorMenu> {
+public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageProjectorMenu> {
     private String frontId;
     private int frontWidth;
     private int frontHeight;
@@ -782,6 +781,11 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
             MirageProjector.LOGGER.error("Could not open the native image picker", throwable);
             return null;
         }
+    }
+
+    @Override
+    protected void onContentScrolled(int deltaY) {
+        mapY += deltaY;
     }
 
     private enum Face {

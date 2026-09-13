@@ -45,13 +45,13 @@ Mirage Projector 1.0.0 release audit PASS
 96 JSON
 18 blocks
 15 items
-435 language keys per locale
+434 language keys per locale
 ```
 
 The accumulated stable regression suite also passes:
 
 ```text
-MIRAGE PROJECTOR 1.0.0 VERIFICATION PASS (18 gates)
+MIRAGE PROJECTOR 1.0.0 VERIFICATION PASS (19 gates)
 ```
 
 ## Known non-blocking compiler cleanup
@@ -65,3 +65,17 @@ The static audit does not replace the NeoForge compiler/package build. The autho
 ## 1.1.0 boundary
 
 New features should branch from this exact 1.0.0 source baseline. The 1.0.0 renderer, projector models, held-item presentation, Mirage Light foundation, GIF/Core behavior, projection-source architecture and EMI/JEI integration should be treated as stable unless a concrete regression is discovered.
+
+## Release UI cleanup
+
+- Removed the internal creative-only projector Debug button from the public 1.0.0 screen.
+- Expanded the Tint control across the freed Appearance row.
+- Kept internal compatibility/state plumbing intact so the release fix does not alter saves or protocol.
+
+## Responsive GUI hotfix
+
+- Added a shared responsive container-screen base for the main projector screen and all source workspaces.
+- Tall GUIs now expose a vertical scrollbar only when the effective scaled window is shorter than the panel content.
+- Mouse wheel and drag scrolling move the complete container origin, vanilla slots and custom widgets together so hitboxes stay aligned.
+- The Image workspace also shifts its source-bank hit map with the scroll offset.
+- Normal-height windows retain the original centered layout and show no scrollbar.

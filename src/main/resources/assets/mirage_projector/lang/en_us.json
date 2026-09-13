@@ -101,7 +101,6 @@
   "gui.mirage_projector.core_booster.material.quartz": "Quartz",
   "gui.mirage_projector.counterclockwise": "Counter-clockwise",
   "gui.mirage_projector.current_source": "Active source: %s",
-  "gui.mirage_projector.debug": "Debug: %s",
   "gui.mirage_projector.direction": "Direction: %s",
   "gui.mirage_projector.entity.all_equipment_hidden": "All projected equipment is hidden",
   "gui.mirage_projector.entity.applied_status": "Applied %s; real staging source returned",

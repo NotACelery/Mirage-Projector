@@ -57,6 +57,7 @@ Entity Scan Cards store frozen visual data rather than live ticking entities. Su
 ## Presentation controls
 
 Shared controls include Scale, Lift, rotation, rotation period/direction/offset, Floating, float amplitude/timing, world lighting or Fullbright, Ghost/opacity, Tint, image flip and scanlines. The active projection source and projector ON/OFF state are stored independently, so turning a projector off never destroys its configured source data.
+Tall projector workspaces automatically expose vertical scrolling when the selected Minecraft GUI scale leaves less vertical room than the panel needs. At normal window heights the original centered layout is unchanged.
 
 ## Projection Power
 

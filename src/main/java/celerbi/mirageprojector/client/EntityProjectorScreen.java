@@ -15,13 +15,12 @@ import java.util.Map;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-public final class EntityProjectorScreen extends AbstractContainerScreen<EntityProjectorMenu> {
+public final class EntityProjectorScreen extends ResponsiveContainerScreen<EntityProjectorMenu> {
     private static final int PANEL_WIDTH = 570;
     private static final int PANEL_HEIGHT = 466;
 

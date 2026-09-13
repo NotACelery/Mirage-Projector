@@ -1,8 +1,8 @@
 Mirage Projector build launcher diagnostics
-Started: 13-09-2026 12:20:33,29
+Started: 13-09-2026 13:26:52,10
 Directory: E:\Codigos\Minecraft Mods\Mirage-Projector
-Cleanup OK: 13-09-2026 12:20:33,43
+Cleanup OK: 13-09-2026 13:26:52,26
 Java: C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot\bin\java.exe
-Gradle start: 13-09-2026 12:20:33,82
+Gradle start: 13-09-2026 13:26:52,66
 Gradle BAT: E:\Codigos\Minecraft Mods\Mirage-Projector\.gradle-dist\gradle-9.2.1\bin\gradle.bat
-Gradle exit 0: 13-09-2026 12:20:47,60
+Gradle exit 0: 13-09-2026 13:27:04,62

@@ -7,13 +7,12 @@ import celerbi.mirageprojector.network.SetProjectionSourcePayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-public final class ItemProjectorScreen extends AbstractContainerScreen<ItemProjectorMenu> {
+public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemProjectorMenu> {
     private static final int W = 360;
     private static final int H = 298;
     private static final int PREVIEW_X = 218;

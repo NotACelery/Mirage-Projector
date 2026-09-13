@@ -101,7 +101,6 @@
   "gui.mirage_projector.core_booster.material.quartz": "Cuarzo",
   "gui.mirage_projector.counterclockwise": "Antihorario",
   "gui.mirage_projector.current_source": "Fuente activa: %s",
-  "gui.mirage_projector.debug": "Debug: %s",
   "gui.mirage_projector.direction": "Dirección: %s",
   "gui.mirage_projector.entity.all_equipment_hidden": "Todo el equipo proyectado está oculto",
   "gui.mirage_projector.entity.applied_status": "%s aplicado; el objeto real fue devuelto",

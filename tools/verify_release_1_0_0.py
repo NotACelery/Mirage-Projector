@@ -201,6 +201,11 @@ for path in RES.rglob('*'):
     need('_alt' not in text.lower(), f'removed comparison-projector resource reference remains: {path.relative_to(ROOT)}')
     need(text.endswith('\n'), f'missing final newline in {path.relative_to(ROOT)}')
 
+# Release UI must not expose internal chassis-debug controls.
+projector_screen = read('src/main/java/celerbi/mirageprojector/client/MirageProjectorScreen.java')
+need('debugButton' not in projector_screen, 'internal Debug button is exposed in the release projector screen')
+need('gui.mirage_projector.debug' not in projector_screen, 'release projector screen still references the Debug control')
+
 # Language parity / public handbook cleanup.
 langs = {}
 for lang in ('en_us', 'es_cl', 'es_es'):
@@ -215,6 +220,7 @@ if 'en_us' in langs:
         need(set(data) == base_keys, f'language key parity mismatch in {lang}')
         need(not any(k.startswith('handbook.mirage_projector.page.') for k in data), f'obsolete handbook page keys remain in {lang}')
         need(data.get('item.mirage_projector.debug_handbook') in {'Mirage Handbook', 'Manual de Mirage'}, f'public handbook name not release-facing in {lang}')
+        need('gui.mirage_projector.debug' not in data, f'internal Debug GUI localization remains public in {lang}')
         for key, value in data.items():
             if isinstance(value, str):
                 need(re.search(r'\bdev\.[0-9]', value, re.IGNORECASE) is None, f'development-version wording remains in {lang}:{key}')

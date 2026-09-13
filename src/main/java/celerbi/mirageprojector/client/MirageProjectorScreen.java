@@ -22,12 +22,11 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-public final class MirageProjectorScreen extends AbstractContainerScreen<MirageProjectorMenu> {
+public final class MirageProjectorScreen extends ResponsiveContainerScreen<MirageProjectorMenu> {
     private final ProjectionSettings base;
     private int scalePixels;
     private int liftPixels;
@@ -57,7 +56,6 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     private Button floatModeButton;
     private Button lightingButton;
     private Button tintButton;
-    private Button debugButton;
     private IntSlider scaleSlider;
     private IntSlider liftSlider;
     private IntSlider floatAmplitudeSlider;
@@ -223,15 +221,7 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
             tintRgb = nextTint(tintRgb);
             refreshLabels();
         })
-                .bounds(x + 12, y + 258, half, 20).build());
-        debugButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
-            if (minecraft != null && minecraft.player != null && minecraft.player.isCreative()) {
-                debugChassisOverride = !debugChassisOverride;
-                refreshLabels();
-                refreshDynamicLimits(true);
-                updateClearance(true);
-            }
-        }).bounds(x + 20 + half, y + 258, half, 20).build());
+                .bounds(x + 12, y + 258, wide, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> {
             saveSettings();
@@ -371,10 +361,6 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         }
         if (tintButton != null) {
             tintButton.setMessage(Component.translatable("gui.mirage_projector.tint", tintName(tintRgb)));
-        }
-        if (debugButton != null) {
-            debugButton.visible = minecraft != null && minecraft.player != null && minecraft.player.isCreative();
-            debugButton.setMessage(Component.translatable("gui.mirage_projector.debug", onOff(debugChassisOverride)));
         }
     }
 

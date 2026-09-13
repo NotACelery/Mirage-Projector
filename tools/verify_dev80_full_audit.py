@@ -9,11 +9,11 @@ def read(rel): return (ROOT/rel).read_text(encoding='utf-8')
 def need(c,m):
     if not c: errors.append(m)
 props=read('gradle.properties')
-need('mod_version=0.1.0-dev.80' in props,'gradle.properties is not dev.80')
+need('mod_version=0.1.0-dev.82' in props,'gradle.properties is not dev.82')
 need('minecraft_version=1.21.1' in props,'Minecraft baseline changed')
 need('neo_version=21.1.244' in props,'NeoForge baseline changed')
 main=read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-need('NETWORK_PROTOCOL = "26"' in main,'network protocol is not 26')
+need('NETWORK_PROTOCOL = "27"' in main,'network protocol is not 27')
 json_files=list(RES.rglob('*.json'))
 for p in json_files:
     try: json.loads(p.read_text(encoding='utf-8'))
@@ -76,8 +76,8 @@ for p in list(SRC.rglob('*.java'))+list(RES.rglob('*.json')):
     need('_alt' not in text.lower(),f'alt runtime/resource reference remains: {p.relative_to(ROOT)}')
 # docs current
 for rel in ('README.md','docs/DOCUMENTATION-AUTHORITY.md','docs/CURRENT-IMPLEMENTATION.md','docs/ROADMAP.md','docs/DEVELOPMENT.md','docs/MIRAGE-LIGHT-ENGINE.md'):
-    need('0.1.0-dev.80' in read(rel),f'current authority doc does not identify dev.80: {rel}')
-need('Network protocol: **26**' in read('docs/CURRENT-IMPLEMENTATION.md'),'CURRENT-IMPLEMENTATION protocol drift'); need('Network protocol: **26**' in read('docs/MIRAGE-LIGHT-ENGINE.md'),'MIRAGE-LIGHT-ENGINE protocol drift')
+    need('0.1.0-dev.82' in read(rel),f'current authority doc does not identify dev.80f: {rel}')
+need('Network protocol: **27**' in read('docs/CURRENT-IMPLEMENTATION.md'),'CURRENT-IMPLEMENTATION protocol drift'); need('Network protocol: **27**' in read('docs/MIRAGE-LIGHT-ENGINE.md'),'MIRAGE-LIGHT-ENGINE protocol drift')
 cleanup=read('CLEAN-MIRAGE-PROJECTOR.bat'); need('--from-build' in cleanup,'cleanup build chaining missing')
 for forbidden in ('.gradle-dist','build/classes','run/saves'): need(not (ROOT/forbidden).exists(),f'heavyweight path present: {forbidden}')
 for p in SRC.rglob('*.java'):
@@ -85,6 +85,6 @@ for p in SRC.rglob('*.java'):
 dep=[str(p.relative_to(ROOT)) for p in SRC.rglob('*.java') if 'EventBusSubscriber.Bus.' in p.read_text()]
 if dep: notes.append(f'known non-blocking EventBusSubscriber.Bus deprecation sites: {len(dep)}')
 if errors:
-    print('dev.80 full current-source audit FAILED'); [print(' -',e) for e in errors]; raise SystemExit(1)
-print(f'dev.80 full current-source audit PASS ({len(json_files)} JSON, {len(block_ids)} blocks, {len(item_ids)} items)')
+    print('dev.82 full current-source audit FAILED'); [print(' -',e) for e in errors]; raise SystemExit(1)
+print(f'dev.82 full current-source audit PASS ({len(json_files)} JSON, {len(block_ids)} blocks, {len(item_ids)} items)')
 for n in notes: print('NOTE',n)

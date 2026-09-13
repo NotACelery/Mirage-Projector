@@ -1,12 +1,12 @@
 # Mirage Projector — Current implementation
 
-Version line: **0.1.0-dev.80**  
+Version line: **0.1.0-dev.82**  
 Minecraft: **1.21.1**  
 NeoForge: **21.1.244**  
 Java: **21**  
-Network protocol: **26**
+Network protocol: **27**
 
-Status: static Mature lighting remains server-authoritative and QA-confirmed through `dev.76h`. `dev.77` differentiates Core Booster identities. `dev.78`–`dev.79i` completed the alternate-projector comparison/refinement line, including model↔VoxelShape reconciliation, Compact Z-fighting cleanup, Tall front/rear symmetry and the fixed-projector ON/OFF/active-source UX. **dev.80 closes that comparison line:** the six accepted dev.79i models are promoted to the six canonical projector IDs, all temporary `*_alt` blocks/items/resources are removed from runtime registration, and the old canonical model JSONs are archived outside `assets` under `docs/history/projector-models-pre-dev80/`. Physical `crying_light_node` relays remain migration-only.
+Status: static Mature lighting remains server-authoritative and QA-confirmed through `dev.76h`. `dev.77` differentiates Core Booster identities. `dev.78`–`dev.79i` completed the alternate-projector comparison/refinement line, including model↔VoxelShape reconciliation, Compact Z-fighting cleanup, Tall front/rear symmetry and the fixed-projector ON/OFF/active-source UX. **dev.80** closed that comparison line by promoting the accepted models to the canonical projector IDs and removing all temporary `*_alt` runtime resources. **dev.80a** introduced explicit angled 3D display transforms for the six canonical projector item models. **dev.80b** then enlarged held rendering after QA found the projectors too tiny in hand. **dev.80c** reduced that oversized pass to a middle ground, but QA still found the items too full-block-like. **dev.80d** retuned all item contexts around a slab-like object scale so the projectors feel more like shallow devices than full cubes. **dev.80e** kept those slab-like scales but lifted first-person placement upward for all six devices. **dev.80f** refines that result by lifting only the compact Mirage Projector further, because the other five were already accepted. **dev.81** closes the last major 1.0 architectural seam by replacing source ordinals with stable namespaced IDs and registries. **dev.82** adds the chosen mod logo asset to NeoForge metadata without changing runtime behavior. Physical `crying_light_node` relays remain migration-only.
 
 ## dev.75b authoritative virtual-light lifecycle
 
@@ -23,7 +23,7 @@ The dev.75 authority handoff is complete and remains accumulated in dev.75d:
 - loaded chunks palette-scan for orphan legacy `crying_light_node`; current runtime never creates one;
 - effective reads are `max(vanilla, Mirage)` without injecting Mirage into vanilla propagation.
 
-dev.75c then fixed the destination-opacity argument passed to vanilla edge occlusion. dev.75d adds the profile-level detour penalty described below. Historical dev.75 source descriptors used protocol 21; current STATIC_WORLD transport is revisioned chunk snapshots/manifests under protocol **26**.
+dev.75c then fixed the destination-opacity argument passed to vanilla edge occlusion. dev.75d adds the profile-level detour penalty described below. Historical dev.75 source descriptors used protocol 21; current STATIC_WORLD transport is revisioned chunk snapshots/manifests under protocol **27**.
 
 ## Projector family
 
@@ -67,6 +67,16 @@ As of dev.80 there is only one runtime model/registry identity per projector cha
 The temporary `*_alt` block/item IDs, blockstates, item models, block models and loot tables are no longer registered or shipped as active resources. The six pre-dev.80 canonical block-model JSONs are retained only under `docs/history/projector-models-pre-dev80/legacy-canonical/` for archaeology; they are not runtime assets. Canonical VoxelShapes and renderer anchor layouts now directly use the promoted geometry.
 
 The custom Mirage creative tab and vanilla Functional Blocks tab list the six projectors in this order: Mirage Projector, Mirage Display, Mirage Field Projector, Wide Mirage Projector, Tall Mirage Projector, Mirage Prism.
+
+## dev.82 projection-source / transform foundation
+
+The public 1.0 source set is still Image / Item / Entity / Banner, but those names are no longer a closed Java enum contract. `ProjectionSettings.SourceMode` is now an interned namespaced-ID value (`mirage_projector:image`, `mirage_projector:item`, `mirage_projector:entity`, `mirage_projector:banner`). Saves write `SourceId`; old integer `SourceMode` saves still migrate. Network settings/source payloads use IDs and protocol 27.
+
+`ProjectionSourceRegistry` owns common source registration, content presence/count providers and chassis compatibility. `ProjectionSourceRenderRegistry` owns client renderer dispatch. Missing providers fail closed while the saved source ID and opaque `ProjectionSourcePayloads` NBT are preserved.
+
+`ProjectionTransform` is source-agnostic and now includes persisted normalized quaternion orientation fields in addition to the current Scale/Lift/spin/float controls. 1.0 rendering leaves that orientation at identity; the persistence seam exists so 1.2 free rotation does not require another format break.
+
+`ProjectionEnergySource` is the power-consumer boundary. Fixed 1.0 projectors adapt their `ProjectionCoreProfile`; future Glow Dust/portable energy backends can provide capacity without pretending to own a Core socket.
 
 ## Projection sources
 
@@ -116,7 +126,7 @@ Mounted/passenger composite scans remain intentionally rejected.
 
 ## Projector active-state / shutdown UX
 
-`dev.79d` implements the fixed-projector active-state/shutdown contract, retained in dev.80:
+`dev.79d` implements the fixed-projector active-state/shutdown contract, retained in dev.80f:
 
 - projectors have an explicit persisted/synchronized ON/OFF state independent from source identity;
 - `TURN OFF` stops the visible projection without deleting configured source or presentation state; the inserted Core remains physically visible;
@@ -255,4 +265,8 @@ The scalar static engine may continue serving gameplay/light-level semantics, wh
 
 ## Post-dev.75d roadmap consolidation
 
-Runtime static-light architecture is dev.76h/protocol 26. The project roadmap is now split by release scope. 1.0.0 retains the current fixed-projector feature set and must establish extension seams for projection-source registration, chassis capabilities, forward-compatible presentation transforms, generic renderer/interaction providers, dynamic-vs-static light backend separation and non-Core energy consumers. User-facing lanterns/Glow Dust batteries/Scan Codex/portable projectors belong to 1.1.0; direct hologram grab/free rotation belongs to 1.2.0; Create Blueprint projection remains an optional bridge addon.
+Runtime static-light architecture remains dev.76h; the global Mirage network protocol is now 27 because dev.82 changes projector source/transform codecs. The project roadmap is now split by release scope. 1.0.0 retains the current fixed-projector feature set and must establish extension seams for projection-source registration, chassis capabilities, forward-compatible presentation transforms, generic renderer/interaction providers, dynamic-vs-static light backend separation and non-Core energy consumers. User-facing lanterns/Glow Dust batteries/Scan Codex/portable projectors belong to 1.1.0; direct hologram grab/free rotation belongs to 1.2.0; Create Blueprint projection remains an optional bridge addon.
+
+## Mod metadata / logo
+
+The mod now ships a dedicated NeoForge metadata logo. `src/main/templates/META-INF/neoforge.mods.toml` points to `logoFile="logo.png"` with `logoBlur=false`, and the packaged image lives at `src/main/resources/logo.png`. The current logo is the accepted promo render showing the compact Mirage Projector with a hovering shard above the chamber.

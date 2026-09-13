@@ -62,6 +62,25 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     private static final List<DeferredEntityProjection> DEFERRED_ENTITY_PROJECTIONS = new ArrayList<>();
     private static final MultiBufferSource.BufferSource DEFERRED_ENTITY_BUFFERS = createDeferredEntityBuffers();
 
+    static {
+        ProjectionSourceRenderRegistry.registerBuiltin(
+                ProjectionSettings.SourceMode.IMAGE,
+                context -> context.renderer().renderImageSource(context)
+        );
+        ProjectionSourceRenderRegistry.registerBuiltin(
+                ProjectionSettings.SourceMode.ITEM,
+                context -> context.renderer().renderItemSource(context)
+        );
+        ProjectionSourceRenderRegistry.registerBuiltin(
+                ProjectionSettings.SourceMode.ENTITY,
+                context -> context.renderer().renderEntitySource(context)
+        );
+        ProjectionSourceRenderRegistry.registerBuiltin(
+                ProjectionSettings.SourceMode.BANNER,
+                context -> context.renderer().renderBannerSource(context)
+        );
+    }
+
     private final Map<MirageProjectorBlockEntity, EntityCacheEntry> entityCache = new WeakHashMap<>();
     private final Map<MirageProjectorBlockEntity, EquippedItemCacheEntry> equippedItemCache = new WeakHashMap<>();
     private final ModelPart bannerFlag;
@@ -143,86 +162,151 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             return;
         }
 
-        if (settings.sourceMode() == ProjectionSettings.SourceMode.BANNER) {
-            renderProjectedBanners(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight, gameTime);
+        ProjectionSourceRenderRegistry.renderer(settings.sourceMode()).ifPresent(renderer -> renderer.render(
+                new ProjectionSourceRenderRegistry.RenderContext(
+                        this,
+                        blockEntity,
+                        settings,
+                        partialTick,
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        angle,
+                        bob,
+                        projectionLight,
+                        gameTime
+                )
+        ));
+    }
+
+    private void renderBannerSource(ProjectionSourceRenderRegistry.RenderContext context) {
+        renderProjectedBanners(
+                context.blockEntity(),
+                context.settings(),
+                context.poseStack(),
+                context.bufferSource(),
+                context.angle(),
+                context.bob(),
+                context.projectionLight(),
+                context.gameTime()
+        );
+    }
+
+    private void renderItemSource(ProjectionSourceRenderRegistry.RenderContext context) {
+        MirageProjectorBlockEntity blockEntity = context.blockEntity();
+        ProjectionSettings settings = context.settings();
+        if (blockEntity.projectedStack().isEmpty()) {
+            equippedItemCache.remove(blockEntity);
             return;
         }
-
-        if (settings.sourceMode() == ProjectionSettings.SourceMode.ITEM) {
-            if (blockEntity.projectedStack().isEmpty()) {
-                equippedItemCache.remove(blockEntity);
-            } else {
-                LivingEntity equippedPiece = resolveEquippedItemEntity(blockEntity);
-                if (equippedPiece != null) {
-                    renderProjectedEntity(
-                            blockEntity,
-                            settings,
-                            equippedPiece,
-                            partialTick,
-                            poseStack,
-                            bufferSource,
-                            angle,
-                            bob,
-                            projectionLight,
-                            false,
-                            false
-                    );
-                } else {
-                    renderProjectedItem(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
-                }
-            }
+        LivingEntity equippedPiece = resolveEquippedItemEntity(blockEntity);
+        if (equippedPiece != null) {
+            renderProjectedEntity(
+                    blockEntity,
+                    settings,
+                    equippedPiece,
+                    context.partialTick(),
+                    context.poseStack(),
+                    context.bufferSource(),
+                    context.angle(),
+                    context.bob(),
+                    context.projectionLight(),
+                    false,
+                    false
+            );
             return;
         }
+        renderProjectedItem(
+                blockEntity,
+                settings,
+                context.poseStack(),
+                context.bufferSource(),
+                context.angle(),
+                context.bob(),
+                context.projectionLight()
+        );
+    }
 
-        if (settings.sourceMode() == ProjectionSettings.SourceMode.ENTITY) {
-            deferEntityProjection(this, blockEntity, partialTick, packedLight);
-            return;
-        }
+    private void renderEntitySource(ProjectionSourceRenderRegistry.RenderContext context) {
+        deferEntityProjection(this, context.blockEntity(), context.partialTick(), context.packedLight());
+    }
 
+    private void renderImageSource(ProjectionSourceRenderRegistry.RenderContext context) {
+        MirageProjectorBlockEntity blockEntity = context.blockEntity();
+        ProjectionSettings settings = context.settings();
         if (blockEntity.chassisProfile().supportsMultiSourceImageLayout()
                 && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
             if (!blockEntity.imageSourceBank().hasAny(blockEntity.chassisProfile().imageLayoutSlots())) {
                 return;
             }
             renderMultiSourceImageLayout(
-                    blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight
+                    blockEntity,
+                    settings,
+                    context.poseStack(),
+                    context.bufferSource(),
+                    context.angle(),
+                    context.bob(),
+                    context.projectionLight()
             );
             return;
         }
 
         if (blockEntity.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM) {
             if (!settings.hasAnyImage()) {
-                renderBook(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
+                renderBook(
+                        blockEntity,
+                        settings,
+                        context.poseStack(),
+                        context.bufferSource(),
+                        context.angle(),
+                        context.bob(),
+                        context.projectionLight()
+                );
                 return;
             }
             boolean rendered = renderPrismImage(
                     blockEntity,
                     settings,
-                    poseStack,
-                    bufferSource,
-                    angle,
-                    bob,
-                    projectionLight
+                    context.poseStack(),
+                    context.bufferSource(),
+                    context.angle(),
+                    context.bob(),
+                    context.projectionLight()
             );
             if (!rendered) {
-                renderMissingAsset(blockEntity, poseStack, bufferSource, angle, bob, projectionLight);
+                renderMissingAsset(
+                        blockEntity,
+                        context.poseStack(),
+                        context.bufferSource(),
+                        context.angle(),
+                        context.bob(),
+                        context.projectionLight()
+                );
             }
             return;
         }
 
         if (!hasPlaneImageContent(settings)) {
-            renderBook(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
+            renderBook(
+                    blockEntity,
+                    settings,
+                    context.poseStack(),
+                    context.bufferSource(),
+                    context.angle(),
+                    context.bob(),
+                    context.projectionLight()
+            );
             return;
         }
 
         renderImage(
                 blockEntity,
                 settings,
-                poseStack,
-                bufferSource,
-                angle,
-                bob,
-                projectionLight
+                context.poseStack(),
+                context.bufferSource(),
+                context.angle(),
+                context.bob(),
+                context.projectionLight()
         );
     }
 

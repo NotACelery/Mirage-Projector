@@ -2,6 +2,12 @@
 
 This is the practical checklist to apply before freezing 1.0.0 internals.
 
+## dev.81 implementation status
+
+The core pre-freeze seams in this document are now implemented in dev.81: namespaced source identity/registration, common content providers, client render-provider dispatch, chassis/source compatibility queries, opaque unknown-source payload preservation, explicit source/transform codec versioning, normalized quaternion-ready transform persistence and a generic energy boundary. `projectionEnabled` remains separate from source identity. Static vs dynamic Mirage light was already separated before dev.81.
+
+The 1.0 GUI intentionally continues exposing only the four built-in workspaces; future UI may enumerate compatible registrations through `ProjectionSourceRegistry.definitionsFor(...)` without changing persistence.
+
 ## 1. Projection source != GUI enum
 
 A projection source should be addressed by a stable namespaced ID and provider/codec/renderer contract. Built-ins register themselves. Optional addons may register another source. Screens enumerate compatible registrations instead of assuming exactly Image/Item/Banner/Entity.

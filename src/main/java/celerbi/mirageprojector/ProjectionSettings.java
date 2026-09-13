@@ -2,7 +2,12 @@ package celerbi.mirageprojector;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 public record ProjectionSettings(
         String imageId,
@@ -25,6 +30,10 @@ public record ProjectionSettings(
         int rotationPeriodTicks,
         boolean clockwise,
         float rotationOffsetDegrees,
+        float orientationX,
+        float orientationY,
+        float orientationZ,
+        float orientationW,
         boolean floatingEnabled,
         FloatMode floatMode,
         int floatAmplitudePixels,
@@ -38,6 +47,8 @@ public record ProjectionSettings(
         boolean scanlines,
         boolean debugChassisOverride
 ) {
+    public static final int SERIALIZATION_VERSION = 2;
+
     public static final int DEBUG_MIN_SCALE_PIXELS = 2;
 
     public static final int DEBUG_MAX_SCALE_PIXELS = 512;
@@ -57,6 +68,10 @@ public record ProjectionSettings(
             80,
             true,
             0.0F,
+            0.0F,
+            0.0F,
+            0.0F,
+            1.0F,
             true,
             FloatMode.TIME,
             1,
@@ -76,6 +91,9 @@ public record ProjectionSettings(
         String safeBackImageId = sanitizeAssetId(backImageId);
         String safeEastImageId = sanitizeAssetId(eastImageId);
         String safeWestImageId = sanitizeAssetId(westImageId);
+        ProjectionTransform.Orientation safeOrientation = ProjectionTransform.normalizeOrientation(
+                orientationX, orientationY, orientationZ, orientationW
+        );
 
         return new ProjectionSettings(
                 safeImageId,
@@ -98,6 +116,10 @@ public record ProjectionSettings(
                 Mth.clamp(rotationPeriodTicks, 5, 20 * 60),
                 clockwise,
                 Mth.wrapDegrees(rotationOffsetDegrees),
+                safeOrientation.x(),
+                safeOrientation.y(),
+                safeOrientation.z(),
+                safeOrientation.w(),
                 floatingEnabled,
                 floatMode == null ? FloatMode.TIME : floatMode,
                 Mth.clamp(floatAmplitudePixels, 0, DEBUG_MAX_FLOAT_PIXELS),
@@ -165,11 +187,27 @@ public record ProjectionSettings(
         return (tintRgb & 0xFF) / 255.0F;
     }
 
+    public ProjectionTransform transform() {
+        return ProjectionTransform.fromSettings(this);
+    }
+
+    public ProjectionSettings withTransform(ProjectionTransform transform) {
+        ProjectionTransform safe = transform == null ? ProjectionTransform.fromSettings(this) : transform.sanitized();
+        return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
+                eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
+                sourceMode, imageLayoutMode, safe.scalePixels(), safe.liftPixels(), safe.rotationEnabled(),
+                safe.rotationPeriodTicks(), safe.clockwise(), safe.rotationOffsetDegrees(),
+                safe.orientationX(), safe.orientationY(), safe.orientationZ(), safe.orientationW(),
+                safe.floatingEnabled(), safe.floatMode(), safe.floatAmplitudePixels(), safe.floatCycleTicks(),
+                safe.floatIntervalDegrees(), backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
+                scanlines, debugChassisOverride);
+    }
+
     public ProjectionSettings withImage(String id, int width, int height) {
         return copy(id, width, height, backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
                 sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
-                rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
+                rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
                 scanlines, debugChassisOverride);
     }
@@ -178,7 +216,7 @@ public record ProjectionSettings(
         return copy(imageId, imageWidth, imageHeight, id, width, height,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
                 sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
-                rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
+                rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
                 scanlines, debugChassisOverride);
     }
@@ -187,7 +225,7 @@ public record ProjectionSettings(
         return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
                 sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
-                rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
+                rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
                 scanlines, enabled);
     }
@@ -196,7 +234,7 @@ public record ProjectionSettings(
         return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
                 mode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
-                rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
+                rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
                 scanlines, debugChassisOverride);
     }
@@ -211,7 +249,7 @@ public record ProjectionSettings(
         return copy(frontId, frontWidth, frontHeight, backId, backWidth, backHeight,
                 eastId, eastWidth, eastHeight, westId, westWidth, westHeight,
                 sourceMode, newImageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
-                rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
+                rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, newBackFaceMode, newFlipVertical, fullbright, opacityPercent, tintRgb,
                 newScanlines, debugChassisOverride);
     }
@@ -220,7 +258,7 @@ public record ProjectionSettings(
         return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
                 sourceMode, mode == null ? ImageLayoutMode.SINGLE : mode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
-                rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
+                rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
                 scanlines, debugChassisOverride);
     }
@@ -263,7 +301,7 @@ public record ProjectionSettings(
         return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
                 eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
                 sourceMode, imageLayoutMode, newScalePixels, newLiftPixels, newRotationEnabled, newRotationPeriodTicks, newClockwise,
-                newRotationOffsetDegrees, newFloatingEnabled, newFloatMode, newFloatAmplitudePixels, newFloatCycleTicks,
+                newRotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, newFloatingEnabled, newFloatMode, newFloatAmplitudePixels, newFloatCycleTicks,
                 newFloatIntervalDegrees, backFaceMode, flipVertical, newFullbright, newOpacityPercent, newTintRgb,
                 scanlines, newDebugChassisOverride);
     }
@@ -275,6 +313,7 @@ public record ProjectionSettings(
             String westImageId, int westImageWidth, int westImageHeight,
             SourceMode sourceMode, ImageLayoutMode imageLayoutMode, int scalePixels, int liftPixels,
             boolean rotationEnabled, int rotationPeriodTicks, boolean clockwise, float rotationOffsetDegrees,
+            float orientationX, float orientationY, float orientationZ, float orientationW,
             boolean floatingEnabled, FloatMode floatMode, int floatAmplitudePixels, int floatCycleTicks,
             int floatIntervalDegrees, BackFaceMode backFaceMode, boolean flipVertical,
             boolean fullbright, int opacityPercent, int tintRgb, boolean scanlines,
@@ -287,6 +326,7 @@ public record ProjectionSettings(
                 westImageId, westImageWidth, westImageHeight,
                 sourceMode, imageLayoutMode, scalePixels, liftPixels,
                 rotationEnabled, rotationPeriodTicks, clockwise, rotationOffsetDegrees,
+                orientationX, orientationY, orientationZ, orientationW,
                 floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical,
                 fullbright, opacityPercent, tintRgb, scanlines, debugChassisOverride
@@ -295,11 +335,12 @@ public record ProjectionSettings(
 
     public void write(RegistryFriendlyByteBuf buffer) {
         ProjectionSettings s = sanitized();
+        buffer.writeVarInt(SERIALIZATION_VERSION);
         writeAsset(buffer, s.imageId(), s.imageWidth(), s.imageHeight());
         writeAsset(buffer, s.backImageId(), s.backImageWidth(), s.backImageHeight());
         writeAsset(buffer, s.eastImageId(), s.eastImageWidth(), s.eastImageHeight());
         writeAsset(buffer, s.westImageId(), s.westImageWidth(), s.westImageHeight());
-        buffer.writeVarInt(s.sourceMode().ordinal());
+        buffer.writeUtf(s.sourceMode().serializedName(), 128);
         buffer.writeVarInt(s.imageLayoutMode().ordinal());
         buffer.writeVarInt(s.scalePixels());
         buffer.writeVarInt(s.liftPixels());
@@ -307,6 +348,10 @@ public record ProjectionSettings(
         buffer.writeVarInt(s.rotationPeriodTicks());
         buffer.writeBoolean(s.clockwise());
         buffer.writeFloat(s.rotationOffsetDegrees());
+        buffer.writeFloat(s.orientationX());
+        buffer.writeFloat(s.orientationY());
+        buffer.writeFloat(s.orientationZ());
+        buffer.writeFloat(s.orientationW());
         buffer.writeBoolean(s.floatingEnabled());
         buffer.writeVarInt(s.floatMode().ordinal());
         buffer.writeVarInt(s.floatAmplitudePixels());
@@ -322,6 +367,10 @@ public record ProjectionSettings(
     }
 
     public static ProjectionSettings read(RegistryFriendlyByteBuf buffer) {
+        int serializationVersion = buffer.readVarInt();
+        if (serializationVersion != SERIALIZATION_VERSION) {
+            throw new IllegalArgumentException("Unsupported ProjectionSettings network format: " + serializationVersion);
+        }
         Asset front = readAsset(buffer);
         Asset back = readAsset(buffer);
         Asset east = readAsset(buffer);
@@ -331,13 +380,17 @@ public record ProjectionSettings(
                 back.id(), back.width(), back.height(),
                 east.id(), east.width(), east.height(),
                 west.id(), west.width(), west.height(),
-                SourceMode.fromOrdinal(buffer.readVarInt()),
+                SourceMode.parse(buffer.readUtf(128)),
                 ImageLayoutMode.fromOrdinal(buffer.readVarInt()),
                 buffer.readVarInt(),
                 buffer.readVarInt(),
                 buffer.readBoolean(),
                 buffer.readVarInt(),
                 buffer.readBoolean(),
+                buffer.readFloat(),
+                buffer.readFloat(),
+                buffer.readFloat(),
+                buffer.readFloat(),
                 buffer.readFloat(),
                 buffer.readBoolean(),
                 FloatMode.fromOrdinal(buffer.readVarInt()),
@@ -356,6 +409,7 @@ public record ProjectionSettings(
 
     public void save(CompoundTag tag) {
         ProjectionSettings s = sanitized();
+        tag.putInt("ProjectionSettingsVersion", SERIALIZATION_VERSION);
         tag.putString("ImageId", s.imageId());
         tag.putInt("ImageWidth", s.imageWidth());
         tag.putInt("ImageHeight", s.imageHeight());
@@ -368,7 +422,11 @@ public record ProjectionSettings(
         tag.putString("WestImageId", s.westImageId());
         tag.putInt("WestImageWidth", s.westImageWidth());
         tag.putInt("WestImageHeight", s.westImageHeight());
-        tag.putInt("SourceMode", s.sourceMode().ordinal());
+        tag.putString("SourceId", s.sourceMode().serializedName());
+        int legacySourceOrdinal = s.sourceMode().legacyOrdinal();
+        if (legacySourceOrdinal >= 0) {
+            tag.putInt("SourceMode", legacySourceOrdinal);
+        }
         tag.putInt("ImageLayoutMode", s.imageLayoutMode().ordinal());
         tag.putInt("ScalePixels", s.scalePixels());
         tag.putInt("LiftPixels", s.liftPixels());
@@ -376,6 +434,10 @@ public record ProjectionSettings(
         tag.putInt("RotationPeriodTicks", s.rotationPeriodTicks());
         tag.putBoolean("Clockwise", s.clockwise());
         tag.putFloat("RotationOffsetDegrees", s.rotationOffsetDegrees());
+        tag.putFloat("OrientationX", s.orientationX());
+        tag.putFloat("OrientationY", s.orientationY());
+        tag.putFloat("OrientationZ", s.orientationZ());
+        tag.putFloat("OrientationW", s.orientationW());
         tag.putBoolean("FloatingEnabled", s.floatingEnabled());
         tag.putInt("FloatMode", s.floatMode().ordinal());
         tag.putInt("FloatAmplitudePixels", s.floatAmplitudePixels());
@@ -405,7 +467,7 @@ public record ProjectionSettings(
                 tag.contains("WestImageId") ? tag.getString("WestImageId") : d.westImageId(),
                 tag.contains("WestImageWidth") ? tag.getInt("WestImageWidth") : d.westImageWidth(),
                 tag.contains("WestImageHeight") ? tag.getInt("WestImageHeight") : d.westImageHeight(),
-                SourceMode.fromOrdinal(tag.contains("SourceMode") ? tag.getInt("SourceMode") : d.sourceMode().ordinal()),
+                loadSourceMode(tag, d.sourceMode()),
                 ImageLayoutMode.fromOrdinal(tag.contains("ImageLayoutMode") ? tag.getInt("ImageLayoutMode") : d.imageLayoutMode().ordinal()),
                 tag.contains("ScalePixels") ? tag.getInt("ScalePixels") : d.scalePixels(),
                 tag.contains("LiftPixels") ? tag.getInt("LiftPixels") : d.liftPixels(),
@@ -413,6 +475,10 @@ public record ProjectionSettings(
                 tag.contains("RotationPeriodTicks") ? tag.getInt("RotationPeriodTicks") : d.rotationPeriodTicks(),
                 tag.contains("Clockwise") ? tag.getBoolean("Clockwise") : d.clockwise(),
                 tag.contains("RotationOffsetDegrees") ? tag.getFloat("RotationOffsetDegrees") : d.rotationOffsetDegrees(),
+                tag.contains("OrientationX") ? tag.getFloat("OrientationX") : d.orientationX(),
+                tag.contains("OrientationY") ? tag.getFloat("OrientationY") : d.orientationY(),
+                tag.contains("OrientationZ") ? tag.getFloat("OrientationZ") : d.orientationZ(),
+                tag.contains("OrientationW") ? tag.getFloat("OrientationW") : d.orientationW(),
                 tag.contains("FloatingEnabled") ? tag.getBoolean("FloatingEnabled") : d.floatingEnabled(),
                 FloatMode.fromOrdinal(tag.contains("FloatMode") ? tag.getInt("FloatMode") : d.floatMode().ordinal()),
                 tag.contains("FloatAmplitudePixels") ? tag.getInt("FloatAmplitudePixels") : d.floatAmplitudePixels(),
@@ -428,6 +494,16 @@ public record ProjectionSettings(
         ).sanitized();
     }
 
+    private static SourceMode loadSourceMode(CompoundTag tag, SourceMode fallback) {
+        if (tag.contains("SourceId")) {
+            return SourceMode.parseOrDefault(tag.getString("SourceId"), fallback);
+        }
+        if (tag.contains("SourceMode")) {
+            return SourceMode.fromLegacyOrdinal(tag.getInt("SourceMode"));
+        }
+        return fallback == null ? SourceMode.IMAGE : fallback;
+    }
+
     private static void writeAsset(RegistryFriendlyByteBuf buffer, String id, int width, int height) {
         buffer.writeUtf(id, 128);
         buffer.writeVarInt(width);
@@ -441,15 +517,84 @@ public record ProjectionSettings(
     private record Asset(String id, int width, int height) {
     }
 
-    public enum SourceMode {
-        IMAGE,
-        ITEM,
-        ENTITY,
-        BANNER;
+    /**
+     * Extensible projection-source identity.
+     *
+     * <p>This intentionally keeps the historical SourceMode type name so the existing 1.0
+     * call sites stay compact, but it is no longer a closed Java enum. Values are interned
+     * by stable namespaced ResourceLocation, allowing addons/future versions to introduce
+     * new sources without changing save/network ordinal layouts.</p>
+     */
+    public static final class SourceMode {
+        private static final Map<ResourceLocation, SourceMode> INTERN = new ConcurrentHashMap<>();
 
-        public static SourceMode fromOrdinal(int ordinal) {
-            SourceMode[] values = values();
-            return ordinal >= 0 && ordinal < values.length ? values[ordinal] : IMAGE;
+        public static final SourceMode IMAGE = of(ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "image"));
+        public static final SourceMode ITEM = of(ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "item"));
+        public static final SourceMode ENTITY = of(ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "entity"));
+        public static final SourceMode BANNER = of(ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "banner"));
+
+        private final ResourceLocation id;
+
+        private SourceMode(ResourceLocation id) {
+            this.id = id;
+        }
+
+        public static SourceMode of(ResourceLocation id) {
+            Objects.requireNonNull(id, "Projection source id");
+            return INTERN.computeIfAbsent(id, SourceMode::new);
+        }
+
+        public static SourceMode parse(String serialized) {
+            return parseOrDefault(serialized, IMAGE);
+        }
+
+        public static SourceMode parseOrDefault(String serialized, SourceMode fallback) {
+            ResourceLocation parsed = serialized == null ? null : ResourceLocation.tryParse(serialized.trim());
+            return parsed == null ? (fallback == null ? IMAGE : fallback) : of(parsed);
+        }
+
+        public static SourceMode fromLegacyOrdinal(int ordinal) {
+            return switch (ordinal) {
+                case 1 -> ITEM;
+                case 2 -> ENTITY;
+                case 3 -> BANNER;
+                default -> IMAGE;
+            };
+        }
+
+        public int legacyOrdinal() {
+            if (this == IMAGE) return 0;
+            if (this == ITEM) return 1;
+            if (this == ENTITY) return 2;
+            if (this == BANNER) return 3;
+            return -1;
+        }
+
+        public ResourceLocation id() {
+            return id;
+        }
+
+        public String serializedName() {
+            return id.toString();
+        }
+
+        public boolean isBuiltin() {
+            return legacyOrdinal() >= 0;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return this == other || other instanceof SourceMode that && id.equals(that.id);
+        }
+
+        @Override
+        public int hashCode() {
+            return id.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return serializedName();
         }
     }
 

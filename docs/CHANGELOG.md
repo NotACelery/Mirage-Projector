@@ -1,3 +1,121 @@
+## 0.1.0-dev.82 — mod logo integration
+
+- Keeps the dev.81 projection-source / future-proofing foundation intact with no intended gameplay, renderer, lighting, GIF, Core, or projector-UX changes.
+- Adds the selected Mirage Projector promo render as the mod logo at `src/main/resources/logo.png`.
+- Wires NeoForge mod metadata to expose that image through `logoFile="logo.png"` and disables metadata blur with `logoBlur=false` so the pixel-art style remains crisp in mod-list contexts.
+- Leaves network protocol at **27** and intentionally avoids touching source registries, projector state, models, recipes or serializers.
+
+### QA/state closure
+
+- dev.81 architectural refactor is accepted in-game: projection modes, lights, GIFs, dynamic sliders, held/dropped icons and current projector behavior continue to work correctly.
+- dev.82 is a packaging/metadata polish pass and should only require a quick smoke test in the mod list plus a normal Windows build.
+
+## 0.1.0-dev.81 — projection-source / future-proofing foundation
+
+- Replaced the closed Java `ProjectionSettings.SourceMode` enum contract with interned stable namespaced source IDs while preserving the historical type name for compact current call sites.
+- Built-in source IDs are now `mirage_projector:image`, `mirage_projector:item`, `mirage_projector:entity`, and `mirage_projector:banner`.
+- Added `ProjectionSourceRegistry` for common content/count providers and chassis compatibility, plus `ProjectionSourceRenderRegistry` for client renderer dispatch.
+- Moved BlockEntity projected-content presence/count logic behind the common source registry and moved BER top-level source dispatch behind the client render registry.
+- `ProjectionSettings` format is explicitly versioned (`SERIALIZATION_VERSION = 2`); network/source selection now serializes namespaced IDs instead of enum ordinals.
+- Save data now writes `SourceId` while still reading legacy integer `SourceMode` values for migration. Built-in saves also retain the legacy field as downgrade assistance.
+- Added opaque namespaced `ProjectionSourcePayloads` preservation to the projector BlockEntity so missing optional providers fail closed without deleting their data.
+- Added source/chassis compatibility queries (`definitionsFor`, `supportsProjectionSource`) for future addon/workspace enumeration.
+- Added source-agnostic `ProjectionTransform` with persisted normalized quaternion orientation X/Y/Z/W. 1.0 render behavior still uses the identity orientation; the fields exist so 1.2 free rotation does not require another save-format break.
+- Added device-agnostic `ProjectionEnergySource`; existing Core profiles adapt into it while `ProjectionPower` now exposes a generic energy-source evaluation overload for future portable/Glow Dust devices.
+- Unknown/custom registered sources use a conservative generic square power/envelope fallback until a future specialized power profile is supplied.
+- Bumped Mirage network protocol from 26 to **27** because projector settings/source payload wire shapes changed.
+- No intended user-visible changes to Image/Item/Entity/Banner rendering, power balance, models, lighting, GIFs, Cores or projector controls.
+
+### QA/state closure
+
+- Renderer/projection QA and Mirage Light QA are treated as closed unless a new concrete regression appears.
+- dev.80f remains the accepted visual/item-presentation endpoint; dev.82 is an internal architecture freeze pass.
+
+## 0.1.0-dev.80f — selective Mirage Projector first-person lift
+
+- Follow-up to dev.80e after QA confirmed five projector items were finally acceptable in first-person, but the compact Mirage Projector still sat too low and remained hard to read.
+- Kept the full dev.80e slab-like presentation line intact for Mirage Display, Mirage Field Projector, Wide Mirage Projector, Tall Mirage Projector and Mirage Prism.
+- Raised only the compact Mirage Projector first-person translation Y from `1.05` to `1.85`.
+- Third-person, GUI, ground and fixed presentation remain unchanged for all items.
+- No placed-block geometry, blockstates, registry IDs, recipes, menus, power logic or network protocol were intentionally changed.
+- Bumped development version to `0.1.0-dev.80f`; network protocol remains 26.
+
+### QA focus
+
+- Verify Mirage Projector specifically in first-person and confirm it now sits high enough to be read clearly.
+- Confirm the other five projector items still match the accepted dev.80e presentation.
+- Confirm the compact Mirage Projector does not become oversized while gaining visibility.
+
+## 0.1.0-dev.80e — projector first-person lift test
+
+- Follow-up to dev.80d after QA showed the slab-like presentation concept was promising, but most projectors still sat too low in first-person and almost disappeared below the HUD edge.
+- Kept the dev.80d slab-like scales intact for all six canonical projector items.
+- Raised the first-person translation Y for all six projectors so the held item appears higher on screen without reintroducing the oversized block-like scales.
+- Third-person, GUI, ground and fixed presentation remain unchanged from dev.80d.
+- No placed-block geometry, blockstates, registry IDs, recipes, menus, power logic or network protocol were intentionally changed.
+- Bumped development version to `0.1.0-dev.80e`; network protocol remains 26.
+
+### QA focus
+
+- Verify first-person held rendering for all six projectors, especially whether they now clear the HUD edge and read more naturally.
+- Compare them against slabs/pressure plates and ensure the scale still feels like a low-profile prop rather than a full block.
+- Confirm GUI, dropped-item, item-frame and third-person presentation remain unchanged from dev.80d.
+
+## 0.1.0-dev.80d — projector slab-like item-scale pass
+
+- Follow-up to dev.80c after QA concluded the projector items still read too much like full-size blocks instead of object-scale props.
+- Retuned all six projector item-model display transforms around a slab-like presentation target: smaller overall scales, lower hand positioning, and a more low-profile feel.
+- GUI, ground, fixed, first-person and third-person contexts were all adjusted so the projectors behave more like shallow devices than full cubes.
+- No placed-block geometry, blockstates, registry IDs, recipes, menus, power logic or network protocol were intentionally changed.
+- Bumped development version to `0.1.0-dev.80d`; network protocol remains 26.
+
+### QA focus
+
+- Compare each projector item against slabs and other low-profile blocks in first-person and third-person.
+- Confirm the projectors now feel like object-scale props rather than full-block props.
+- Confirm inventory, dropped-item and item-frame presentation still remains readable and attractive.
+
+## 0.1.0-dev.80c — projector held-item size rebalance
+
+- Follow-up to dev.80b after QA showed the held projectors had become too large compared with a normal block.
+- Kept GUI, ground and fixed presentation intact.
+- Reduced third-person and first-person scales from the oversized dev.80b pass to a middle-ground set, and lowered their Y translation accordingly.
+- Goal: keep the projectors readable in hand without making them dominate the view or exceed the feel of a normal held block.
+- No placed-block geometry, blockstates, registry IDs, recipes, menus, power logic or network protocol were intentionally changed.
+- Bumped development version to `0.1.0-dev.80c`; network protocol remains 26.
+
+### QA focus
+
+- Compare each held projector directly against a standard full block in first-person and third-person.
+- Confirm the projector remains readable in hand while no longer feeling oversized.
+- Confirm the earlier dev.80a inventory/ground/fixed presentation still looks correct.
+
+## 0.1.0-dev.80b — projector held-item visibility tuning
+
+- Follow-up to dev.80a after QA showed the projector items looked fine in inventory and on the ground but were still nearly invisible in hand.
+- Kept GUI, ground and fixed presentation intact.
+- Increased and lifted the third-person and first-person transforms for all six canonical projector items so held rendering reads clearly instead of collapsing into a few pixels.
+- No placed-block geometry, blockstates, registry IDs, recipes, menus, power logic or network protocol were intentionally changed.
+- Bumped development version to `0.1.0-dev.80b`; network protocol remains 26.
+
+### QA focus
+
+- Verify held rendering for Mirage Projector, Mirage Display, Mirage Field Projector, Wide Mirage Projector, Tall Mirage Projector and Mirage Prism in both first-person and third-person contexts.
+- Confirm the earlier dev.80a inventory/ground/fixed presentation still looks correct.
+
+## 0.1.0-dev.80a — projector inventory/hand icon presentation pass
+
+- Kept the dev.80 canonical projector promotion intact and focused this pass on item presentation only.
+- Replaced the six projector item-model stubs with explicit display transforms so the inventory/hand/fixed renders show the real 3D block models at readable angles.
+- Added tuned per-chassis scales for Mirage Projector, Mirage Display, Mirage Field Projector, Wide Mirage Projector, Tall Mirage Projector and Mirage Prism so they no longer read like thin black lines with a purple square.
+- No placed-block geometry, blockstates, registry IDs, recipes, menus, power logic or network protocol were intentionally changed.
+- Bumped development version to `0.1.0-dev.80a`; network protocol remains 26.
+
+### QA focus
+
+- Verify each projector item looks readable in the creative inventory, in first/third person hand, on the ground and in an item frame.
+- If any chassis still feels anticlimactic, tune that specific item-model transform rather than changing the placed block model.
+
 ## 0.1.0-dev.80 — canonical projector model promotion
 
 - Ended the temporary dev.78–79i `*_alt` comparison line.

@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 public final class MirageProjector {
     public static final String MOD_ID = "mirage_projector";
 
-    public static final String NETWORK_PROTOCOL = "26";
+    public static final String NETWORK_PROTOCOL = "27";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public MirageProjector(IEventBus modEventBus) {

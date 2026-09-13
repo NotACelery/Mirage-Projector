@@ -85,7 +85,7 @@ assert 'detourExtraCostUnits' in profile
 assert 'detourBacktrackPenaltyUnits' in profile
 assert 'nextDirectDistance < currentDirectDistance' in solver
 assert 'PACKED_SECTION_BYTES' in payload and 'revision' in payload
-assert 'NETWORK_PROTOCOL = "26"' in main
+assert 'NETWORK_PROTOCOL = "27"' in main
 
 print('dev.75d Mirage Light detour-penalty verification: PASS')
 print('open probe level:', visible(open_field[probe]), 'wall-routed probe level:', visible(wall_field[probe]))

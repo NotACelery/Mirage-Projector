@@ -5,6 +5,7 @@ import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
+import celerbi.mirageprojector.ProjectionSourceRegistry;
 import celerbi.mirageprojector.ProjectorStateTransfer;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.entity.EntityProjectionState;
@@ -42,6 +43,13 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     private ProjectionSettings settings = ProjectionSettings.DEFAULT;
     private boolean projectionEnabled = true;
     private final ImageSourceBank imageSourceBank = new ImageSourceBank();
+
+    /**
+     * Opaque per-source extension payloads. Built-in 1.0 sources continue using their
+     * established fields, while future/addon sources may persist namespaced data here.
+     * Unknown payloads are intentionally round-tripped even when their provider is absent.
+     */
+    private CompoundTag projectionSourcePayloads = new CompoundTag();
 
     private final ItemStackHandler projectionSnapshot = new ItemStackHandler(1) {
         @Override
@@ -201,7 +209,8 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public boolean activateProjectionSource(ProjectionSettings.SourceMode sourceMode) {
-        if (sourceMode == null || endResonanceLocksControls()) {
+        if (sourceMode == null || endResonanceLocksControls()
+                || !ProjectionSourceRegistry.isCompatible(sourceMode, chassisProfile())) {
             return false;
         }
         settings = settings.withSourceMode(sourceMode);
@@ -212,6 +221,25 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
 
     public ImageSourceBank imageSourceBank() {
         return imageSourceBank;
+    }
+
+    public CompoundTag projectionSourcePayload(ProjectionSettings.SourceMode source) {
+        if (source == null || !projectionSourcePayloads.contains(source.serializedName())) {
+            return new CompoundTag();
+        }
+        return projectionSourcePayloads.getCompound(source.serializedName()).copy();
+    }
+
+    public void setProjectionSourcePayload(ProjectionSettings.SourceMode source, CompoundTag payload) {
+        if (source == null) {
+            return;
+        }
+        if (payload == null || payload.isEmpty()) {
+            projectionSourcePayloads.remove(source.serializedName());
+        } else {
+            projectionSourcePayloads.put(source.serializedName(), payload.copy());
+        }
+        setChangedAndSync();
     }
 
     public void replaceImageSourceBank(ImageSourceBank bank) {
@@ -386,63 +414,11 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public int projectedSourceCount() {
-        return switch (settings.sourceMode()) {
-            case IMAGE -> {
-                if (chassisProfile().supportsMultiSourceImageLayout() && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
-                    yield imageSourceBank.countPresent(chassisProfile().imageLayoutSlots());
-                }
-                if (chassisProfile().geometry() != ProjectionChassisProfile.Geometry.PRISM) {
-                    yield hasPlaneImageContent(settings) ? 1 : 0;
-                }
-                int count = 0;
-                if (settings.hasImage()) {
-                    count++;
-                }
-                if (settings.hasEastImage()) {
-                    count++;
-                }
-                if (settings.hasBackImage()) {
-                    count++;
-                }
-                if (settings.hasWestImage()) {
-                    count++;
-                }
-                yield count;
-            }
-            case ITEM -> projectedStack().isEmpty() ? 0 : 1;
-            case ENTITY -> entityProjectionState.hasProjectedEntityContent() ? 1 : 0;
-            case BANNER -> {
-                int limit = chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM ? 4 : 1;
-                int count = 0;
-                for (int face = 0; face < limit; face++) {
-                    if (!bannerSnapshot(face).isEmpty()) {
-                        count++;
-                    }
-                }
-                yield count;
-            }
-        };
+        return ProjectionSourceRegistry.contentCount(settings.sourceMode(), this, settings);
     }
 
     public boolean hasProjectedSourceContent() {
-        return switch (settings.sourceMode()) {
-            case IMAGE -> chassisProfile().supportsMultiSourceImageLayout() && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI
-                    ? imageSourceBank.hasAny(chassisProfile().imageLayoutSlots())
-                    : chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM
-                    ? settings.hasAnyImage()
-                    : hasPlaneImageContent(settings);
-            case ITEM -> !projectedStack().isEmpty();
-            case ENTITY -> entityProjectionState.hasProjectedEntityContent();
-            case BANNER -> hasAnyBannerSnapshot();
-        };
-    }
-
-    private static boolean hasPlaneImageContent(ProjectionSettings settings) {
-        return switch (settings.backFaceMode()) {
-            case FRONT, MIRRORED, READABLE -> settings.hasImage();
-            case BACK -> settings.hasBackImage();
-            case INDEPENDENT -> settings.hasImage() || settings.hasBackImage();
-        };
+        return ProjectionSourceRegistry.hasContent(settings.sourceMode(), this, settings);
     }
 
     public EntityProjectionState.ApplyResult applyEntityEquipment(
@@ -664,6 +640,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         super.saveAdditional(tag, registries);
         settings.save(tag);
         tag.putBoolean("ProjectionEnabled", projectionEnabled);
+        if (!projectionSourcePayloads.isEmpty()) {
+            tag.put("ProjectionSourcePayloads", projectionSourcePayloads.copy());
+        }
         tag.put("ImageSourceBank", imageSourceBank.save());
         tag.put("ProjectionSnapshot", projectionSnapshot.serializeNBT(registries));
         tag.put("BannerSnapshots", bannerSnapshots.serializeNBT(registries));
@@ -687,6 +666,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         super.loadAdditional(tag, registries);
         settings = ProjectionSettings.load(tag);
         projectionEnabled = !tag.contains("ProjectionEnabled") || tag.getBoolean("ProjectionEnabled");
+        projectionSourcePayloads = tag.contains("ProjectionSourcePayloads")
+                ? tag.getCompound("ProjectionSourcePayloads").copy()
+                : new CompoundTag();
         if (!chassisProfile().supportsMultiSourceImageLayout()
                 && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
             settings = settings.withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);

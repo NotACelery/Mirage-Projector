@@ -14,9 +14,9 @@ This file is now an index. Detailed active work is split by scope so current-rel
 
 ## Current implementation line
 
-Current development line is **0.1.0-dev.80**, protocol **26**. The dev.76h static-light architecture remains QA-confirmed. dev.80 closes the temporary projector-model comparison line by promoting the six accepted dev.79i Alt visuals to the canonical IDs and removing the duplicate comparison registrations/resources.
+Current development line is **0.1.0-dev.82**, protocol **27**. The dev.76h static-light architecture and the dev.60–80 renderer/projection stabilization line are QA-accepted. dev.80f closes projector models/textures/item presentation. dev.82 is the architectural freeze pass: stable namespaced projection-source IDs, content/render provider registries, chassis compatibility queries, unknown-source payload preservation, quaternion-ready transform persistence and a non-Core-specific energy boundary.
 
-Immediate 1.0.0 visual work now moves to **projector inventory/item icons**, which still inherit the raw block-model silhouette and read poorly in inventory. After that, remaining blockers are renderer/release QA, multiplayer/asset stress and the extension seams tracked in `WAITLIST-1.0.0.md`.
+The remaining 1.0.0 work is release hardening/document cleanup rather than another renderer/light feature wave.
 
 ## Scope rule
 

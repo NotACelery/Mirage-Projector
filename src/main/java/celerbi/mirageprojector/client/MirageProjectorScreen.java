@@ -4,6 +4,7 @@ import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
+import celerbi.mirageprojector.ProjectionSourceRegistry;
 import celerbi.mirageprojector.menu.MirageProjectorMenu;
 import celerbi.mirageprojector.network.OpenBannerWorkspacePayload;
 import celerbi.mirageprojector.network.OpenEntityWorkspacePayload;
@@ -416,12 +417,12 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         if (!currentProjectionEnabled()) {
             return;
         }
-        Button active = switch (currentSourceMode()) {
-            case IMAGE -> imageModeButton;
-            case ITEM -> itemModeButton;
-            case ENTITY -> entityModeButton;
-            case BANNER -> bannerModeButton;
-        };
+        ProjectionSettings.SourceMode source = currentSourceMode();
+        Button active = source == ProjectionSettings.SourceMode.IMAGE ? imageModeButton
+                : source == ProjectionSettings.SourceMode.ITEM ? itemModeButton
+                : source == ProjectionSettings.SourceMode.ENTITY ? entityModeButton
+                : source == ProjectionSettings.SourceMode.BANNER ? bannerModeButton
+                : null;
         if (active == null) {
             return;
         }
@@ -719,7 +720,9 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     }
 
     private static Component sourceName(ProjectionSettings.SourceMode mode) {
-        return Component.translatable("gui.mirage_projector.source." + mode.name().toLowerCase());
+        return ProjectionSourceRegistry.definition(mode)
+                .map(definition -> Component.translatable(definition.translationKey()))
+                .orElseGet(() -> Component.literal(mode == null ? "?" : mode.serializedName()));
     }
 
     private static int nextTint(int current) {

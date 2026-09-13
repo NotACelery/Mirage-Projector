@@ -19,7 +19,13 @@ Owns the persistent projector state:
 
 ### `ProjectionSettings`
 
-Owns shared presentation and Image-facing state. Wire/NBT input is sanitized before use.
+Owns shared presentation and Image-facing state. Wire/NBT input is sanitized before use. dev.81 source identity is namespaced and ordinal-free; settings serialization is explicitly versioned and carries quaternion-ready orientation fields. `ProjectionTransform` provides the source-agnostic transform view used by future interaction code.
+
+### Projection source registries
+
+`ProjectionSourceRegistry` is common-side authority for stable namespaced source IDs, content presence/count providers and chassis compatibility. The current built-ins are `mirage_projector:image`, `mirage_projector:item`, `mirage_projector:entity` and `mirage_projector:banner`. Unknown IDs remain persisted even if their provider is absent.
+
+`ProjectionSourceRenderRegistry` is client-only and maps those same source IDs to renderer providers. Optional addons may register another common source plus client renderer without extending a Java enum or editing the core BER dispatch chain.
 
 ### `EntityProjectionState`
 
@@ -35,7 +41,7 @@ The authoritative light subsystem lives under `celerbi.mirageprojector.light.eng
 
 The solver walks six adjacent voxels. `MirageLightOcclusion` delegates destination opacity and face-shape blocking to vanilla `LightEngine.getLightBlockInto(...)`. dev.75d adds weighted detour semantics: monotonic open travel keeps the profile's ordinary cost, while steps that prove the route had to overshoot/backtrack because of geometry receive `detourExtraCostUnits`. This creates gradual shadows without a hard mode switch behind walls.
 
-Final Mirage values merge with vanilla at read time and are never fed back into vanilla block-light propagation. `crying_light_node` is migration-only. Since dev.76, `STATIC_WORLD` is solved only on the server. Current protocol 26 synchronizes revisioned per-chunk snapshots of packed 16×16×16 light sections, with client chunk requests and lightweight revision manifests for recovery. Clients do not run the static solver. `DYNAMIC_VISUAL` is deliberately separate for future moving/portable emitters.
+Final Mirage values merge with vanilla at read time and are never fed back into vanilla block-light propagation. `crying_light_node` is migration-only. Since dev.76, `STATIC_WORLD` is solved only on the server. Current protocol 27 synchronizes revisioned per-chunk snapshots of packed 16×16×16 light sections, with client chunk requests and lightweight revision manifests for recovery. Clients do not run the static solver. `DYNAMIC_VISUAL` is deliberately separate for future moving/portable emitters.
 
 `STATIC_WORLD` is implemented for Mature Clusters. `DYNAMIC_VISUAL`, directional/frustum/plane shapes and RGB rendering are the dev.76+ boundary; moving visual sources must not turn into per-frame server gameplay-light rebuilds. See `MIRAGE-LIGHT-ENGINE.md`.
 
@@ -48,7 +54,7 @@ Do not collapse all source types into one quad renderer.
 - Entity is a reconstructed render-only client entity plus visibility-filtered equipment layers.
 - Core/Booster centers use real item models.
 
-`MirageProjectorRenderer` is still the largest rendering coordinator. It delegates/supports source-specific helpers but remains a future refactor hotspot. `EntityProjectionBounds` is the shared conservative Entity envelope authority for preview/clearance/world culling. The BER render AABB must include both the chassis and displaced projection/nameplate; dev.72 therefore allows normal vanilla frustum culling instead of forcing off-screen submission.
+`MirageProjectorRenderer` is still the largest rendering coordinator, but dev.81 removes the closed top-level source dispatch. Common source presence/count semantics live in `ProjectionSourceRegistry`; client rendering dispatch lives in `ProjectionSourceRenderRegistry`; the renderer now receives a registered source handler rather than owning a forever-closed source switch. `EntityProjectionBounds` is the shared conservative Entity envelope authority for preview/clearance/world culling. The BER render AABB must include both the chassis and displaced projection/nameplate; dev.72 therefore allows normal vanilla frustum culling instead of forcing off-screen submission.
 
 ## Entity render isolation
 
@@ -73,7 +79,7 @@ Asset filenames are not network identity.
 
 ## Power
 
-`ProjectionPower` is the only authority for effective capacity, per-component cost, overdrive and dynamic feasible slider limits. Rendering code must not invent parallel power limits.
+`ProjectionPower` is the only authority for effective capacity, per-component cost, overdrive and dynamic feasible slider limits. Rendering code must not invent parallel power limits. dev.81 adds `ProjectionEnergySource`: fixed projectors adapt their installed `ProjectionCoreProfile`, while future portable devices may supply a different energy backend without pretending to own a Core socket.
 
 ## Projector upgrades
 

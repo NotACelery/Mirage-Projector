@@ -1,6 +1,6 @@
 # Mirage Projector — Documentation authority
 
-Current documentation line: **0.1.0-dev.80**.
+Current documentation line: **0.1.0-dev.82**.
 
 This directory was reorganized in dev.59 so current implementation, current backlog and historical design notes are no longer mixed together.
 
@@ -64,7 +64,8 @@ Historical files do not become current requirements merely because they contain 
 - `NEXT-CHAT-HANDOFF-dev74.md`: historical foundation-to-authority continuation point.
 - `NEXT-CHAT-HANDOFF-dev75b.md`: historical lifecycle continuation point.
 - `NEXT-CHAT-HANDOFF-dev75c.md`: historical wall-opacity correction handoff.
-- `NEXT-CHAT-HANDOFF-dev80.md`: **current continuation point**. Older handoffs are historical recovery points only.
+- `DEV81-PROJECTION-SOURCE-FOUNDATION.md`: current architectural freeze contract.
+- `NEXT-CHAT-HANDOFF-dev82.md`: **current continuation point**. Older handoffs are historical recovery points only.
 - `CHANGELOG.md`: chronology.
 - `DEVELOPMENT.md`: project/build conventions.
 - `THIRD_PARTY_NOTICES.md`: bundled third-party notices.

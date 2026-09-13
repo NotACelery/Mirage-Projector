@@ -2,7 +2,7 @@
 
 Mirage Projector is a NeoForge 1.21.1 mod by **Celerbi** for configurable decorative holographic projections. The current development line supports images/GIFs, items, banners and frozen entity snapshots across six state-preserving projector chassis.
 
-**Current source line:** `0.1.0-dev.80` — the six accepted dev.79i projector models are now the canonical runtime models. The temporary `*_alt` blocks/items/resources are removed, the old canonical model JSONs are archived under `docs/history/projector-models-pre-dev80/`, and the Creative projector order is Mirage Projector → Mirage Display → Mirage Field Projector → Wide Mirage Projector → Tall Mirage Projector → Mirage Prism. Network protocol remains 26.
+**Current source line:** `0.1.0-dev.82` — mod logo integration on top of the dev.81 architecture freeze. The projector visuals/held-item line remains closed at dev.80f, the projection-source future-proofing foundation from dev.81 remains the current architectural baseline, and dev.82 adds the chosen mod logo asset plus NeoForge metadata wiring (`logoFile`, `logoBlur=false`). User-visible Image/Item/Entity/Banner/Light behavior is otherwise intentionally unchanged. Network protocol remains 27.
 
 Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in `docs/CURRENT-IMPLEMENTATION.md`; genuinely pending work lives only in `docs/ROADMAP.md`.
 
@@ -13,7 +13,7 @@ Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in 
 - Java 21
 - Gradle 9.2.1
 - Parchment 2024.11.17
-- Network protocol 26
+- Network protocol 27
 
 ## Projector chassis
 
@@ -146,7 +146,7 @@ Current active documents:
 - `docs/DEV75D-STATIC-QA.md`
 - `docs/CHANGELOG.md`
 - `docs/DEV79A-FULL-AUDIT.md`
-- `docs/NEXT-CHAT-HANDOFF-dev80.md`
+- `docs/NEXT-CHAT-HANDOFF-dev82.md`
 - `docs/DEV78A-PROJECTOR-MODEL-CORRECTIONS.md`
 - `docs/DEV79-SCOPE-LOCKED-PROJECTOR-RECONCILIATION.md`
 - `docs/NEXT-CHAT-HANDOFF-dev79.md`
@@ -161,6 +161,6 @@ Superseded documentation is retained under `docs/archive/pre-dev59/` and `docs/a
 
 ## Build
 
-On Windows, run `build.bat` with Java 21 available. The artifact-side current suite is `python tools/verify_current_line.py`; it is not a substitute for the Windows NeoForge build. For dev.80, compile first and smoke-test the six canonical projectors after promotion, verify the requested Creative ordering, then move to the dedicated inventory-icon pass.
+On Windows, run `build.bat` with Java 21 available. The artifact-side current suite is `python tools/verify_current_line.py`; it is not a substitute for the Windows NeoForge build. For dev.82, compile first and smoke-test save/reload plus Image/Item/Entity/Banner activation once. The pass is architectural rather than visual: existing projector behavior should remain unchanged while source IDs, provider dispatch, transform persistence and energy seams become extensible.
 
 Release/runtime caches and generated directories are intentionally excluded from source snapshots.

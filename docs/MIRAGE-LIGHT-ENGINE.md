@@ -4,13 +4,13 @@
 
 This intentionally does **not** inject Mirage values into vanilla `BlockLightEngine` propagation, so virtual values cannot become recursive secondary emitters. Client section install/removal publishes `onLightUpdate(BLOCK, section)` for render/cache consumers.
 
-`DYNAMIC_VISUAL` remains a distinct future backend for lanterns, handheld projectors and other moving emitters; it must not rebuild/synchronize static section voxels every frame. Current network protocol: **26**.
+`DYNAMIC_VISUAL` remains a distinct future backend for lanterns, handheld projectors and other moving emitters; it must not rebuild/synchronize static section voxels every frame. Current network protocol: **27**. (The dev.82 bump is for projector source/transform codecs; STATIC_WORLD snapshot semantics are unchanged.)
 
 ---
 
 # Mirage Projector — Mirage Light Engine authority
 
-Current line: **0.1.0-dev.80**. Network protocol: **26**.
+Current line: **0.1.0-dev.82**. Network protocol: **27**.
 
 This document is the focused authority for Mirage-owned world/dynamic lighting. Historical physical-relay documents remain useful archaeology, but they do not override this contract.
 
@@ -55,7 +55,7 @@ Current fields:
 - direction / cone angle;
 - reserved RGB metadata.
 
-The profile remains the authoritative server-side solve contract. STATIC_WORLD no longer sends source descriptors to clients: protocol 26 sends final revisioned chunk snapshots/section values plus recovery manifests/requests. `detourExtraCostUnits` therefore stays server-side for static Mature lighting.
+The profile remains the authoritative server-side solve contract. STATIC_WORLD no longer sends source descriptors to clients: protocol 27 sends the same final revisioned chunk snapshots/section values plus recovery manifests/requests. `detourExtraCostUnits` therefore stays server-side for static Mature lighting.
 
 ### `MirageLightSolver`
 

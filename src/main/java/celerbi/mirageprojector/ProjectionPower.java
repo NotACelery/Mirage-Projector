@@ -32,13 +32,31 @@ public final class ProjectionPower {
             boolean hasProjectedItem,
             int projectedSourceCount
     ) {
-        ProjectionSettings safe = settings.sanitized();
-        ProjectionCoreProfile safeCore = core == null ? ProjectionCoreProfile.NONE : core;
+        return evaluate(
+                settings,
+                ProjectionEnergySource.fromCore(core),
+                chassis,
+                hasProjectedItem,
+                projectedSourceCount
+        );
+    }
+
+    public static Status evaluate(
+            ProjectionSettings settings,
+            ProjectionEnergySource energySource,
+            ProjectionChassisProfile chassis,
+            boolean hasProjectedItem,
+            int projectedSourceCount
+    ) {
+        ProjectionSettings safe = settings == null ? ProjectionSettings.DEFAULT : settings.sanitized();
+        ProjectionEnergySource safeEnergy = energySource == null
+                ? ProjectionEnergySource.fixed(0, 0.0F)
+                : energySource;
         ProjectionChassisProfile safeChassis = chassis == null ? ProjectionChassisProfile.COMPACT : chassis;
         Breakdown breakdown = calculateBreakdown(safe, hasProjectedItem, safeChassis, projectedSourceCount);
-        int available = effectiveCapacity(safeCore, safeChassis);
+        int available = effectiveCapacity(safeEnergy, safeChassis);
 
-        if (!safeCore.present()) {
+        if (!safeEnergy.available()) {
             return new Status(false, breakdown.totalPower(), 0, Failure.NO_CORE);
         }
 
@@ -53,16 +71,14 @@ public final class ProjectionPower {
     }
 
     public static int effectiveCapacity(ProjectionCoreProfile core, ProjectionChassisProfile chassis) {
-        ProjectionCoreProfile safeCore = core == null ? ProjectionCoreProfile.NONE : core;
-        ProjectionChassisProfile safeChassis = chassis == null ? ProjectionChassisProfile.COMPACT : chassis;
-        if (!safeCore.present()) {
-            return 0;
-        }
-        return Math.max(1, Mth.floor(
-                safeCore.basePower()
-                        * safeChassis.powerMultiplier()
-                        * safeCore.amplificationMultiplier()
-        ));
+        return effectiveCapacity(ProjectionEnergySource.fromCore(core), chassis);
+    }
+
+    public static int effectiveCapacity(ProjectionEnergySource energySource, ProjectionChassisProfile chassis) {
+        ProjectionEnergySource safeEnergy = energySource == null
+                ? ProjectionEnergySource.fixed(0, 0.0F)
+                : energySource;
+        return safeEnergy.effectiveCapacity(chassis);
     }
 
     public static int maximumStructuralScale(
@@ -209,6 +225,10 @@ public final class ProjectionPower {
         if (safe.sourceMode() == ProjectionSettings.SourceMode.BANNER) {
             return hasProjectedItem ? bannerDimensions(safe.scalePixels()) : new Dimensions(0, 0);
         }
+        if (safe.sourceMode() != ProjectionSettings.SourceMode.IMAGE) {
+            int side = hasProjectedItem ? safe.scalePixels() : 0;
+            return new Dimensions(side, side);
+        }
 
         if (safe.sourceMode() == ProjectionSettings.SourceMode.IMAGE
                 && safeChassis.supportsMultiSourceImageLayout()
@@ -347,16 +367,22 @@ public final class ProjectionPower {
             boolean hasProjectedItem,
             int sourceCount
     ) {
-        return switch (safe.sourceMode()) {
-            case ITEM, ENTITY -> hasProjectedItem;
-            case BANNER -> hasProjectedItem && sourceCount > 0;
-            case IMAGE -> chassis.supportsMultiSourceImageLayout()
+        ProjectionSettings.SourceMode source = safe.sourceMode();
+        if (source == ProjectionSettings.SourceMode.ITEM || source == ProjectionSettings.SourceMode.ENTITY) {
+            return hasProjectedItem;
+        }
+        if (source == ProjectionSettings.SourceMode.BANNER) {
+            return hasProjectedItem && sourceCount > 0;
+        }
+        if (source == ProjectionSettings.SourceMode.IMAGE) {
+            return chassis.supportsMultiSourceImageLayout()
                     && safe.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI
                     ? hasProjectedItem && sourceCount > 0
                     : chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM
                     ? safe.hasAnyImage()
                     : hasPlaneImageContent(safe);
-        };
+        }
+        return hasProjectedItem && sourceCount > 0;
     }
 
     private static int rawGeometryCost(
@@ -401,10 +427,12 @@ public final class ProjectionPower {
                 return imagePower(true, safe.backImageWidth(), safe.backImageHeight(), safe.scalePixels());
             }
             if (safe.hasImage()) {
-
                 return imagePower(true, safe.imageWidth(), safe.imageHeight(), safe.scalePixels());
             }
             return imagePower(true, safe.backImageWidth(), safe.backImageHeight(), safe.scalePixels());
+        }
+        if (safe.sourceMode() != ProjectionSettings.SourceMode.IMAGE && hasProjectedItem) {
+            return squareAreaPower(safe.scalePixels()) * Math.max(1, sourceCount);
         }
         return 1;
     }
@@ -435,22 +463,28 @@ public final class ProjectionPower {
             ProjectionChassisProfile chassis,
             int sourceCount
     ) {
-        return switch (safe.sourceMode()) {
-            case IMAGE -> {
-                if (chassis.supportsMultiSourceImageLayout()
-                        && safe.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
-                    yield sourceCount > 1 ? 1 : 0;
-                }
-                if (chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM) {
-                    yield 2;
-                }
-                yield safe.backFaceMode() == ProjectionSettings.BackFaceMode.INDEPENDENT
-                        && safe.hasImage() && safe.hasBackImage() ? 1 : 0;
+        ProjectionSettings.SourceMode source = safe.sourceMode();
+        if (source == ProjectionSettings.SourceMode.IMAGE) {
+            if (chassis.supportsMultiSourceImageLayout()
+                    && safe.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
+                return sourceCount > 1 ? 1 : 0;
             }
-            case ITEM -> 2;
-            case ENTITY -> 4;
-            case BANNER -> chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM ? 2 : 1;
-        };
+            if (chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM) {
+                return 2;
+            }
+            return safe.backFaceMode() == ProjectionSettings.BackFaceMode.INDEPENDENT
+                    && safe.hasImage() && safe.hasBackImage() ? 1 : 0;
+        }
+        if (source == ProjectionSettings.SourceMode.ITEM) {
+            return 2;
+        }
+        if (source == ProjectionSettings.SourceMode.ENTITY) {
+            return 4;
+        }
+        if (source == ProjectionSettings.SourceMode.BANNER) {
+            return chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM ? 2 : 1;
+        }
+        return sourceCount > 0 ? 1 : 0;
     }
 
     private static int applyOverdrive(int baseCost, double ratio) {

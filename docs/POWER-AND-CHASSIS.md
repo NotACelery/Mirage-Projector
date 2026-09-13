@@ -29,6 +29,10 @@ Standard Core amplification is ×1.00. A loaded Core Booster uses the same mater
 Effective PU = floor(Base PU × chassis multiplier × amplification)
 ```
 
+### dev.81 energy boundary
+
+`ProjectionPower` no longer requires every future projector-like device to own a physical Core slot. Current fixed projectors adapt their `ProjectionCoreProfile` through `ProjectionEnergySource`, preserving the exact 1.0 PU math. Future portable devices can supply a different backend (for example Glow Dust charge in 1.1) through the same boundary without inventing a fake Core inventory.
+
 ## Load model
 
 Current centralized constants include:

@@ -19,9 +19,9 @@ alts=[
 ]
 
 props=(ROOT/'gradle.properties').read_text()
-need('mod_version=0.1.0-dev.80' in props,'version is not dev.80')
+need('mod_version=0.1.0-dev.82' in props,'version is not dev.82')
 main=(ROOT/'src/main/java/celerbi/mirageprojector/MirageProjector.java').read_text()
-need('NETWORK_PROTOCOL = "26"' in main,'network protocol changed unexpectedly')
+need('NETWORK_PROTOCOL = "27"' in main,'network protocol is not current protocol 27')
 
 # Temporary alt registry/runtime surface must be gone.
 for rel in [
@@ -123,7 +123,7 @@ for lang in ['en_us','es_cl','es_es']:
     need(not any(k.endswith('_alt') for k in data),f'{lang} still exposes alt translation keys')
 
 if errors:
-    print('dev.80 projector promotion verification FAILED')
+    print('dev.80f projector promotion verification FAILED')
     for e in errors: print(' -',e)
     raise SystemExit(1)
-print('dev.80 projector promotion verification PASS')
+print('dev.82 projector promotion verification PASS')

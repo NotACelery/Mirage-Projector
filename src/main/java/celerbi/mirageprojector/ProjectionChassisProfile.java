@@ -73,6 +73,10 @@ public enum ProjectionChassisProfile {
         return powerMultiplier;
     }
 
+    public boolean supportsProjectionSource(ProjectionSettings.SourceMode source) {
+        return ProjectionSourceRegistry.isCompatible(source, this);
+    }
+
     public boolean supportsMultiSourceImageLayout() {
         return this == WIDE || this == TALL;
     }

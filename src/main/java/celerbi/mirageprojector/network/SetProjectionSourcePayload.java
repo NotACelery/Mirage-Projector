@@ -25,14 +25,14 @@ public record SetProjectionSourcePayload(
                 public SetProjectionSourcePayload decode(RegistryFriendlyByteBuf buffer) {
                     return new SetProjectionSourcePayload(
                             buffer.readBlockPos(),
-                            ProjectionSettings.SourceMode.fromOrdinal(buffer.readVarInt())
+                            ProjectionSettings.SourceMode.parse(buffer.readUtf(128))
                     );
                 }
 
                 @Override
                 public void encode(RegistryFriendlyByteBuf buffer, SetProjectionSourcePayload payload) {
                     buffer.writeBlockPos(payload.pos());
-                    buffer.writeVarInt(payload.sourceMode().ordinal());
+                    buffer.writeUtf(payload.sourceMode().serializedName(), 128);
                 }
             };
 

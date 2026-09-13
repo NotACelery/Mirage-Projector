@@ -2,9 +2,9 @@ package celerbi.mirageprojector.light.engine;
 
 /**
  * Geometric envelope for a Mirage light source.
- * Only OMNIDIRECTIONAL is solved in dev.74; the remaining shapes are part of
- * the stable source/profile contract so later projector lighting does not need
- * another storage/solver rewrite.
+ * Only OMNIDIRECTIONAL is currently solved. The remaining shapes are reserved by
+ * the stable source/profile contract so future light consumers can extend geometry
+ * without replacing storage or solver architecture.
  */
 public enum MirageLightShape {
     OMNIDIRECTIONAL(true),

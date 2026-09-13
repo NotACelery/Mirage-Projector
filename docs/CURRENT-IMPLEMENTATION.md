@@ -1,272 +1,199 @@
-# Mirage Projector — Current implementation
+# Current Implementation — Mirage Projector 1.0.0
 
-Version line: **0.1.0-dev.82**  
-Minecraft: **1.21.1**  
-NeoForge: **21.1.244**  
-Java: **21**  
+Version: **1.0.0**
+Minecraft: **1.21.1**
+NeoForge: **21.1.244+**
 Network protocol: **27**
 
-Status: static Mature lighting remains server-authoritative and QA-confirmed through `dev.76h`. `dev.77` differentiates Core Booster identities. `dev.78`–`dev.79i` completed the alternate-projector comparison/refinement line, including model↔VoxelShape reconciliation, Compact Z-fighting cleanup, Tall front/rear symmetry and the fixed-projector ON/OFF/active-source UX. **dev.80** closed that comparison line by promoting the accepted models to the canonical projector IDs and removing all temporary `*_alt` runtime resources. **dev.80a** introduced explicit angled 3D display transforms for the six canonical projector item models. **dev.80b** then enlarged held rendering after QA found the projectors too tiny in hand. **dev.80c** reduced that oversized pass to a middle ground, but QA still found the items too full-block-like. **dev.80d** retuned all item contexts around a slab-like object scale so the projectors feel more like shallow devices than full cubes. **dev.80e** kept those slab-like scales but lifted first-person placement upward for all six devices. **dev.80f** refines that result by lifting only the compact Mirage Projector further, because the other five were already accepted. **dev.81** closes the last major 1.0 architectural seam by replacing source ordinals with stable namespaced IDs and registries. **dev.82** adds the chosen mod logo asset to NeoForge metadata without changing runtime behavior. Physical `crying_light_node` relays remain migration-only.
+This document describes the stable runtime behavior of Mirage Projector 1.0.0. Historical development notes are archived under `docs/history/` and are not current authority.
 
-## dev.75b authoritative virtual-light lifecycle
+## Canonical projector family
 
-The dev.75 authority handoff is complete and remains accumulated in dev.75d:
+The runtime exposes six projector chassis:
 
-- server alone solves STATIC_WORLD fields; clients receive packed final visible levels per chunk section;
-- source delivery is scoped to watched chunks and retracts when no watched chunk needs the source;
-- same-level respawn can CLEAR/repopulate without depending on vanilla chunk retransmission;
-- server chunk/terrain geometry changes re-solve relevant static sources and publish affected aggregate sections;
-- source-origin unload removes that source; destination chunk arrival can refill the surviving field;
-- client changes dirty old/new render sections;
-- terrain invalidation covers block place/multi-place/break, fluids, crop/feature growth, pistons and explosions;
-- Core Booster swaps refresh nearby Mature sources;
-- loaded chunks palette-scan for orphan legacy `crying_light_node`; current runtime never creates one;
-- effective reads are `max(vanilla, Mirage)` without injecting Mirage into vanilla propagation.
+1. Mirage Projector
+2. Mirage Display
+3. Mirage Field Projector
+4. Wide Mirage Projector
+5. Tall Mirage Projector
+6. Mirage Prism
 
-dev.75c then fixed the destination-opacity argument passed to vanilla edge occlusion. dev.75d adds the profile-level detour penalty described below. Historical dev.75 source descriptors used protocol 21; current STATIC_WORLD transport is revisioned chunk snapshots/manifests under protocol **27**.
+The project no longer registers alternate/comparison projector IDs. Each chassis has one canonical block/item identity, model, VoxelShape and renderer layout.
 
-## Projector family
+Crafting upgrades preserve stored projector state. Mirage Projector upgrades into Mirage Display, which branches into Wide, Tall, Prism and Field variants.
 
-Six playable chassis exist:
+## Projector state
 
-- Mirage Projector / Compact;
-- Mirage Display;
-- Wide Mirage Projector;
-- Tall Mirage Projector;
-- Mirage Prism;
-- Mirage Field Projector.
+A fixed projector keeps these concepts separate:
 
-All six share the same BlockEntity family and source/presentation state. Horizontal placement orientation is persisted. The physical emitter/chamber geometry varies by chassis.
+- **projection enabled/disabled**;
+- **active projection source**;
+- **workspace currently open**;
+- **source-specific content**;
+- **shared presentation transform**;
+- **installed Core / power state**.
 
-Crafting progression is:
+`TURN OFF` disables rendering without deleting Image, Item, Banner or Entity data. Selecting `Use <mode> mode` activates that source and re-enables projection. GUI source buttons indicate the source that is actually active, not merely the workspace currently being viewed.
 
-```text
-Mirage Projector
-      |
-      v
-Mirage Display
-   |    |    |    |
-   v    v    v    v
- Wide  Tall Prism Field
-```
+## Projection source architecture
 
-Upgrade recipes preserve projector state instead of creating an empty machine.
+Built-in source IDs are stable namespaced identifiers:
 
+- `mirage_projector:image`
+- `mirage_projector:item`
+- `mirage_projector:entity`
+- `mirage_projector:banner`
 
-## Canonical projector model line
+Source identity is ordinal-free. Save/network settings are versioned, legacy ordinal saves migrate, and unknown registered source IDs/payloads are preserved rather than destructively coerced into a built-in type.
 
-As of dev.80 there is only one runtime model/registry identity per projector chassis. The accepted dev.79i comparison visuals are now the canonical models for:
+`ProjectionSourceRegistry` owns common source definitions/content semantics. `ProjectionSourceRenderRegistry` owns client render dispatch. Chassis/source compatibility is queried centrally instead of being hard-coded independently into each screen/renderer path.
 
-- Mirage Projector;
-- Mirage Display;
-- Mirage Field Projector;
-- Wide Mirage Projector;
-- Tall Mirage Projector;
-- Mirage Prism.
+## Projection transforms
 
-The temporary `*_alt` block/item IDs, blockstates, item models, block models and loot tables are no longer registered or shipped as active resources. The six pre-dev.80 canonical block-model JSONs are retained only under `docs/history/projector-models-pre-dev80/legacy-canonical/` for archaeology; they are not runtime assets. Canonical VoxelShapes and renderer anchor layouts now directly use the promoted geometry.
+Shared presentation state is separated from source content through `ProjectionTransform`. Current UI exposes the established scale/lift/rotation/float/tint/ghost controls, while persisted orientation already carries normalized quaternion fields for future direct-manipulation work.
 
-The custom Mirage creative tab and vanilla Functional Blocks tab list the six projectors in this order: Mirage Projector, Mirage Display, Mirage Field Projector, Wide Mirage Projector, Tall Mirage Projector, Mirage Prism.
+## Image / GIF
 
-## dev.82 projection-source / transform foundation
+Supported import families:
 
-The public 1.0 source set is still Image / Item / Entity / Banner, but those names are no longer a closed Java enum contract. `ProjectionSettings.SourceMode` is now an interned namespaced-ID value (`mirage_projector:image`, `mirage_projector:item`, `mirage_projector:entity`, `mirage_projector:banner`). Saves write `SourceId`; old integer `SourceMode` saves still migrate. Network settings/source payloads use IDs and protocol 27.
+- PNG
+- JPG/JPEG
+- static WebP
+- BMP
+- animated GIF
 
-`ProjectionSourceRegistry` owns common source registration, content presence/count providers and chassis compatibility. `ProjectionSourceRenderRegistry` owns client renderer dispatch. Missing providers fail closed while the saved source ID and opaque `ProjectionSourcePayloads` NBT are preserved.
+Imported assets are content-addressed and synchronized through the Mirage asset pipeline. Wide/Tall can use multi-source layouts, Prism supports independent cardinal faces and Field uses one continuous plane.
 
-`ProjectionTransform` is source-agnostic and now includes persisted normalized quaternion orientation fields in addition to the current Scale/Lift/spin/float controls. 1.0 rendering leaves that orientation at identity; the persistence seam exists so 1.2 free rotation does not require another format break.
+## Item
 
-`ProjectionEnergySource` is the power-consumer boundary. Fixed 1.0 projectors adapt their `ProjectionCoreProfile`; future Glow Dust/portable energy backends can provide capacity without pretending to own a Core socket.
+The Item workspace stores a virtual serialized snapshot. The source inventory item is not consumed or physically stored inside the projector. Blocks use volumetric rendering when applicable; ordinary items use Minecraft's item renderer.
 
-## Projection sources
+## Banner
 
-Four active source families are implemented:
+Banner appearance is copied virtually. Plane chassis render cloth without a physical banner pole. Prism stores independent North/East/South/West banner snapshots and can copy the North source to the remaining faces.
 
-### Image
+## Entity
 
-- PNG;
-- JPG/JPEG;
-- static WebP;
-- BMP;
-- animated GIF.
-
-Image layouts:
-
-- Compact/Display/Field: one continuous Plane;
-- Wide: SINGLE or four-cell 4×1 MULTI;
-- Tall: SINGLE or four-cell 1×4 MULTI;
-- Prism: independent North/East/South/West faces.
-
-Plane back behavior supports Front, Back, Mirrored, Readable and Independent semantics as applicable.
-
-### Item
-
-The Item workspace stores a virtual serialized copy. The original inventory item never becomes projector inventory. Blocks use their 3D item/block representation; ordinary items use the item renderer; standalone wearable equipment can use the projection rig path.
-
-### Banner
-
-Banner appearance is copied virtually. The real banner stays with the player. Plane chassis render cloth without the physical pole. Prism stores independent cardinal faces.
-
-### Entity
-
-Entity Scan Cards store frozen render data rather than a live ticking entity. Current support includes:
+Entity Scan Cards contain frozen projection data rather than live entities. Supported state includes:
 
 - generic living entities;
-- Players with frozen profile/skin information;
-- Humanoid equipment snapshots;
-- bodyless Humanoid equipment projection;
-- Horse Saddle and Body Armor channels;
-- persistent per-channel render visibility for Head/Chest/Legs/Feet/Main Hand/Off Hand/Saddle/Body Armor without deleting snapshots;
-- pose presets;
-- species/pose/equipment-aware preview, clearance and render-envelope foundations;
-- frozen custom names/nameplates positioned above the projected envelope and tinted/faded with the hologram;
-- Piglin/Hoglin conversion-shake normalization for projection-only client entities.
+- Players and Player skin/model-part state;
+- Humanoid equipment and held items;
+- bodyless equipment rigs;
+- Horse Saddle and Body Armor;
+- custom names/nameplates;
+- supported pose presets;
+- per-channel projected-equipment visibility.
 
-Mounted/passenger composite scans remain intentionally rejected.
+Entity preview fitting, clearance and world culling use conservative pose/species/equipment-aware bounds. Passenger/vehicle composite scans remain rejected because 1.0.0 does not define a composite snapshot format.
 
-## Projector active-state / shutdown UX
+## Projection Power
 
-`dev.79d` implements the fixed-projector active-state/shutdown contract, retained in dev.80f:
+`ProjectionPower` is the authority for capacity, component cost, overdrive and feasible slider limits. Fixed projectors obtain energy through `ProjectionEnergySource` backed by the installed Projection Core; the energy boundary itself is not tied to a Core socket so future portable devices can use another backend.
 
-- projectors have an explicit persisted/synchronized ON/OFF state independent from source identity;
-- `TURN OFF` stops the visible projection without deleting configured source or presentation state; the inserted Core remains physically visible;
-- `Use <mode> mode` both selects the workspace source as the active source and re-enables projection;
-- opening Image/Item/Entity/Banner workspaces is navigation only and must not silently change the active projection;
-- each Image/Item/Entity/Banner workspace changes `Use <mode> mode` to disabled `Mode currently Active` only when that mode is actually ON;
-- the main source-selection menu draws a white outline around the Image/Item/Entity/Banner button that is **actually active**;
-- while the projector is OFF, none of those source buttons is shown as active, even though the last source/configuration remains stored for later reuse.
+Core base PU:
 
-The implementation should therefore preserve the distinction `open workspace != active source != projection enabled`. OFF must not be represented by extending the closed source enum with a fake source value.
+| Material | Base PU |
+|---|---:|
+| Glass | 32 |
+| Quartz | 48 |
+| Amethyst | 64 |
+| Diamond | 96 |
+| Netherite | 128 |
 
-## Presentation controls
-
-Implemented shared presentation state includes:
-
-- Scale;
-- Lift;
-- rotation on/off;
-- rotation period;
-- clockwise/counter-clockwise;
-- orientation offset;
-- Floating on/off;
-- time-based or rotation-synced floating;
-- float amplitude and timing;
-- world lighting or Fullbright;
-- Ghost Effect / opacity;
-- Tint;
-- Image vertical flip;
-- Image scanlines;
-- development chassis-overdrive override for Creative testing.
-
-## Power
-
-Standard material Base PU:
-
-| Material | Base PU | Standard amplification | Core Booster amplification |
-|---|---:|---:|---:|
-| Glass | 32 | ×1.00 | ×1.50 |
-| Quartz | 48 | ×1.00 | ×1.50 |
-| Amethyst | 64 | ×1.00 | ×1.50 |
-| Diamond | 96 | ×1.00 | ×1.50 |
-| Netherite | 128 | ×1.00 | ×1.50 |
-
-Effective capacity:
+Effective capacity is:
 
 ```text
 floor(Base PU × chassis multiplier × Core amplification)
 ```
 
-Scale/Lift/Float slider maxima are solved against the current PU budget. Chassis nominal envelopes are efficiency targets; overdrive is allowed when PU can pay its quadratic penalty.
-
-## Core Booster
-
-One user-facing block/item exists: `mirage_projector:core_booster`.
-
-The empty Booster accepts exactly one of:
-
-- Glass;
-- Quartz;
-- Amethyst Shard;
-- Diamond;
-- Netherite Ingot.
-
-Right-click inserts a valid material. Shift + right-click extracts it. Loaded Boosters persist their material, display the central material visually, and only stack with identical stored state. Empty Boosters are not valid Projection Cores.
-
-Five old `improved_*_core` block IDs remain registered only for old dev-world migration. They have no user-facing BlockItems or recipes and are not active gameplay variants.
+A loaded Core Booster contributes ×1.50 Core amplification and retains material-specific Beacon/Mirage-light identity.
 
 ## Crying Obsidian ecosystem
 
-Implemented:
+The renewable crystal loop is:
 
-- Crying Obsidian Shard;
-- Stonecutter conversion: 1 Crying Obsidian → 4 shards;
-- 8 shards + Fire Charge or Magma Cream → 1 Crying Obsidian;
-- uncommon shard chest loot;
-- renewable downward Small → Medium → Large → Mature crystal growth when lava is above Crying Obsidian;
-- exact no-Silk drops 1/2/3/4 shards;
-- Silk Touch stage recovery;
-- no Fortune multiplier;
-- directional decorative placement;
-- Beacon excitation/attenuation;
-- residual purple rays;
-- Obsidian Spike block, recipe, movement hindrance and damage.
+```text
+Lava source
+    ↓
+Crying Obsidian
+    ↓
+Small Bud → Medium Bud → Large Bud → Cluster
+```
 
-Current Beacon crystal behavior:
+The space below Crying Obsidian must be available for growth. Silk Touch preserves the current bud/cluster stage. Normal harvesting produces Crying Obsidian Shards; Fortune does not multiply shard drops.
 
-- Small transmits roughly 75%;
-- Medium 50%;
-- Large 25%;
-- Mature 0%;
-- buds do not become block-light sources merely because they intersect a Beacon;
-- energized Mature is the current vanilla-level light source;
-- a Mature directly over an active Beacon suppresses the Beacon's visible vertical beam and attempts to suppress the Beacon block's own light while the cluster remains present;
-- occasional side rays originate at centered X/Z and approximately pixel Y=2, appear instantly at full length, hold about one second, then retract while fading;
-- younger stages scale ray width, length and frequency down from Mature.
+Crying Obsidian can be crafted from shards using either Fire Charge or Magma Cream recipes. EMI/JEI integrations expose the crafting chain and growth guidance when those viewers are installed.
 
-Core Booster Beacon relay modifiers are implemented in dev.60. Glass = Diffusion (+35 percentage points width), Quartz = Radiance (+25 points plus hotter beam color), Amethyst = Resonance (+25 points and ×1.25 rotation speed per effective Amethyst, capped near ×2), Diamond = Focus (+25 points with a tighter inner beam), and Netherite = Inversion (+25 points and reversed outgoing rotation). A maximum of four loaded Boosters contribute and total incoming-beam width is capped near ×2 vanilla. Generic incoming-beam width is not converted into a world-light range tier. Quartz reinforces the static reflected field, Diamond adds a smaller focused axial bonus, Glass broadens residual reflected-ray geometry, Amethyst increases residual-ray resonance, and Netherite preserves reflected rotation inversion. dev.69's long Glass face-diagonal static relays are historical and remain removed because each physical auxiliary node became an omnidirectional vanilla emitter. Current Mature world light is virtual; exposed scalar block-light output remains capped to level 15.
+## Core Booster / Beacon relay
 
-## Stateful drops and upgrades
+There is one user-facing `core_booster` block/item. It accepts Glass, Quartz, Amethyst Shard, Diamond or Netherite Ingot and preserves loaded material state when properly mined.
 
-Normal Survival projector breaking creates one stateful projector item carrying the BlockEntity payload. Upgrading through the custom projector recipe migrates/sanitizes that payload into the destination chassis and preserves current persistent systems rather than copying an arbitrary field list manually.
+Material relay identities:
 
-## Current render stabilization point
+- Glass — Diffusion
+- Quartz — Radiance
+- Amethyst — Resonance
+- Diamond — Focus
+- Netherite — Inversion
 
-dev.57 was tested in-game and did not solve cloud/entity composition. dev.58 moved semi-transparent Entity projections to `AFTER_LEVEL`, but that stage is dispatched after Minecraft pops the world model-view matrix; using its identity `PoseStack` without restoring the supplied matrix made Ghost Entity projections disappear once opacity dropped below 100%. dev.60 live QA exposed the Create Backtank foil/glint multi-consumer crash; dev.61 fixed that crash with independent deferred builders. dev.62 restored the world model-view matrix around the late flush, added Entity-only late Ghost depth writes after world composition, disabled late translucent sorting, mirrored important vanilla fixed sheets and flushes fixed buffers per projected Entity. dev.63 adds a targeted compatibility rule for Create's Netherite Backtank: the equipped item is `BacktankItem.Layered`, Create replaces vanilla chest armor rendering with two synthetic Humanoid armor passes (`netherite_diving_layer_2` and `_layer_1`) and separately renders the physical tank geometry through `BacktankArmorLayer`. During Ghost rendering Mirage keeps the tank on the late depth-stable path, but renders the two synthetic chest layers without competing depth writes and distributes their alpha so the pair composes to approximately one ordinary armor layer at the requested opacity. Image/Banner/Item Ghost rendering retains the historical no-depth-write contract. Live dev.63 QA showed that keeping both Create synthetic diving layers translucent still made the chest region over-opaque because those two surfaces also stack over the projected Humanoid body. dev.64 replaces that experiment: while Ghost is active on `create:netherite_backtank`, the synthetic inner `netherite_diving_layer_2` pass is discarded, its paired glint is discarded when present, and the outer `netherite_diving_layer_1` pass is rendered once using the requested opacity and late Entity depth writes. The separate Backtank model remains on the standard modded-equipment path, and 100% opacity remains untouched.
+At most four effective loaded Boosters participate in Beacon relay calculations. Only an energized Mature Crying Obsidian Cluster publishes static Mirage world light.
 
+## Mirage Light Engine
 
-## dev.65–73 physical light-field history
+Static Mature Cluster lighting is server-authoritative. The causal six-neighbour solver uses vanilla destination opacity/face occlusion, exact fixed-point half-decay in open space, additional obstacle-detour cost, overlap-by-maximum aggregation and chunk-aware dependency windows.
 
-dev.65–73 used physical `crying_light_node` relays. Those experiments established the desired Mature half-decay and Core Booster identities but live numbered-floor/wall QA proved the architecture itself unsafe: every relay becomes an independent omnidirectional vanilla source, producing cross-shaped overfill, wall leakage and a final field that cannot remain source-causal.
+Clients do not solve `STATIC_WORLD` geometry. They install server-resolved packed Mirage light sections and read effective light as:
 
-The retained lessons are now implemented by the virtual engine: exact fixed-point half-decay, source ownership, same-tick/coalesced invalidation, Quartz/Diamond static reinforcement, Glass/Amethyst/Netherite reflected visual identities and immediate source teardown. Physical relays have no current gameplay authority and exist only for old-world migration.
+```text
+max(vanilla block light, Mirage light)
+```
 
-## Mirage Light Engine runtime
+Mirage virtual light is never fed back into vanilla block-light propagation as a new emitter.
 
-The authoritative runtime is documented exhaustively in `MIRAGE-LIGHT-ENGINE.md`. Core behavior in dev.75d:
+`DYNAMIC_VISUAL` remains a separate backend boundary for future moving/portable emitters.
 
-- six-neighbour causal weighted flood;
-- fixed-point no-Booster open curve exactly `15,15,14,14,...,1,1` over 30 blocks;
-- real destination `getLightBlock(...)` opacity plus vanilla face-shape occlusion;
-- fully opaque edges are impossible; finite walls can only be reached around real geometry;
-- `detourExtraCostUnits` separates open decay from obstacle-only extra route cost; current Mature profile uses substeps=2, air=1, detourExtra=1;
-- an optimal open route remains half-decay; every extra block of route forced by geometry costs a full visible level overall;
-- sparse per-source 16³ sections and aggregate max layer provide O(1) reads;
-- static section payloads are tracking-scoped to watched chunks; protocol is **22**;
-- `/miragelight probe` reports Mirage/nearest/vanilla/effective plus weighted `direct` and `extra` cost;
-- physical legacy nodes are cleanup-only.
+Physical `mirage_projector:crying_light_node` exists only as migration compatibility for old development worlds and is not created by current gameplay.
 
-Quartz/Radiance and Diamond/Focus increase conceptual Mature power; visible output remains capped at 15. Glass/Amethyst/Netherite keep reflected visual roles and do not create independent static side emitters.
+## Recipe viewers
 
-## Advanced Mirage Light Engine boundary
+### EMI
 
-The static Mature consumer is now the reference implementation. dev.76 begins dynamic/mobile-light foundation rather than reopening the physical-relay design. Reserved runtime work includes `DYNAMIC_VISUAL`, moving/portable sources, directional/rotating spotlights, rectangular frustum, plane/projected-surface emission and RGB-preserving visual lighting.
+EMI integration exposes:
 
-The scalar static engine may continue serving gameplay/light-level semantics, while future moving visual emitters must avoid rebuilding server world-light every render frame. Third-party consumers that bypass normal brightness APIs receive targeted compatibility only after concrete QA demonstrates a need.
+- all custom projector upgrade recipes under Crafting;
+- both Crying Obsidian shard recipes;
+- icon/tool-tip-based Crying Obsidian World Interaction guidance;
+- age-ordered crystal Block Drops.
 
-## Post-dev.75d roadmap consolidation
+### JEI
 
-Runtime static-light architecture remains dev.76h; the global Mirage network protocol is now 27 because dev.82 changes projector source/transform codecs. The project roadmap is now split by release scope. 1.0.0 retains the current fixed-projector feature set and must establish extension seams for projection-source registration, chassis capabilities, forward-compatible presentation transforms, generic renderer/interaction providers, dynamic-vs-static light backend separation and non-Core energy consumers. User-facing lanterns/Glow Dust batteries/Scan Codex/portable projectors belong to 1.1.0; direct hologram grab/free rotation belongs to 1.2.0; Create Blueprint projection remains an optional bridge addon.
+JEI integration exposes custom projector upgrade recipes through the vanilla Crafting category and supplies ingredient information for projector progression and renewable Crying Obsidian growth.
 
-## Mod metadata / logo
+Both integrations are optional. Mirage Projector loads normally when either or both recipe viewers are absent.
 
-The mod now ships a dedicated NeoForge metadata logo. `src/main/templates/META-INF/neoforge.mods.toml` points to `logoFile="logo.png"` with `logoBlur=false`, and the packaged image lives at `src/main/resources/logo.png`. The current logo is the accepted promo render showing the compact Mirage Projector with a hovering shard above the chamber.
+## Public handbook
+
+The in-game `Mirage Handbook` documents General behavior plus one section for each of the six chassis. The registry ID remains `debug_handbook` for save compatibility, but the public display name and content are release-facing.
+
+## Compatibility and migration
+
+1.0.0 retains explicit compatibility/migration surfaces where removing them would damage existing worlds:
+
+- old `crying_light_node` relay blocks are migration-only and self-remove;
+- five historical `improved_*_core` block IDs remain migration shims without BlockItems/recipes/Creative exposure;
+- legacy numeric projection-source saves migrate to namespaced source IDs;
+- unknown future source IDs/payloads are preserved where possible.
+
+## Deferred to later releases
+
+1.0.0 does not include:
+
+- portable lantern/projector gameplay;
+- rechargeable Glow Dust batteries;
+- Scan Codex;
+- Dragon Egg / End Resonance gameplay;
+- direct grab/free-rotate hologram manipulation;
+- Create Blueprint projection source.
+
+See `ROADMAP.md`, `WAITLIST-1.1.0.md` and `WAITLIST-1.2.0.md`.

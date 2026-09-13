@@ -12,7 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
- * dev.76f atomic server-authoritative Mirage light snapshot for one chunk column.
+ * Atomic server-authoritative Mirage light snapshot for one chunk column.
  *
  * A snapshot completely replaces the client's Mirage section state for the chunk in one
  * payload. This avoids the old CLEAR_CHUNK + N SET_SECTION packet sequence, which could be

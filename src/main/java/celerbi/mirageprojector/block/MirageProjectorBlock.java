@@ -35,8 +35,8 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
     public static final net.minecraft.world.level.block.state.properties.DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final MapCodec<MirageProjectorBlock> CODEC = simpleCodec(MirageProjectorBlock::new);
 
-    // dev.80 canonical projector shapes, promoted from the accepted dev.79i comparison models.
-    // Keep model and outline/collision geometry synchronized per chassis. Quarter-pixel
+    // Canonical projector collision/outline shapes. Keep model and geometry synchronized
+    // per chassis. Quarter-pixel
     // coordinates are intentional where they prevent translucent/solid depth conflicts.
     private static final VoxelShape COMPACT_SHAPE = Shapes.or(
             box(2, 0, 2, 14, 2, 14),
@@ -121,7 +121,7 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
             box(5.25, 4.25, 5.25, 10.75, 7.75, 10.75)
     );
 
-    // Canonical Prism shape promoted from the accepted dev.79i comparison model.
+    // Canonical Mirage Prism shape.
     private static final VoxelShape PRISM_SHAPE = Shapes.or(
             box(0, 0, 0, 16, 3, 16),
             box(0, 3, 0, 3, 8, 3),

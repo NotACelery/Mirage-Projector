@@ -10,7 +10,7 @@ logoFile="logo.png"
 logoBlur=false
 authors="Celerbi"
 description='''
-Decorative holographic projection system for images, GIFs, items, banners and frozen entity snapshots with configurable presentation, Projection Cores, Core Boosters and multiplayer asset synchronization.
+Want holograms in your Minecraft builds? Mirage Projector lets you turn images, GIFs, items, banners, creatures and players into customizable projections, from compact displays to massive holographic fields.
 '''
 
 [[mixins]]

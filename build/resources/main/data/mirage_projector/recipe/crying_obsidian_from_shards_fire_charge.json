@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "SSS",
+    "SCS",
+    "SSS"
+  ],
+  "key": {
+    "S": {
+      "item": "mirage_projector:crying_obsidian_shard"
+    },
+    "C": {
+      "item": "minecraft:fire_charge"
+    }
+  },
+  "result": {
+    "id": "minecraft:crying_obsidian",
+    "count": 1
+  },
+  "show_notification": true
+}

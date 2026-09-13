@@ -1,57 +1,46 @@
-# Projector active-state UX contract
+# Projector Active-State UX — 1.0.0
 
-Status: **implemented for fixed projectors since dev.79d and retained through dev.79h; End Resonance override hook is present but Dragon Egg resonance itself remains 1.1.0.**
+Status: **implemented and stable for all six fixed projector chassis.**
 
 ## State model
 
-Never collapse these concepts:
+These are distinct concepts and must remain distinct:
 
-```text
-workspace currently open != active projection source != projection enabled
-```
+1. **workspace currently open**;
+2. **source currently selected**;
+3. **projection enabled/disabled**.
 
-A player may edit/view Image while Entity remains the active world projection. Merely opening a source workspace never changes world output.
+Opening a workspace never activates that source by itself.
 
-## `Use <mode> mode`
+## Source activation
 
-`Use <mode> mode` is the explicit activation boundary. When accepted:
+Each Image / Item / Entity / Banner workspace exposes `Use <mode> mode`.
 
-1. that workspace's source becomes the active projection source;
-2. projection becomes enabled;
-3. the workspace shows that it is currently in use;
-4. the corresponding Image/Item/Entity/Banner button in the main source menu receives a clear white outline.
+When accepted:
 
-## `TURN OFF`
+- that source becomes the selected projection source;
+- the projector is enabled;
+- the source workspace reports `Mode currently Active` and blocks redundant activation;
+- the main source menu outlines the active source with a white border.
 
-Normal projectors expose an explicit `TURN OFF` action. It:
+## TURN OFF
 
-- stops/hides the current world projection;
-- does **not** clear source data;
-- does **not** reset presentation settings;
-- does **not** eject/replace the Core;
-- does **not** destroy Entity snapshots, Image banks/faces, Banner state or Item snapshots;
-- preserves the previous source/configuration for later reuse.
+`TURN OFF` disables projection rendering without deleting or resetting:
 
-While OFF, the main source menu shows no Image/Item/Entity/Banner button as actively projected. The remembered source may remain stored internally, but the UI must not represent it as presently active.
+- source selection/content;
+- imported images/GIFs;
+- Item/Banner virtual snapshots;
+- Entity scan/equipment/pose state;
+- presentation transforms;
+- installed Core;
+- chassis-specific source-bank state.
 
-Do not represent OFF as another source enum/registry entry. Activation is device state, not projection content.
+When OFF, no source button is visually claimed as active even though the remembered source remains stored for later reactivation.
 
-## Workspace feedback
+## Persistence
 
-Each source workspace/tab needs a clear indicator that answers **“is this what the projector is currently using?”** after `Use <mode> mode`. Exact art/copy can be refined during GUI polish, but it must not be confused with the selected/open tab state.
+Enabled state and active source are saved/synchronized independently and must survive normal save/reload, chunk lifecycle and multiplayer GUI use.
 
-## 1.1.0 override — Dragon Egg / End Resonance
+## Future resonance rule
 
-Field and Prism End Resonance deliberately override this normal control contract while a Dragon Egg remains installed:
-
-- ordinary source/options remain suspended/read-only;
-- normal shutdown cannot stop the portal/anomaly;
-- pressing `TURN OFF` changes no state and emits the event message exactly:
-
-```text
-This doesn't seem to work...
-```
-
-The bypass ends only when the Dragon Egg is physically removed. At that point the saved ProjectionState is restored and normal source/ON-OFF controls regain authority.
-
-This override must not mutate the suspended source or its restore snapshot.
+Special future states such as Dragon Egg / End Resonance must override normal activation through an explicit special-state contract rather than pretending to be a fifth normal projection source. That gameplay belongs to 1.1.0.

@@ -102,7 +102,7 @@ public final class MirageLightSolver {
                 }
 
                 /*
-                 * dev.75d detour penalty. In open space an optimal path moves monotonically
+                 * Detour penalty. In open space an optimal path moves monotonically
                  * away from the source, so every step keeps the profile's normal half-decay
                  * cost. Geometry can force a path to overshoot and later move back toward
                  * the source. That inward step represents two units of (pathLength - direct

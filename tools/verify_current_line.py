@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Run the current Mirage Projector verification suite for dev.82."""
+"""Run the Mirage Projector 1.0.0 stable regression and release-audit suite."""
+
 from pathlib import Path
-import subprocess, sys
+import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / 'tools'
+
 SUITE = [
     'verify_dev76b_cleanup_contract.py',
     'verify_dev76c_atomic_static_publication.py',
@@ -19,15 +22,17 @@ SUITE = [
     'verify_mirage_light_occlusion_contract.py',
     'verify_mirage_light_solver_model.py',
     'verify_virtual_light_invalidation.py',
-    'verify_dev80_projector_promotion.py',
     'verify_dev80f_selective_compact_firstperson_lift.py',
     'verify_dev82_projection_source_foundation.py',
     'verify_dev82_mod_logo_integration.py',
-    'verify_dev80_full_audit.py',
+    'verify_dev86a_compile_hotfix.py',
+    'verify_release_1_0_0.py',
 ]
+
 for name in SUITE:
     print(f'\n== {name} ==', flush=True)
     code = subprocess.run([sys.executable, str(TOOLS / name)], cwd=ROOT).returncode
     if code:
         raise SystemExit(code)
-print(f'\nCURRENT-LINE VERIFICATION PASS ({len(SUITE)} gates)')
+
+print(f'\nMIRAGE PROJECTOR 1.0.0 VERIFICATION PASS ({len(SUITE)} gates)')

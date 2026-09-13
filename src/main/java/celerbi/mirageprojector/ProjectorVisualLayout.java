@@ -5,8 +5,7 @@ import net.minecraft.world.level.block.state.BlockState;
 /**
  * Static visual anchors for the six canonical projector models.
  *
- * <p>dev.80 promotes the accepted dev.79i comparison models to the canonical
- * projector IDs, so these anchors are now chassis-defined rather than Alt-specific.</p>
+ * <p>Anchors are chassis-defined and match the canonical runtime projector models.</p>
  */
 public record ProjectorVisualLayout(
         int projectionTopPixels,

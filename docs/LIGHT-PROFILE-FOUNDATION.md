@@ -1,71 +1,45 @@
-# Mirage Projector — light profile foundation / compatibility contract
+# Mirage Light Profile Foundation — 1.0.0
 
-Current line: **dev.75d**. The complete current engine authority is `MIRAGE-LIGHT-ENGINE.md`.
+`MirageLightProfile` is the solver-facing description of a Mirage light source.
 
-This file preserves the profile-design boundary introduced in dev.66/dev.74 and records what is runtime-enabled versus reserved.
+## Profile fields
 
-## Runtime profile data
+A profile defines:
 
-`MirageLightProfile` currently carries:
+- conceptual light level;
+- fixed-point substeps per visible light level;
+- normal air-step cost;
+- geometry-detour extra cost;
+- maximum solve radius;
+- decay mode;
+- source shape;
+- optional direction/cone data;
+- RGB identity.
 
-```text
-conceptualLight
-substepsPerLightLevel
-airStepCostUnits
-detourExtraCostUnits
-maxRadius
-decayMode
-shape
-direction
-coneAngleDegrees
-rgb
-```
+The solver operates in fixed-point energy units and converts back to vanilla-compatible 0..15 visible light at read time.
 
-`MirageLightSource` additionally carries its stable source ID/origin and runtime mode.
+## Runtime-supported 1.0.0 shape
 
-## Current Mature EXTEND profile
+`OMNIDIRECTIONAL` is the currently solved runtime shape for static Mature Cluster lighting. Directional/cone/plane-style profile values remain reserved by the architecture for future consumers and must not be presented as 1.0.0 gameplay features.
 
-```text
-conceptual = 15 + reflected static boost (0..4)
-substeps   = 2
-airCost    = 1
-detourExtra= 1
-radius     = conceptual * 2 (30..38)
-shape      = OMNIDIRECTIONAL
-runtime    = STATIC_WORLD
-```
+## Decay modes
 
-Open travel therefore loses half a visible level per block. Obstacle-only extra path loses a full visible level per extra block overall. Visible result is capped to vanilla 15.
+Current runtime supports:
 
-The detour term is deliberately profile data, not hard-coded Cluster logic. Future profiles can choose zero, equal or stronger shadow-routing penalty while sharing one solver.
+- `VANILLA` — one visible light level per normal step;
+- `EXTEND` — fixed-point substeps allow slower visible decay.
 
-## Runtime-enabled decay/shapes
+The Mature Cluster uses two substeps per visible level, producing the stable open-space half-decay curve.
 
-Current authoritative scalar solver supports:
+## Detour cost
 
-- `VANILLA` + `OMNIDIRECTIONAL`;
-- `EXTEND` + `OMNIDIRECTIONAL`.
+Open travel and geometry-forced detour cost are separate parameters. The solver must not hard-code Crying-Obsidian-specific wall behavior. A profile can keep normal open decay while charging additional energy for path segments that exist only because geometry forced backtracking/overshoot.
 
-Reserved, not yet runtime-enabled:
+## Runtime lifecycle
 
-- `CONCENTRATE`;
-- `DIRECTIONAL_SPOT`;
-- `ROTATING_DIRECTIONAL_SPOT`;
-- directional cone;
-- rectangular frustum;
-- plane/projected-surface emission.
+Profile description is independent from how a solved field is consumed:
 
-Do not claim these as player features until dev.76+ implements their solver/backend semantics.
+- `STATIC_WORLD` — server-authoritative, section-synchronized gameplay/world light;
+- `DYNAMIC_VISUAL` — reserved separate lifecycle for future moving/portable visual emitters.
 
-## Runtime modes
-
-- `STATIC_WORLD`: implemented; deterministic server/client source field suitable for Mature world/gameplay light.
-- `DYNAMIC_VISUAL`: reserved for moving/portable/projected emitters. It must use a moving-light backend rather than forcing server static-field solves every frame.
-
-## RGB reservation
-
-`rgb` already travels with the profile and the Mature uses `0xA84CFF` metadata. Current authoritative gameplay/render bridge is scalar 0–15. RGB is reserved so future visual light can preserve color without changing source/profile identity; scalar gameplay semantics may collapse color to luminance/intensity.
-
-## Compatibility boundary
-
-Legacy `celerbi.mirageprojector.light.LightProfile` / `LightDecayMode` helpers remain where older code/design inputs still reference them. The forward source/solver/storage authority is `celerbi.mirageprojector.light.engine`.
+A moving source must not be implemented by rebuilding `STATIC_WORLD` sections every frame.

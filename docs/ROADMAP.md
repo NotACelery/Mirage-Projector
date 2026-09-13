@@ -1,23 +1,40 @@
-# Mirage Projector — Roadmap index / backlog authority
+# Roadmap
 
-This file is now an index. Detailed active work is split by scope so current-release blockers are not mixed with future expansion ideas.
+Current stable release: **1.0.0**
+Network protocol: **27**
 
-## Read first
+1.0.0 is feature-frozen. New gameplay belongs to later release lines; the stable branch should receive only concrete bug fixes, compatibility fixes and documentation corrections.
 
-- `VERSION-SCOPE.md` — release boundaries and product arc.
-- `WAITLIST-GENERAL.md` — cross-version architecture, compatibility and maintenance.
-- `WAITLIST-1.0.0.md` — what must be finished/future-proofed before the first stable release.
-- `WAITLIST-1.1.0.md` — portable illumination, Glow Dust battery ecosystem, Scan Codex, copy lectern, portable/presentation projectors and the hidden Dragon Egg / End Resonance Easter egg specification.
-- `WAITLIST-1.2.0.md` — direct hologram grab/free-rotation interaction.
-- `CREATE-BRIDGE-ROADMAP.md` — optional Create schematic/Blueprint addon.
-- `FUTURE-PROOFING-1.0.0.md` — concrete extension seams to establish now.
+## 1.1.0 — Portable light, projector expansion and Scan Codex
 
-## Current implementation line
+Primary themes:
 
-Current development line is **0.1.0-dev.82**, protocol **27**. The dev.76h static-light architecture and the dev.60–80 renderer/projection stabilization line are QA-accepted. dev.80f closes projector models/textures/item presentation. dev.82 is the architectural freeze pass: stable namespaced projection-source IDs, content/render provider registries, chassis compatibility queries, unknown-source payload preservation, quaternion-ready transform persistence and a non-Core-specific energy boundary.
+- Dynamic/Mobile Mirage Light consumers built on the existing `DYNAMIC_VISUAL` boundary;
+- portable lanterns with Focus/Flood/Ambient/Off modes;
+- Glow Dust rechargeable energy/battery loop;
+- portable projectors plus wall/table/ceiling/presentation variants;
+- Mirage Scan Codex: persistent searchable/filterable scan library, favorites and multiple distinct snapshots of the same entity type;
+- dedicated scan-copy station/lectern workflow that creates physical projector-facing Entity Scan Cards;
+- Dragon Egg / End Resonance special Core semantics for compatible Field/Prism chassis.
 
-The remaining 1.0.0 work is release hardening/document cleanup rather than another renderer/light feature wave.
+Detailed requirements live in `WAITLIST-1.1.0.md`.
 
-## Scope rule
+## 1.2.0 — Interactive holograms
 
-A future idea is not automatically a 1.0.0 blocker. If 1.0.0 exposes the correct generic contract, the feature itself belongs to its planned expansion.
+Primary theme: direct manipulation of rendered projections.
+
+- grab/hold interaction;
+- free 3D rotation using quaternion-ready `ProjectionTransform` orientation;
+- stable pivot/ownership/multiplayer rules;
+- optional snapping and later position/pivot manipulation;
+- source/chassis capability hooks rather than source-specific mouse math.
+
+Detailed requirements live in `WAITLIST-1.2.0.md`.
+
+## Optional/addon direction
+
+Create Blueprint/schematic projection remains an optional bridge/addon direction rather than a required core feature. The 1.0 source registry/render-provider seams are intended to allow additions such as `BLUEPRINT` without rewriting the four built-in source families.
+
+## Stable-branch rule
+
+Do not pull 1.1/1.2 features back into the 1.0.0 release snapshot. Preserve the stable release as a recoverable baseline for future bugfixes and migration work.

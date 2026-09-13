@@ -1,121 +1,151 @@
-# Mirage Projector — Architecture
+# Architecture — Mirage Projector 1.0.0
 
-## Major state owners
+This document describes the stable architecture of the 1.0.0 fixed-projector release. Historical implementation notes live under `docs/history/`.
 
-### `MirageProjectorBlockEntity`
+## 1. State ownership
 
-Owns the persistent projector state:
+Projector state is deliberately split into independent layers:
 
-- Projection Settings;
-- physical Core slot;
-- image asset references/source bank;
-- virtual Item snapshot;
-- virtual Banner snapshots;
-- frozen Entity projection state;
-- incoming physical Entity-equipment staging;
-- virtual projected equipment;
-- per-channel Entity equipment render visibility, stored separately from snapshots;
-- migration fields required by older development saves.
+- **device state** — chassis, enabled/disabled state, installed Core;
+- **source identity/content** — Image, Item, Entity, Banner or future registered source;
+- **presentation state** — scale, lift, orientation, float, tint, ghost/opacity, lighting options;
+- **source-specific workspace state** — image banks/faces, virtual item/banner snapshots, Entity scan/equipment state;
+- **power state** — current energy provider and feasible limits.
 
-### `ProjectionSettings`
+This separation prevents workspace navigation, source selection and projector power state from overwriting one another.
 
-Owns shared presentation and Image-facing state. Wire/NBT input is sanitized before use. dev.81 source identity is namespaced and ordinal-free; settings serialization is explicitly versioned and carries quaternion-ready orientation fields. `ProjectionTransform` provides the source-agnostic transform view used by future interaction code.
+## 2. Projection sources
 
-### Projection source registries
+Built-in sources are identified by stable namespaced IDs:
 
-`ProjectionSourceRegistry` is common-side authority for stable namespaced source IDs, content presence/count providers and chassis compatibility. The current built-ins are `mirage_projector:image`, `mirage_projector:item`, `mirage_projector:entity` and `mirage_projector:banner`. Unknown IDs remain persisted even if their provider is absent.
+- `mirage_projector:image`
+- `mirage_projector:item`
+- `mirage_projector:entity`
+- `mirage_projector:banner`
 
-`ProjectionSourceRenderRegistry` is client-only and maps those same source IDs to renderer providers. Optional addons may register another common source plus client renderer without extending a Java enum or editing the core BER dispatch chain.
+`ProjectionSourceRegistry` owns common source definitions/content semantics. `ProjectionSourceRenderRegistry` owns client render dispatch. Source IDs are serialized as strings, not enum ordinals.
 
-### `EntityProjectionState`
+Unknown registered source IDs and opaque payloads are preserved where possible so missing addons do not silently destroy saved content.
 
-Owns frozen Entity identity/render state and pose/equipment projection state independently from a live source entity. dev.71 keeps equipment visibility as presentation metadata inside this state while `VirtualEquipmentSnapshots` remains the authoritative snapshot store.
+## 3. ProjectionTransform
 
-### `CoreBoosterBlockEntity`
+Source content does not own presentation settings. `ProjectionTransform` is the source-agnostic presentation contract and includes:
 
-Owns the loaded Core Booster material for item persistence/migration while `CoreBoosterBlock.MATERIAL` is the placed-block visual authority.
+- scale;
+- lift;
+- orientation/rotation data;
+- float settings;
+- tint;
+- ghost/opacity;
+- related visual controls.
 
-### Mirage Light Engine
+Persisted orientation is quaternion-ready. Current 1.0.0 UI still exposes the established controls, but later direct-manipulation work can use the same serialized transform instead of rewriting every source format.
 
-The authoritative light subsystem lives under `celerbi.mirageprojector.light.engine` and is feature-independent. `MirageLightSource` describes an emitter; `MirageLightProfile` describes conceptual power, fixed-point precision, open-air cost, obstacle-detour extra cost, radius, shape/direction and reserved RGB metadata; `MirageLightSolver` computes a causally connected field; `MirageLightSection` stores per-source energy by 16³ section; `MirageLightWorld` owns fields and aggregate max light.
+## 4. Chassis capabilities
 
-The solver walks six adjacent voxels. `MirageLightOcclusion` delegates destination opacity and face-shape blocking to vanilla `LightEngine.getLightBlockInto(...)`. dev.75d adds weighted detour semantics: monotonic open travel keeps the profile's ordinary cost, while steps that prove the route had to overshoot/backtrack because of geometry receive `detourExtraCostUnits`. This creates gradual shadows without a hard mode switch behind walls.
+Chassis-specific limits and compatibility are centralized rather than scattered through source code. `ProjectionChassisProfile` provides the fixed-projector capability/power envelope and source-compatibility seam.
 
-Final Mirage values merge with vanilla at read time and are never fed back into vanilla block-light propagation. `crying_light_node` is migration-only. Since dev.76, `STATIC_WORLD` is solved only on the server. Current protocol 27 synchronizes revisioned per-chunk snapshots of packed 16×16×16 light sections, with client chunk requests and lightweight revision manifests for recovery. Clients do not run the static solver. `DYNAMIC_VISUAL` is deliberately separate for future moving/portable emitters.
+The six canonical chassis are:
 
-`STATIC_WORLD` is implemented for Mature Clusters. `DYNAMIC_VISUAL`, directional/frustum/plane shapes and RGB rendering are the dev.76+ boundary; moving visual sources must not turn into per-frame server gameplay-light rebuilds. See `MIRAGE-LIGHT-ENGINE.md`.
+- Mirage Projector
+- Mirage Display
+- Mirage Field Projector
+- Wide Mirage Projector
+- Tall Mirage Projector
+- Mirage Prism
 
-## Renderer families
+## 5. Projection power
 
-Do not collapse all source types into one quad renderer.
+`ProjectionPower` is the authority for:
 
-- Image/Banner are plane/cardinal-face geometry.
-- Item is a real item/block model.
-- Entity is a reconstructed render-only client entity plus visibility-filtered equipment layers.
-- Core/Booster centers use real item models.
+- effective capacity;
+- per-component cost;
+- Overdrive;
+- dynamic feasible slider limits.
 
-`MirageProjectorRenderer` is still the largest rendering coordinator, but dev.81 removes the closed top-level source dispatch. Common source presence/count semantics live in `ProjectionSourceRegistry`; client rendering dispatch lives in `ProjectionSourceRenderRegistry`; the renderer now receives a registered source handler rather than owning a forever-closed source switch. `EntityProjectionBounds` is the shared conservative Entity envelope authority for preview/clearance/world culling. The BER render AABB must include both the chassis and displaced projection/nameplate; dev.72 therefore allows normal vanilla frustum culling instead of forcing off-screen submission.
+`ProjectionEnergySource` separates generic energy consumption from the fixed-projector Core implementation. Current projectors adapt their installed `ProjectionCoreProfile`; future portable devices can provide a different backend without pretending to have a Core socket.
 
-## Entity render isolation
+## 6. Persistent projector items / upgrade crafting
 
-Projection Entity rendering uses a projection-owned `MultiBufferSource`/RenderType normalization layer. Shared global shader state must not be left modified across Minecraft batches.
+Projector block items can carry serialized machine state. Upgrade crafting uses the custom `projector_upgrade` recipe serializer and transfers source/content/transform/Core state into the target chassis rather than replacing the machine with a blank block.
 
-Deferred Entity rendering is split by opacity:
+The canonical progression is:
 
-- fully opaque projections use the normal deferred stage;
-- semi-transparent projections are drawn at `AFTER_LEVEL` so cloud/weather framebuffer composition has already completed.
+```text
+Mirage Projector → Mirage Display → Wide / Tall / Prism / Field
+```
 
-`AFTER_LEVEL` is outside `LevelRenderer`'s pushed world model-view state. dev.62 therefore restores the matrix supplied by `RenderLevelStageEvent` only for the duration of the Mirage late flush. The late Ghost Entity path normally uses colour + depth writes and no translucent quad sorting. This depth-write exception is safe only because the level, including water/cloud/weather composition, has already rendered and GameRenderer clears depth before first-person hand rendering. Image/Banner/Item Ghost paths continue to use colour-only writes.
+## 7. Image/GIF asset pipeline
 
-dev.64 replaces the dev.63 pair-alpha experiment with a single-surface compatibility rule for `create:netherite_backtank`. During Ghost rendering the synthetic `netherite_diving_layer_2` underlay is discarded, the outer `netherite_diving_layer_1` surface receives the requested opacity and late Entity depth writes, and the separate Backtank geometry keeps its normal late Ghost path. At 100% opacity Mirage does not intervene and Create retains its native two-layer chest rendering.
+Imported image data is normalized and content-addressed. Multiplayer transfer is server-mediated rather than assuming clients share a filesystem.
 
-The late path remains under QA until cloud, water, z-order and modded-armor regression checks pass.
+The pipeline handles:
 
-## Assets
+- import/normalization;
+- content hash identity;
+- server-side asset ownership/cache;
+- client request/response;
+- local client decode/cache;
+- animated GIF frame playback.
 
-Client import creates a content-addressed SHA-256 asset ID. Static images normalize to PNG; GIF stays animated. The importing client uploads the asset to server storage; other clients request missing assets and cache them locally.
+See `ASSET-PIPELINE.md`.
 
-Asset filenames are not network identity.
+## 8. Entity snapshots
 
-## Power
+Entity Scan Cards contain frozen projection data rather than a live Entity reference. `EntityScanData` owns captured identity/state while `EntityProjectionState` and `VirtualEquipmentSnapshots` own projector-facing pose/equipment configuration.
 
-`ProjectionPower` is the only authority for effective capacity, per-component cost, overdrive and dynamic feasible slider limits. Rendering code must not invent parallel power limits. dev.81 adds `ProjectionEnergySource`: fixed projectors adapt their installed `ProjectionCoreProfile`, while future portable devices may supply a different energy backend without pretending to own a Core socket.
+Entity rendering uses conservative bounds shared by preview/clearance/world-culling logic. Passenger/vehicle composites are intentionally rejected until a dedicated relative-transform format exists.
 
-## Projector upgrades
+See `ENTITY-AND-SNAPSHOTS.md`.
 
-`ProjectorStateTransfer` is the canonical state transfer bridge. `ProjectorUpgradeRecipe` and `ProjectorUpgradePath` use it for Compact → Display → specialist crafting.
+## 9. Rendering
 
-## Compatibility-only registry layer
+`MirageProjectorRenderer` coordinates chassis anchors and source rendering but does not own a closed source switch. Registered source renderers handle their source family.
 
-The old five Improved Core block IDs are retained as legacy blocks because deleting registry IDs would damage old QA saves. Their BlockEntity schedules conversion into a materialized Core Booster. They must not regain recipes, BlockItems or Creative exposure.
+Ghost Entity rendering uses a late world-render pass where required to avoid water/cloud/deferred-composition holes. Image/Banner/Item ghost paths retain their own color/alpha rendering semantics. Third-party renderer compatibility is handled only where a concrete renderer requires a safe adapter.
 
-## Mixins
+## 10. Mirage Light Engine
 
-The mixin package root is `celerbi.mirageprojector.mixin`.
+Static Mature Crying Obsidian Cluster lighting uses a server-authoritative virtual light field.
 
-Common/server-capable logic:
+Key properties:
 
-- Crying Obsidian random-tick/light interception.
+- causal six-neighbour propagation;
+- fixed-point half-decay in open space;
+- vanilla destination opacity and face-shape occlusion;
+- obstacle-detour extra cost;
+- overlap by maximum contribution;
+- chunk/dependency-window awareness;
+- atomic publication;
+- revisioned chunk snapshots to clients.
 
-Client-only mixins:
+Clients combine Mirage and vanilla block light at read time:
 
-- Humanoid model pose/render support;
-- vanilla Humanoid armor RenderType support;
-- LivingEntity render integration;
-- held-item render integration;
-- Beacon renderer interception and cumulative loaded-Core-Booster relay state through `BeaconRelayState`.
+```text
+max(vanilla, Mirage)
+```
 
-Mixin changes are high-risk. A failed injection can prevent Minecraft from starting, so new mixins require exact mapped-target verification and isolated QA.
+Virtual Mirage light is never fed back into vanilla propagation as a new emitter.
 
-## Refactor hotspots
+`STATIC_WORLD` and `DYNAMIC_VISUAL` are separate lifecycles. Moving future light sources must not rebuild static gameplay-light sections every frame.
 
-Current largest maintainability hotspots remain:
+See `MIRAGE-LIGHT-ENGINE.md`.
 
-- `MirageProjectorRenderer`;
-- `MirageProjectorBlockEntity`;
-- `ImageProjectorScreen`;
-- `ProjectionPower`;
-- `MirageProjectorScreen`;
-- `EntityProjectorScreen`.
+## 11. Optional recipe viewers
 
-Do not combine their structural decomposition with new gameplay/render mechanics. Split one responsibility at a time after the current renderer behavior stabilizes.
+EMI and JEI integrations are optional compile/runtime integrations. Their plugin classes are not required by the core gameplay path.
+
+- EMI receives explicit custom projector-upgrade recipes plus Crying Obsidian World Interaction/Block Drops presentation.
+- JEI receives a crafting-category extension for custom projector upgrades plus ingredient information.
+
+The mod must load correctly with neither viewer present.
+
+## 12. Migration compatibility
+
+The release retains compatibility shims only where old serialized worlds require them:
+
+- `crying_light_node` physical relay block — migration-only/self-cleaning;
+- historical `improved_*_core` blocks and `improved_core` block entity — migration-only;
+- legacy numeric projection-source IDs — migrated to namespaced source IDs.
+
+Migration IDs are not gameplay products and must not receive recipes, BlockItems or Creative exposure.

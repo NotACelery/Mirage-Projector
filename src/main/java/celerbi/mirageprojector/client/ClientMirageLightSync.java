@@ -57,7 +57,7 @@ public final class ClientMirageLightSync {
         }
 
         /*
-         * dev.76h: invalidate every section carried by the authoritative snapshot even
+         * Invalidate every section carried by the authoritative snapshot even
          * when its bytes are identical to the mirror we already have. A chunk-load
          * handshake can arrive after an external light consumer cached vanilla-only
          * values; byte equality in Mirage storage does not mean downstream caches are
@@ -69,7 +69,7 @@ public final class ClientMirageLightSync {
     }
 
     /**
-     * dev.76g source-centric revision heartbeat. Only request a full chunk snapshot when
+     * Source-centric revision heartbeat. Only request a full chunk snapshot when
      * the authoritative server revision is newer than the client's installed mirror.
      */
     public static void applyRevisionManifest(MirageLightChunkRevisionManifestPayload payload) {

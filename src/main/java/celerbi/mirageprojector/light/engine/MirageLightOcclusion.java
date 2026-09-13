@@ -31,7 +31,7 @@ public final class MirageLightOcclusion {
         /*
          * Vanilla does not pass a constant here: BlockLightEngine first resolves the
          * destination state's real light-block value and supplies that as the simple
-         * opacity fallback. Passing 1 (the old dev.74/75 behaviour) effectively made
+         * opacity fallback. Passing a constant value of 1 effectively makes
          * full opaque blocks look air-like unless a face-shape special case happened
          * to reject the edge. That is why Mirage light could cross iron walls.
          */

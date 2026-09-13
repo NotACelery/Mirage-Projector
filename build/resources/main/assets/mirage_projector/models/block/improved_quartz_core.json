@@ -1,0 +1,6 @@
+{
+  "parent": "mirage_projector:block/improved_core_base",
+  "textures": {
+    "core": "minecraft:item/quartz"
+  }
+}

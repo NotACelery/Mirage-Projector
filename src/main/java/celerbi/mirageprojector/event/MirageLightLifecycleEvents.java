@@ -85,11 +85,11 @@ public final class MirageLightLifecycleEvents {
             }
         }
 
-        // dev.76g: every energized Mature Cluster independently watches its local
+        // Every energized Mature Cluster independently watches its local
         // chunk window and revalidates/resynchronizes itself when that window changes.
         CryingObsidianLightField.verifyActiveSources(level);
 
-        // dev.76c: sources that could not see their complete dependency window are
+        // Sources that cannot see their complete dependency window are
         // deliberately unpublished (or keep their previous complete field). Retry them
         // every tick; a normal Cluster checks only about 25 chunk columns and never
         // force-loads any of them.

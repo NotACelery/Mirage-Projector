@@ -10,7 +10,9 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class OpenDebugHandbookPayload implements CustomPacketPayload {
     public static final OpenDebugHandbookPayload INSTANCE = new OpenDebugHandbookPayload();
-    public static final Type<OpenDebugHandbookPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "open_debug_handbook"));
+    public static final Type<OpenDebugHandbookPayload> TYPE = new Type<>(
+            ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "open_debug_handbook")
+    );
     public static final StreamCodec<RegistryFriendlyByteBuf, OpenDebugHandbookPayload> STREAM_CODEC = new StreamCodec<>() {
         @Override
         public OpenDebugHandbookPayload decode(RegistryFriendlyByteBuf buffer) {
@@ -20,12 +22,14 @@ public final class OpenDebugHandbookPayload implements CustomPacketPayload {
         public void encode(RegistryFriendlyByteBuf buffer, OpenDebugHandbookPayload payload) {
         }
     };
+
     private OpenDebugHandbookPayload() {
     }
     @Override
     public Type<OpenDebugHandbookPayload> type() {
         return TYPE;
     }
+
     public static void handle(OpenDebugHandbookPayload payload, IPayloadContext context) {
         context.enqueueWork(DebugHandbookScreen::open);
     }

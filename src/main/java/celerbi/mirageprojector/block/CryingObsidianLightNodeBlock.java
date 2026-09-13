@@ -56,7 +56,7 @@ public final class CryingObsidianLightNodeBlock extends Block {
 
     @Override
     protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
-        // dev.75a: this block is legacy migration data only. The authoritative
+        // This block is legacy migration data only. The authoritative
         // Mirage field lives in virtual section storage and must not emit from
         // physical relay blocks anymore.
         level.removeBlock(pos, false);

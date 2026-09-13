@@ -1,35 +1,44 @@
-# Mirage Projector — Version scope authority
+# Version Scope
 
-This scope authority was introduced as a documentation-only consolidation on dev.75d and remains authoritative on the current **0.1.0-dev.82** line. It defines product boundaries; it does not itself imply a runtime/protocol change.
+## 1.0.0 — Stable fixed-projector release
 
-This document freezes the intended boundaries between the first public release, the portable expansion, the interaction expansion and the optional Create bridge. The purpose is to prevent 1.0.0 implementation choices from hard-coding assumptions that 1.1.0/1.2.0 would immediately need to dismantle.
+1.0.0 contains the complete fixed-projector system:
 
-## Product arc
+- six canonical projector chassis;
+- Image/GIF, Item, Banner and Entity sources;
+- Projection Cores, Core Boosters, Overdrive and dynamic slider limits;
+- frozen Entity Scan Cards and virtual equipment state;
+- server-synchronized image/GIF asset pipeline;
+- Crying Obsidian growth, shards, Beacon relay behavior and Mirage Light;
+- optional EMI/JEI recipe-viewer integration;
+- stable source-ID/provider/transform/energy extension seams.
 
-### 1.0.0 — Core Mirage Projector
+Renderer/projection/light acceptance is closed for 1.0.0. Reopen those systems only for a concrete regression.
 
-The stable foundation: six fixed projector chassis, Image/Item/Banner/Entity projection, Core/PU system, Core Boosters, Crying Obsidian ecosystem, authoritative static Mirage Light Engine, snapshot/entity fidelity, multiplayer asset transport and the existing presentation controls.
+## 1.1.0 — Portable illumination / projector expansion / Scan Codex
 
-Renderer/projection/light acceptance is considered closed on the current line. The remaining 1.0.0 work is primarily release hardening/document cleanup; the required extension seams are implemented in dev.82. 1.0.0 must not ship portable lantern/projector gameplay or Scan Codex merely to prove the seams work. Projector UX closure also includes a non-destructive ON/OFF control and clear active-source feedback: workspace navigation, active projection source and device enabled state remain distinct.
+Planned 1.1.0 work includes:
 
-### 1.1.0 — Portable Illumination, Capture & Projection Expansion
+- Dynamic/Mobile Mirage Light Foundation consumers;
+- portable lanterns and Glow Dust battery loop;
+- portable/stationary presentation-projector variants;
+- Mirage Scan Codex and physical scan-card duplication workflow;
+- Dragon Egg / End Resonance behavior for compatible chassis.
 
-The first major expansion. It introduces moving/directional light, rechargeable Glow Dust energy, lanterns, portable projectors, presentation/table/wall projectors, the Mirage Scan Codex and the scan-copy/duplicating lectern flow.
+See `WAITLIST-1.1.0.md`.
 
-### 1.2.0 — Interactive Holograms
+## 1.2.0 — Direct hologram interaction
 
-The tactile interaction expansion. Projected content can be grabbed and manipulated directly, beginning with hold-RMB free rotation around a stable pivot using quaternion-ready transforms rather than accumulating fragile Euler-only state.
+Planned 1.2.0 work focuses on direct manipulation such as grab/free-rotate hologram interaction over the generic `ProjectionTransform` contract.
 
-### Optional addon after the core contracts are stable
+See `WAITLIST-1.2.0.md`.
 
-Working names:
+## Explicitly not part of 1.0.0
 
-- **Create: Mirage Schematics**
-- **Create: Projected Plans**
-- **Create: Projected Schematics**
-
-The addon adds Create schematic/blueprint content as a separately registered projection source/tab without making the base mod depend on Create.
-
-## Compatibility rule
-
-Future features should normally add a source type, chassis capability, renderer/interaction provider, energy consumer or light profile. They should not require editing every existing projector with a new chain of hard-coded `if (mode == ...)` checks.
+- portable lantern gameplay;
+- rechargeable Glow Dust;
+- portable projectors;
+- Scan Codex;
+- Dragon Egg / End Resonance gameplay;
+- direct grab/free rotation;
+- Create Blueprint source in the core mod.

@@ -19,7 +19,7 @@ alts=[
 ]
 
 props=(ROOT/'gradle.properties').read_text()
-need('mod_version=0.1.0-dev.82' in props,'version is not dev.82')
+need('mod_version=0.1.0-dev.86a' in props,'version is not dev.86a')
 main=(ROOT/'src/main/java/celerbi/mirageprojector/MirageProjector.java').read_text()
 need('NETWORK_PROTOCOL = "27"' in main,'network protocol is not current protocol 27')
 
@@ -126,4 +126,4 @@ if errors:
     print('dev.80f projector promotion verification FAILED')
     for e in errors: print(' -',e)
     raise SystemExit(1)
-print('dev.82 projector promotion verification PASS')
+print('dev.86a projector promotion verification PASS')

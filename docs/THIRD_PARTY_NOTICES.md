@@ -1,22 +1,22 @@
-# Third-party notices
+# Third-Party Notices
 
-Mirage Projector is an independent Minecraft mod. The mod's own source remains under the license declared by the project metadata.
+## WebP ImageIO
 
-## webp-imageio
+- Library: `org.sejda.imageio:webp-imageio`
+- Purpose: static WebP decoding through Java ImageIO before imported images are normalized for Mirage asset storage.
+- Animated WebP is not supported as an animated playback format in 1.0.0.
 
-Mirage Projector embeds the following library in the distributable JAR to decode local WebP images:
+The dependency is packaged through the project build configuration. Refer to the upstream project/license for its complete licensing terms.
 
-- Artifact: `org.sejda.imageio:webp-imageio:0.1.6`
-- Purpose in Mirage Projector: Static WebP decoding through Java ImageIO before the imported image is normalized to PNG. Animated WebP is content-detected and rejected in dev.39 before decode/playback.
-- Upstream project: `sejda-pdf/webp-imageio`
-- Upstream license: Apache License 2.0.
+## GIF decoding
 
-The dependency is used only for local decoding. Mirage Projector does not transmit the original WebP file or its filesystem path; the normalized PNG is the asset that is hashed, cached and synchronized.
+Animated GIF playback uses Java/ImageIO-compatible GIF decoding logic in the Mirage client asset pipeline. GIF content is decoded into frame/timing data and rendered through the same content-addressed asset identity used by imported images.
 
-When preparing a public release, verify that the final Jar-in-Jar output retains the dependency's own license/notice material as expected by the packaging task.
+## Optional recipe viewers
 
-## GIF decoding in dev.39
+Mirage Projector contains optional integration code for:
 
-GIF / Animated Image support adds **no new third-party decoder dependency**. Mirage uses the GIF reader provided by Java ImageIO (`java.desktop`) and Mirage-owned frame composition/timing/safety code in `GifAssetDecoder`.
+- EMI
+- JEI
 
-Validated GIF bytes are preserved as the content-addressed projection asset because converting them to PNG would destroy animation timing/disposal metadata. This does not change the `webp-imageio` notice above; WebP/JPEG/PNG imports remain normalized to PNG bytes before storage/transport.
+Neither viewer is required for core mod startup/gameplay. Their own licenses/distribution terms are governed by their respective projects.

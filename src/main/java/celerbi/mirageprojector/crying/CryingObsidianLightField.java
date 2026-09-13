@@ -33,10 +33,10 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Mature Crying Obsidian -> Mirage Light Engine adapter.
  *
- * dev.76 publishes server-resolved STATIC_WORLD sections while retaining the causal solver,
- * obstacle-detour decay and old-world cleanup. The old
- * mirage_projector:crying_light_node block remains registered only so worlds from
- * dev.65-dev.74 can load and clean those legacy relays safely.
+ * STATIC_WORLD fields are solved on the server and published as resolved sections while
+ * retaining causal propagation, obstacle-detour decay and old-world cleanup. The old
+ * mirage_projector:crying_light_node block remains registered only so legacy worlds can
+ * load and remove physical relay data safely.
  */
 public final class CryingObsidianLightField {
     private static final int MAX_EFFECTIVE_REFLECTED_BOOST = BeaconRelayState.MAX_EFFECTIVE_BOOSTERS;
@@ -46,7 +46,7 @@ public final class CryingObsidianLightField {
     private static final int CRYING_LIGHT_RGB = 0xA84CFF;
 
     private static final List<NodeOffset> LEGACY_AXIAL_OFFSETS = createLegacyAxialOffsets();
-    private static final List<NodeOffset> LEGACY_DEV69_DIFFUSE_OFFSETS = createLegacyDiffuseOffsets();
+    private static final List<NodeOffset> LEGACY_DIFFUSE_OFFSETS = createLegacyDiffuseOffsets();
 
     /** Server-side source registry used by same-tick terrain invalidation. */
     private static final Map<ServerLevel, Set<BlockPos>> ACTIVE_SOURCES =
@@ -58,7 +58,7 @@ public final class CryingObsidianLightField {
 
 
     /**
-     * dev.76g source-centric chunk watchdog.
+     * Source-centric chunk watchdog.
      *
      * Each energized Mature Cluster tracks a cheap signature of the chunk columns in
      * its local watch window. Chunk load/unload and geometry events bump a per-chunk
@@ -88,7 +88,7 @@ public final class CryingObsidianLightField {
 
     /**
      * Re-solve one block-backed source from its origin using current server geometry.
-     * dev.76 publishes any changed aggregate sections to watching clients; clients never
+     * Changed aggregate sections are published to watching clients; clients never
      * re-solve STATIC_WORLD source geometry themselves.
      */
     public static void forceRefreshSource(ServerLevel level, BlockPos sourcePos) {
@@ -461,7 +461,7 @@ public final class CryingObsidianLightField {
     }
 
     /**
-     * dev.76g source-centric 5x5+ watchdog.
+     * Source-centric 5x5+ watchdog.
      *
      * The base radius-30 Mature Cluster watches +/-2 chunks around its origin (5x5).
      * Boosted fields automatically widen this to +/-3 when their real radius requires it.
@@ -507,7 +507,7 @@ public final class CryingObsidianLightField {
 
             if (changed) {
                 // Rebuild from the source, not from the changed chunk. This is the key
-                // dev.76g rule: every relevant chunk lifecycle/geometry edge causes the
+                // Every relevant chunk lifecycle or geometry edge causes the
                 // complete causal field to be revalidated from the energized Cluster.
                 refreshMirageSolverField(level, sourcePos, true, true);
             }
@@ -546,7 +546,7 @@ public final class CryingObsidianLightField {
     }
 
     /**
-     * Retry only rebuilds that were deliberately deferred by the dev.76c atomic gate.
+     * Retry only rebuilds that were deliberately deferred by the atomic readiness gate.
      * At ~25 chunk probes for a normal radius-30 Cluster this is cheap enough to run
      * every server tick and removes the old multi-second convergence delay.
      */
@@ -642,7 +642,7 @@ public final class CryingObsidianLightField {
             return;
         }
 
-        // dev.76c: STATIC_WORLD publication is atomic. Never solve/publish from a
+        // STATIC_WORLD publication is atomic. Never solve or publish from a
         // partial server chunk window. Existing complete light stays visible until the
         // replacement can be solved against the whole dependency window.
         if (!MirageLightEngine.allDependencyChunksQueryable(level, source)) {
@@ -695,14 +695,14 @@ public final class CryingObsidianLightField {
     }
 
     /**
-     * Migration-only cleanup for the physical relay lattices used by dev.65-dev.74.
+     * Migration-only cleanup for obsolete physical relay lattices.
      * Never removes minecraft:light or any other mod's block.
      */
     private static void cleanupLegacyPhysicalRelays(ServerLevel level, BlockPos sourcePos) {
         for (NodeOffset offset : LEGACY_AXIAL_OFFSETS) {
             removeLegacyNode(level, sourcePos.offset(offset.dx(), offset.dy(), offset.dz()));
         }
-        for (NodeOffset offset : LEGACY_DEV69_DIFFUSE_OFFSETS) {
+        for (NodeOffset offset : LEGACY_DIFFUSE_OFFSETS) {
             removeLegacyNode(level, sourcePos.offset(offset.dx(), offset.dy(), offset.dz()));
         }
     }
@@ -763,7 +763,7 @@ public final class CryingObsidianLightField {
     }
 
     /**
-     * Exact dev.69 sampled face-diagonal lattice, retained only for cleanup.
+     * Exact historical sampled face-diagonal lattice, retained only for cleanup.
      */
     private static List<NodeOffset> createLegacyDiffuseOffsets() {
         List<NodeOffset> offsets = new ArrayList<>();

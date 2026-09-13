@@ -61,7 +61,7 @@ public final class MirageLightNetwork {
 
 
     /**
-     * dev.76g source-centric watchdog heartbeat.
+     * Source-centric watchdog heartbeat.
      *
      * A Mature Cluster advertises only chunk revision numbers for its local watch
      * window. This is intentionally tiny compared with section snapshots. Clients

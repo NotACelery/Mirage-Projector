@@ -1,0 +1,31 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="mirage_projector"
+version="1.0.0"
+displayName="Mirage Projector"
+logoFile="logo.png"
+logoBlur=false
+authors="Celerbi"
+description='''
+Want holograms in your Minecraft builds? Mirage Projector lets you turn images, GIFs, items, banners, creatures and players into customizable projections, from compact displays to massive holographic fields.
+'''
+
+[[mixins]]
+config="mirage_projector.mixins.json"
+
+[[dependencies.mirage_projector]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.244,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.mirage_projector]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+ordering="NONE"
+side="BOTH"

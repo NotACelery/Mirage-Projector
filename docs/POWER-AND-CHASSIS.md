@@ -1,80 +1,47 @@
-# Mirage Projector — Power and chassis
+# Projection Power and Chassis — 1.0.0
 
-## Chassis table
+## Chassis profiles
 
-| Chassis | Geometry | Nominal width × height | Nominal Lift | Nominal Float | PU multiplier |
+| Chassis | Geometry | Nominal size | Nominal Lift | Nominal Float | PU multiplier |
 |---|---|---:|---:|---:|---:|
-| Compact | Plane | 10×10 | 32 | 4 | ×1.00 |
-| Display | Plane | 32×32 | 48 | 12 | ×1.50 |
-| Wide | Plane | 80×32 | 64 | 12 | ×2.00 |
-| Tall | Plane | 32×80 | 96 | 16 | ×2.00 |
-| Field | Plane | 128×128 | 144 | 24 | ×4.00 |
-| Prism | Prism | adaptive 48×48 baseline | 96 | 12 | ×2.00 |
+| Mirage Projector | Plane | 10×10 | 32 | 4 | ×1.00 |
+| Mirage Display | Plane | 32×32 | 48 | 12 | ×1.50 |
+| Wide Mirage Projector | Plane | 80×32 | 64 | 12 | ×2.00 |
+| Tall Mirage Projector | Plane | 32×80 | 96 | 16 | ×2.00 |
+| Mirage Field Projector | Plane | 128×128 | 144 | 24 | ×4.00 |
+| Mirage Prism | Prism | 48×48 baseline | 96 | 12 | ×2.00 |
 
-Nominal values are efficiency targets, not hard clipping walls.
+Nominal dimensions are efficiency targets, not hard render caps. The feasible UI range expands when sufficient Projection Power is available.
 
-## Core capacity
+## Core profiles
 
-Standard Base PU:
+| Core material | Base PU | Standard amplification | Loaded Core Booster amplification |
+|---|---:|---:|---:|
+| Glass | 32 | ×1.00 | ×1.50 |
+| Quartz | 48 | ×1.00 | ×1.50 |
+| Amethyst | 64 | ×1.00 | ×1.50 |
+| Diamond | 96 | ×1.00 | ×1.50 |
+| Netherite | 128 | ×1.00 | ×1.50 |
 
-- Glass 32;
-- Quartz 48;
-- Amethyst 64;
-- Diamond 96;
-- Netherite 128.
-
-Standard Core amplification is ×1.00. A loaded Core Booster uses the same material Base PU at ×1.50.
+Effective capacity:
 
 ```text
-Effective PU = floor(Base PU × chassis multiplier × amplification)
+floor(Base PU × chassis multiplier × Core amplification)
 ```
 
-### dev.81 energy boundary
+`ProjectionPower` is the only authority for effective capacity, component costs, Overdrive state and dynamic feasible Scale/Lift/Float limits.
 
-`ProjectionPower` no longer requires every future projector-like device to own a physical Core slot. Current fixed projectors adapt their `ProjectionCoreProfile` through `ProjectionEnergySource`, preserving the exact 1.0 PU math. Future portable devices can supply a different backend (for example Glow Dust charge in 1.1) through the same boundary without inventing a fake Core inventory.
+## Energy abstraction
 
-## Load model
+Fixed projectors use `ProjectionEnergySource` backed by the installed `ProjectionCoreProfile`. The generic power layer does not require every future Mirage device to expose a fixed-projector Core socket; portable devices can supply another energy backend later.
 
-Current centralized constants include:
+## Multi-source layouts
 
-- base emitter cost: 2 PU;
-- geometry: 256 projected pixels per PU baseline;
-- Lift: 16 px per PU baseline;
-- Float: 2 px per PU baseline;
-- Ghost rebate divisor: 3000.
+- Wide: optional 4-column image layout.
+- Tall: optional 4-row image layout.
+- Field: one continuous plane.
+- Prism: independent cardinal faces where supported by the source family.
 
-Source/effect complexity adds its own small costs. Chassis-overdrive costs are applied per component when a nominal target is exceeded.
+## Overdrive
 
-## Dynamic limits
-
-Scale, Lift and Float controls are solved against the current Core/chassis/source load. The UI should expose the highest feasible endpoint rather than forcing the player to search manually through a large invalid region.
-
-The Creative debug chassis override removes chassis overdrive penalties for testing; it does not create PU and does not bypass total capacity.
-
-## Wide/Tall image equivalence
-
-Wide and Tall MULTI layouts use four equal square cells. Their scaling rule must stay symmetric so the same source does not become arbitrarily larger merely because the chassis is Tall.
-
-## Prism
-
-Prism image geometry is content-adaptive per face:
-
-- horizontal sources target a wide-like envelope;
-- vertical sources target a tall-like envelope;
-- near-square sources target the square baseline.
-
-Its four source directions are world-cardinal N/E/S/W, not relative labels that rotate with block facing.
-
-## Core Booster identity
-
-Loaded Core Boosters keep the universal ×1.50 projector-Core amplification, but their Beacon/Mature-light identity is material-specific:
-
-| Material | Beacon identity | Mature static field |
-|---|---|---|
-| Glass | Diffusion / widest beam | -2 open blocks per effective unopposed Diffusion tier; softer detour shadows |
-| Quartz | Radiance / brighter beam | +2 open blocks per effective Quartz |
-| Amethyst | Resonance / faster optical activity | no static-reach change |
-| Diamond | Focus / tight inner beam | stronger detour shadows; +2 open blocks per 2 effective Diamonds |
-| Netherite | Inversion / reversed rotation | no static-reach change |
-
-Empty Booster item name remains `Core Booster`; loaded stacks use `<Material> Core Booster`.
+When a requested presentation exceeds the nominal chassis envelope, power demand rises. If available PU is sufficient, the projector can remain active in Overdrive rather than imposing an arbitrary render cap. UI slider limits are recalculated from the current Core/chassis/source/presentation state.

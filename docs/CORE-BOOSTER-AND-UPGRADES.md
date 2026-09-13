@@ -1,153 +1,55 @@
-# Mirage Projector — Core Booster and projector upgrades
-
-## Standard Projection Cores
-
-The projector Core slot directly accepts the existing standard materials recognized by `ProjectionCoreProfile`:
-
-- Glass / Glass Block → 32 PU;
-- Quartz / Quartz Block → 48 PU;
-- Amethyst Shard / Amethyst Block → 64 PU;
-- Diamond / Diamond Block → 96 PU;
-- Netherite Ingot / Netherite Block → 128 PU.
-
-Standard amplification is ×1.00.
+# Core Booster and Projector Upgrades — 1.0.0
 
 ## Core Booster
 
-There is one active Booster block/item, not five Improved Core products.
-
-Recipe:
+There is one gameplay block/item:
 
 ```text
-G S G
-S   S
-G S G
+mirage_projector:core_booster
 ```
 
-- `G` = Glass;
-- `S` = Crying Obsidian Shard.
+An empty Booster accepts one of:
 
-The crafted Booster is empty.
+- Glass
+- Quartz
+- Amethyst Shard
+- Diamond
+- Netherite Ingot
 
-### Loading
+The loaded material is stored as block/item state. Shift + right-click returns the material. Correctly mined Boosters preserve their loaded material; empty and differently loaded Boosters do not silently merge into one state.
 
-Right-click an empty placed Booster with exactly one supported material:
+As a projector Core, a loaded Booster maps to the corresponding improved Core profile and provides ×1.50 amplification over the base material output.
 
-- Glass;
-- Quartz;
-- Amethyst Shard;
-- Diamond;
-- Netherite Ingot.
+## Beacon / Crying Obsidian identities
 
-The material becomes the Booster's central stored Core and is rendered as the rotating holographic item inside the nested shell.
+The five materials remain behaviorally distinct:
 
-### Unloading
+- **Glass / Diffusion** — widens optical behavior and softens detour shadowing while trading straight-line static reach when unopposed.
+- **Quartz / Radiance** — strongest pure static-reach amplifier and increases reflected brightness.
+- **Amethyst / Resonance** — accelerates optical/residual activity without free static-world reach.
+- **Diamond / Focus** — tightens/focuses the optical response and strengthens geometric shadowing; two effective Diamonds add one static reach tier.
+- **Netherite / Inversion** — reverses optical rotation without granting free static reach.
 
-Shift + right-click removes the stored material and returns it. The center must become visually empty immediately.
+At most four effective loaded Boosters participate in one Beacon relay calculation.
 
-### Breaking and stacking
+## Upgrade crafting
 
-A correctly mined Booster preserves its stored material. Silk Touch is not required. ItemStacks only combine when their complete stored Booster state is equal, so different materials do not merge.
-
-### Projector behavior
-
-An empty Booster is not a valid projector Core. A loaded Booster maps to the corresponding improved profile and uses ×1.50 amplification without changing that material's Base PU identity.
-
-## Canonical visual geometry
-
-`docs/reference/core-booster/anidado.json` is the current geometry reference. The visible design uses nested translucent Crying-Obsidian-palette shells with the stored material in the center.
-
-## Legacy Improved Core migration
-
-Old dev builds registered five independent Improved Core blocks. They are no longer gameplay content. Their block IDs remain only so old worlds can load and automatically convert them to the equivalent loaded Core Booster.
-
-Do not create new recipes, BlockItems or separate balancing for those legacy IDs.
-
-## Projector crafting progression
-
-Base Mirage Projector:
+State-preserving projector progression:
 
 ```text
-S S S
-S G S
-O O O
+Mirage Projector
+      ↓
+Mirage Display
+  ├─→ Wide Mirage Projector
+  ├─→ Tall Mirage Projector
+  ├─→ Mirage Prism
+  └─→ Mirage Field Projector
 ```
 
-- 5 Crying Obsidian Shards;
-- 1 Glass;
-- 3 Obsidian.
+The custom `projector_upgrade` recipe serializer transfers serialized projector state into the target chassis. Upgrade crafting must preserve relevant source content, presentation state and installed Core rather than returning a blank machine.
 
-Compact → Display:
+EMI and JEI receive explicit integration for these custom crafting recipes.
 
-```text
-Q S A
-S M S
-A S Q
-```
+## Migration-only Improved Core IDs
 
-- 2 Quartz;
-- 2 Amethyst Shards;
-- 4 Crying Obsidian Shards;
-- the stateful Mirage Projector.
-
-Display → Wide:
-
-```text
-S S S
-G D G
-S S S
-```
-
-Display → Tall:
-
-```text
-S G S
-S D S
-S G S
-```
-
-Display → Prism:
-
-```text
-S G S
-G D G
-S G S
-```
-
-Display → Field:
-
-```text
-C S C
-S D S
-C S C
-```
-
-`D` is the stateful Display, `G` Glass, `S` Crying Obsidian Shard and `C` whole Crying Obsidian.
-
-## State preservation
-
-`ProjectorStateTransfer` is the only canonical crafting bridge. Upgrade output is created from the source stack, the saved BlockEntity payload is loaded through the destination chassis BlockEntity so its own sanitization/migration rules apply, and the normalized result is stored back on the output item.
-
-This preserves current persistent projector systems and automatically covers new persistent fields that use the same BlockEntity serialization path.
-
-## Beacon relay
-
-A loaded Core Booster placed in an active Beacon column relays and modifies the outgoing beam while preserving the current stained-glass hue. Relay state is cumulative from the Beacon upward and only the first four loaded Boosters are effective.
-
-| Material | Relay identity | Initial dev.60 behavior |
-|---|---|---|
-| Glass | Diffusion | +35 percentage points of vanilla width and a softer/broader outer beam |
-| Quartz | Radiance | +25 percentage points width and increased beam luminance |
-| Amethyst | Resonance | +25 percentage points width and ×1.25 rotation speed per effective Amethyst, capped near ×2 |
-| Diamond | Focus | +25 percentage points width with a tighter inner beam relative to the outer beam |
-| Netherite | Inversion | +25 percentage points width and reverses outgoing beam rotation; additional Netherite Boosters do not toggle it back |
-
-Width additions are additive and capped near 200% vanilla. Empty Boosters do nothing. Loaded Boosters beyond the four-effective limit remain physical but add no further optical modifier. Each Booster applies its relay transition at the physical internal-core plane `8.5/16` inside that Booster block. The lower beam segment preserves the incoming state and only the outgoing segment above the core inherits the material effect. Crying Obsidian attenuation is applied after upstream Booster relay state is resolved.
-
-dev.69–75d define the downstream Crying Obsidian reflection branch. Small/Medium/Large buds remain zero-block-light optical stages. An energized Mature Cluster owns an authoritative virtual Mirage Light field rather than physical relay emitters. Quartz/Radiance is the dominant static conceptual-power amplifier; Diamond/Focus adds a smaller bonus; Glass widens residual reflected rays; Amethyst increases residual excitation/rotation; Netherite preserves inversion. Generic incoming-beam `widthScale` is never converted into static world-light range.
-
-The Mature profile uses exact open half-decay plus dev.75d obstacle-detour penalty: Quartz/Diamond can lengthen the saturated/open tail, but a solid wall still blocks direct traversal and any route around it pays additional cost. Visible scalar light remains capped to 15. See `MIRAGE-LIGHT-ENGINE.md`.
-
-## Extraction guard (dev.68)
-
-A loaded Core Booster does not extract its core merely because the player is sneaking and right-clicking it. Extraction requires the interacting hand to be empty or to hold the same item type as the core stored in the Booster. If the hand contains a different item, Mirage does not consume/cancel that interaction, allowing the held tool or item to perform its own block interaction instead. This prevents accidental ejection while using compatible interaction tools around the relay stack.
+Old `improved_*_core` block IDs remain registered only to load/migrate old development worlds. They have no BlockItems, recipes or Creative exposure and are not part of 1.0.0 gameplay progression.

@@ -27,8 +27,8 @@ public final class MirageLightWorld {
         if (level == null || source == null) {
             return UpdateResult.SKIPPED;
         }
-        // dev.76 hard authority boundary: STATIC_WORLD geometry is never solved on a
-        // client Level. Clients install server-resolved section snapshots instead.
+        // Authority boundary: STATIC_WORLD geometry is never solved on a client Level.
+        // Clients install server-resolved section snapshots instead.
         if (level.isClientSide && source.runtimeMode() == MirageLightRuntimeMode.STATIC_WORLD) {
             return UpdateResult.SKIPPED;
         }
@@ -57,8 +57,8 @@ public final class MirageLightWorld {
 
             MirageLightField field = MirageLightSolver.solve(level, source);
 
-            // dev.76c atomic publication contract: a STATIC_WORLD solve that touched an
-            // unavailable chunk is an incomplete candidate, never authoritative state.
+            // Atomic publication contract: a STATIC_WORLD solve that touches an unavailable
+            // chunk is an incomplete candidate, never authoritative state.
             // Keep the previous complete field (if any) untouched and let the source
             // lifecycle retry after its full dependency window becomes queryable.
             if (source.runtimeMode() == MirageLightRuntimeMode.STATIC_WORLD

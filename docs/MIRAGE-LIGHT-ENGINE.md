@@ -1,343 +1,112 @@
-# dev.76 STATIC_WORLD authority update
+# Mirage Light Engine — 1.0.0
 
-`STATIC_WORLD` no longer synchronizes source descriptors for client-side re-solving. The server is the only geometry authority. It runs the existing causal fixed-point solver, aggregates overlapping sources by maximum visible Mirage level, and synchronizes final 16×16×16 section values to clients already watching the corresponding vanilla chunk. Levels are nibble-packed (4 bits/voxel, 2048 bytes/full section). Clients mirror the section and answer effective block light as `max(vanilla, Mirage)`.
+Network protocol: **27**
 
-This intentionally does **not** inject Mirage values into vanilla `BlockLightEngine` propagation, so virtual values cannot become recursive secondary emitters. Client section install/removal publishes `onLightUpdate(BLOCK, section)` for render/cache consumers.
+The 1.0.0 static Mirage Light implementation is server-authoritative and is currently used by energized Mature Crying Obsidian Clusters. Moving/portable emitters are intentionally reserved for the separate `DYNAMIC_VISUAL` lifecycle.
 
-`DYNAMIC_VISUAL` remains a distinct future backend for lanterns, handheld projectors and other moving emitters; it must not rebuild/synchronize static section voxels every frame. Current network protocol: **27**. (The dev.82 bump is for projector source/transform codecs; STATIC_WORLD snapshot semantics are unchanged.)
+## Core rule
 
----
+Mirage uses a virtual fixed-point light field rather than planting vanilla light-emitting relay blocks.
 
-# Mirage Projector — Mirage Light Engine authority
-
-Current line: **0.1.0-dev.82**. Network protocol: **27**.
-
-This document is the focused authority for Mirage-owned world/dynamic lighting. Historical physical-relay documents remain useful archaeology, but they do not override this contract.
-
-## 1. Design invariant
-
-Mirage computes a **final virtual light field**. It does not manufacture a lattice of vanilla light-emitting blocks and does not inject solved Mirage voxels back into `BlockLightEngine` as new emissions.
-
-Effective scalar block light is read as:
+Visible light is read as:
 
 ```text
-effectiveBlockLight = max(vanillaBlockLight, mirageBlockLight)
+max(vanilla block light, Mirage light)
 ```
 
-This preserves vanilla light as an independent lower layer while preventing Mirage cells from recursively becoming omnidirectional secondary sources.
+Mirage values are never fed back into vanilla block-light propagation as new emitters.
 
-`mirage_projector:crying_light_node` remains registered only so old development worlds can load and migrate. Current runtime never creates it.
+## Solver profile
 
-## 2. Major runtime pieces
+The Mature Cluster uses an omnidirectional `EXTEND` profile with two fixed-point substeps per visible light level.
 
-### `MirageLightSource`
-
-Immutable feature-independent emitter descriptor:
-
-- stable `MirageLightSourceId`;
-- world origin;
-- `MirageLightProfile`;
-- runtime mode (`STATIC_WORLD` today, `DYNAMIC_VISUAL` reserved).
-
-The first active producer is an energized Mature Crying Obsidian Cluster. Future stationary/portable projectors and projected-map/display effects must reuse this source contract rather than create their own physical light blocks.
-
-### `MirageLightProfile`
-
-Current fields:
-
-- `conceptualLight`: source energy tier; may exceed visible vanilla 15;
-- `substepsPerLightLevel`: fixed-point precision;
-- `airStepCostUnits`: ordinary open-space traversal cost;
-- `detourExtraCostUnits`: additional cost for path length that exists only because geometry forced a detour;
-- `maxRadius`;
-- decay mode;
-- shape;
-- direction / cone angle;
-- reserved RGB metadata.
-
-The profile remains the authoritative server-side solve contract. STATIC_WORLD no longer sends source descriptors to clients: protocol 27 sends the same final revisioned chunk snapshots/section values plus recovery manifests/requests. `detourExtraCostUnits` therefore stays server-side for static Mature lighting.
-
-### `MirageLightSolver`
-
-A causal six-neighbour weighted flood solver. Every solved voxel has a cardinal predecessor chain to the source. It uses packed `long` positions, `Long2ByteOpenHashMap` for best fixed-point energy and energy buckets (`LongArrayFIFOQueue[]`) rather than one heap/node object per voxel.
-
-### `MirageLightOcclusion`
-
-Edge transmission delegates vanilla face/opacity semantics to `LightEngine.getLightBlockInto(...)`. dev.75c fixed the destination-opacity contract: `toState.getLightBlock(level, toPos)` is supplied instead of the erroneous constant `1`; destinations with opacity >=15 are rejected directly.
-
-This means a solid wall is not traversable. Light behind a finite wall must arrive through a real path over/under/around its edge.
-
-### `MirageLightSection` / `MirageLightWorld`
-
-Per-source fixed-point contributions are stored sparsely by 16³ section. `MirageLightWorld` keeps immutable solved source fields and a materialized aggregate visible max layer for O(1) reads. Removing one source reveals the strongest surviving contribution instead of blindly clearing a region.
-
-## 3. Mature Cluster profile
-
-An energized Mature Cluster is a baseline static world-light source even with zero Core Boosters.
-
-Current no-Booster profile:
+A conceptual level-15 source therefore produces the open-space curve:
 
 ```text
-conceptualLight       = 15
-substepsPerLightLevel = 2
-airStepCostUnits      = 1
-detourExtraCostUnits  = 1
-maxRadius             = 30
-shape                 = OMNIDIRECTIONAL
-runtime                = STATIC_WORLD
-RGB metadata          = 0xA84CFF (reserved for future colored visual backend)
+15, 15, 14, 14, 13, 13, ... , 2, 2, 1, 1
 ```
 
-Open-space distances 1–30 are therefore exactly:
+The solver walks the six cardinal neighbours only. Open-air movement uses the normal half-decay cost; geometry-forced backtracking can add extra detour cost.
 
-```text
-15 15 14 14 13 13 12 12 11 11
-10 10  9  9  8  8  7  7  6  6
- 5  5  4  4  3  3  2  2  1  1
-```
+## Occlusion
 
-Visible scalar output remains capped to 15. Conceptual power 16–19 extends the saturated 15 plateau and total tail instead of inventing illegal vanilla levels 16–19.
-
-## 4. dev.75d obstacle-detour decay
-
-The Cluster does **not** switch an entire shadow region abruptly into a separate vanilla mode after one collision. Instead, each candidate voxel receives the best weighted causal route from the source.
-
-For an endpoint:
-
-```text
-directDistance = Manhattan distance(source, endpoint)
-pathLength     = cardinal steps in the chosen real path
-detour         = pathLength - directDistance
-
-weightedCost = directDistance * airStepCostUnits
-             + detour * (airStepCostUnits + detourExtraCostUnits)
-```
-
-For the current half-decay profile (`air=1`, `detourExtra=1`):
-
-```text
-ordinary/direct step  -> 1 internal unit = 1/2 visible light level
-obstacle-only extra step -> 2 internal units = 1 full visible light level
-```
-
-The implementation does not need to store complete paths. In a cardinal grid, one step either increases or decreases Manhattan distance by one. A monotonic open-space path only moves outward. If geometry forces an overshoot, the later inward/backtracking edge reduces Manhattan distance while path length still increases; that edge represents two accumulated detour steps, so the solver adds `2 * detourExtraCostUnits` there.
+Each edge delegates opacity/face-shape semantics to vanilla light helpers. Destination opacity uses the real destination state's light-block value rather than a constant fallback.
 
 Consequences:
 
-- open-space half-decay is bit-for-bit unchanged;
-- touching a wall does not create a hard lighting seam;
-- a finite wall may be wrapped around naturally;
-- deeper shadow pockets become progressively darker because reaching them requires more detour;
-- a completely separating barrier still disconnects the source entirely;
-- obstacle cost is profile data, so future light types may choose different shadow behavior without changing the solver architecture.
+- full opaque walls block direct propagation;
+- partial blocks use vanilla shape/opacity semantics;
+- finite walls can be routed around;
+- routes that exist only because geometry forced a detour are weaker than equivalent open-space paths.
 
-Example model used by the dev.75d verifier:
+## Overlap
 
-```text
-source=(0,0), probe=(6,0)
-open shortest path = 6 steps -> visible 13
-3-high finite wall at x=3 forces 8-step route
-2 extra detour steps receive stronger cost -> visible 11
-```
+Multiple Mirage sources aggregate by maximum contribution, not addition. Removing one source cannot erase a stronger contribution still supplied by another source.
 
-This example is a regression model, not a promise that every 3-D wall arrangement produces exactly level 11; the actual value depends on source position, wall dimensions, partial opacity, alternate routes and competing vanilla/Mirage sources.
+## Core Booster influence
 
-## 5. Occlusion and partial blocks
+At most four loaded Core Boosters participate in the Beacon relay feeding a Mature Cluster.
 
-For every `from -> to` edge:
+Static-field identities:
 
-1. source/destination chunks must already be loaded;
-2. destination build height/radius must be valid;
-3. destination block-light opacity is resolved from the actual BlockState;
-4. opacity >=15 blocks the edge;
-5. vanilla face-shape occlusion decides whether the two states' facing surfaces block transfer;
-6. partial opacity adds whole-visible-level fixed-point penalty;
-7. dev.75d detour penalty is then applied only if that movement is part of geometric backtracking relative to the source.
+- **Glass / Diffusion** — softens detour shadowing but trades away straight-line reach when unopposed;
+- **Quartz / Radiance** — strongest pure static-reach amplifier; each Quartz adds one conceptual tier, equivalent to about two extra open blocks under half-decay;
+- **Amethyst / Resonance** — changes optical/residual behavior but grants no free static reach;
+- **Diamond / Focus** — strengthens geometric shadowing; two Diamonds add one conceptual static-reach tier;
+- **Netherite / Inversion** — reverses optical rotation and grants no free static reach.
 
-Do not add slab/stair/mod-specific `instanceof` rules unless a concrete vanilla-helper incompatibility is proven. The default contract is to reuse Minecraft's own state/shape semantics.
+The static conceptual level is clamped to the engine's safe profile bounds and visible output remains capped to vanilla-compatible 0..15.
 
-## 6. Core Booster reflection into Mature light
+## Server authority
 
-The Beacon column is resolved first. At most four loaded Boosters contribute. dev.77 keeps the five identities separate in both the visible Beacon relay and the Mature static field instead of treating every material as the same generic range tier.
+`STATIC_WORLD` geometry is solved only on the server.
 
-### Static Mature-field semantics
+A source is publishable only when its complete horizontal dependency window is queryable. The solver never force-loads chunks. If the window is incomplete, publication is deferred and the previously complete field remains authoritative until a complete replacement can be solved.
 
-- **Glass / Diffusion**: each effective unopposed diffusion tier removes one conceptual half-decay tier, reducing open reach by 2 blocks. If Diffusion dominates Focus, the extra obstacle-detour penalty drops from 1 to 0, so the shorter field wraps finite geometry more softly instead of simply behaving like weaker Quartz.
-- **Quartz / Radiance**: +1 conceptual tier per effective Quartz, i.e. +2 open blocks per Booster. Quartz remains the strongest pure static-reach material.
-- **Amethyst / Resonance**: no free static range. Its identity remains residual excitation/rotation activity.
-- **Diamond / Focus**: Focus immediately strengthens geometric detour shadows. Raw reach is deliberately weaker than Quartz: every **two** effective Diamonds add +1 conceptual tier (+2 open blocks).
-- **Netherite / Inversion**: no free static range; it keeps reflected rotation inversion as its defining optical behavior.
+This prevents partial/mosaic light states during login, chunk attachment and boundary transitions.
 
-The net conceptual field remains clamped to the safe Mirage profile range. Base Mature light remains the exact no-Booster `15,15,14,14,...,1,1` curve. Mixed Glass/Diamond stacks naturally counteract one another through the existing Diffusion-vs-Focus relationship.
+## Chunk synchronization
 
-Open-space reference values for a single uninterrupted Beacon chain:
+Clients receive atomic per-chunk Mirage-light snapshots containing packed 16×16×16 section data. Chunk revision manifests act as lightweight watchdogs; a client requests a full snapshot only when its local revision is absent or stale.
 
-| Effective relay | Open reach from Mature source | Detour identity |
-|---|---:|---|
-| none | 30 blocks | base detour cost 1 |
-| 1 Glass | 28 blocks | Diffusion detour cost 0 |
-| 1 Quartz | 32 blocks | base detour cost 1 |
-| 1 Amethyst | 30 blocks | base detour cost 1 |
-| 1 Diamond | 30 blocks | Focus detour cost 2 |
-| 2 Diamonds | 32 blocks | Focus detour cost 2 |
-| 1 Netherite | 30 blocks | base detour cost 1 |
-| 4 Quartz | 38 blocks | base detour cost 1 |
+When an authoritative snapshot is installed, affected render/light sections are invalidated even if Mirage bytes are unchanged, because external consumers may have cached vanilla-only values before the snapshot arrived.
 
-### Beacon-beam identity
+## Terrain invalidation
 
-The incoming/outgoing Beacon relay is also less generic in dev.77:
+Relevant terrain/lifecycle changes coalesce and revalidate impacted source fields against committed server geometry. Coverage includes normal placement/break events plus fluid, growth, piston, explosion and Core Booster changes used by the current implementation.
 
-- Glass widens the beam the most;
-- Quartz widens it only mildly but increases radiance/brightness;
-- Amethyst applies moderate widening and resonance rotation speed;
-- Diamond barely widens the beam and instead tightens the inner beam (Focus);
-- Netherite applies moderate widening and reverses outgoing rotation.
+Source-centered dependency tracking also catches chunk attach/detach changes. Rebuilds are performed from the source rather than treating a changed chunk as an independent emitter.
 
-All static effects still use the same causal six-neighbor solver, vanilla shape/opacity occlusion and detour model. No Booster creates secondary vanilla emitters.
+## Runtime storage
 
-## 7. Source lifecycle
+`MirageLightEngine`/`MirageLightWorld` own authoritative solved source fields and aggregate section state. The old physical `mirage_projector:crying_light_node` block is migration-only; current runtime never creates it.
 
-### Activation / refresh
+Legacy relay positions are cleaned only when they are known Mirage migration data. The cleanup path must never remove vanilla `minecraft:light` or unrelated mod blocks.
 
-A Mature Cluster registers when it is Mature **and** Beacon-energized. It owns no BlockEntity; chunk-load discovery finds the block state and schedules normal crystal reevaluation. The source ID is stable from its block position.
+## Diagnostic commands
 
-Core Booster material changes refresh nearby Mature sources so conceptual power updates without requiring the Cluster to be replaced.
+The `/miragelight` command family provides diagnostics such as:
 
-### Terrain invalidation
+- `stats`
+- `probe`
+- `axis`
+- `rebuild`
 
-Server terrain changes are coalesced and solved after the committed world state is available. Covered event families include:
+These commands inspect Mirage, vanilla and effective light and are intended for regression/debugging rather than gameplay progression.
 
-- block place;
-- multi-place;
-- block break;
-- fluid block placement;
-- crop growth;
-- feature/tree/fungus growth;
-- piston movement;
-- explosions;
-- explicit Booster-driven source refresh.
+## DYNAMIC_VISUAL boundary
 
-An impacted source is rebuilt at most once for the coalesced tick batch.
+`DYNAMIC_VISUAL` is deliberately separate from `STATIC_WORLD`. Future lanterns, handheld projectors or other rapidly moving emitters must use a lifecycle designed for high-frequency visual changes rather than rebuilding server-authoritative static sections every frame.
 
-### Removal / de-energization
+## Release invariants
 
-Removing or de-energizing the source removes its virtual contribution immediately. Aggregate light is rebuilt from surviving sources; overlapping light is therefore downgraded rather than indiscriminately erased.
+For 1.0.0:
 
-## 8. Chunk lifecycle
-
-The solver never force-loads chunks.
-
-Server:
-
-- `ChunkEvent.Load` queues newly available geometry;
-- work is coalesced to `LevelTickEvent.Post`;
-- loaded chunks are scanned for Mature sources and legacy Mirage Light Nodes;
-- sources touching newly available chunk geometry rebuild once;
-- unloading the source-origin chunk unregisters that source;
-- destination chunk unload does not destroy the source; arrival later triggers a new solve.
-
-Client:
-
-- chunk load/unload geometry changes are coalesced to client tick post;
-- locally known source descriptors touching those chunks are re-solved;
-- old/new affected render sections are dirtied so chunk lighting recompiles.
-
-## 9. Network lifecycle
-
-Protocol **21**.
-
-Mirage synchronizes source descriptors, never solved voxel arrays. Client and server run the deterministic solver against their own loaded geometry.
-
-Delivery is chunk-tracking scoped:
-
-- a player receives a source while at least one watched chunk intersects its radius;
-- `UnWatch`/source removal retract descriptors no longer needed;
-- same-level respawn retains known watched chunks across CLEAR and reconciles immediately;
-- dimension changes start a new level-scoped tracking state;
-- logout removes tracking state.
-
-The synchronized profile includes dev.75d's `detourExtraCostUnits`, which is why protocol moved 20 -> 21.
-
-## 10. Read-time authority
-
-Current bridges merge Mirage with vanilla without modifying vanilla propagation:
-
-- `Level` block-light brightness;
-- `LevelLightEngine#getRawBrightness` path;
-- client `RenderChunkRegion` brightness used during chunk compilation.
-
-A third-party consumer that intentionally reads raw vanilla block-light storage directly can still see vanilla-only values. Add a narrow compatibility bridge only for a confirmed consumer; never feed Mirage values into vanilla `BlockLightEngine` to make such a consumer happy.
-
-## 11. Debug commands
-
-### `/miragelight stats`
-
-Reports authoritative source count, aggregate section count and lit virtual voxel count for the current server level.
-
-### `/miragelight axis <north|south|east|west|up|down>`
-
-Uses the nearest loaded Mirage source and prints its solved visible sequence along one cardinal axis plus solve time, voxel count, section count and blocked-edge count. In unobstructed no-Booster terrain it must show the exact 30-cell half-decay sequence.
-
-### `/miragelight probe`
-
-At the player's block position reports:
-
-- aggregate Mirage block light;
-- nearest-source contribution and source position;
-- dev.75d weighted path cost for that nearest field, split into minimum direct cost and additional cost (`extra` includes detour and any partial-opacity contribution);
-- raw vanilla block-light storage;
-- effective merged value.
-
-Use this to distinguish a solver problem from a rendering/consumer compatibility problem.
-
-### `/miragelight rebuild`
-
-Forces a solve of the nearest loaded server source and rebroadcasts its descriptor if rebuilt. It reports solved voxel/section count and solve milliseconds. This remains a diagnostic; normal chunk/terrain lifecycle should not require manual rebuilding.
-
-## 12. Legacy-node migration
-
-`mirage_projector:crying_light_node` has no forward runtime role.
-
-- no current Java path creates its default block state;
-- source-centered cleanup removes old axial/dev.69 diffuse positions around known sources;
-- loaded chunk sections use palette prefiltering and only scan voxel-by-voxel if the legacy block may exist;
-- only Mirage's own node is removed; `minecraft:light` and other mods' light blocks are untouched;
-- legacy node scheduled ticks self-delete.
-
-The registry/model can remain until old development-world compatibility is intentionally dropped.
-
-## 13. Performance contract
-
-Current deliberate choices:
-
-- source solve occurs on relevant mutation/chunk changes, not on every light query;
-- reads from the aggregate field are O(1);
-- packed positions + primitive byte energy map;
-- descending energy buckets instead of object `PriorityQueue` nodes;
-- sparse 16³ source sections;
-- aggregate section replacement operates over the union of old/new touched sections;
-- source sync is tracking-scoped and descriptor-only;
-- chunk/terrain changes are coalesced.
-
-Before further solver optimization, profile real worlds with several overlapping radius-30/38 sources. Do not implement partial/incremental graph invalidation unless measured solve/tick cost justifies the complexity.
-
-## 14. Boundary for dev.76+
-
-Static Mature world light is now an authoritative consumer of the engine. dev.76 begins **dynamic/mobile light source foundation**, not another rewrite of the static solver.
-
-Reserved work:
-
-- `DYNAMIC_VISUAL` client-oriented moving sources;
-- portable projectors / held or entity-attached emitters;
-- directional cone / spotlight;
-- rotating directional spotlight;
-- rectangular frustum;
-- plane/projected-surface emission for displays/maps;
-- RGB-preserving visual light while scalar gameplay light can continue collapsing to 0–15;
-- concrete third-party brightness compatibility bridges if real QA proves they are needed.
-
-Dynamic visual light must not rebuild server gameplay-light fields every render frame. It should reuse source/profile semantics while using a backend appropriate to moving visual emitters.
-
-## Atomic publication (dev.76c)
-
-Server-authoritative does not mean partial authoritative. A `STATIC_WORLD` source is publishable only when its complete horizontal dependency window is queryable on the server. Missing dependencies place the source into a pending rebuild set. Pending sources are retried every tick without force-loading chunks. The solver also refuses to commit any candidate that reports `unloadedEdges > 0`, preserving the previous complete field until a full replacement is available.
+- open level-15 half-decay is exactly `15,15,14,14,...,1,1`;
+- opaque geometry cannot be crossed as air;
+- finite obstacles may be routed around with additional decay;
+- overlap uses maximum contribution;
+- static solving is server-only;
+- publication is atomic across dependency windows;
+- clients recover through chunk snapshots/revisions;
+- physical legacy relays are migration-only.

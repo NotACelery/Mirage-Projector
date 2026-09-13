@@ -194,7 +194,6 @@ public final class DebugHandbookScreen extends BookViewScreen {
     }
 
     private static float baseBookCenterY() {
-
         return 2.0F + IMAGE_HEIGHT * 0.5F;
     }
 

@@ -1,19 +1,15 @@
 # Mirage Projector
 
-Mirage Projector is a NeoForge 1.21.1 mod by **Celerbi** for configurable decorative holographic projections. The current development line supports images/GIFs, items, banners and frozen entity snapshots across six state-preserving projector chassis.
+**Want holograms in your Minecraft builds?** Mirage Projector is a NeoForge 1.21.1 mod by **Celerbi** that turns images, GIFs, items, banners, creatures and players into customizable projections. Start with a compact projector and grow into larger or specialized displays as your build needs them.
 
-**Current source line:** `0.1.0-dev.82` — mod logo integration on top of the dev.81 architecture freeze. The projector visuals/held-item line remains closed at dev.80f, the projection-source future-proofing foundation from dev.81 remains the current architectural baseline, and dev.82 adds the chosen mod logo asset plus NeoForge metadata wiring (`logoFile`, `logoBlur=false`). User-visible Image/Item/Entity/Banner/Light behavior is otherwise intentionally unchanged. Network protocol remains 27.
+## Requirements
 
-Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in `docs/CURRENT-IMPLEMENTATION.md`; genuinely pending work lives only in `docs/ROADMAP.md`.
+- Minecraft **1.21.1**
+- NeoForge **21.1.244+**
+- Java **21**
+- Network protocol **27**
 
-## Platform
-
-- Minecraft 1.21.1
-- NeoForge 21.1.244+
-- Java 21
-- Gradle 9.2.1
-- Parchment 2024.11.17
-- Network protocol 27
+EMI and JEI are optional. When installed, Mirage Projector exposes its custom projector-upgrade recipes and Crying Obsidian guidance directly in the recipe viewer.
 
 ## Projector chassis
 
@@ -26,9 +22,9 @@ Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in 
 | Tall Mirage Projector | 32×80 | 96 | 16 | ×2.00 |
 | Mirage Prism | 48×48 baseline | 96 | 12 | ×2.00 |
 
-The nominal envelope is an efficiency target rather than a hard render cap. The Power system can enter Overdrive when enough PU is available.
+The nominal envelope is an efficiency target rather than a hard render cap. Sufficient Projection Power can push a projector into Overdrive.
 
-Crafting progression is state-preserving:
+Crafting progression preserves the projector's stored state:
 
 ```text
 Mirage Projector
@@ -44,35 +40,33 @@ Mirage Display
 
 ### Image / GIF
 
-Supported current import families include PNG, JPG/JPEG, static WebP, BMP and animated GIF. Wide and Tall support optional four-source image layouts, Prism uses independent cardinal faces, and Field remains one continuous large Plane.
-
-Image assets are content-addressed and synchronized through the Mirage server/client asset pipeline rather than assuming every client already owns the imported file.
+Supports PNG, JPG/JPEG, static WebP, BMP and animated GIF. Wide and Tall can use optional four-source image layouts, Prism supports independent cardinal faces, and Field uses one continuous large plane. Imported assets are content-addressed and synchronized through the server/client asset pipeline.
 
 ### Item
 
-The Item workspace stores a virtual serialized snapshot. The real inventory item stays with the player. Blocks render as volumetric block/item models where applicable and ordinary items use the Minecraft item renderer.
+Stores a virtual serialized snapshot; the real inventory item remains with the player. Blocks use volumetric block/item rendering where applicable, while ordinary items use Minecraft's item renderer.
 
 ### Banner
 
-Banner appearance is copied virtually. The real banner is never consumed by the projector. Plane chassis render banner cloth without a physical pole; Prism supports independent cardinal banner faces.
+Copies banner appearance virtually without consuming the real banner. Plane chassis render banner cloth without a physical pole; Prism supports independent cardinal banner faces.
 
 ### Entity
 
-Entity Scan Cards capture frozen visual data rather than keeping a live ticking entity. Current support includes generic living entities, Players, Humanoid equipment, bodyless equipment rigs, Horse Saddle/Body Armor, per-channel render visibility, custom names and pose presets. Hiding equipment suppresses only rendering; the virtual snapshot remains stored and can be restored immediately. Passenger/vehicle composite scans remain intentionally rejected until a dedicated format exists.
+Entity Scan Cards store frozen visual data rather than live ticking entities. Supported state includes generic living entities, Players, Humanoid equipment, bodyless equipment rigs, Horse Saddle/Body Armor, custom names, pose presets and per-channel equipment visibility. Passenger/vehicle composite scans are intentionally rejected until a dedicated format exists.
 
 ## Presentation controls
 
-Current shared controls include Scale, Lift, rotation, rotation period/direction/offset, Floating, float amplitude/timing, world lighting or Fullbright, Ghost/opacity, Tint, image flip and scanlines.
+Shared controls include Scale, Lift, rotation, rotation period/direction/offset, Floating, float amplitude/timing, world lighting or Fullbright, Ghost/opacity, Tint, image flip and scanlines. The active projection source and projector ON/OFF state are stored independently, so turning a projector off never destroys its configured source data.
 
 ## Projection Power
 
-| Core material | Base PU | Standard | Loaded Core Booster |
-|---|---:|---:|---:|
-| Glass | 32 | ×1.00 | ×1.50 |
-| Quartz | 48 | ×1.00 | ×1.50 |
-| Amethyst | 64 | ×1.00 | ×1.50 |
-| Diamond | 96 | ×1.00 | ×1.50 |
-| Netherite | 128 | ×1.00 | ×1.50 |
+| Core material | Base PU | Core Booster amplification |
+|---|---:|---:|
+| Glass | 32 | ×1.50 |
+| Quartz | 48 | ×1.50 |
+| Amethyst | 64 | ×1.50 |
+| Diamond | 96 | ×1.50 |
+| Netherite | 128 | ×1.50 |
 
 Effective capacity is:
 
@@ -80,87 +74,59 @@ Effective capacity is:
 floor(Base PU × chassis multiplier × Core amplification)
 ```
 
-## Core Booster
-
-There is one user-facing `mirage_projector:core_booster`.
-
-A placed empty Booster accepts Glass, Quartz, Amethyst Shard, Diamond or Netherite Ingot with right-click. Shift + right-click returns the stored material. Loaded Boosters preserve material when correctly mined and only stack with identical stored state. Empty Boosters are not valid projector Cores. Loaded item stacks are named dynamically (`Glass Core Booster`, `Quartz Core Booster`, etc.); the empty item remains simply `Core Booster`.
-
-Beacon-relay identity is intentionally material-specific. Glass/Diffusion broadens the beam and trades Mature static reach for softer detour shadows; Quartz/Radiance is the strongest pure static-reach amplifier (+2 open blocks per effective Quartz); Amethyst/Resonance accelerates residual optical activity without free static reach; Diamond/Focus tightens the beam and strengthens geometric shadows, adding only +2 open blocks per two effective Diamonds; Netherite/Inversion reverses beam rotation without free static reach.
-
-Five old `improved_*_core` block IDs remain only as migration shims for development worlds. They have no BlockItems, recipes or active Creative exposure and must not be treated as separate gameplay products.
+A `Core Booster` accepts Glass, Quartz, Amethyst Shard, Diamond or Netherite Ingot. Loaded Boosters retain their material when correctly mined and provide material-specific Beacon/Mirage-light behavior. Empty Boosters are not valid projector Cores.
 
 ## Crying Obsidian ecosystem
 
-Implemented systems include:
+Version 1.0.0 includes:
 
-- Crying Obsidian Shard crafting/loot loop;
-- downward Small → Medium → Large → Mature renewable crystal growth from Crying Obsidian with lava above;
-- Amethyst-family visual geometry recolored into the Crying Obsidian palette;
-- exact stage harvesting with Silk Touch preservation and no Fortune multiplier;
-- Beacon attenuation at roughly 75% / 50% / 25% / 0%;
-- energized Mature Cluster lighting and residual purple ray behavior;
-- Obsidian Spike trap.
+- Crying Obsidian Shards and shard-based Crying Obsidian crafting;
+- renewable downward crystal growth from Crying Obsidian with lava directly above;
+- Small → Medium → Large → Cluster growth stages;
+- Silk Touch preservation and fixed shard drops without Fortune multiplication;
+- Beacon interaction and material-specific Core Booster relay effects;
+- energized Mature Cluster Mirage lighting;
+- residual purple optical rays;
+- Obsidian Spike trap blocks.
 
-Loaded Core Boosters relay active Beacon columns. Glass provides Diffusion, Quartz Radiance, Amethyst Resonance, Diamond Focus and Netherite Inversion, with at most four effective Boosters. Only an energized Mature Cluster is a static world-light source.
+The static Mirage Light Engine is server-authoritative. Clients receive resolved per-chunk Mirage light sections and combine them with vanilla block light at read time using `max(vanilla, Mirage)`. Static Mirage values are never fed back into vanilla propagation as new emitters.
 
-The forward **Mirage Light Engine** is authoritative for energized Mature Cluster world light. dev.76 keeps the causal fixed-point solver, vanilla-shape occlusion and obstacle detour penalty, but moves STATIC_WORLD publication to a server-resolved section channel. Clients no longer receive source descriptors or run the static solver: watched chunks receive final Mirage light sections (4 bits per voxel) and read `max(vanilla, Mirage)`. Open no-Booster light remains exactly `15,15,14,14,...,1,1`. `DYNAMIC_VISUAL` remains a separate backend reserved for the portable illumination/projector work in 1.1.0.
+## EMI / JEI
 
-Physical `crying_light_node` blocks are migration-only and are never created by current runtime. Effective scalar light is `max(vanilla, Mirage)` at read time; Mirage virtual cells are never fed back into vanilla propagation as new emitters. See `docs/MIRAGE-LIGHT-ENGINE.md` for the complete runtime, networking, chunk, occlusion, debugging and future-backend contract.
+With EMI installed:
 
-## Current stabilization point
+- all six projector chassis expose their crafting progression;
+- Crying Obsidian exposes both shard-based crafting variants;
+- the Crying Obsidian growth mechanic has an icon-only World Interaction tutorial;
+- crystal Block Drops are ordered Small → Medium → Large → Cluster.
 
-`dev.76h` remains the QA-confirmed static-light stabilization baseline; `dev.77` adds Core Booster identity polish; `dev.78`/`dev.78a` begin alternate projector chassis refinement; `dev.79` locks projector-specific scope/model↔VoxelShape reconciliation; `dev.79a` finalizes Tall dome polish and the whole-source audit; `dev.79b` performs targeted Z-fighting cleanup on Compact/Wide/Field plus mode-workspace activation UX cleanup; `dev.79d` adds ON/OFF and the first Compact depth cleanup; and `dev.79h` converts the remaining Compact emitter geometry into outward-facing plates only while moving all source-workspace action buttons onto a dedicated second header row. The Mature Cluster virtual field still has exact open-space half-decay, real opaque/partial-block edge handling, natural route-around-wall behavior with extra detour penalty, chunk lifecycle, tracking-scoped source sync, overlap max aggregation and legacy-node migration.
-
-Required acceptance before calling this line build-clean is Windows Java 21 compilation plus in-game QA of open curve, 1/2/3-block and L-shaped walls, slabs/stairs/partial opacity, chunk borders/unload/reload, relog/respawn/dimension, overlapping sources, Quartz/Diamond reinforcement and several simultaneous fields. dev.71 equipment visibility and dev.72 Entity envelope/frustum work remain accumulated and must not regress.
+With JEI installed, custom projector-upgrade recipes are exposed through the normal Crafting category and Crying Obsidian/projector guidance is available through ingredient information.
 
 ## Documentation
 
-Current active documents:
+Start with:
 
-- `docs/DOCUMENTATION-AUTHORITY.md`
-- `docs/CURRENT-IMPLEMENTATION.md`
-- `docs/ARCHITECTURE.md`
-- `docs/REGISTRY-INVENTORY.md`
-- `docs/POWER-AND-CHASSIS.md`
-- `docs/CORE-BOOSTER-AND-UPGRADES.md`
-- `docs/CRYING-OBSIDIAN.md`
-- `docs/ENTITY-AND-SNAPSHOTS.md`
-- `docs/ASSET-PIPELINE.md`
-- `docs/ROADMAP.md`
-- `docs/QA-REGRESSION.md`
-- `docs/DEV59-AUDIT.md`
-- `docs/DEV60-CORE-BOOSTER-BEACON-RELAY.md`
-- `docs/DEV61-MODDED-EQUIPMENT-RENDER-SAFETY.md`
-- `docs/DEV62-LATE-ENTITY-DEPTH-STABILIZATION.md`
-- `docs/DEV63-CREATE-LAYERED-BACKTANK-COMPAT.md`
-- `docs/DEV64-CREATE-SYNTHETIC-CHEST-SINGLE-SURFACE.md`
-- `docs/DEV65-POWERED-CRYING-LIGHT-FIELD.md`
-- `docs/MIRAGE-LIGHT-ENGINE.md`
-- `docs/LIGHT-PROFILE-FOUNDATION.md`
-- `docs/DEV74-MIRAGE-LIGHT-ENGINE-FOUNDATION.md`
-- `docs/DEV75A-AUTHORITATIVE-VIRTUAL-LIGHT-MIDPOINT.md`
-- `docs/DEV75B-AUTHORITATIVE-VIRTUAL-LIGHT-LIFECYCLE.md`
-- `docs/DEV75C-OCCLUSION-OPACITY-FIX.md`
-- `docs/DEV75D-DETOUR-PENALTY-AND-CONSOLIDATION.md`
-- `docs/DEV75D-STATIC-QA.md`
-- `docs/CHANGELOG.md`
-- `docs/DEV79A-FULL-AUDIT.md`
-- `docs/NEXT-CHAT-HANDOFF-dev82.md`
-- `docs/DEV78A-PROJECTOR-MODEL-CORRECTIONS.md`
-- `docs/DEV79-SCOPE-LOCKED-PROJECTOR-RECONCILIATION.md`
-- `docs/NEXT-CHAT-HANDOFF-dev79.md`
-- `docs/DEVELOPMENT.md`
-- `docs/THIRD_PARTY_NOTICES.md`
-- `docs/NEXT-CHAT-HANDOFF-dev65.md`
-- `docs/NEXT-CHAT-HANDOFF-dev66.md`
-- `docs/NEXT-CHAT-HANDOFF-dev74.md`
-- `docs/NEXT-CHAT-HANDOFF-dev75d.md`
+- `docs/CURRENT-IMPLEMENTATION.md` — stable 1.0.0 behavior;
+- `docs/ARCHITECTURE.md` — runtime architecture and extension boundaries;
+- `docs/REGISTRY-INVENTORY.md` — canonical registry surface;
+- `docs/MIRAGE-LIGHT-ENGINE.md` — static Mirage Light architecture;
+- `docs/ROADMAP.md` — post-1.0 roadmap;
+- `docs/QA-REGRESSION.md` — reusable regression gates.
 
-Superseded documentation is retained under `docs/archive/pre-dev59/` and `docs/archive/post-dev59/` for historical/migration archaeology only. It is not current authority.
+Historical development notes and handoffs are preserved under `docs/history/`; they are not current product authority.
 
-## Build
+## Build from source
 
-On Windows, run `build.bat` with Java 21 available. The artifact-side current suite is `python tools/verify_current_line.py`; it is not a substitute for the Windows NeoForge build. For dev.82, compile first and smoke-test save/reload plus Image/Item/Entity/Banner activation once. The pass is architectural rather than visual: existing projector behavior should remain unchanged while source IDs, provider dispatch, transform persistence and energy seams become extensible.
+On Windows, run `build.bat` with Java 21 available. The project targets NeoForge 21.1.244 and uses the version declared in `gradle.properties`.
 
-Release/runtime caches and generated directories are intentionally excluded from source snapshots.
+Before release/build handoff, run:
+
+```text
+python tools/verify_current_line.py
+```
+
+The verification suite checks the current registry/resource surface, Mirage Light regression contracts, projector state/serialization architecture, item presentation, optional EMI/JEI integration and release metadata.
+
+## Version scope
+
+**1.0.0** is the stable fixed-projector release. Portable lanterns/projectors, rechargeable Glow Dust, Scan Codex and Dragon Egg / End Resonance gameplay belong to **1.1.0**. Direct grab/free-rotate hologram interaction belongs to **1.2.0**.

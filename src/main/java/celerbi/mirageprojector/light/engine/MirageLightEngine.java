@@ -176,7 +176,7 @@ public final class MirageLightEngine {
     }
 
     /**
-     * dev.76c atomic STATIC_WORLD readiness gate.
+     * Atomic STATIC_WORLD readiness gate.
      *
      * A static source is publishable only when every chunk column in its complete
      * dependency window is attached/queryable on the authoritative server. This does
@@ -203,9 +203,9 @@ public final class MirageLightEngine {
     }
 
     /**
-     * Backward-compatible alias used by older diagnostics/tests. dev.75h intentionally
-     * widens readiness tracking from the exact touched diamond to the complete dependency
-     * window, so callers converge even when a previous solve was clipped at a boundary.
+     * Backward-compatible alias used by diagnostics and regression tests. Readiness tracks
+     * the complete dependency window rather than only touched cells, so callers converge
+     * even when a previous solve was clipped at a chunk boundary.
      */
     public static Set<Long> queryableChunksTouched(Level level, MirageLightSource source) {
         return queryableDependencyChunks(level, source);

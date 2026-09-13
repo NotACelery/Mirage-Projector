@@ -20,11 +20,19 @@ sourceSets.main.resources {
 
 repositories {
     mavenCentral()
+    maven {
+        name = "Sleeping Town"
+        url = "https://repo.sleeping.town/"
+    }
+    maven {
+        url = "https://maven.blamejared.com"
+    }
     maven { url = "https://www.cursemaven.com" }
 }
 
 base {
-    archivesName = mod_id
+    // Keep the target Minecraft version visible in public release filenames.
+    archivesName = "${mod_id}-${minecraft_version}"
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -75,6 +83,13 @@ configurations {
 dependencies {
 
     compileOnly "curse.maven:jade-324717:8591319"
+
+    // Optional recipe-viewer integrations for EMI / JEI QA and in-game discoverability.
+    compileOnly "dev.emi:emi-neoforge:${emi_version}"
+    localRuntime "dev.emi:emi-neoforge:${emi_version}"
+
+    compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
+    localRuntime "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
 
     jarJar(implementation("org.sejda.imageio:webp-imageio:0.1.6")) {
         version {

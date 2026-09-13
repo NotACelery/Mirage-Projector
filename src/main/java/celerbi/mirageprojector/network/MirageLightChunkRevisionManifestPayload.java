@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 /**
  * Small server -> client watchdog manifest for STATIC_WORLD Mirage light.
  *
- * dev.76g does not continuously resend section payloads. An energized Mature Cluster
+ * The server does not continuously resend section payloads. An energized Mature Cluster
  * periodically advertises the authoritative revision of the chunk columns in its watch
  * window. The client compares those revisions against its installed mirror and requests
  * only chunks that are missing or stale.

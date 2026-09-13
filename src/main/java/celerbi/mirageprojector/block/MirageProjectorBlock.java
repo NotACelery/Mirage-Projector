@@ -35,54 +35,111 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
     public static final net.minecraft.world.level.block.state.properties.DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final MapCodec<MirageProjectorBlock> CODEC = simpleCodec(MirageProjectorBlock::new);
 
-    private static final VoxelShape COMPACT_BASE_SHAPE = Shapes.or(
-            box(0, 0, 0, 16, 1, 16),
-            box(2, 1, 2, 14, 2, 14)
-    );
-    private static final VoxelShape COMPACT_CORE_SHAPE = box(7, 2, 7, 9, 5, 9);
-
-    private static final VoxelShape DISPLAY_BASE_SHAPE = Shapes.or(
-            box(0, 0, 0, 16, 2, 16),
-            box(1, 2, 1, 15, 3, 15)
-    );
-    private static final VoxelShape DISPLAY_CORE_SHAPE = box(6, 3, 6, 10, 6, 10);
-
-    private static final VoxelShape WIDE_BASE_SHAPE = Shapes.or(
-            box(0, 0, 3, 16, 2, 13),
-            box(0, 2, 5, 16, 3, 11),
-            box(0, 2, 3, 2, 4, 13),
-            box(14, 2, 3, 16, 4, 13)
-    );
-    private static final VoxelShape WIDE_CORE_SHAPE = box(6, 3, 6, 10, 6, 10);
-
-    private static final VoxelShape TALL_BASE_SHAPE = Shapes.or(
+    // dev.80 canonical projector shapes, promoted from the accepted dev.79i comparison models.
+    // Keep model and outline/collision geometry synchronized per chassis. Quarter-pixel
+    // coordinates are intentional where they prevent translucent/solid depth conflicts.
+    private static final VoxelShape COMPACT_SHAPE = Shapes.or(
             box(2, 0, 2, 14, 2, 14),
-            box(3, 2, 3, 13, 3, 13),
-            box(2, 2, 6, 4, 6, 10),
-            box(12, 2, 6, 14, 6, 10)
+            box(5, 2, 5, 11, 3, 11),
+            box(3, 2, 3, 5, 4, 13),
+            box(11, 2, 3, 13, 4, 13),
+            box(5, 2, 3, 11, 3, 5),
+            box(5, 2, 11, 11, 3, 13),
+            box(5.25, 3.25, 5.25, 10.75, 6.75, 10.75)
     );
-    private static final VoxelShape TALL_CORE_SHAPE = box(6, 3, 6, 10, 8, 10);
 
-    private static final VoxelShape FIELD_BASE_SHAPE = Shapes.or(
-            box(0, 0, 0, 16, 2, 16),
-            box(1, 2, 1, 15, 3, 15),
-            box(0, 2, 0, 3, 5, 3),
-            box(13, 2, 0, 16, 5, 3),
-            box(0, 2, 13, 3, 5, 16),
-            box(13, 2, 13, 16, 5, 16)
+    private static final VoxelShape DISPLAY_SHAPE = Shapes.or(
+            box(1, 0, 1, 15, 3, 15),
+            box(5, 3, 5, 11, 4, 11),
+            box(2, 3, 2, 4, 6, 4),
+            box(12, 3, 2, 14, 6, 4),
+            box(2, 3, 12, 4, 6, 14),
+            box(12, 3, 12, 14, 6, 14),
+            box(3, 3, 2, 13, 4, 3),
+            box(3, 3, 13, 13, 4, 14),
+            box(2, 3, 3, 3, 4, 13),
+            box(13, 3, 3, 14, 4, 13),
+            box(5, 4, 5, 11, 8, 11)
     );
-    private static final VoxelShape FIELD_CORE_SHAPE = box(6, 3, 6, 10, 7, 10);
 
-    private static final VoxelShape PRISM_BASE_SHAPE = Shapes.or(
-            box(0, 0, 0, 16, 2, 16),
-            box(1, 2, 1, 15, 3, 15),
-            box(0, 2, 0, 3, 5, 3),
-            box(13, 2, 0, 16, 5, 3),
-            box(0, 2, 13, 3, 5, 16),
-            box(13, 2, 13, 16, 5, 16)
+    private static final VoxelShape WIDE_SHAPE = Shapes.or(
+            box(0, 0, 4, 16, 2, 12),
+            box(1, 2, 5, 3, 5, 11),
+            box(3, 2, 5, 5, 4, 11),
+            box(5, 2, 5, 6, 3, 11),
+            box(10, 2, 5, 11, 3, 11),
+            box(11, 2, 5, 13, 4, 11),
+            box(13, 2, 5, 15, 5, 11),
+            box(0, 2, 5, 1, 6, 11),
+            box(15, 2, 5, 16, 6, 11),
+            box(5, 2, 4, 11, 3, 5),
+            box(5, 2, 11, 11, 3, 12),
+            box(5.25, 2.25, 6.25, 10.75, 2.75, 9.75),
+            box(2.25, 3.25, 7.25, 4.75, 3.75, 8.75),
+            box(11.25, 3.25, 7.25, 13.75, 3.75, 8.75),
+            box(5.25, 3.25, 5.25, 10.75, 6.75, 10.75)
     );
-    private static final VoxelShape PRISM_CORE_SHAPE = box(6, 3, 6, 10, 7, 10);
 
+    private static final VoxelShape TALL_SHAPE = Shapes.or(
+            box(2, 0, 2, 14, 2, 14),
+            box(4, 2, 4, 12, 3, 12),
+            box(4, 3, 4, 12, 4, 5),
+            box(4, 3, 11, 12, 4, 12),
+            box(4, 3, 5, 5, 4, 11),
+            box(11, 3, 5, 12, 4, 11),
+            box(4, 4, 4, 5, 10, 5),
+            box(11, 4, 4, 12, 10, 5),
+            box(4, 4, 11, 5, 10, 12),
+            box(11, 4, 11, 12, 10, 12),
+            box(4, 10, 4, 12, 11, 5),
+            box(4, 10, 11, 12, 11, 12),
+            box(4, 10, 5, 5, 11, 11),
+            box(11, 10, 5, 12, 11, 11),
+            box(6, 2, 2, 10, 4, 4),
+            box(6, 2, 12, 10, 4, 14),
+            box(6, 4, 6, 10, 8, 10),
+            box(5, 4, 4, 11, 10, 5),
+            box(5, 4, 11, 11, 10, 12),
+            box(4, 4, 5, 5, 10, 11),
+            box(11, 4, 5, 12, 10, 11),
+            box(5, 10, 5, 11, 11, 11)
+    );
+
+    private static final VoxelShape FIELD_SHAPE = Shapes.or(
+            box(0, 0, 0, 16, 3, 16),
+            box(4, 3, 4, 12, 4, 12),
+            box(0, 3, 0, 3, 6, 3),
+            box(13, 3, 0, 16, 6, 3),
+            box(0, 3, 13, 3, 6, 16),
+            box(13, 3, 13, 16, 6, 16),
+            box(4.25, 3.25, 7.25, 11.75, 3.75, 8.75),
+            box(7.25, 3.25, 4.25, 8.75, 3.75, 11.75),
+            box(1.25, 5.25, 1.25, 1.75, 5.75, 1.75),
+            box(14.25, 5.25, 1.25, 14.75, 5.75, 1.75),
+            box(1.25, 5.25, 14.25, 1.75, 5.75, 14.75),
+            box(14.25, 5.25, 14.25, 14.75, 5.75, 14.75),
+            box(5.25, 4.25, 5.25, 10.75, 7.75, 10.75)
+    );
+
+    // Canonical Prism shape promoted from the accepted dev.79i comparison model.
+    private static final VoxelShape PRISM_SHAPE = Shapes.or(
+            box(0, 0, 0, 16, 3, 16),
+            box(0, 3, 0, 3, 8, 3),
+            box(13, 3, 0, 16, 8, 3),
+            box(0, 3, 13, 3, 8, 16),
+            box(13, 3, 13, 16, 8, 16),
+            box(5, 3, 5, 11, 4, 11),
+            box(3, 5, 7, 6, 6, 9),
+            box(10, 5, 7, 13, 6, 9),
+            box(7, 5, 3, 9, 6, 6),
+            box(7, 5, 10, 9, 6, 13),
+            box(7, 4, 7, 9, 5, 9),
+            box(5, 4, 5, 11, 10, 11),
+            box(1, 8, 1, 2, 12, 2),
+            box(14, 8, 1, 15, 12, 2),
+            box(1, 8, 14, 2, 12, 15),
+            box(14, 8, 14, 15, 12, 15)
+    );
     public MirageProjectorBlock(BlockBehaviour.Properties properties) {
         super(properties);
 
@@ -119,29 +176,15 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         ProjectionChassisProfile profile = chassisProfile(state);
-        VoxelShape base = switch (profile) {
-            case DISPLAY -> DISPLAY_BASE_SHAPE;
-            case WIDE -> WIDE_BASE_SHAPE;
-            case TALL -> TALL_BASE_SHAPE;
-            case FIELD -> FIELD_BASE_SHAPE;
-            case PRISM -> PRISM_BASE_SHAPE;
-            default -> COMPACT_BASE_SHAPE;
+        VoxelShape shape = switch (profile) {
+            case DISPLAY -> DISPLAY_SHAPE;
+            case WIDE -> WIDE_SHAPE;
+            case TALL -> TALL_SHAPE;
+            case FIELD -> FIELD_SHAPE;
+            case PRISM -> PRISM_SHAPE;
+            default -> COMPACT_SHAPE;
         };
-
-        if (!(level.getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) || projector.coreStack().isEmpty()) {
-            return orientShape(profile, state, base);
-        }
-
-        VoxelShape core = switch (profile) {
-            case DISPLAY -> DISPLAY_CORE_SHAPE;
-            case WIDE -> WIDE_CORE_SHAPE;
-            case TALL -> TALL_CORE_SHAPE;
-            case FIELD -> FIELD_CORE_SHAPE;
-            case PRISM -> PRISM_CORE_SHAPE;
-            default -> COMPACT_CORE_SHAPE;
-        };
-        VoxelShape combined = Shapes.or(base, core);
-        return orientShape(profile, state, combined);
+        return orientShape(profile, state, shape);
     }
 
     private static VoxelShape orientShape(ProjectionChassisProfile profile, BlockState state, VoxelShape shape) {
@@ -159,21 +202,22 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
         return rotated[0];
     }
 
+
     public static ProjectionChassisProfile chassisProfile(BlockState state) {
         if (state != null) {
-            if (state.is(ModBlocks.MIRAGE_DISPLAY.get()) || state.is(ModBlocks.MIRAGE_DISPLAY_ALT.get())) {
+            if (state.is(ModBlocks.MIRAGE_DISPLAY.get())) {
                 return ProjectionChassisProfile.DISPLAY;
             }
-            if (state.is(ModBlocks.WIDE_MIRAGE_PROJECTOR.get()) || state.is(ModBlocks.WIDE_MIRAGE_PROJECTOR_ALT.get())) {
+            if (state.is(ModBlocks.WIDE_MIRAGE_PROJECTOR.get())) {
                 return ProjectionChassisProfile.WIDE;
             }
-            if (state.is(ModBlocks.TALL_MIRAGE_PROJECTOR.get()) || state.is(ModBlocks.TALL_MIRAGE_PROJECTOR_ALT.get())) {
+            if (state.is(ModBlocks.TALL_MIRAGE_PROJECTOR.get())) {
                 return ProjectionChassisProfile.TALL;
             }
-            if (state.is(ModBlocks.MIRAGE_FIELD_PROJECTOR.get()) || state.is(ModBlocks.MIRAGE_FIELD_PROJECTOR_ALT.get())) {
+            if (state.is(ModBlocks.MIRAGE_FIELD_PROJECTOR.get())) {
                 return ProjectionChassisProfile.FIELD;
             }
-            if (state.is(ModBlocks.MIRAGE_PRISM.get()) || state.is(ModBlocks.MIRAGE_PRISM_ALT.get())) {
+            if (state.is(ModBlocks.MIRAGE_PRISM.get())) {
                 return ProjectionChassisProfile.PRISM;
             }
         }

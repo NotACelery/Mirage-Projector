@@ -15,13 +15,15 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class ItemProjectorScreen extends AbstractContainerScreen<ItemProjectorMenu> {
     private static final int W = 360;
-    private static final int H = 270;
+    private static final int H = 298;
     private static final int PREVIEW_X = 218;
-    private static final int PREVIEW_Y = 54;
+    private static final int PREVIEW_Y = 82;
     private static final int PREVIEW_W = 120;
     private static final int PREVIEW_H = 80;
 
     private final ItemProjectionPreviewRenderer preview = new ItemProjectionPreviewRenderer();
+    private Button modeButton;
+    private Button backButton;
 
     public ItemProjectorScreen(ItemProjectorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -34,14 +36,16 @@ public final class ItemProjectorScreen extends AbstractContainerScreen<ItemProje
     @Override
     protected void init() {
         super.init();
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.back_to_settings"), button ->
-                PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + 218, topPos + 6, 130, 18).build());
-
-        Button activate = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.item.activate"), button ->
+        modeButton = addRenderableWidget(Button.builder(Component.empty(), button ->
                 PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.ITEM))
-        ).bounds(leftPos + 20, topPos + 112, 118, 20).build());
-        activate.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.item.activate")));
+        ).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
+        modeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.item.activate")));
+
+        backButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button ->
+                PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
+        ).bounds(leftPos + imageWidth - 138, topPos + 34, 126, 18).build());
+
+        refreshModeButton();
     }
 
     private ProjectionSettings previewSettings() {
@@ -52,14 +56,46 @@ public final class ItemProjectorScreen extends AbstractContainerScreen<ItemProje
     }
 
     @Override
+    protected void containerTick() {
+        super.containerTick();
+        refreshModeButton();
+    }
+
+    private void refreshModeButton() {
+        if (modeButton == null) {
+            return;
+        }
+        boolean activeMode = currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.ITEM;
+        modeButton.active = !activeMode;
+        modeButton.setMessage(activeMode
+                ? Component.translatable("gui.mirage_projector.workspace.mode_active")
+                : Component.translatable("gui.mirage_projector.workspace.use_mode", modeLabel()));
+    }
+
+    private Component modeLabel() {
+        return Component.translatable("gui.mirage_projector.workspace.item_short");
+    }
+
+    private boolean currentProjectionEnabled() {
+        return menu.projector() == null || menu.projector().projectionEnabled();
+    }
+
+    private ProjectionSettings.SourceMode currentSourceMode() {
+        if (menu.projector() != null) {
+            return menu.projector().settings().sourceMode();
+        }
+        return ProjectionSettings.SourceMode.ITEM;
+    }
+
+    @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = leftPos;
         int y = topPos;
         graphics.fill(x, y, x + imageWidth, y + imageHeight, 0xF014171D);
         graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 2, 0xFF6B4A7E);
 
-        section(graphics, x + 12, y + 32, 336, 112);
-        section(graphics, x + 12, y + 150, 336, 108);
+        section(graphics, x + 12, y + 60, 336, 112);
+        section(graphics, x + 12, y + 178, 336, 108);
 
         drawSlotFrame(graphics, x + ItemProjectorMenu.SNAPSHOT_X - 1, y + ItemProjectorMenu.SNAPSHOT_Y - 1);
         for (int row = 0; row < 3; row++) {
@@ -91,16 +127,16 @@ public final class ItemProjectorScreen extends AbstractContainerScreen<ItemProje
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, fit(title.getString(), 196), 10, 9, 0xFFF4F4F4, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.item.snapshot_slot"), 20, 43, 0xFFC9CED7, false);
-        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.item.preview"), PREVIEW_X + PREVIEW_W / 2, 42, 0xFFD7B8F5);
+        graphics.drawString(font, fit(title.getString(), 150), 10, 9, 0xFFF4F4F4, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.item.snapshot_slot"), 20, 71, 0xFFC9CED7, false);
+        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.item.preview"), PREVIEW_X + PREVIEW_W / 2, 70, 0xFFD7B8F5);
 
         ItemStack stack = menu.snapshotStack();
         Component description = stack.isEmpty()
                 ? Component.translatable("gui.mirage_projector.item.empty_hint_short")
                 : Component.translatable("gui.mirage_projector.item.captured", stack.getHoverName());
-        graphics.drawString(font, fit(description.getString(), 180), 20, 91, stack.isEmpty() ? 0xFF9CA3AF : 0xFF9DDBA8, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.item.virtual_notice_short"), 20, 101, 0xFF8FCFA0, false);
+        graphics.drawString(font, fit(description.getString(), 180), 20, 119, stack.isEmpty() ? 0xFF9CA3AF : 0xFF9DDBA8, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.item.virtual_notice_short"), 20, 129, 0xFF8FCFA0, false);
         graphics.drawString(font, Component.translatable("container.inventory"), ItemProjectorMenu.PLAYER_INV_X, ItemProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
     }
 

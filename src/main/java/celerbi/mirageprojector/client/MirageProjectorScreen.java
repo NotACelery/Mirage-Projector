@@ -10,6 +10,7 @@ import celerbi.mirageprojector.network.OpenEntityWorkspacePayload;
 import celerbi.mirageprojector.network.OpenImageWorkspacePayload;
 import celerbi.mirageprojector.network.OpenItemWorkspacePayload;
 import celerbi.mirageprojector.network.UpdateProjectorPayload;
+import celerbi.mirageprojector.network.SetProjectionEnabledPayload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +44,11 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     private int tintRgb;
     private boolean debugChassisOverride;
 
+    private Button imageModeButton;
+    private Button itemModeButton;
+    private Button entityModeButton;
+    private Button bannerModeButton;
+    private Button turnOffButton;
     private Button rotationButton;
     private Button directionButton;
     private Button orientationButton;
@@ -96,22 +102,26 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
 
         int sourceButtonWidth = 94;
         int sourceGap = 5;
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.image_short"), button -> {
+        imageModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.image_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12, y + 30, sourceButtonWidth, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.item_short"), button -> {
+        itemModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.item_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenItemWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12 + sourceButtonWidth + sourceGap, y + 30, sourceButtonWidth, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.entity_short"), button -> {
+        entityModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.entity_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenEntityWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 2, y + 30, sourceButtonWidth, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.banner_short"), button -> {
+        bannerModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.banner_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenBannerWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 3, y + 30, sourceButtonWidth, 20).build());
+
+        turnOffButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.turn_off"), button ->
+                PacketDistributor.sendToServer(new SetProjectionEnabledPayload(menu.projectorPos(), false))
+        ).bounds(x + imageWidth - 112, y + 4, 100, 18).build());
 
         scaleSlider = addRenderableWidget(new IntSlider(
                 x + 12, y + 76, half, 20,
@@ -234,6 +244,7 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         observedCore = menu.coreProfile();
         refreshDynamicLimits(true);
         updateClearance(true);
+        refreshProjectionStateButtons();
     }
 
     private void refreshDynamicLimits(boolean clampValues) {
@@ -371,7 +382,7 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     }
 
     private ProjectionSettings buildSettings() {
-        return base.withPresentation(
+        return base.withSourceMode(currentSourceMode()).withPresentation(
                 scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise, rotationOffsetDegrees,
                 floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees,
                 fullbright, 100 - transparencyPercent, tintRgb, debugChassisOverride
@@ -380,6 +391,49 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
 
     private void saveSettings() {
         PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), buildSettings()));
+    }
+
+    private boolean currentProjectionEnabled() {
+        return menu.projector() == null || menu.projector().projectionEnabled();
+    }
+
+    private ProjectionSettings.SourceMode currentSourceMode() {
+        return menu.projector() == null ? base.sourceMode() : menu.projector().settings().sourceMode();
+    }
+
+    private void refreshProjectionStateButtons() {
+        if (turnOffButton == null) {
+            return;
+        }
+        boolean enabled = currentProjectionEnabled();
+        turnOffButton.active = enabled;
+        turnOffButton.setMessage(Component.translatable(enabled
+                ? "gui.mirage_projector.turn_off"
+                : "gui.mirage_projector.projector_off_button"));
+    }
+
+    private void renderActiveModeOutline(GuiGraphics graphics) {
+        if (!currentProjectionEnabled()) {
+            return;
+        }
+        Button active = switch (currentSourceMode()) {
+            case IMAGE -> imageModeButton;
+            case ITEM -> itemModeButton;
+            case ENTITY -> entityModeButton;
+            case BANNER -> bannerModeButton;
+        };
+        if (active == null) {
+            return;
+        }
+        int x0 = active.getX() - 2;
+        int y0 = active.getY() - 2;
+        int x1 = active.getX() + active.getWidth() + 2;
+        int y1 = active.getY() + active.getHeight() + 2;
+        int white = 0xFFFFFFFF;
+        graphics.fill(x0, y0, x1, y0 + 1, white);
+        graphics.fill(x0, y1 - 1, x1, y1, white);
+        graphics.fill(x0, y0, x0 + 1, y1, white);
+        graphics.fill(x1 - 1, y0, x1, y1, white);
     }
 
     @Override
@@ -393,6 +447,7 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
         section(graphics, x + 8, y + 162, imageWidth - 16, 56);
         section(graphics, x + 8, y + 220, imageWidth - 16, 60);
         section(graphics, x + 8, y + 282, imageWidth - 16, 88);
+        renderActiveModeOutline(graphics);
         drawSlotFrame(graphics, x + MirageProjectorMenu.CORE_SLOT_X - 1, y + MirageProjectorMenu.CORE_SLOT_Y - 1);
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
@@ -413,7 +468,10 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 10, 8, 0xFFF4F4F4, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.sources"), 12, 20, 0xFFBFA5D1, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.current_source", sourceName(base.sourceMode())), 12, 52, 0xFF9FBED1, false);
+        Component projectionStateLabel = currentProjectionEnabled()
+                ? Component.translatable("gui.mirage_projector.current_source", sourceName(currentSourceMode()))
+                : Component.translatable("gui.mirage_projector.projector_off");
+        graphics.drawString(font, projectionStateLabel, 12, 52, 0xFF9FBED1, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.geometry"), 12, 64, 0xFFBFA5D1, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.rotation"), 12, 106, 0xFFBFA5D1, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.floating"), 12, 164, 0xFFBFA5D1, false);
@@ -586,6 +644,7 @@ public final class MirageProjectorScreen extends AbstractContainerScreen<MirageP
     @Override
     protected void containerTick() {
         super.containerTick();
+        refreshProjectionStateButtons();
         ProjectionCoreProfile currentCore = menu.coreProfile();
         if (currentCore != observedCore) {
             observedCore = currentCore;

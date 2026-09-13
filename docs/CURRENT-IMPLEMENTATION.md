@@ -1,12 +1,12 @@
 # Mirage Projector — Current implementation
 
-Version line: **0.1.0-dev.76h**  
+Version line: **0.1.0-dev.80**  
 Minecraft: **1.21.1**  
 NeoForge: **21.1.244**  
 Java: **21**  
-Network protocol: **21**
+Network protocol: **26**
 
-Status: `dev.76` replaces client STATIC_WORLD re-solving with server-authoritative solved-section synchronization. `dev.76e` removes Mirage's duplicate watched-chunk registry and adds an explicit client chunk-load snapshot handshake so every loaded chunk can recover its authoritative Mirage sections. `dev.76c` adds an atomic publication gate: incomplete server solves are never published; a source waits until its full dependency chunk window is queryable and then publishes the complete section result in one commit. The server alone computes static Mirage fields; clients mirror final per-section levels and merge them with vanilla at query/render time. Physical `crying_light_node` relays remain migration-only. Windows Java 21 build plus in-game regression QA are still required before build-clean status.
+Status: static Mature lighting remains server-authoritative and QA-confirmed through `dev.76h`. `dev.77` differentiates Core Booster identities. `dev.78`–`dev.79i` completed the alternate-projector comparison/refinement line, including model↔VoxelShape reconciliation, Compact Z-fighting cleanup, Tall front/rear symmetry and the fixed-projector ON/OFF/active-source UX. **dev.80 closes that comparison line:** the six accepted dev.79i models are promoted to the six canonical projector IDs, all temporary `*_alt` blocks/items/resources are removed from runtime registration, and the old canonical model JSONs are archived outside `assets` under `docs/history/projector-models-pre-dev80/`. Physical `crying_light_node` relays remain migration-only.
 
 ## dev.75b authoritative virtual-light lifecycle
 
@@ -23,7 +23,7 @@ The dev.75 authority handoff is complete and remains accumulated in dev.75d:
 - loaded chunks palette-scan for orphan legacy `crying_light_node`; current runtime never creates one;
 - effective reads are `max(vanilla, Mirage)` without injecting Mirage into vanilla propagation.
 
-dev.75c then fixed the destination-opacity argument passed to vanilla edge occlusion. dev.75d adds the profile-level detour penalty described below. Current source-descriptor schema requires protocol **21**.
+dev.75c then fixed the destination-opacity argument passed to vanilla edge occlusion. dev.75d adds the profile-level detour penalty described below. Historical dev.75 source descriptors used protocol 21; current STATIC_WORLD transport is revisioned chunk snapshots/manifests under protocol **26**.
 
 ## Projector family
 
@@ -51,6 +51,22 @@ Mirage Display
 ```
 
 Upgrade recipes preserve projector state instead of creating an empty machine.
+
+
+## Canonical projector model line
+
+As of dev.80 there is only one runtime model/registry identity per projector chassis. The accepted dev.79i comparison visuals are now the canonical models for:
+
+- Mirage Projector;
+- Mirage Display;
+- Mirage Field Projector;
+- Wide Mirage Projector;
+- Tall Mirage Projector;
+- Mirage Prism.
+
+The temporary `*_alt` block/item IDs, blockstates, item models, block models and loot tables are no longer registered or shipped as active resources. The six pre-dev.80 canonical block-model JSONs are retained only under `docs/history/projector-models-pre-dev80/legacy-canonical/` for archaeology; they are not runtime assets. Canonical VoxelShapes and renderer anchor layouts now directly use the promoted geometry.
+
+The custom Mirage creative tab and vanilla Functional Blocks tab list the six projectors in this order: Mirage Projector, Mirage Display, Mirage Field Projector, Wide Mirage Projector, Tall Mirage Projector, Mirage Prism.
 
 ## Projection sources
 
@@ -97,6 +113,20 @@ Entity Scan Cards store frozen render data rather than a live ticking entity. Cu
 - Piglin/Hoglin conversion-shake normalization for projection-only client entities.
 
 Mounted/passenger composite scans remain intentionally rejected.
+
+## Projector active-state / shutdown UX
+
+`dev.79d` implements the fixed-projector active-state/shutdown contract, retained in dev.80:
+
+- projectors have an explicit persisted/synchronized ON/OFF state independent from source identity;
+- `TURN OFF` stops the visible projection without deleting configured source or presentation state; the inserted Core remains physically visible;
+- `Use <mode> mode` both selects the workspace source as the active source and re-enables projection;
+- opening Image/Item/Entity/Banner workspaces is navigation only and must not silently change the active projection;
+- each Image/Item/Entity/Banner workspace changes `Use <mode> mode` to disabled `Mode currently Active` only when that mode is actually ON;
+- the main source-selection menu draws a white outline around the Image/Item/Entity/Banner button that is **actually active**;
+- while the projector is OFF, none of those source buttons is shown as active, even though the last source/configuration remains stored for later reuse.
+
+The implementation should therefore preserve the distinction `open workspace != active source != projection enabled`. OFF must not be represented by extending the closed source enum with a fake source value.
 
 ## Presentation controls
 
@@ -225,4 +255,4 @@ The scalar static engine may continue serving gameplay/light-level semantics, wh
 
 ## Post-dev.75d roadmap consolidation
 
-Runtime static-light architecture is dev.76/protocol 22. The project roadmap is now split by release scope. 1.0.0 retains the current fixed-projector feature set and must establish extension seams for projection-source registration, chassis capabilities, forward-compatible presentation transforms, generic renderer/interaction providers, dynamic-vs-static light backend separation and non-Core energy consumers. User-facing lanterns/Glow Dust batteries/Scan Codex/portable projectors belong to 1.1.0; direct hologram grab/free rotation belongs to 1.2.0; Create Blueprint projection remains an optional bridge addon.
+Runtime static-light architecture is dev.76h/protocol 26. The project roadmap is now split by release scope. 1.0.0 retains the current fixed-projector feature set and must establish extension seams for projection-source registration, chassis capabilities, forward-compatible presentation transforms, generic renderer/interaction providers, dynamic-vs-static light backend separation and non-Core energy consumers. User-facing lanterns/Glow Dust batteries/Scan Codex/portable projectors belong to 1.1.0; direct hologram grab/free rotation belongs to 1.2.0; Create Blueprint projection remains an optional bridge addon.

@@ -1,6 +1,6 @@
 # Mirage Projector — Documentation authority
 
-Current documentation line: **0.1.0-dev.75d**.
+Current documentation line: **0.1.0-dev.80**.
 
 This directory was reorganized in dev.59 so current implementation, current backlog and historical design notes are no longer mixed together.
 
@@ -49,7 +49,8 @@ Historical files do not become current requirements merely because they contain 
 - `DEV75B-AUTHORITATIVE-VIRTUAL-LIGHT-LIFECYCLE.md`: dev.75b lifecycle implementation history retained and accumulated.
 - `DEV75C-OCCLUSION-OPACITY-FIX.md`: dev.75c vanilla destination-opacity correction.
 - `DEV75D-DETOUR-PENALTY-AND-CONSOLIDATION.md`: current static-light refinement/consolidation before dev.76.
-- `DEV75D-STATIC-QA.md`: static verifier/resource/package checks and the explicit boundary before build-clean acceptance.
+- `DEV75D-STATIC-QA.md`: historical static-light verifier/resource/package checks.
+- `DEV79A-FULL-AUDIT.md`: current whole-project static audit, verified contracts, repaired documentation drift, known debt and next-step boundary.
 - `NEXT-CHAT-HANDOFF-dev64.md`: renderer continuation point for the current Create synthetic-chest QA branch.
 - `NEXT-CHAT-HANDOFF-dev65.md`: dev.65 implementation/QA continuation point.
 - `NEXT-CHAT-HANDOFF-dev66.md`: dev.66 continuation history.
@@ -63,7 +64,7 @@ Historical files do not become current requirements merely because they contain 
 - `NEXT-CHAT-HANDOFF-dev74.md`: historical foundation-to-authority continuation point.
 - `NEXT-CHAT-HANDOFF-dev75b.md`: historical lifecycle continuation point.
 - `NEXT-CHAT-HANDOFF-dev75c.md`: historical wall-opacity correction handoff.
-- `NEXT-CHAT-HANDOFF-dev75d.md`: **current continuation point for dev.76**.
+- `NEXT-CHAT-HANDOFF-dev80.md`: **current continuation point**. Older handoffs are historical recovery points only.
 - `CHANGELOG.md`: chronology.
 - `DEVELOPMENT.md`: project/build conventions.
 - `THIRD_PARTY_NOTICES.md`: bundled third-party notices.

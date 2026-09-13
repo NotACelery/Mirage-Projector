@@ -4,13 +4,13 @@
 
 This intentionally does **not** inject Mirage values into vanilla `BlockLightEngine` propagation, so virtual values cannot become recursive secondary emitters. Client section install/removal publishes `onLightUpdate(BLOCK, section)` for render/cache consumers.
 
-`DYNAMIC_VISUAL` remains a distinct future backend for lanterns, handheld projectors and other moving emitters; it must not rebuild/synchronize static section voxels every frame. Network protocol: **22**.
+`DYNAMIC_VISUAL` remains a distinct future backend for lanterns, handheld projectors and other moving emitters; it must not rebuild/synchronize static section voxels every frame. Current network protocol: **26**.
 
 ---
 
 # Mirage Projector — Mirage Light Engine authority
 
-Current line: **0.1.0-dev.75d**. Network protocol: **21**.
+Current line: **0.1.0-dev.80**. Network protocol: **26**.
 
 This document is the focused authority for Mirage-owned world/dynamic lighting. Historical physical-relay documents remain useful archaeology, but they do not override this contract.
 
@@ -55,7 +55,7 @@ Current fields:
 - direction / cone angle;
 - reserved RGB metadata.
 
-The profile is synchronized as part of the source descriptor. dev.75d adds `detourExtraCostUnits`, so protocol **21** is intentionally incompatible with dev.75c/protocol-20 peers.
+The profile remains the authoritative server-side solve contract. STATIC_WORLD no longer sends source descriptors to clients: protocol 26 sends final revisioned chunk snapshots/section values plus recovery manifests/requests. `detourExtraCostUnits` therefore stays server-side for static Mature lighting.
 
 ### `MirageLightSolver`
 
@@ -158,18 +158,42 @@ Do not add slab/stair/mod-specific `instanceof` rules unless a concrete vanilla-
 
 ## 6. Core Booster reflection into Mature light
 
-The Beacon column is resolved first. At most four loaded Boosters contribute.
+The Beacon column is resolved first. At most four loaded Boosters contribute. dev.77 keeps the five identities separate in both the visible Beacon relay and the Mature static field instead of treating every material as the same generic range tier.
 
-Static virtual-light power intentionally does not collapse all Booster materials into one generic width tier:
+### Static Mature-field semantics
 
-- **Quartz / Radiance**: +1 conceptual light tier per effective Quartz;
-- **Diamond / Focus**: +1 conceptual tier per two effective Diamond (`ceil(diamond/2)` via `(tier+1)/2`);
-- combined static boost is clamped to +4, so conceptual light is at most 19 and nominal radius at most 38;
-- **Glass / Diffusion**: residual reflected-ray widening; no independent static side-light lattice;
-- **Amethyst / Resonance**: residual excitation/rotation activity; no free static range;
-- **Netherite / Inversion**: reverses reflected rotation; no free static range.
+- **Glass / Diffusion**: each effective unopposed diffusion tier removes one conceptual half-decay tier, reducing open reach by 2 blocks. If Diffusion dominates Focus, the extra obstacle-detour penalty drops from 1 to 0, so the shorter field wraps finite geometry more softly instead of simply behaving like weaker Quartz.
+- **Quartz / Radiance**: +1 conceptual tier per effective Quartz, i.e. +2 open blocks per Booster. Quartz remains the strongest pure static-reach material.
+- **Amethyst / Resonance**: no free static range. Its identity remains residual excitation/rotation activity.
+- **Diamond / Focus**: Focus immediately strengthens geometric detour shadows. Raw reach is deliberately weaker than Quartz: every **two** effective Diamonds add +1 conceptual tier (+2 open blocks).
+- **Netherite / Inversion**: no free static range; it keeps reflected rotation inversion as its defining optical behavior.
 
-Quartz/Diamond reinforce the same causal solver and therefore inherit wall occlusion and dev.75d detour penalty automatically.
+The net conceptual field remains clamped to the safe Mirage profile range. Base Mature light remains the exact no-Booster `15,15,14,14,...,1,1` curve. Mixed Glass/Diamond stacks naturally counteract one another through the existing Diffusion-vs-Focus relationship.
+
+Open-space reference values for a single uninterrupted Beacon chain:
+
+| Effective relay | Open reach from Mature source | Detour identity |
+|---|---:|---|
+| none | 30 blocks | base detour cost 1 |
+| 1 Glass | 28 blocks | Diffusion detour cost 0 |
+| 1 Quartz | 32 blocks | base detour cost 1 |
+| 1 Amethyst | 30 blocks | base detour cost 1 |
+| 1 Diamond | 30 blocks | Focus detour cost 2 |
+| 2 Diamonds | 32 blocks | Focus detour cost 2 |
+| 1 Netherite | 30 blocks | base detour cost 1 |
+| 4 Quartz | 38 blocks | base detour cost 1 |
+
+### Beacon-beam identity
+
+The incoming/outgoing Beacon relay is also less generic in dev.77:
+
+- Glass widens the beam the most;
+- Quartz widens it only mildly but increases radiance/brightness;
+- Amethyst applies moderate widening and resonance rotation speed;
+- Diamond barely widens the beam and instead tightens the inner beam (Focus);
+- Netherite applies moderate widening and reverses outgoing rotation.
+
+All static effects still use the same causal six-neighbor solver, vanilla shape/opacity occlusion and detour model. No Booster creates secondary vanilla emitters.
 
 ## 7. Source lifecycle
 

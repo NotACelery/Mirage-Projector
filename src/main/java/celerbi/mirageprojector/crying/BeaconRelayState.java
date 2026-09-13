@@ -42,7 +42,14 @@ public record BeaconRelayState(
         int nextDiamond = diamondCount + (material == CoreBoosterMaterial.DIAMOND ? 1 : 0);
         boolean nextReversed = reversed || material == CoreBoosterMaterial.NETHERITE;
 
-        float addedWidth = material == CoreBoosterMaterial.GLASS ? 0.35F : 0.25F;
+        float addedWidth = switch (material) {
+            case GLASS -> 0.35F;
+            case QUARTZ -> 0.15F;
+            case AMETHYST -> 0.20F;
+            case DIAMOND -> 0.08F;
+            case NETHERITE -> 0.20F;
+            default -> 0.0F;
+        };
         float nextWidth = Math.min(2.0F, widthScale + addedWidth);
         float nextOuter = Math.min(2.20F, nextWidth * (1.0F + nextGlass * 0.06F));
         float nextInner = Math.max(0.60F, nextWidth * (1.0F - nextDiamond * 0.10F));
@@ -96,6 +103,32 @@ public record BeaconRelayState(
 
     public int reflectedFocusTier() {
         return Mth.clamp(diamondCount, 0, MAX_EFFECTIVE_BOOSTERS);
+    }
+
+    /**
+     * Static Mature-field range identity.
+     *
+     * Quartz contributes one full half-decay tier (+2 open blocks) per Booster.
+     * Diamond is intentionally weaker in raw reach: two Focus Boosters are required
+     * for one extra tier. Unopposed Glass Diffusion removes one tier per effective
+     * diffusion stage, trading straight-line reach for softer detour handling.
+     */
+    public int reflectedStaticRangeDeltaTier() {
+        int radiance = quartzCount;
+        int focusReach = diamondCount / 2;
+        int diffusionLoss = reflectedDiffusionTier();
+        return Mth.clamp(radiance + focusReach - diffusionLoss, -MAX_EFFECTIVE_BOOSTERS, MAX_EFFECTIVE_BOOSTERS);
+    }
+
+    /**
+     * Extra fixed-point detour cost for the Mature causal solver.
+     * Base Mirage light uses 1. Unopposed Diffusion softens it to 0, while Focus
+     * strengthens geometric shadows without changing normal open-air decay.
+     */
+    public int reflectedDetourExtraCostUnits() {
+        int diffusionRelief = reflectedDiffusionTier() > 0 ? 1 : 0;
+        int focusPenalty = (diamondCount + 1) / 2;
+        return Mth.clamp(1 + focusPenalty - diffusionRelief, 0, 4);
     }
 
     public float reflectedBrightnessScale() {

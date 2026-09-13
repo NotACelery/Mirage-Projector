@@ -219,10 +219,9 @@
     "emitter": {
       "parent": "minecraft:block/block",
       "render_type": "minecraft:translucent",
-      "ambientocclusion": false,
       "textures": {
         "emitter": "mirage_projector:block/crying_obsidian_emitter",
-        "particle": "minecraft:block/crying_obsidian"
+        "particle": "mirage_projector:block/crying_obsidian_emitter"
       },
       "elements": [
         {
@@ -385,12 +384,12 @@
             }
           }
         }
-      ]
+      ],
+      "ambientocclusion": false
     },
     "chamber": {
       "parent": "minecraft:block/block",
       "render_type": "minecraft:translucent",
-      "ambientocclusion": false,
       "textures": {
         "glass": "minecraft:block/purple_stained_glass",
         "particle": "minecraft:block/purple_stained_glass"
@@ -404,7 +403,7 @@
           ],
           "to": [
             11,
-            9,
+            10,
             11
           ],
           "faces": {
@@ -428,12 +427,12 @@
             }
           }
         }
-      ]
+      ],
+      "ambientocclusion": false
     },
     "prisms": {
       "parent": "minecraft:block/block",
       "render_type": "minecraft:translucent",
-      "ambientocclusion": false,
       "textures": {
         "prism": "minecraft:block/purple_stained_glass",
         "particle": "minecraft:block/purple_stained_glass"
@@ -567,7 +566,8 @@
             }
           }
         }
-      ]
+      ],
+      "ambientocclusion": false
     }
   },
   "item_render_order": [

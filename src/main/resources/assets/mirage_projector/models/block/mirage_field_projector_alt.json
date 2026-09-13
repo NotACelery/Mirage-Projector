@@ -20,7 +20,7 @@
           ],
           "to": [
             16,
-            5,
+            3,
             16
           ],
           "faces": {
@@ -56,142 +56,142 @@
       "elements": [
         {
           "from": [
-            0,
-            5,
-            0
-          ],
-          "to": [
-            3,
-            10,
-            3
-          ],
-          "faces": {
-            "north": {
-              "texture": "#frame"
-            },
-            "east": {
-              "texture": "#frame"
-            },
-            "south": {
-              "texture": "#frame"
-            },
-            "west": {
-              "texture": "#frame"
-            },
-            "up": {
-              "texture": "#frame"
-            },
-            "down": {
-              "texture": "#frame"
-            }
-          }
-        },
-        {
-          "from": [
-            13,
-            5,
-            0
-          ],
-          "to": [
-            16,
-            10,
-            3
-          ],
-          "faces": {
-            "north": {
-              "texture": "#frame"
-            },
-            "east": {
-              "texture": "#frame"
-            },
-            "south": {
-              "texture": "#frame"
-            },
-            "west": {
-              "texture": "#frame"
-            },
-            "up": {
-              "texture": "#frame"
-            },
-            "down": {
-              "texture": "#frame"
-            }
-          }
-        },
-        {
-          "from": [
-            0,
-            5,
-            13
-          ],
-          "to": [
-            3,
-            10,
-            16
-          ],
-          "faces": {
-            "north": {
-              "texture": "#frame"
-            },
-            "east": {
-              "texture": "#frame"
-            },
-            "south": {
-              "texture": "#frame"
-            },
-            "west": {
-              "texture": "#frame"
-            },
-            "up": {
-              "texture": "#frame"
-            },
-            "down": {
-              "texture": "#frame"
-            }
-          }
-        },
-        {
-          "from": [
-            13,
-            5,
-            13
-          ],
-          "to": [
-            16,
-            10,
-            16
-          ],
-          "faces": {
-            "north": {
-              "texture": "#frame"
-            },
-            "east": {
-              "texture": "#frame"
-            },
-            "south": {
-              "texture": "#frame"
-            },
-            "west": {
-              "texture": "#frame"
-            },
-            "up": {
-              "texture": "#frame"
-            },
-            "down": {
-              "texture": "#frame"
-            }
-          }
-        },
-        {
-          "from": [
             4,
-            5,
+            3,
             4
           ],
           "to": [
             12,
-            6,
+            4,
             12
+          ],
+          "faces": {
+            "north": {
+              "texture": "#frame"
+            },
+            "east": {
+              "texture": "#frame"
+            },
+            "south": {
+              "texture": "#frame"
+            },
+            "west": {
+              "texture": "#frame"
+            },
+            "up": {
+              "texture": "#frame"
+            },
+            "down": {
+              "texture": "#frame"
+            }
+          }
+        },
+        {
+          "from": [
+            0,
+            3,
+            0
+          ],
+          "to": [
+            3,
+            6,
+            3
+          ],
+          "faces": {
+            "north": {
+              "texture": "#frame"
+            },
+            "east": {
+              "texture": "#frame"
+            },
+            "south": {
+              "texture": "#frame"
+            },
+            "west": {
+              "texture": "#frame"
+            },
+            "up": {
+              "texture": "#frame"
+            },
+            "down": {
+              "texture": "#frame"
+            }
+          }
+        },
+        {
+          "from": [
+            13,
+            3,
+            0
+          ],
+          "to": [
+            16,
+            6,
+            3
+          ],
+          "faces": {
+            "north": {
+              "texture": "#frame"
+            },
+            "east": {
+              "texture": "#frame"
+            },
+            "south": {
+              "texture": "#frame"
+            },
+            "west": {
+              "texture": "#frame"
+            },
+            "up": {
+              "texture": "#frame"
+            },
+            "down": {
+              "texture": "#frame"
+            }
+          }
+        },
+        {
+          "from": [
+            0,
+            3,
+            13
+          ],
+          "to": [
+            3,
+            6,
+            16
+          ],
+          "faces": {
+            "north": {
+              "texture": "#frame"
+            },
+            "east": {
+              "texture": "#frame"
+            },
+            "south": {
+              "texture": "#frame"
+            },
+            "west": {
+              "texture": "#frame"
+            },
+            "up": {
+              "texture": "#frame"
+            },
+            "down": {
+              "texture": "#frame"
+            }
+          }
+        },
+        {
+          "from": [
+            13,
+            3,
+            13
+          ],
+          "to": [
+            16,
+            6,
+            16
           ],
           "faces": {
             "north": {
@@ -219,22 +219,21 @@
     "emitter": {
       "parent": "minecraft:block/block",
       "render_type": "minecraft:translucent",
-      "ambientocclusion": false,
       "textures": {
         "emitter": "mirage_projector:block/crying_obsidian_emitter",
-        "particle": "minecraft:block/crying_obsidian"
+        "particle": "mirage_projector:block/crying_obsidian_emitter"
       },
       "elements": [
         {
           "from": [
-            4,
-            5,
-            4
+            4.25,
+            3.25,
+            7.25
           ],
           "to": [
-            12,
-            6,
-            5
+            11.75,
+            3.75,
+            8.75
           ],
           "faces": {
             "north": {
@@ -259,14 +258,14 @@
         },
         {
           "from": [
-            4,
-            5,
-            11
+            7.25,
+            3.25,
+            4.25
           ],
           "to": [
-            12,
-            6,
-            12
+            8.75,
+            3.75,
+            11.75
           ],
           "faces": {
             "north": {
@@ -291,14 +290,14 @@
         },
         {
           "from": [
-            4,
-            5,
-            5
+            1.25,
+            5.25,
+            1.25
           ],
           "to": [
-            5,
-            6,
-            11
+            1.75,
+            5.75,
+            1.75
           ],
           "faces": {
             "north": {
@@ -323,14 +322,14 @@
         },
         {
           "from": [
-            11,
-            5,
-            5
+            14.25,
+            5.25,
+            1.25
           ],
           "to": [
-            12,
-            6,
-            11
+            14.75,
+            5.75,
+            1.75
           ],
           "faces": {
             "north": {
@@ -355,14 +354,14 @@
         },
         {
           "from": [
-            1,
-            9,
-            1
+            1.25,
+            5.25,
+            14.25
           ],
           "to": [
-            2,
-            10,
-            2
+            1.75,
+            5.75,
+            14.75
           ],
           "faces": {
             "north": {
@@ -387,78 +386,14 @@
         },
         {
           "from": [
-            14,
-            9,
-            1
+            14.25,
+            5.25,
+            14.25
           ],
           "to": [
-            15,
-            10,
-            2
-          ],
-          "faces": {
-            "north": {
-              "texture": "#emitter"
-            },
-            "east": {
-              "texture": "#emitter"
-            },
-            "south": {
-              "texture": "#emitter"
-            },
-            "west": {
-              "texture": "#emitter"
-            },
-            "up": {
-              "texture": "#emitter"
-            },
-            "down": {
-              "texture": "#emitter"
-            }
-          }
-        },
-        {
-          "from": [
-            1,
-            9,
-            14
-          ],
-          "to": [
-            2,
-            10,
-            15
-          ],
-          "faces": {
-            "north": {
-              "texture": "#emitter"
-            },
-            "east": {
-              "texture": "#emitter"
-            },
-            "south": {
-              "texture": "#emitter"
-            },
-            "west": {
-              "texture": "#emitter"
-            },
-            "up": {
-              "texture": "#emitter"
-            },
-            "down": {
-              "texture": "#emitter"
-            }
-          }
-        },
-        {
-          "from": [
-            14,
-            9,
-            14
-          ],
-          "to": [
-            15,
-            10,
-            15
+            14.75,
+            5.75,
+            14.75
           ],
           "faces": {
             "north": {
@@ -481,12 +416,12 @@
             }
           }
         }
-      ]
+      ],
+      "ambientocclusion": false
     },
     "chamber": {
       "parent": "minecraft:block/block",
       "render_type": "minecraft:translucent",
-      "ambientocclusion": false,
       "textures": {
         "glass": "minecraft:block/purple_stained_glass",
         "particle": "minecraft:block/purple_stained_glass"
@@ -494,14 +429,14 @@
       "elements": [
         {
           "from": [
-            5,
-            6,
-            5
+            5.25,
+            4.25,
+            5.25
           ],
           "to": [
-            11,
-            12,
-            11
+            10.75,
+            7.75,
+            10.75
           ],
           "faces": {
             "north": {
@@ -524,7 +459,8 @@
             }
           }
         }
-      ]
+      ],
+      "ambientocclusion": false
     }
   },
   "item_render_order": [

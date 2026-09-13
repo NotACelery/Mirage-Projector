@@ -4,6 +4,7 @@ import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
+import celerbi.mirageprojector.ProjectorVisualLayout;
 import celerbi.mirageprojector.ProjectionImageSizing;
 import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
@@ -115,6 +116,10 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         ProjectionCoreProfile core = blockEntity.coreProfile();
         double gameTime = blockEntity.getLevel() == null ? 0.0D : blockEntity.getLevel().getGameTime() + partialTick;
         renderCoreItem(blockEntity, poseStack, bufferSource, gameTime);
+        if (!blockEntity.projectionEnabled()) {
+            equippedItemCache.remove(blockEntity);
+            return;
+        }
 
         float angle = projectionBaseAngle(blockEntity, settings) + rotationAngle(settings, gameTime);
         float bob = bobOffset(settings, gameTime);
@@ -655,7 +660,9 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             return;
         }
 
-        ProjectionChassisProfile chassis = blockEntity.chassisProfile();
+        ProjectorVisualLayout visual = ProjectorVisualLayout.forState(
+                blockEntity.getBlockState(), blockEntity.chassisProfile()
+        );
         long positionSeed = blockEntity.getBlockPos().asLong();
         float rotation = (float) ((gameTime * 3.0D + Math.floorMod(positionSeed, 360L)) % 360.0D);
         float bobPixels = (float) (Math.sin(gameTime * 0.10D + Math.floorMod(positionSeed, 97L)) * 0.20D);
@@ -663,13 +670,13 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         poseStack.pushPose();
         poseStack.translate(
                 0.5D,
-                (chassis.coreChamberCenterYPixels() + bobPixels) * PIXEL,
+                (visual.coreCenterYPixels() + bobPixels) * PIXEL,
                 0.5D
         );
 
         poseStack.mulPose(Axis.YP.rotationDegrees(-rotation));
         poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
-        poseStack.scale(0.32F, 0.32F, 0.32F);
+        poseStack.scale(visual.coreRenderScale(), visual.coreRenderScale(), visual.coreRenderScale());
         Minecraft.getInstance().getItemRenderer().renderStatic(
                 coreStack,
                 ItemDisplayContext.FIXED,
@@ -702,7 +709,15 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     }
 
     private static float physicalTop(MirageProjectorBlockEntity blockEntity) {
-        return blockEntity.chassisProfile().physicalTopPixels() * PIXEL;
+        return ProjectorVisualLayout.forState(
+                blockEntity.getBlockState(), blockEntity.chassisProfile()
+        ).projectionTopPixels() * PIXEL;
+    }
+
+    private static float idleBookCenter(MirageProjectorBlockEntity blockEntity) {
+        return ProjectorVisualLayout.forState(
+                blockEntity.getBlockState(), blockEntity.chassisProfile()
+        ).idleBookCenterYPixels() * PIXEL;
     }
 
     private static void renderProjectedItem(
@@ -745,7 +760,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             int projectionLight
     ) {
         poseStack.pushPose();
-        poseStack.translate(0.5D, physicalTop(blockEntity) + 4.0F * PIXEL + bob, 0.5D);
+        poseStack.translate(0.5D, idleBookCenter(blockEntity) + bob, 0.5D);
         poseStack.mulPose(Axis.YP.rotationDegrees(angle));
         poseStack.scale(0.45F, 0.45F, 0.45F);
         Minecraft.getInstance().getItemRenderer().renderStatic(
@@ -770,7 +785,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             int projectionLight
     ) {
         poseStack.pushPose();
-        poseStack.translate(0.5D, physicalTop(blockEntity) + 4.0F * PIXEL + bob, 0.5D);
+        poseStack.translate(0.5D, idleBookCenter(blockEntity) + bob, 0.5D);
         poseStack.mulPose(Axis.YP.rotationDegrees(angle));
         poseStack.scale(0.35F, 0.35F, 0.35F);
         Minecraft.getInstance().getItemRenderer().renderStatic(

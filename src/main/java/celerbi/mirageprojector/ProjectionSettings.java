@@ -210,7 +210,7 @@ public record ProjectionSettings(
     ) {
         return copy(frontId, frontWidth, frontHeight, backId, backWidth, backHeight,
                 eastId, eastWidth, eastHeight, westId, westWidth, westHeight,
-                SourceMode.IMAGE, newImageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                sourceMode, newImageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, newBackFaceMode, newFlipVertical, fullbright, opacityPercent, tintRgb,
                 newScanlines, debugChassisOverride);

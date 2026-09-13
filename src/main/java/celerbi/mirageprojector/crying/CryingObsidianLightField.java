@@ -3,10 +3,12 @@ package celerbi.mirageprojector.crying;
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
 import celerbi.mirageprojector.light.LightProfile;
+import celerbi.mirageprojector.light.LightDecayMode;
 import celerbi.mirageprojector.light.engine.MirageLightEngine;
 import celerbi.mirageprojector.light.engine.MirageLightField;
 import celerbi.mirageprojector.light.engine.MirageLightProfile;
 import celerbi.mirageprojector.light.engine.MirageLightRuntimeMode;
+import celerbi.mirageprojector.light.engine.MirageLightShape;
 import celerbi.mirageprojector.light.engine.MirageLightSource;
 import celerbi.mirageprojector.light.engine.MirageLightSourceId;
 import celerbi.mirageprojector.light.engine.MirageLightWorld;
@@ -26,6 +28,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Mature Crying Obsidian -> Mirage Light Engine adapter.
@@ -285,8 +288,16 @@ public final class CryingObsidianLightField {
         if (!spec.active()) {
             return null;
         }
-        MirageLightProfile profile = MirageLightProfile.halfDecayExtended(
+        MirageLightProfile profile = new MirageLightProfile(
                 spec.conceptualLight(),
+                2,
+                1,
+                spec.detourExtraCostUnits(),
+                Math.min(MirageLightProfile.MAX_SAFE_RADIUS, spec.conceptualLight() * 2),
+                LightDecayMode.EXTEND,
+                MirageLightShape.OMNIDIRECTIONAL,
+                Vec3.ZERO,
+                360.0F,
                 CRYING_LIGHT_RGB
         );
         return new MirageLightSource(
@@ -298,23 +309,20 @@ public final class CryingObsidianLightField {
     }
 
     /**
-     * Reflected power tier. Quartz supplies radiance; Diamond supplies a smaller
-     * focus contribution. Glass/Amethyst/Netherite keep their separate visual roles.
+     * Net static range tier after Booster identities are applied.
+     * Quartz is the strongest pure reach amplifier; Diamond gains one reach tier per
+     * pair while independently increasing detour shadowing; unopposed Glass Diffusion
+     * subtracts reach. Amethyst and Netherite intentionally do not grant static range.
      */
     public static int fieldTier(BeaconRelayState relay) {
         if (relay == null || !relay.modified()) {
             return 0;
         }
-        int focusBonus = (relay.reflectedFocusTier() + 1) / 2;
-        return Mth.clamp(
-                relay.reflectedRadianceTier() + focusBonus,
-                0,
-                MAX_EFFECTIVE_REFLECTED_BOOST
-        );
+        return relay.reflectedStaticRangeDeltaTier();
     }
 
     public static LightProfile profileForRelay(BeaconRelayState relay) {
-        int conceptualLight = 15 + fieldTier(relay);
+        int conceptualLight = Mth.clamp(15 + fieldTier(relay), 1, MAX_CONCEPTUAL_LIGHT);
         return LightProfile.extended(15, conceptualLight * 2, 20);
     }
 
@@ -516,15 +524,18 @@ public final class CryingObsidianLightField {
     }
 
     private static long watchSignature(ServerLevel level, MirageLightSource source) {
-        int chunkRadius = Math.max(2, (source.profile().maxRadius() + 15) / 16);
-        ChunkPos sourceChunk = new ChunkPos(source.origin());
+        BlockPos origin = source.origin();
+        int radius = source.profile().maxRadius();
+        int minChunkX = Math.floorDiv(origin.getX() - radius, 16);
+        int maxChunkX = Math.floorDiv(origin.getX() + radius, 16);
+        int minChunkZ = Math.floorDiv(origin.getZ() - radius, 16);
+        int maxChunkZ = Math.floorDiv(origin.getZ() + radius, 16);
         Map<Long, Long> epochs = CHUNK_WATCH_EPOCHS.get(level);
         long hash = 0xcbf29ce484222325L;
-        for (int dx = -chunkRadius; dx <= chunkRadius; dx++) {
-            for (int dz = -chunkRadius; dz <= chunkRadius; dz++) {
-                ChunkPos chunkPos = new ChunkPos(sourceChunk.x + dx, sourceChunk.z + dz);
-                long chunkKey = chunkPos.toLong();
-                boolean queryable = level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z) != null;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                long chunkKey = ChunkPos.asLong(chunkX, chunkZ);
+                boolean queryable = level.getChunkSource().getChunkNow(chunkX, chunkZ) != null;
                 long epoch = epochs == null ? 0L : epochs.getOrDefault(chunkKey, 0L);
                 long value = chunkKey ^ Long.rotateLeft(epoch, 17) ^ (queryable ? 0x9E3779B97F4A7C15L : 0L);
                 hash ^= value;
@@ -609,8 +620,9 @@ public final class CryingObsidianLightField {
         }
 
         BeaconRelayState relay = CryingObsidianCrystalOptics.relayStateBelow(level, sourcePos);
-        int conceptualLight = Math.min(MAX_CONCEPTUAL_LIGHT, baseLight + fieldTier(relay));
-        return new SourceFieldSpec(conceptualLight);
+        int conceptualLight = Mth.clamp(baseLight + fieldTier(relay), 1, MAX_CONCEPTUAL_LIGHT);
+        int detourExtraCostUnits = relay.reflectedDetourExtraCostUnits();
+        return new SourceFieldSpec(conceptualLight, detourExtraCostUnits);
     }
 
     private static MirageLightSourceId mirageSourceId(BlockPos sourcePos) {
@@ -787,8 +799,8 @@ public final class CryingObsidianLightField {
         return List.copyOf(offsets);
     }
 
-    private record SourceFieldSpec(int conceptualLight) {
-        private static final SourceFieldSpec INACTIVE = new SourceFieldSpec(0);
+    private record SourceFieldSpec(int conceptualLight, int detourExtraCostUnits) {
+        private static final SourceFieldSpec INACTIVE = new SourceFieldSpec(0, 1);
 
         private boolean active() {
             return conceptualLight > 0;

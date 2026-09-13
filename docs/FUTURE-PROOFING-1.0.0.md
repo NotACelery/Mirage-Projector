@@ -53,3 +53,18 @@ Projection-source payload and transform evolution must be versioned. Avoid relyi
 ## 10. Do not over-implement future UI in 1.0
 
 The goal is stable seams, not speculative menus. 1.0.0 should remain understandable and releasable even though its contracts are ready for 1.1/1.2.
+
+## Projector activation state is not a source type
+
+Before stable 1.0.0, projector activation must be represented independently from projection-source identity.
+
+Required semantics:
+
+- `projection enabled/disabled` is a device/runtime state;
+- Image/Item/Entity/Banner (and future registered sources) describe **what** would be projected;
+- the GUI workspace currently open describes **what the player is editing/viewing**;
+- none of these three concepts may be inferred from the others.
+
+`TURN OFF` therefore disables output while preserving the complete configured source and presentation state. `Use <mode> mode` explicitly activates that workspace's source and enables output. Do not implement OFF as `SourceMode.OFF` or another pseudo-source.
+
+This seam is intentionally required now because 1.1.0 End Resonance temporarily overrides normal output while preserving a restorable source, and portable/presentation projectors may later have their own activation lifecycle without inventing source values.

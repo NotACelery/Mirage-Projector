@@ -23,7 +23,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class EntityProjectorScreen extends AbstractContainerScreen<EntityProjectorMenu> {
     private static final int PANEL_WIDTH = 570;
-    private static final int PANEL_HEIGHT = 438;
+    private static final int PANEL_HEIGHT = 466;
 
     private static final int APPLY_X = 52;
     private static final int CHANNEL_X = 86;
@@ -31,12 +31,12 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
     private static final int VISIBILITY_X = 347;
 
     private static final int PREVIEW_X = 380;
-    private static final int PREVIEW_Y = 30;
+    private static final int PREVIEW_Y = 58;
     private static final int PREVIEW_W = 180;
     private static final int PREVIEW_H = 240;
 
-    private static final int ACTION_Y = 283;
-    private static final int STATUS_Y = 308;
+    private static final int ACTION_Y = 311;
+    private static final int STATUS_Y = 336;
 
     private final Map<VirtualEquipmentSnapshots.Channel, Button> applyButtons =
             new EnumMap<>(VirtualEquipmentSnapshots.Channel.class);
@@ -44,6 +44,8 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
             new EnumMap<>(VirtualEquipmentSnapshots.Channel.class);
     private final EntityProjectionPreviewRenderer entityPreview = new EntityProjectionPreviewRenderer();
 
+    private Button modeButton;
+    private Button backButton;
     private Button captureLoadoutButton;
     private Button returnGearButton;
     private Button poseButton;
@@ -67,16 +69,16 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         createApplyButtons();
         createVisibilityButtons();
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.entity.use_projection"), button ->
+        modeButton = addRenderableWidget(Button.builder(Component.empty(), button ->
                 PacketDistributor.sendToServer(new SetProjectionSourcePayload(
                         menu.projectorPos(),
                         ProjectionSettings.SourceMode.ENTITY
                 ))
-        ).bounds(leftPos + 286, topPos + 6, 130, 18).build());
+        ).bounds(leftPos + 286, topPos + 34, 130, 18).build());
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.entity.projection_settings"), button ->
+        backButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button ->
                 PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + 422, topPos + 6, 138, 18).build());
+        ).bounds(leftPos + 422, topPos + 34, 138, 18).build());
 
         captureLoadoutButton = addRenderableWidget(Button.builder(
                 Component.translatable("gui.mirage_projector.entity.capture_loadout"),
@@ -145,6 +147,7 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         refreshVisibilityButtons();
         refreshConflictButtons();
         refreshPoseButton();
+        refreshModeButton();
     }
 
     private void createApplyButtons() {
@@ -314,6 +317,32 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         }
     }
 
+    private void refreshModeButton() {
+        if (modeButton == null) {
+            return;
+        }
+        boolean activeMode = currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.ENTITY;
+        modeButton.active = !activeMode;
+        modeButton.setMessage(activeMode
+                ? Component.translatable("gui.mirage_projector.workspace.mode_active")
+                : Component.translatable("gui.mirage_projector.workspace.use_mode", modeLabel()));
+    }
+
+    private Component modeLabel() {
+        return Component.translatable("gui.mirage_projector.workspace.entity_short");
+    }
+
+    private boolean currentProjectionEnabled() {
+        return menu.projector() == null || menu.projector().projectionEnabled();
+    }
+
+    private ProjectionSettings.SourceMode currentSourceMode() {
+        if (menu.projector() != null) {
+            return menu.projector().settings().sourceMode();
+        }
+        return ProjectionSettings.SourceMode.ENTITY;
+    }
+
     private void refreshPoseButton() {
         if (poseButton == null) {
             return;
@@ -353,6 +382,7 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         refreshActionableButtons();
         refreshVisibilityButtons();
         refreshPoseButton();
+        refreshModeButton();
     }
 
     @Override
@@ -363,10 +393,10 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
         graphics.fill(x, y, x + imageWidth, y + imageHeight, 0xF014171D);
         graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 2, 0xFF6B4A7E);
 
-        section(graphics, x + 10, y + 30, 360, 64);
-        section(graphics, x + 10, y + 100, 360, 170);
-        section(graphics, x + 10, y + 276, 550, 44);
-        section(graphics, x + 10, y + 326, 550, 102);
+        section(graphics, x + 10, y + 58, 360, 64);
+        section(graphics, x + 10, y + 128, 360, 170);
+        section(graphics, x + 10, y + 304, 550, 44);
+        section(graphics, x + 10, y + 354, 550, 102);
         section(graphics, x + PREVIEW_X, y + PREVIEW_Y, PREVIEW_W, PREVIEW_H);
 
         drawSlotFrame(graphics, x + EntityProjectorMenu.CARD_X - 1, y + EntityProjectorMenu.CARD_Y - 1, 0xFF75658A);
@@ -484,19 +514,19 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, fit(title.getString(), 260), 10, 9, 0xFFF4F4F4, false);
+        graphics.drawString(font, fit(title.getString(), 220), 10, 9, 0xFFF4F4F4, false);
 
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.source_section"), 18, 37, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.source_section"), 18, 65, 0xFFD7B8F5, false);
         ItemStack card = menu.cardStack();
         String source = card.isEmpty()
                 ? Component.translatable("gui.mirage_projector.entity.scan_hint").getString()
                 : card.getHoverName().getString();
-        graphics.drawString(font, fit(source, 292), 58, 64, 0xFFD8C5EB, false);
+        graphics.drawString(font, fit(source, 292), 58, 92, 0xFFD8C5EB, false);
 
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 18, 106, 0xFFAFD8EE, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.channel"), CHANNEL_X, 106, 0xFFC9CED7, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.projected"), 286, 106, 0xFFB9E4C0, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.visibility"), 347, 106, 0xFFC9CED7, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 18, 134, 0xFFAFD8EE, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.channel"), CHANNEL_X, 134, 0xFFC9CED7, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.projected"), 286, 134, 0xFFB9E4C0, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.visibility"), 347, 134, 0xFFC9CED7, false);
 
         EntityScanData.Kind kind = menu.effectiveKind();
         if (kind == EntityScanData.Kind.HUMANOID) {
@@ -508,8 +538,8 @@ public final class EntityProjectorScreen extends AbstractContainerScreen<EntityP
                 renderRow(graphics, channel);
             }
         } else {
-            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_1").getString(), 330), 18, 136, 0xFFC4C9D3, false);
-            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_2").getString(), 330), 18, 151, 0xFF8F98A8, false);
+            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_1").getString(), 330), 18, 164, 0xFFC4C9D3, false);
+            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_2").getString(), 330), 18, 179, 0xFF8F98A8, false);
         }
 
         graphics.drawString(font, fit(status.getString(), 532), 18, STATUS_Y, pendingConflict == null ? 0xFFE7DCF5 : 0xFFFFB98E, false);

@@ -2,7 +2,6 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.MirageProjector;
-import celerbi.mirageprojector.ProjectionImageSizing;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.menu.ImageProjectorMenu;
 import celerbi.mirageprojector.network.OpenImageWorkspacePayload;
@@ -43,6 +42,8 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     private boolean scanlines;
     private Component status = Component.translatable("gui.mirage_projector.status.ready");
 
+    private Button workspaceModeButton;
+    private Button workspaceBackButton;
     private Button layoutModeButton;
     private Button frontButton;
     private Button backButton;
@@ -66,10 +67,10 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         super(menu, inventory, title);
         if (menu.supportsMultiSourceLayout()) {
             imageWidth = 520;
-            imageHeight = 410;
+            imageHeight = 438;
         } else {
             imageWidth = 416;
-            imageHeight = 286;
+            imageHeight = 314;
         }
         ProjectionSettings s = menu.initialSettings();
         frontId = s.imageId();
@@ -101,10 +102,15 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     @Override
     protected void init() {
         super.init();
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.back_to_settings"), button -> {
+        workspaceModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            apply(false);
+            PacketDistributor.sendToServer(new celerbi.mirageprojector.network.SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.IMAGE));
+        }).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
+
+        workspaceBackButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button -> {
             apply(false);
             PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()));
-        }).bounds(leftPos + imageWidth - 138, topPos + 6, 126, 18).build());
+        }).bounds(leftPos + imageWidth - 138, topPos + 34, 126, 18).build());
 
         if (menu.supportsMultiSourceLayout()) {
             layoutModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
@@ -135,7 +141,7 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
                 }
                 apply(false);
                 PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
-            }).bounds(leftPos + 18, topPos + 30, 210, 20).build());
+            }).bounds(leftPos + 18, topPos + 58, 210, 20).build());
             layoutModeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.image.layout_mode")));
         }
 
@@ -145,6 +151,7 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
             initFaceWorkspace();
         }
         refreshLabels();
+        refreshModeButton();
     }
 
     private void initFaceWorkspace() {
@@ -214,15 +221,15 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         mapWidth = mapCell * columns;
         mapHeight = mapCell * rows;
         mapX = leftPos + 22 + (190 - mapWidth) / 2;
-        mapY = topPos + 74 + (190 - mapHeight) / 2;
+        mapY = topPos + 102 + (190 - mapHeight) / 2;
 
         bankImportButton = addRenderableWidget(Button.builder(Component.empty(), button -> openBankFilePicker(selectedBankSlot))
-                .bounds(leftPos + 236, topPos + 238, 176, 20).build());
+                .bounds(leftPos + 236, topPos + 266, 176, 20).build());
         bankClearButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.image.bank.clear"), button -> {
             sourceBank.clear(selectedBankSlot);
             status = Component.translatable("gui.mirage_projector.image.bank.cleared", selectedBankSlot + 1);
             refreshLabels();
-        }).bounds(leftPos + 420, topPos + 238, 78, 20).build());
+        }).bounds(leftPos + 420, topPos + 266, 78, 20).build());
         bankCopyButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.image.bank.copy_empty"), button -> {
             if (!sourceBank.get(selectedBankSlot).present()) {
                 status = Component.translatable("gui.mirage_projector.image.bank.source_required");
@@ -231,7 +238,7 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
             sourceBank.copySlotToEmpty(selectedBankSlot, menu.imageLayoutSlots());
             status = Component.translatable("gui.mirage_projector.image.bank.copied_empty");
             refreshLabels();
-        }).bounds(leftPos + 22, topPos + 274, 190, 20).build());
+        }).bounds(leftPos + 22, topPos + 342, 190, 20).build());
 
         backModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             backFaceMode = switch (backFaceMode) {
@@ -241,22 +248,22 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
                 case BACK, INDEPENDENT -> ProjectionSettings.BackFaceMode.FRONT;
             };
             refreshLabels();
-        }).bounds(leftPos + 236, topPos + 274, 262, 20).build());
+        }).bounds(leftPos + 236, topPos + 342, 262, 20).build());
         backModeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.image.bank.back_mode")));
         flipButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             flipVertical = !flipVertical;
             refreshLabels();
-        }).bounds(leftPos + 236, topPos + 300, 127, 20).build());
+        }).bounds(leftPos + 236, topPos + 328, 127, 20).build());
         scanlinesButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             scanlines = !scanlines;
             refreshLabels();
-        }).bounds(leftPos + 371, topPos + 300, 127, 20).build());
+        }).bounds(leftPos + 371, topPos + 328, 127, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> apply(true))
-                .bounds(leftPos + 22, topPos + 352, 230, 22).build());
+                .bounds(leftPos + 22, topPos + 380, 230, 22).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button ->
                 PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + 268, topPos + 352, 230, 22).build());
+        ).bounds(leftPos + 268, topPos + 380, 230, 22).build());
     }
 
     private Button addFaceButton(Face face, int localX, int localYShift) {
@@ -274,7 +281,7 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     }
 
     private int faceOffsetY() {
-        return menu.supportsMultiSourceLayout() ? 30 : 0;
+        return (menu.supportsMultiSourceLayout() ? 30 : 0) + 28;
     }
 
     private boolean isPrism() {
@@ -402,6 +409,38 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         refreshLabels();
     }
 
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        refreshModeButton();
+    }
+
+    private void refreshModeButton() {
+        if (workspaceModeButton == null) {
+            return;
+        }
+        boolean activeMode = currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.IMAGE;
+        workspaceModeButton.active = !activeMode;
+        workspaceModeButton.setMessage(activeMode
+                ? Component.translatable("gui.mirage_projector.workspace.mode_active")
+                : Component.translatable("gui.mirage_projector.workspace.use_mode", modeLabel()));
+    }
+
+    private Component modeLabel() {
+        return Component.translatable("gui.mirage_projector.workspace.image_short");
+    }
+
+    private boolean currentProjectionEnabled() {
+        return menu.projector() == null || menu.projector().projectionEnabled();
+    }
+
+    private ProjectionSettings.SourceMode currentSourceMode() {
+        if (menu.projector() != null) {
+            return menu.projector().settings().sourceMode();
+        }
+        return menu.initialSettings().sourceMode();
+    }
+
     private void apply(boolean returnToMain) {
         uploadIfPresent(frontId);
         uploadIfPresent(backId);
@@ -460,10 +499,10 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
     private void renderMultiSourceWorkspace(GuiGraphics graphics) {
         int x = leftPos;
         int y = topPos;
-        graphics.fill(x + 16, y + 64, x + 218, y + 266, 0xFF0B0F14);
-        graphics.fill(x + 224, y + 64, x + 504, y + 228, 0xFF0B0F14);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.layout"), x + 22, y + 68, 0xFFD7B8F5, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.selected", selectedBankSlot + 1), x + 236, y + 68, 0xFFD7B8F5, false);
+        graphics.fill(x + 16, y + 92, x + 218, y + 294, 0xFF0B0F14);
+        graphics.fill(x + 224, y + 92, x + 504, y + 256, 0xFF0B0F14);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.layout"), x + 22, y + 96, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.selected", selectedBankSlot + 1), x + 236, y + 96, 0xFFD7B8F5, false);
 
         int columns = menu.imageLayoutColumns();
         int rows = menu.imageLayoutRows();
@@ -486,7 +525,7 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
         }
 
         ImageSourceBank.Asset selected = sourceBank.get(selectedBankSlot);
-        renderFaceCard(graphics, x + 236, y + 82, 256, 138,
+        renderFaceCard(graphics, x + 236, y + 110, 256, 138,
                 Component.translatable("gui.mirage_projector.image.bank.source", selectedBankSlot + 1),
                 selected.id(), selected.width(), selected.height(), false, false);
     }
@@ -558,31 +597,16 @@ public final class ImageProjectorScreen extends AbstractContainerScreen<ImagePro
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, 10, 9, 0xFFF4F4F4, false);
+        graphics.drawString(font, fit(title.getString(), 220), 10, 9, 0xFFF4F4F4, false);
         if (isMultiSource()) {
             graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.summary",
                     menu.chassisProfile().displayName(), menu.imageLayoutColumns(), menu.imageLayoutRows(), menu.imageLayoutSlots()),
-                    244, 34, 0xFF9FBED1, false);
-            graphics.drawString(font, fit(status.getString(), imageWidth - 44), 22, 334, 0xFFE3D7FF, false);
+                    244, 62, 0xFF9FBED1, false);
+            graphics.drawString(font, fit(status.getString(), imageWidth - 44), 22, 362, 0xFFE3D7FF, false);
         } else {
             int ox = faceOffsetX();
             int oy = faceOffsetY();
             graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.image.face_count", menu.physicalFaceCount()).getString(), 380), 18 + ox, 22 + oy, 0xFF9FBED1, false);
-            if (menu.supportsMultiSourceLayout() && frontId != null && !frontId.isBlank() && frontWidth > 0 && frontHeight > 0) {
-                ProjectionImageSizing.Size projected = ProjectionImageSizing.size(
-                        frontWidth, frontHeight, menu.initialSettings().scalePixels());
-                boolean contrary = ProjectionImageSizing.contraryToNaturalChassis(menu.chassisProfile(), frontWidth, frontHeight);
-                Component sizing = Component.translatable(
-                        "gui.mirage_projector.image.single_sizing",
-                        frontWidth, frontHeight,
-                        menu.initialSettings().scalePixels(),
-                        projected.widthPixels(), projected.heightPixels(),
-                        Component.translatable(projected.dominantAxis() == ProjectionImageSizing.Axis.WIDTH
-                                ? "gui.mirage_projector.image.axis.width"
-                                : "gui.mirage_projector.image.axis.height")
-                );
-                graphics.drawString(font, fit(sizing.getString(), 380), 18 + ox, 40 + oy, contrary ? 0xFFFFA86B : 0xFFAED7B4, false);
-            }
             graphics.drawString(font, fit(status.getString(), 380), 18 + ox, 236 + oy, 0xFFE3D7FF, false);
         }
     }

@@ -2,7 +2,7 @@
 
 Mirage Projector is a NeoForge 1.21.1 mod by **Celerbi** for configurable decorative holographic projections. The current development line supports images/GIFs, items, banners and frozen entity snapshots across six state-preserving projector chassis.
 
-**Current source line:** `0.1.0-dev.76h` — STATIC_WORLD Mirage lighting remains server-authoritative, but energized Mature Clusters now own a source-centric chunk watchdog. A normal radius-30 field watches a 5x5 chunk window, rebuilds from the Cluster when watched chunk lifecycle/geometry changes, and sends lightweight revision manifests so clients self-request only missing/stale chunk snapshots. Wall/shape blocking is still decided exclusively by the causal Mirage solver.
+**Current source line:** `0.1.0-dev.80` — the six accepted dev.79i projector models are now the canonical runtime models. The temporary `*_alt` blocks/items/resources are removed, the old canonical model JSONs are archived under `docs/history/projector-models-pre-dev80/`, and the Creative projector order is Mirage Projector → Mirage Display → Mirage Field Projector → Wide Mirage Projector → Tall Mirage Projector → Mirage Prism. Network protocol remains 26.
 
 Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in `docs/CURRENT-IMPLEMENTATION.md`; genuinely pending work lives only in `docs/ROADMAP.md`.
 
@@ -13,7 +13,7 @@ Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in 
 - Java 21
 - Gradle 9.2.1
 - Parchment 2024.11.17
-- Network protocol 22
+- Network protocol 26
 
 ## Projector chassis
 
@@ -21,10 +21,10 @@ Start with `docs/DOCUMENTATION-AUTHORITY.md`. Current behavior is documented in 
 |---|---:|---:|---:|---:|
 | Mirage Projector | 10×10 | 32 | 4 | ×1.00 |
 | Mirage Display | 32×32 | 48 | 12 | ×1.50 |
+| Mirage Field Projector | 128×128 | 144 | 24 | ×4.00 |
 | Wide Mirage Projector | 80×32 | 64 | 12 | ×2.00 |
 | Tall Mirage Projector | 32×80 | 96 | 16 | ×2.00 |
 | Mirage Prism | 48×48 baseline | 96 | 12 | ×2.00 |
-| Mirage Field Projector | 128×128 | 144 | 24 | ×4.00 |
 
 The nominal envelope is an efficiency target rather than a hard render cap. The Power system can enter Overdrive when enough PU is available.
 
@@ -84,7 +84,9 @@ floor(Base PU × chassis multiplier × Core amplification)
 
 There is one user-facing `mirage_projector:core_booster`.
 
-A placed empty Booster accepts Glass, Quartz, Amethyst Shard, Diamond or Netherite Ingot with right-click. Shift + right-click returns the stored material. Loaded Boosters preserve material when correctly mined and only stack with identical stored state. Empty Boosters are not valid projector Cores.
+A placed empty Booster accepts Glass, Quartz, Amethyst Shard, Diamond or Netherite Ingot with right-click. Shift + right-click returns the stored material. Loaded Boosters preserve material when correctly mined and only stack with identical stored state. Empty Boosters are not valid projector Cores. Loaded item stacks are named dynamically (`Glass Core Booster`, `Quartz Core Booster`, etc.); the empty item remains simply `Core Booster`.
+
+Beacon-relay identity is intentionally material-specific. Glass/Diffusion broadens the beam and trades Mature static reach for softer detour shadows; Quartz/Radiance is the strongest pure static-reach amplifier (+2 open blocks per effective Quartz); Amethyst/Resonance accelerates residual optical activity without free static reach; Diamond/Focus tightens the beam and strengthens geometric shadows, adding only +2 open blocks per two effective Diamonds; Netherite/Inversion reverses beam rotation without free static reach.
 
 Five old `improved_*_core` block IDs remain only as migration shims for development worlds. They have no BlockItems, recipes or active Creative exposure and must not be treated as separate gameplay products.
 
@@ -108,7 +110,7 @@ Physical `crying_light_node` blocks are migration-only and are never created by 
 
 ## Current stabilization point
 
-`dev.75d` is the static-light closure candidate before dev.76. The Mature Cluster virtual field now has exact open-space half-decay, real opaque/partial-block edge handling, natural route-around-wall behavior with extra detour penalty, chunk lifecycle, tracking-scoped source sync, overlap max aggregation and legacy-node migration.
+`dev.76h` remains the QA-confirmed static-light stabilization baseline; `dev.77` adds Core Booster identity polish; `dev.78`/`dev.78a` begin alternate projector chassis refinement; `dev.79` locks projector-specific scope/model↔VoxelShape reconciliation; `dev.79a` finalizes Tall dome polish and the whole-source audit; `dev.79b` performs targeted Z-fighting cleanup on Compact/Wide/Field plus mode-workspace activation UX cleanup; `dev.79d` adds ON/OFF and the first Compact depth cleanup; and `dev.79h` converts the remaining Compact emitter geometry into outward-facing plates only while moving all source-workspace action buttons onto a dedicated second header row. The Mature Cluster virtual field still has exact open-space half-decay, real opaque/partial-block edge handling, natural route-around-wall behavior with extra detour penalty, chunk lifecycle, tracking-scoped source sync, overlap max aggregation and legacy-node migration.
 
 Required acceptance before calling this line build-clean is Windows Java 21 compilation plus in-game QA of open curve, 1/2/3-block and L-shaped walls, slabs/stairs/partial opacity, chunk borders/unload/reload, relog/respawn/dimension, overlapping sources, Quartz/Diamond reinforcement and several simultaneous fields. dev.71 equipment visibility and dev.72 Entity envelope/frustum work remain accumulated and must not regress.
 
@@ -143,6 +145,11 @@ Current active documents:
 - `docs/DEV75D-DETOUR-PENALTY-AND-CONSOLIDATION.md`
 - `docs/DEV75D-STATIC-QA.md`
 - `docs/CHANGELOG.md`
+- `docs/DEV79A-FULL-AUDIT.md`
+- `docs/NEXT-CHAT-HANDOFF-dev80.md`
+- `docs/DEV78A-PROJECTOR-MODEL-CORRECTIONS.md`
+- `docs/DEV79-SCOPE-LOCKED-PROJECTOR-RECONCILIATION.md`
+- `docs/NEXT-CHAT-HANDOFF-dev79.md`
 - `docs/DEVELOPMENT.md`
 - `docs/THIRD_PARTY_NOTICES.md`
 - `docs/NEXT-CHAT-HANDOFF-dev65.md`
@@ -154,6 +161,6 @@ Superseded documentation is retained under `docs/archive/pre-dev59/` and `docs/a
 
 ## Build
 
-On Windows, run `build.bat` with Java 21 available. dev.75d is the pre-dev.76 static-light closure candidate. Validate build, exact open half-decay, natural obstacle detour shadows, partial blocks, chunk lifecycle, relog/dimension changes, multiplayer tracking, overlap/performance and legacy-node cleanup before marking it build-clean.
+On Windows, run `build.bat` with Java 21 available. The artifact-side current suite is `python tools/verify_current_line.py`; it is not a substitute for the Windows NeoForge build. For dev.80, compile first and smoke-test the six canonical projectors after promotion, verify the requested Creative ordering, then move to the dedicated inventory-icon pass.
 
 Release/runtime caches and generated directories are intentionally excluded from source snapshots.

@@ -13,21 +13,18 @@ Projectors:
 - `mirage_projector:mirage_field_projector`
 - `mirage_projector:mirage_prism`
 
-Core system:
+## Canonical projector IDs after dev.80
 
-- `mirage_projector:core_booster`
+The temporary `*_alt` comparison registry entries were removed in dev.80. Runtime now exposes exactly these six projector block/item IDs:
 
-Crying Obsidian ecosystem:
+- `mirage_projector:mirage_projector`
+- `mirage_projector:mirage_display`
+- `mirage_projector:mirage_field_projector`
+- `mirage_projector:wide_mirage_projector`
+- `mirage_projector:tall_mirage_projector`
+- `mirage_projector:mirage_prism`
 
-- `mirage_projector:small_crying_obsidian_bud`
-- `mirage_projector:medium_crying_obsidian_bud`
-- `mirage_projector:large_crying_obsidian_bud`
-- `mirage_projector:crying_obsidian_cluster`
-- `mirage_projector:obsidian_spike`
-
-Migration-only internal block ID:
-
-- `mirage_projector:crying_light_node` — **legacy migration only since dev.75a**. Current runtime never creates it. It stays registered/modelled so dev.65–74 development worlds load safely; source-centered and chunk palette-scanned cleanup removes only this Mirage block. It has no BlockItem, recipe or Creative exposure.
+Their visuals are the accepted dev.79i models. The replaced pre-dev.80 canonical model JSONs are archived only under `docs/history/projector-models-pre-dev80/` and are not registered resources.
 
 ## Active non-block items
 

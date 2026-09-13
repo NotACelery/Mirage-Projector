@@ -43,6 +43,10 @@ public final class CoreBoosterJadePlugin implements IWailaPlugin {
                         "jade.mirage_projector.core_booster.beacon_effect",
                         booster.material().beaconEffectComponent()
                 ));
+                tooltip.add(Component.translatable(
+                        "jade.mirage_projector.core_booster.field_effect",
+                        booster.material().staticFieldEffectComponent()
+                ));
             } else {
                 tooltip.add(Component.translatable("jade.mirage_projector.core_booster.empty"));
             }

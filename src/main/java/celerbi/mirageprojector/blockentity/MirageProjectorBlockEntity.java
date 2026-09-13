@@ -31,8 +31,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -40,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 public final class MirageProjectorBlockEntity extends BlockEntity implements MenuProvider {
     private ProjectionSettings settings = ProjectionSettings.DEFAULT;
+    private boolean projectionEnabled = true;
     private final ImageSourceBank imageSourceBank = new ImageSourceBank();
 
     private final ItemStackHandler projectionSnapshot = new ItemStackHandler(1) {
@@ -168,14 +169,45 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
 
     public MirageProjectorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MIRAGE_PROJECTOR.get(), pos, state);
-
-        if (MirageProjectorBlock.chassisProfile(state) == ProjectionChassisProfile.COMPACT) {
-            coreItem.setStackInSlot(0, new ItemStack(Blocks.GLASS));
-        }
     }
 
     public ProjectionSettings settings() {
         return settings;
+    }
+
+    public boolean projectionEnabled() {
+        return projectionEnabled;
+    }
+
+    /**
+     * 1.1.0 End Resonance hook. Dragon Egg is not accepted as a normal Core yet,
+     * but once that special Core path is enabled this guard already freezes normal
+     * source/power controls without encoding resonance into SourceMode.
+     */
+    public boolean endResonanceLocksControls() {
+        return coreStack().is(Items.DRAGON_EGG);
+    }
+
+    public boolean setProjectionEnabled(boolean enabled) {
+        if (!enabled && endResonanceLocksControls()) {
+            return false;
+        }
+        if (projectionEnabled == enabled) {
+            return true;
+        }
+        projectionEnabled = enabled;
+        setChangedAndSync();
+        return true;
+    }
+
+    public boolean activateProjectionSource(ProjectionSettings.SourceMode sourceMode) {
+        if (sourceMode == null || endResonanceLocksControls()) {
+            return false;
+        }
+        settings = settings.withSourceMode(sourceMode);
+        projectionEnabled = true;
+        setChangedAndSync();
+        return true;
     }
 
     public ImageSourceBank imageSourceBank() {
@@ -183,11 +215,11 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void replaceImageSourceBank(ImageSourceBank bank) {
-        applyImageWorkspace(settings.withSourceMode(ProjectionSettings.SourceMode.IMAGE), bank);
+        applyImageWorkspace(settings, bank);
     }
 
     public void applyImageWorkspace(ProjectionSettings newSettings, ImageSourceBank bank) {
-        ProjectionSettings next = newSettings.sanitized().withSourceMode(ProjectionSettings.SourceMode.IMAGE);
+        ProjectionSettings next = newSettings.sanitized();
         if (!chassisProfile().supportsMultiSourceImageLayout()
                 && next.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
             next = next.withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
@@ -273,7 +305,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
 
         projectionSnapshotId = UUID.randomUUID();
         projectionSnapshot.setStackInSlot(0, source.copyWithCount(1));
-        settings = settings.withSourceMode(ProjectionSettings.SourceMode.ITEM);
         setChangedAndSync();
     }
 
@@ -289,7 +320,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             return false;
         }
         bannerSnapshots.setStackInSlot(face, source.copyWithCount(1));
-        settings = settings.withSourceMode(ProjectionSettings.SourceMode.BANNER);
         setChangedAndSync();
         return true;
     }
@@ -313,7 +343,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         for (int face = 1; face < bannerSnapshots.getSlots(); face++) {
             bannerSnapshots.setStackInSlot(face, primary.copyWithCount(1));
         }
-        settings = settings.withSourceMode(ProjectionSettings.SourceMode.BANNER);
         setChangedAndSync();
         return true;
     }
@@ -431,7 +460,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         EntityProjectionState.ApplyResult result = entityProjectionState.applyIncoming(channel, replaceExisting);
         if (result == EntityProjectionState.ApplyResult.APPLIED
                 || result == EntityProjectionState.ApplyResult.ALREADY_APPLIED) {
-            settings = settings.withSourceMode(ProjectionSettings.SourceMode.ENTITY);
             setChangedAndSync();
         }
         return result;
@@ -459,21 +487,18 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
 
     public HumanoidPosePreset cycleHumanoidPose() {
         HumanoidPosePreset pose = entityProjectionState.cycleHumanoidPose();
-        settings = settings.withSourceMode(ProjectionSettings.SourceMode.ENTITY);
         setChangedAndSync();
         return pose;
     }
 
     public HorsePosePreset cycleHorsePose() {
         HorsePosePreset pose = entityProjectionState.cycleHorsePose();
-        settings = settings.withSourceMode(ProjectionSettings.SourceMode.ENTITY);
         setChangedAndSync();
         return pose;
     }
 
     public GenericPosePreset cycleGenericPose() {
         GenericPosePreset pose = entityProjectionState.cycleGenericPose();
-        settings = settings.withSourceMode(ProjectionSettings.SourceMode.ENTITY);
         setChangedAndSync();
         return pose;
     }
@@ -596,7 +621,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
                 entityProjectionState.onStagedCardRemoved(stagedEntityCardKind);
             }
             stagedEntityCardKind = scan.kind();
-            settings = settings.withSourceMode(ProjectionSettings.SourceMode.ENTITY);
             if (level != null) {
                 entityProjectionState.importFromCard(card, level.registryAccess());
             }
@@ -639,6 +663,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         settings.save(tag);
+        tag.putBoolean("ProjectionEnabled", projectionEnabled);
         tag.put("ImageSourceBank", imageSourceBank.save());
         tag.put("ProjectionSnapshot", projectionSnapshot.serializeNBT(registries));
         tag.put("BannerSnapshots", bannerSnapshots.serializeNBT(registries));
@@ -661,6 +686,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         settings = ProjectionSettings.load(tag);
+        projectionEnabled = !tag.contains("ProjectionEnabled") || tag.getBoolean("ProjectionEnabled");
         if (!chassisProfile().supportsMultiSourceImageLayout()
                 && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
             settings = settings.withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
@@ -743,9 +769,6 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             if (!coreItem.getStackInSlot(0).isEmpty() && !ProjectionCoreProfile.isCoreItem(coreItem.getStackInSlot(0))) {
                 coreItem.setStackInSlot(0, ItemStack.EMPTY);
             }
-        } else if (chassisProfile() == ProjectionChassisProfile.COMPACT) {
-
-            coreItem.setStackInSlot(0, new ItemStack(Blocks.GLASS));
         } else {
             coreItem.setStackInSlot(0, ItemStack.EMPTY);
         }

@@ -20,13 +20,13 @@ import org.jetbrains.annotations.Nullable;
 
 public final class EntityProjectorMenu extends AbstractContainerMenu {
     public static final int CARD_X = 28;
-    public static final int CARD_Y = 59;
+    public static final int CARD_Y = 87;
     public static final int STAGING_X = 28;
-    public static final int HUMANOID_FIRST_Y = 126;
+    public static final int HUMANOID_FIRST_Y = 154;
     public static final int ROW_STEP = 22;
-    public static final int HORSE_FIRST_Y = 126;
+    public static final int HORSE_FIRST_Y = 154;
     public static final int PLAYER_INV_X = 204;
-    public static final int PLAYER_INV_Y = 350;
+    public static final int PLAYER_INV_Y = 378;
 
     public static final int CARD_SLOT_INDEX = 0;
     public static final int HUMANOID_FIRST_SLOT_INDEX = 1;

@@ -31,6 +31,10 @@ public enum CoreBoosterMaterial implements StringRepresentable {
         return Component.translatable("gui.mirage_projector.core_booster.effect." + name().toLowerCase());
     }
 
+    public Component staticFieldEffectComponent() {
+        return Component.translatable("gui.mirage_projector.core_booster.field_effect." + name().toLowerCase());
+    }
+
     public ItemStack centerStack() {
         return switch (this) {
             case GLASS -> new ItemStack(Blocks.GLASS);

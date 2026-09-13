@@ -16,7 +16,10 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class BannerProjectorScreen extends AbstractContainerScreen<BannerProjectorMenu> {
     private static final int W = 420;
-    private static final int H = 300;
+    private static final int H = 328;
+
+    private Button modeButton;
+    private Button backButton;
 
     public BannerProjectorScreen(BannerProjectorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -29,26 +32,60 @@ public final class BannerProjectorScreen extends AbstractContainerScreen<BannerP
     @Override
     protected void init() {
         super.init();
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.back_to_settings"), button ->
-                PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + 278, topPos + 8, 130, 18).build());
-
-        Button activate = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.banner.activate"), button ->
+        modeButton = addRenderableWidget(Button.builder(Component.empty(), button ->
                 PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.BANNER))
-        ).bounds(leftPos + 22, topPos + 136, 118, 20).build());
-        activate.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.banner.activate")));
+        ).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
+        modeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.banner.activate")));
+
+        backButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button ->
+                PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
+        ).bounds(leftPos + imageWidth - 138, topPos + 34, 126, 18).build());
 
         Button clear = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.banner.clear_all"), button ->
                 PacketDistributor.sendToServer(new BannerWorkspaceActionPayload(menu.projectorPos(), BannerWorkspaceActionPayload.Action.CLEAR_ALL))
-        ).bounds(leftPos + 148, topPos + 136, 104, 20).build());
+        ).bounds(leftPos + 148, topPos + 164, 104, 20).build());
         clear.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.banner.clear_all")));
 
         if (menu.prism()) {
             Button sameAll = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.banner.same_all"), button ->
                     PacketDistributor.sendToServer(new BannerWorkspaceActionPayload(menu.projectorPos(), BannerWorkspaceActionPayload.Action.COPY_PRIMARY_TO_ALL))
-            ).bounds(leftPos + 260, topPos + 136, 138, 20).build());
+            ).bounds(leftPos + 260, topPos + 164, 138, 20).build());
             sameAll.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.banner.same_all")));
         }
+
+        refreshModeButton();
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        refreshModeButton();
+    }
+
+    private void refreshModeButton() {
+        if (modeButton == null) {
+            return;
+        }
+        boolean activeMode = currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.BANNER;
+        modeButton.active = !activeMode;
+        modeButton.setMessage(activeMode
+                ? Component.translatable("gui.mirage_projector.workspace.mode_active")
+                : Component.translatable("gui.mirage_projector.workspace.use_mode", modeLabel()));
+    }
+
+    private Component modeLabel() {
+        return Component.translatable("gui.mirage_projector.workspace.banner_short");
+    }
+
+    private boolean currentProjectionEnabled() {
+        return menu.projector() == null || menu.projector().projectionEnabled();
+    }
+
+    private ProjectionSettings.SourceMode currentSourceMode() {
+        if (menu.projector() != null) {
+            return menu.projector().settings().sourceMode();
+        }
+        return ProjectionSettings.SourceMode.BANNER;
     }
 
     @Override
@@ -58,8 +95,8 @@ public final class BannerProjectorScreen extends AbstractContainerScreen<BannerP
         graphics.fill(x, y, x + imageWidth, y + imageHeight, 0xF014171D);
         graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 2, 0xFF6B4A7E);
 
-        section(graphics, x + 12, y + 34, 396, 132);
-        section(graphics, x + 12, y + 174, 396, 114);
+        section(graphics, x + 12, y + 62, 396, 132);
+        section(graphics, x + 12, y + 202, 396, 114);
 
         int faceCount = menu.prism() ? BannerProjectorMenu.FACE_COUNT : 1;
         for (int face = 0; face < faceCount; face++) {
@@ -83,7 +120,7 @@ public final class BannerProjectorScreen extends AbstractContainerScreen<BannerP
         ItemStack primary = menu.bannerSnapshot(0);
         if (!primary.isEmpty()) {
             graphics.pose().pushPose();
-            graphics.pose().translate(x + 344, y + 80, 80.0F);
+            graphics.pose().translate(x + 344, y + 108, 80.0F);
             graphics.pose().scale(2.0F, 2.0F, 1.0F);
             graphics.renderItem(primary, -8, -8);
             graphics.pose().popPose();
@@ -92,27 +129,27 @@ public final class BannerProjectorScreen extends AbstractContainerScreen<BannerP
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, fit(title.getString(), 250), 12, 10, 0xFFF4F4F4, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.banner.sources"), 22, 44, 0xFFD7B8F5, false);
+        graphics.drawString(font, fit(title.getString(), 190), 12, 10, 0xFFF4F4F4, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.banner.sources"), 22, 72, 0xFFD7B8F5, false);
 
         if (menu.prism()) {
             String[] labels = {"north", "east", "south", "west"};
             for (int face = 0; face < labels.length; face++) {
                 Component label = Component.translatable("gui.mirage_projector.face." + labels[face]);
-                graphics.drawCenteredString(font, label, BannerProjectorMenu.FACE_X[face] + 8, 84, 0xFFC9CED7);
+                graphics.drawCenteredString(font, label, BannerProjectorMenu.FACE_X[face] + 8, 112, 0xFFC9CED7);
             }
         } else {
-            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.front"), BannerProjectorMenu.PLANE_FACE_X + 8, 84, 0xFFC9CED7);
+            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.front"), BannerProjectorMenu.PLANE_FACE_X + 8, 112, 0xFFC9CED7);
         }
 
-        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.preview"), 344, 48, 0xFFD7B8F5);
+        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.preview"), 344, 76, 0xFFD7B8F5);
         ItemStack primary = menu.bannerSnapshot(0);
         Component previewName = primary.isEmpty()
                 ? Component.translatable("gui.mirage_projector.banner.empty")
                 : primary.getHoverName();
-        graphics.drawCenteredString(font, fit(previewName.getString(), 112), 344, 112, primary.isEmpty() ? 0xFF8D8493 : 0xFF9DDBA8);
+        graphics.drawCenteredString(font, fit(previewName.getString(), 112), 344, 140, primary.isEmpty() ? 0xFF8D8493 : 0xFF9DDBA8);
 
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.banner.virtual_notice"), 22, 104, 0xFF8FCFA0, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.banner.virtual_notice"), 22, 132, 0xFF8FCFA0, false);
         graphics.drawString(font, Component.translatable("container.inventory"), BannerProjectorMenu.PLAYER_INV_X, BannerProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
     }
 

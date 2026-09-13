@@ -1,4 +1,29 @@
 @echo off
+rem ---------------------------------------------------------------------------
+rem Resilient launcher: run the real build in a child cmd process.
+rem If Gradle, PowerShell or another BAT terminates that child unexpectedly,
+rem this outer process still reaches the final pause and keeps the error visible.
+rem ---------------------------------------------------------------------------
+if /I "%~1"=="--mirage-inner" goto :mirage_inner
+
+set "MIRAGE_BUILD_EXIT=1"
+cmd /d /s /c ""%~f0" --mirage-inner"
+set "MIRAGE_BUILD_EXIT=%ERRORLEVEL%"
+
+echo.
+echo ============================================================
+if "%MIRAGE_BUILD_EXIT%"=="0" (
+    echo BUILD.BAT termino correctamente.
+) else (
+    echo BUILD.BAT termino con error %MIRAGE_BUILD_EXIT%.
+    echo La ventana se mantiene abierta aunque el proceso interno haya fallado.
+)
+echo ============================================================
+echo Presiona una tecla para cerrar esta ventana.
+pause >nul
+exit /b %MIRAGE_BUILD_EXIT%
+
+:mirage_inner
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
@@ -8,6 +33,10 @@ set "DIST_DIR=%DIST_ROOT%\gradle-%GRADLE_VERSION%"
 set "DIST_ZIP=%DIST_ROOT%\gradle-%GRADLE_VERSION%-bin.zip"
 set "JAVA_EXE="
 set "BUILD_EXIT=1"
+set "BUILD_LOG=%CD%\build-mirage-projector.log"
+>"%BUILD_LOG%" echo Mirage Projector build launcher diagnostics
+>>"%BUILD_LOG%" echo Started: %DATE% %TIME%
+>>"%BUILD_LOG%" echo Directory: %CD%
 
 set "MOD_VERSION="
 for /f "tokens=2 delims==" %%V in ('findstr /b /c:"mod_version=" "gradle.properties" 2^>nul') do set "MOD_VERSION=%%V"
@@ -31,6 +60,7 @@ call "%CD%\CLEAN-MIRAGE-PROJECTOR.bat" --from-build
 set "CLEANUP_EXIT=%ERRORLEVEL%"
 if not "%CLEANUP_EXIT%"=="0" goto :cleanup_failed
 echo Limpieza previa terminada correctamente.
+>>"%BUILD_LOG%" echo Cleanup OK: %DATE% %TIME%
 echo.
 
 call :find_java21
@@ -42,6 +72,7 @@ set "PATH=%JAVA_HOME%\bin;%PATH%"
 
 echo Java 21 encontrado:
 echo   %JAVA_EXE%
+>>"%BUILD_LOG%" echo Java: %JAVA_EXE%
 "%JAVA_EXE%" -version
 if errorlevel 1 goto :java_broken
 echo.
@@ -77,10 +108,13 @@ echo La primera compilacion puede descargar dependencias de NeoForge.
 echo Este BAT ejecuta CLEAN-MIRAGE-PROJECTOR.bat antes de compilar.
 echo.
 echo Iniciando Gradle...
+>>"%BUILD_LOG%" echo Gradle start: %DATE% %TIME%
+>>"%BUILD_LOG%" echo Gradle BAT: %DIST_DIR%\bin\gradle.bat
 echo ------------------------------------------------------------
 
-cmd /d /s /c ""%DIST_DIR%\bin\gradle.bat" --no-daemon clean build --stacktrace"
+call "%DIST_DIR%\bin\gradle.bat" --no-daemon clean build --stacktrace --console=plain
 set "BUILD_EXIT=%ERRORLEVEL%"
+>>"%BUILD_LOG%" echo Gradle exit %BUILD_EXIT%: %DATE% %TIME%
 
 echo ------------------------------------------------------------
 echo Gradle termino con codigo: %BUILD_EXIT%
@@ -149,6 +183,20 @@ echo ERROR: Este BAT debe estar en la raiz de Mirage Projector.
 echo No encontre gradle.properties con mod_id=mirage_projector.
 goto :failure
 
+:cleanup_missing
+echo.
+echo ERROR: No encontre CLEAN-MIRAGE-PROJECTOR.bat en la raiz del proyecto.
+>>"%BUILD_LOG%" echo Cleanup BAT missing: %DATE% %TIME%
+goto :failure
+
+:cleanup_failed
+echo.
+echo ERROR: La limpieza previa fallo con codigo %CLEANUP_EXIT%.
+echo Revisa:
+echo   %CD%\cleanup-mirage-projector.log
+>>"%BUILD_LOG%" echo Cleanup FAILED code %CLEANUP_EXIT%: %DATE% %TIME%
+goto :failure
+
 :java_missing
 echo.
 echo ERROR: No encontre un JDK 21 ejecutable.
@@ -195,14 +243,10 @@ goto :failure
 
 :failure
 echo.
-echo La ventana queda abierta para poder leer o copiar el error.
-echo Presiona una tecla solo cuando hayas terminado de revisarlo.
-pause >nul
+echo El launcher exterior mantendra la ventana abierta para leer o copiar el error.
 endlocal & exit /b 1
 
 :success
 echo.
 echo El JAR esta listo para probar en la instancia de Minecraft.
-echo Presiona una tecla para cerrar esta ventana.
-pause >nul
 endlocal & exit /b 0

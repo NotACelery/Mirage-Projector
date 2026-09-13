@@ -54,7 +54,7 @@ public record SetProjectionSourcePayload(
             }
 
             if (player.level().getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) {
-                projector.applySettings(projector.settings().withSourceMode(payload.sourceMode()));
+                projector.activateProjectionSource(payload.sourceMode());
             }
         });
     }

@@ -60,3 +60,17 @@ Prism image geometry is content-adaptive per face:
 - near-square sources target the square baseline.
 
 Its four source directions are world-cardinal N/E/S/W, not relative labels that rotate with block facing.
+
+## Core Booster identity
+
+Loaded Core Boosters keep the universal ×1.50 projector-Core amplification, but their Beacon/Mature-light identity is material-specific:
+
+| Material | Beacon identity | Mature static field |
+|---|---|---|
+| Glass | Diffusion / widest beam | -2 open blocks per effective unopposed Diffusion tier; softer detour shadows |
+| Quartz | Radiance / brighter beam | +2 open blocks per effective Quartz |
+| Amethyst | Resonance / faster optical activity | no static-reach change |
+| Diamond | Focus / tight inner beam | stronger detour shadows; +2 open blocks per 2 effective Diamonds |
+| Netherite | Inversion / reversed rotation | no static-reach change |
+
+Empty Booster item name remains `Core Booster`; loaded stacks use `<Material> Core Booster`.

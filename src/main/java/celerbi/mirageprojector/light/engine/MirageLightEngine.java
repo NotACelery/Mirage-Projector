@@ -186,14 +186,17 @@ public final class MirageLightEngine {
         if (level == null || source == null || !source.active()) {
             return false;
         }
-        Set<Long> dependencies = dependencyChunks(source);
-        if (dependencies.isEmpty()) {
-            return false;
-        }
-        for (long packed : dependencies) {
-            ChunkPos chunkPos = new ChunkPos(packed);
-            if (level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z) == null) {
-                return false;
+        BlockPos origin = source.origin();
+        int radius = source.profile().maxRadius();
+        int minChunkX = Math.floorDiv(origin.getX() - radius, 16);
+        int maxChunkX = Math.floorDiv(origin.getX() + radius, 16);
+        int minChunkZ = Math.floorDiv(origin.getZ() - radius, 16);
+        int maxChunkZ = Math.floorDiv(origin.getZ() + radius, 16);
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                if (level.getChunkSource().getChunkNow(chunkX, chunkZ) == null) {
+                    return false;
+                }
             }
         }
         return true;

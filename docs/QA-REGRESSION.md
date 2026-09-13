@@ -245,7 +245,7 @@ Historical regression only: confirm the internal Mirage light-node block remains
 
 ## dev.71 per-channel Entity equipment visibility
 
-- Historical dev.71 build used protocol 19; current dev.75d protocol is 21. Build on Windows/Java 21 and confirm both client/server agree on the current protocol.
+- Historical dev.71 used protocol 19 and dev.75d used 21; current dev.80 protocol is 26. Build on Windows/Java 21 and confirm both client/server agree on protocol 26.
 - Humanoid: populate all six Projected channels, toggle each independently, and verify only the selected renderer contribution disappears/reappears.
 - Horse: toggle Saddle and Body Armor separately. OFF must not clear their Projected slot/snapshot.
 - Hide the only item on a bodyless Humanoid mannequin. No empty phantom body/render should remain; turning the channel ON must restore the same snapshot immediately.
@@ -287,7 +287,7 @@ Historical regression only: confirm the internal Mirage light-node block remains
 
 ## dev.75a–75b authoritative virtual-light lifecycle
 
-- Build with Windows Java 21. Protocol 20 was introduced in dev.75a; current dev.75d protocol is 21.
+- Historical dev.75a introduced protocol 20 and dev.75d used protocol 21; the current dev.80 line uses protocol 26. Build current source with Windows Java 21 and confirm both peers use 26.
 - Confirm no current runtime path creates `mirage_projector:crying_light_node`; load an old dev.73/74 world and verify only Mirage legacy nodes are cleaned.
 - Simple Light Level/world render should reflect `max(vanilla, Mirage)`. `/miragelight probe` distinguishes raw vanilla storage from Mirage/effective.
 - Cross chunk borders with the field. Destination chunk unload/reload must remove/recreate only geometry-dependent portions after lifecycle solve; source-origin unload must retract/re-discover the source.

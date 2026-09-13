@@ -14,6 +14,6 @@ assert 'RequestMirageLightChunkPayload.TYPE' in reg
 assert 'MirageLightChunkSnapshotPayload.TYPE' in reg
 assert 'MirageLightNetwork.sendChunkSnapshot' in req
 assert 'MAX_CLIENT_SYNC_CHUNK_DISTANCE' in req
-assert 'NETWORK_PROTOCOL = "25"' in main
+assert 'NETWORK_PROTOCOL = "26"' in main
 assert 'for (ServerPlayer player : level.players())' in net
 print('dev.76e+ chunk snapshot handshake contract PASS')

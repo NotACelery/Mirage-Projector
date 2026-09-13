@@ -17,9 +17,9 @@ import org.jetbrains.annotations.Nullable;
 
 public final class ItemProjectorMenu extends AbstractContainerMenu {
     public static final int SNAPSHOT_X = 30;
-    public static final int SNAPSHOT_Y = 68;
+    public static final int SNAPSHOT_Y = 96;
     public static final int PLAYER_INV_X = 99;
-    public static final int PLAYER_INV_Y = 174;
+    public static final int PLAYER_INV_Y = 202;
     public static final int SNAPSHOT_SLOT_INDEX = 0;
     public static final int FIRST_PLAYER_SLOT_INDEX = 1;
 

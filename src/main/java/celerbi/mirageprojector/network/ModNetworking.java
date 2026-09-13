@@ -52,6 +52,11 @@ public final class ModNetworking {
                 SetProjectionSourcePayload::handle
         );
         registrar.playToServer(
+                SetProjectionEnabledPayload.TYPE,
+                SetProjectionEnabledPayload.STREAM_CODEC,
+                SetProjectionEnabledPayload::handle
+        );
+        registrar.playToServer(
                 OpenProjectorWorkspacePayload.TYPE,
                 OpenProjectorWorkspacePayload.STREAM_CODEC,
                 OpenProjectorWorkspacePayload::handle

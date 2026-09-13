@@ -71,13 +71,18 @@ public final class MirageLightNetwork {
         if (level == null || source == null || !source.active()) {
             return;
         }
-        int chunkRadius = Math.max(2, (source.profile().maxRadius() + 15) / 16);
-        ChunkPos sourceChunk = new ChunkPos(source.origin());
+        var origin = source.origin();
+        int radius = source.profile().maxRadius();
+        int minChunkX = Math.floorDiv(origin.getX() - radius, 16);
+        int maxChunkX = Math.floorDiv(origin.getX() + radius, 16);
+        int minChunkZ = Math.floorDiv(origin.getZ() - radius, 16);
+        int maxChunkZ = Math.floorDiv(origin.getZ() + radius, 16);
+        ChunkPos sourceChunk = new ChunkPos(origin);
         List<MirageLightChunkRevisionManifestPayload.Entry> entries = new ArrayList<>();
-        for (int dx = -chunkRadius; dx <= chunkRadius; dx++) {
-            for (int dz = -chunkRadius; dz <= chunkRadius; dz++) {
-                ChunkPos chunkPos = new ChunkPos(sourceChunk.x + dx, sourceChunk.z + dz);
-                if (level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z) == null) {
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
+                if (level.getChunkSource().getChunkNow(chunkX, chunkZ) == null) {
                     continue;
                 }
                 long chunkKey = chunkPos.toLong();

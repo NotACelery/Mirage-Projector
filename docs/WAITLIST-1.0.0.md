@@ -2,17 +2,43 @@
 
 Goal: ship a stable first public release while deliberately leaving extension seams for 1.1.0 and 1.2.0. Do **not** pull the large portable/Codex feature set into 1.0.0.
 
-## P0 — dev.75d acceptance
+## P0 — current static-light acceptance
 
-- Windows Java 21 / NeoForge 21.1.244 build.
-- In-game exact open Mature curve: `15,15,14,14,...,1,1`.
-- 1/2/3-high walls and L-corner obstacle-detour measurements.
-- slabs/stairs/partial-opacity behavior.
-- Quartz/Diamond reflected-range regression.
-- chunk border/load/unload, relog, respawn and dimension-change lifecycle.
-- overlapping sources and several-source performance.
-- multiplayer tracking/sync.
-- legacy `crying_light_node` cleanup without recreating physical relays.
+QA-confirmed on the dev.76h architecture and retained through dev.80:
+
+- [x] Windows Java 21 / NeoForge 21.1.244 builds have reached in-game QA on the current post-light line.
+- [x] Open Mature curve is the intended `15,15,14,14,...,1,1`; pure-math/current-source gates pass.
+- [x] Chunk-border/relog convergence is stable after the dev.76h section-boundary invalidation fix. Repeated world logins settle in roughly a second or two near an energized source with no visible FPS regression.
+- [x] Old ghost light from previous physical-relay development builds is cleaned rather than recreated.
+- [ ] Re-run the final 1/2/3-high wall and L-corner obstacle-detour matrix on the release candidate.
+- [ ] Re-run slabs/stairs/partial-opacity behavior on the release candidate.
+- [ ] Re-run all five dev.77 Core Booster light identities in-game, especially Glass diffusion vs Diamond focus and Quartz pure reach.
+- [ ] Overlapping sources and several-source performance stress.
+- [ ] Multiplayer tracking/sync with at least two clients.
+
+## P0 — projector model closure
+
+- [x] dev.79 non-Prism alternate model ↔ VoxelShape reconciliation accepted in-game; core chambers/hitboxes line up correctly.
+- [x] Wide V-shaped identity accepted; Prism accepted and locked.
+- [x] Compact/Display/Field comparison shapes accepted after dev.79 reconciliation.
+- [x] dev.79i final model QA accepted: Compact is free of Z-fighting and Tall has matching front/rear low translucent boxes with matching hitbox.
+- [x] dev.80 promotes the six accepted comparison models to canonical IDs and removes the temporary `*_alt` runtime registrations/resources.
+- [ ] Replace/refine the six projector inventory/item icons; the current block-model-derived silhouettes are too thin/abstract for final inventory presentation.
+
+## P0 — projector active-state / shutdown UX
+
+This is part of the current fixed-projector UX closure and should land before stable 1.0.0. It is not a 1.1.0 portable feature.
+
+- [x] Add an explicit `TURN OFF` / projector-off action to the projector GUI.
+- [x] Turning a projector off must stop rendering the projection **without deleting or resetting** any configured Image/Item/Banner/Entity data, presentation settings, snapshots, banks/faces, Core state or transform state.
+- [x] Applying `Use <mode> mode` from any source workspace re-enables the projector and makes that source the currently active projection.
+- [x] Treat these as distinct state concepts: **workspace currently open**, **source currently selected/active**, and **projection enabled/disabled**. Merely opening a workspace must never activate it.
+- [x] Every source workspace/tab must visibly indicate when its source is the one currently being projected after `Use <mode> mode` is accepted.
+- [x] On the main source menu, the active Image / Item / Entity / Banner button receives a clear **white outline**. The outline represents the source actually being projected, not the workspace currently being viewed.
+- [x] When projection is OFF, no source button should be presented as currently active. The last/remembered source may remain stored internally so the configuration is preserved, but the GUI must not claim that it is presently being projected.
+- [x] Persist/synchronize the enabled state safely across save/reload, chunk reload and multiplayer GUI viewers.
+
+Architecture requirement: do not encode OFF as a fake fifth `SourceMode`. Keep projection activation independent from source identity (conceptually `projectionEnabled` + active source descriptor/current source). This separation is required for 1.1.0 End Resonance, portable devices and future registered source types.
 
 ## P0/P1 — renderer and projection acceptance
 

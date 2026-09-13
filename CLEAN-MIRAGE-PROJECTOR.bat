@@ -9,7 +9,7 @@ set /a REMOVED=0
 set /a SKIPPED=0
 set /a FAILED=0
 
->"%LOG%" echo Mirage Projector cumulative pre-build cleanup - dev.76h
+>"%LOG%" echo Mirage Projector cumulative pre-build cleanup - dev.79a
 >>"%LOG%" echo Started: %DATE% %TIME%
 
 if not exist "gradle.properties" goto :wrong_folder
@@ -18,7 +18,7 @@ if errorlevel 1 goto :wrong_folder
 
 if "%FROM_BUILD%"=="0" (
     echo ============================================================
-    echo      MIRAGE PROJECTOR - LIMPIEZA ACUMULATIVA dev.76h
+    echo      MIRAGE PROJECTOR - LIMPIEZA ACUMULATIVA dev.79a
     echo ============================================================
     echo Proyecto: %CD%
     echo.
@@ -91,8 +91,7 @@ if "%FROM_BUILD%"=="0" (
     echo Log: %LOG%
     echo.
 )
-endlocal
-goto :eof
+endlocal & exit /b 0
 
 :delete_file
 if exist "%~1" (

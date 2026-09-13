@@ -1,3 +1,215 @@
+## 0.1.0-dev.80 — canonical projector model promotion
+
+- Ended the temporary dev.78–79i `*_alt` comparison line.
+- Promoted the six accepted dev.79i projector models to the canonical block-model IDs.
+- Removed the six temporary `*_alt` block/item registrations and their active blockstate/item-model/block-model/loot resources.
+- Archived the replaced pre-dev.80 canonical block-model JSONs under `docs/history/projector-models-pre-dev80/legacy-canonical/`; they are documentation/history only and cannot be loaded as runtime assets.
+- Promoted the accepted comparison VoxelShapes to canonical shapes and reconciled Mirage Prism to every visible model cuboid.
+- Promoted dev.79 visual anchors to canonical chassis anchors in `ProjectorVisualLayout`.
+- Creative projector ordering is now: Mirage Projector, Mirage Display, Mirage Field Projector, Wide Mirage Projector, Tall Mirage Projector, Mirage Prism.
+- Network protocol remains 26.
+- Next visual task: dedicated/readable inventory icons for the six projectors; current block-model-derived item views remain intentionally unchanged in dev.80.
+
+## 0.1.0-dev.79i — Tall Alt front/rear low-box symmetry
+
+- Compact Alt Z-fighting is QA-confirmed resolved after dev.79h.
+- Tall Mirage Projector Alt had a real front/rear asymmetry: the rear low translucent emitter/glass box existed, while the matching front box was absent.
+- Added the mirrored front low box at `[6,2,2] -> [10,4,4]`, matching the existing rear `[6,2,12] -> [10,4,14]` box.
+- Added the same front cuboid to `TALL_ALT_SHAPE` so visual model and hitbox remain synchronized.
+- No other Tall dome/frame/chamber, projection, power, ON/OFF, or networking behavior changed.
+- Bumped development version to `0.1.0-dev.79i`; network protocol remains 26.
+
+### QA focus
+
+- Verify Tall Alt shows matching low translucent boxes on both front and rear.
+- Verify both boxes align with the selection/collision outline and the accepted Tall dome/chamber remains unchanged.
+
+## 0.1.0-dev.79h — Compact Alt final upper-base overlap cleanup
+
+- QA confirmed dev.79g fixed the broad front stripe but left one last purple/black fighting pixel in the same Compact Alt chamber area.
+- Isolated the remaining culprit to the last solid overlap: the Compact Alt upper base slab (`[4,2,4] -> [12,3,12]`) still intersected the surrounding frame pieces.
+- Shrunk that upper base slab to `[5,2,5] -> [11,3,11]` in both `mirage_projector_alt.json` and `COMPACT_ALT_SHAPE`, eliminating the final overlapping solid volume in the visible chamber floor area.
+- Preserved dev.79f emitter removal, dev.79g front-lip face removal, workspace header spacing, TURN OFF, active-mode outline, and the dormant End Resonance shutdown guard.
+- Bumped development version to `0.1.0-dev.79h`; network protocol remains 26.
+
+### QA focus
+
+- Re-test Compact Alt from the exact previously circled angle and confirm the final single-pixel purple/black artifact is gone.
+- Reopen the four workspaces and confirm the header/title spacing remains correct after the Compact model change.
+
+## 0.1.0-dev.79g — Compact Alt front frame-lip isolation
+
+- QA proved the Mirage Projector Alt striped artifact still survived full emitter removal in dev.79f.
+- Based on the unchanged location, isolated the next likely culprit as the front inner frame lip directly beneath the glass chamber.
+- Removed the `up` face from the Compact Alt front inner frame strip (`from [5,2,3] to [11,3,5]`) so that surface can no longer show through the chamber from the reported front/overhead angles.
+- Preserved dev.79f emitter removal, workspace header spacing, TURN OFF, white active-mode outline, and dormant End Resonance shutdown guard.
+- Bumped development version to `0.1.0-dev.79g`; network protocol remains 26.
+
+### QA focus
+
+- Re-test Compact Alt from the exact front/overhead angles supplied by QA.
+- If the same artifact still appears in the same place after this pass, the remaining suspect is the chamber/front-glass interaction rather than any Compact Alt emitter or frame top face.
+
+## 0.1.0-dev.79f — Compact Alt emitter removal + workspace title overlap clamp
+
+- After repeated failed QA on the Mirage Projector Alt striped front/interior artifact, removed the decorative Compact Alt emitter plates entirely instead of continuing minor depth/face tweaks.
+- Updated `mirage_projector_alt.json` and `COMPACT_ALT_SHAPE` so the Alt compact chassis now consists of its obsidian frame plus central chamber only.
+- Kept the workspace mode/back header row and moved it slightly lower while clamping long workspace titles so `Use <mode> mode` and `Back` no longer collide visually with the title line.
+- Preserved dev.79d projector ON/OFF, white active-mode outline, mode activation boundary, and dormant End Resonance shutdown guard.
+- Bumped development version to `0.1.0-dev.79f`; network protocol remains 26.
+
+### QA focus
+
+- Re-test Compact Alt at the exact front/overhead angles previously circled in blue; the former striped artifact should now be impossible because the offending decorative emitter plates no longer exist.
+- Open all four source workspaces and confirm the title row is not visually covered by `Use <mode> mode` / `Back`.
+
+## 0.1.0-dev.79e — Compact emitter plate fix + two-row workspace headers
+
+- Isolated the remaining Compact Alt horizontal striped artifact after dev.79d: it came from the visible top/side surfaces of the extremely thin emitter cuboids, not from a remaining solid-volume collision.
+- Converted Compact Alt's decorative emitters into outward-facing plates: the front element renders only its north face and the rear element only its south face, retaining `cutout` rendering and the accepted chassis silhouette.
+- Reworked Image, Item, Entity and Banner workspaces into a two-row header: title occupies row 1; `Use <mode> mode` and `Back` occupy row 2.
+- Shifted workspace content, panels and real menu-slot coordinates down together so the new action row does not overlap titles or inventories.
+- Preserved dev.79d projector ON/OFF state, `TURN OFF`, white active-mode outline, mode activation boundary and dormant End Resonance shutdown guard.
+- Bumped development version to `0.1.0-dev.79e`; network protocol remains 26.
+
+### QA focus
+
+- Re-test Compact Alt at the exact front/overhead angles previously circled in blue; the horizontal purple stripe should no longer be renderable because no top emitter face exists.
+- Open all four source workspaces and confirm the title row is never covered by `Use <mode> mode` / `Back`, and all inventory/card/banner/equipment slots remain aligned.
+
+## 0.1.0-dev.79d — Compact emitter depth fix + projector ON/OFF UX
+
+- Identified the remaining Compact Alt artifact as a real solid/translucent volume intersection: the front/rear emitter cuboids still penetrated the obsidian frame despite no longer being coplanar.
+- Moved Compact Alt emitters fully outside the solid frame volumes and switched only those emitter accents from `translucent` to `cutout` rendering to remove translucent depth sorting from the problem area.
+- Added independent persisted `projectionEnabled` state; legacy worlds default ON.
+- Added `TURN OFF` to the main projector GUI. OFF stops hologram/book rendering without deleting source/configuration and does not remove the physical visible Core.
+- `Use <mode> mode` now selects that SourceMode and re-enables projection. Editing/capturing Image/Item/Entity/Banner data no longer silently activates that source.
+- Added disabled `Mode currently Active` state in each source workspace only when that mode is actually ON.
+- Added white outline around the actually active Image/Item/Entity/Banner button on the main screen; OFF shows no active-source outline.
+- Added a dormant End Resonance control-lock hook. Once Dragon Egg becomes a valid special Core in 1.1.0, normal source activation is frozen and TURN OFF emits `This doesn't seem to work...` without changing state.
+- Network protocol bumped to 26 for the new projection-enabled payload.
+- Removed the image-workspace resolution/projection-sizing debug line that overlapped preview/slot labels after importing an image.
+- Fixed Image workspace saving so editing/importing image data preserves the actually active SourceMode; only `Use Image mode` may switch the projector to Image.
+
+### QA focus
+
+- Verify Compact Alt has no remaining striped/Z-fighting artifact at front/rear emitter areas from low/high oblique angles.
+- Verify TURN OFF survives save/reload/chunk reload, no source data is lost, and `Use <mode> mode` restores projection.
+- Verify active-mode labels and main white outline follow actual ON + SourceMode state rather than whichever workspace is merely open.
+
+## 0.1.0-dev.79c — Compact Alt residual Z-fighting cleanup
+
+- Followed up on the remaining Mirage Projector Alt artifact reported after dev.79b.
+- Removed the translucent bottom faces from the Compact Alt emitter and chamber cuboids so the glass no longer visually fights the obsidian floor beneath it.
+- Preserved the dev.79b workspace activation/back button UX and the accepted Wide/Field/Tall/Display/Prism identities.
+- Bumped development version to `0.1.0-dev.79c`; network protocol remains 25.
+
+### Functional state
+
+- No projection logic, power behavior, asset/network protocol, or Mirage Light Engine behavior was intentionally changed.
+- Required QA focus is narrow: verify Compact Alt no longer shows the residual striped artifact on the floor-facing interior surfaces seen in the user screenshots.
+
+## 0.1.0-dev.79b — Alt projector Z-fighting cleanup + workspace mode activation UX
+
+- Removed glass/obsidian coplanar face overlap on `mirage_projector_alt`, `wide_mirage_projector_alt`, and `mirage_field_projector_alt` by slightly insetting/lifting the translucent chamber/emitter geometry.
+- Preserved the accepted Tall dual-glass dome and the locked Prism/Display identities.
+- Reworked the four source workspaces so the top-right controls are consistently `Use <mode> mode` and `Back`.
+- The `Use <mode> mode` button now changes to `Mode currently Active` and becomes disabled when that workspace already matches the projector's active source mode.
+- Added shared translation keys for the new workspace-mode button copy in `en_us`, `es_cl`, and `es_es`.
+- Bumped development version to `0.1.0-dev.79b`; network protocol remains 25.
+
+### Functional state
+
+- No Mirage Light Engine, power-budget, asset-format, or networking protocol behavior was intentionally changed.
+- Required QA focus is visual/UI: verify Compact/Wide/Field Alt no longer show crystal-vs-obsidian Z-fighting, and confirm the four workspaces correctly reflect active mode state.
+
+## Documentation consolidation — 2026-09-12 (no runtime version bump)
+
+- Documented the required 1.0.0 projector ON/OFF contract: shutdown is non-destructive and remains separate from source identity.
+- Documented active-source UX: `Use This Projection` is the activation boundary, source workspaces indicate when they are actually in use, and the main Image/Item/Entity/Banner menu outlines the active source in white.
+- Clarified that opening/editing a workspace does not change the currently projected source, and OFF shows no source as currently active while preserving the previous configuration.
+- Extended the 1.1.0 Dragon Egg / End Resonance UI lock: End Resonance bypasses normal shutdown; pressing `TURN OFF` while the egg remains installed emits `This doesn't seem to work...` and changes no resonance/suspended state.
+- Updated waitlists, scope/future-proofing and next-chat handoff only. No Java/resources/protocol/runtime behavior changed; source version remains `0.1.0-dev.79a`.
+
+## 0.1.0-dev.79a — Tall dome polish + full current-source audit
+
+- Scope remains locked to Tall Mirage Projector Alt for visual/model changes; Compact, Display, Wide, Field and Prism candidate models are hash-protected against accidental redesign.
+- Rebuilt Tall's dome joins as continuous pixel-perfect rings/posts with no rounded-looking corner gaps.
+- Replaced the old two-pixel top rim with a one-pixel obsidian top ring at model Y=10..11, expanding the visible dome vertically.
+- Removed the asymmetric rear/top glass protrusion by replacing the old single purple dome shell with a symmetric outer window set.
+- Added a dual-glass Tall identity: the inner core chamber remains Purple Stained Glass while the outer dome faces/roof use Magenta Stained Glass.
+- Tall VoxelShape was regenerated to exactly match every visible model cuboid; no decimal/sub-pixel coordinates were introduced.
+- Added a current-line whole-project audit gate (`verify_dev79a_full_audit.py`) and one-command current verification runner (`verify_current_line.py`).
+- Repaired stale current documentation/version/protocol references to dev.79a / protocol 25.
+- Added missing `es_es` translations for the six temporary `*_alt` projector comparison items.
+- Updated the generic virtual-light invalidation verifier for the dev.76h section-below/cache-refresh contract.
+- Current static audit covers 120 JSON resources, 24 registered blocks, 21 registered items, model/resource references, Mixins, legacy-file absence, protocol/light architecture and model scope locks.
+- Known non-blocking audit debt: 9 NeoForge `EventBusSubscriber.Bus` deprecation sites remain for a dedicated API-cleanup pass.
+- Bumped development version to `0.1.0-dev.79a`; network protocol remains 25.
+
+### Functional state
+
+- No projection, power, asset, networking or Mirage Light Engine gameplay behavior was intentionally changed.
+- dev.79 in-game QA accepted model/hitbox reconciliation; dev.79a requires only Windows build + final Tall visual/shape smoke QA.
+
+## 0.1.0-dev.79 — scope-locked projector model/shape reconciliation
+
+- Split projector correction scope by chassis so one model fix cannot silently redesign another projector.
+- Locked Mirage Prism Alt; its accepted dev.78 visual and shape are intentionally unchanged.
+- Locked the accepted dev.78a Wide V-shaped visual; reconciled its VoxelShape against the actual stepped arms, emitters and central chamber.
+- Locked the accepted compact Mirage Projector Alt visual; reconciled its outline/collision shape to its own visible model.
+- Locked the accepted Mirage Field Projector Alt visual; reconciled its chamber and block shape to the actual model.
+- Restored Mirage Display Alt to the dev.78 low-corner-post/perimeter-emitter identity, removing the accidental portal-like rear frame from dev.78a.
+- Reduced the Display chamber to a compact `[5,4,5] -> [11,8,11]` volume and reconciled its shape exactly.
+- Rebuilt Tall Mirage Projector Alt as the only authorized major visual redesign in this patch: obsidian chamber rims/corners with purple-stained-glass faces and top, no antennas, and a visibly exposed floating core.
+- Added `verify_dev79_scope_locked_projectors.py`, including hash locks for accepted models and exact model-element ↔ VoxelShape comparison for non-Prism alternate chassis.
+- Preserved the integer-only/pixel-perfect static model rule.
+- Bumped development version to `0.1.0-dev.79`.
+
+### Functional state
+
+- No projection, power, networking or Mirage Light Engine behavior was intentionally changed.
+- Required QA is visual/physical only: model outline agreement, chamber fit, Netherite Ingot clearance, full core/book idle animation, Display restoration, Tall dome visibility and regression-free Wide/Prism identity.
+
+## 0.1.0-dev.78a — alternate projector model corrections
+
+- Refined the alternate projector chassis models after first-pass in-game QA.
+- Reworked Mirage Projector Alt into a simpler compact/basic silhouette with a reduced chamber.
+- Reduced Mirage Display Alt chamber scale and reinforced its taller display-frame identity.
+- Lowered/refined Mirage Field Projector Alt chamber geometry while preserving the broad field-platform shape.
+- Rebuilt Wide Mirage Projector Alt from scratch around a horizontal V-shaped spread silhouette with a central magenta chamber.
+- Reworked Tall Mirage Projector Alt again to restore a stronger hooded/domed vertical identity and a wider chamber footprint.
+- Preserved the accepted Mirage Prism Alt direction with no identity reset.
+- Updated `ProjectorVisualLayout` anchors so floating core and idle book placement better match the corrected alt chassis geometry.
+- Kept all new model coordinates pixel-perfect using whole integers only.
+- Bumped development version to `0.1.0-dev.78a`.
+
+### Functional state
+
+- No gameplay or projection logic was intentionally changed in this patch.
+- Main follow-up QA focus is model clearance/identity: core fit, book fit and visual readability for each alternate chassis.
+
+## 0.1.0-dev.78
+
+- Began the dedicated projector-model refinement pass on the six comparison (`*_alt`) chassis.
+- Rebuilt the alternate Mirage Projector from scratch as a neutral compact chassis instead of a Prism-like cross.
+- Rebuilt the alternate Wide Mirage Projector from scratch as a horizontal emitter rail without the previous wall-heavy silhouette.
+- Refined the alternate Tall Mirage Projector into an open vertical frame with no roof over the projection axis.
+- Preserved the approved Prism silhouette while increasing core/book clearance.
+- Reworked Display and Field internal chamber heights so their core and idle-book anchors no longer intersect the model.
+- Added per-model visual anchors for projection top, floating core center, idle-book center, and core render scale.
+- Alternate projector static geometry now follows a strict whole-pixel rule: no fractional model coordinates or pivots.
+- Alternate collision/selection shapes now follow their actual comparison models instead of the legacy chassis envelopes.
+- New projectors no longer spawn with a Glass core. The visible glass is the chamber/container; the core slot starts empty. Legacy no-CoreItem loads also remain empty instead of injecting Glass.
+
+## 0.1.0-dev.77
+- Marks dev.76h server-authoritative Mature light as the QA-confirmed stabilization baseline after repeated relog testing showed no FPS regression and consistent chunk convergence.
+- Core Booster item names are now material-aware: empty stays `Core Booster`; loaded stacks render as `Glass Core Booster`, `Amethyst Core Booster`, etc.
+- Separated Booster identities in Mature static light: Glass/Diffusion shortens reach while softening detour shadows; Quartz/Radiance remains the strongest pure reach amplifier; Diamond/Focus strengthens detour shadows and gains raw reach only in pairs; Amethyst/Resonance and Netherite/Inversion grant no free static range.
+- Separated visible Beacon width behavior further: Glass widest, Quartz mild width + radiance, Amethyst moderate width + resonance, Diamond minimal width + focus, Netherite moderate width + inversion.
+- Conservative light-engine cleanup: readiness checks no longer allocate temporary dependency sets on every pending retry, and watchdog/manifest scans use exact origin±radius chunk bounds rather than oversized symmetric windows.
+- Protocol remains 25.
+
 ## 0.1.0-dev.76h
 - Fixed vertical section-boundary invalidation for server-authoritative Mirage light. A changed Mirage light section now also invalidates the section immediately below, covering floor/top-face consumers whose sampled light lives one section above their cached block labels.
 - Chunk snapshots now invalidate all carried sections even when authoritative bytes are unchanged, so a post-load handshake can refresh downstream light caches that scanned too early.

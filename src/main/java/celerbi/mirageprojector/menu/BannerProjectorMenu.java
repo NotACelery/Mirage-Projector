@@ -19,10 +19,10 @@ import org.jetbrains.annotations.Nullable;
 public final class BannerProjectorMenu extends AbstractContainerMenu {
     public static final int FACE_COUNT = 4;
     public static final int[] FACE_X = {42, 104, 166, 228};
-    public static final int FACE_Y = 74;
+    public static final int FACE_Y = 102;
     public static final int PLANE_FACE_X = 74;
     public static final int PLAYER_INV_X = 129;
-    public static final int PLAYER_INV_Y = 194;
+    public static final int PLAYER_INV_Y = 222;
     public static final int FIRST_PLAYER_SLOT_INDEX = FACE_COUNT;
 
     private final BlockPos projectorPos;

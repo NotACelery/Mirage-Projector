@@ -16,6 +16,18 @@ public final class CoreBoosterItem extends BlockItem {
     }
 
     @Override
+    public Component getName(ItemStack stack) {
+        CoreBoosterMaterial material = CoreBoosterBlockEntity.materialFromStack(stack);
+        if (!material.present()) {
+            return super.getName(stack);
+        }
+        return Component.translatable(
+                "item.mirage_projector.core_booster.loaded",
+                material.displayComponent()
+        );
+    }
+
+    @Override
     public void appendHoverText(
             ItemStack stack,
             TooltipContext context,
@@ -36,6 +48,10 @@ public final class CoreBoosterItem extends BlockItem {
                     "tooltip.mirage_projector.core_booster.beacon_effect",
                     material.beaconEffectComponent()
             ).withStyle(ChatFormatting.DARK_PURPLE));
+            tooltipComponents.add(Component.translatable(
+                    "tooltip.mirage_projector.core_booster.field_effect",
+                    material.staticFieldEffectComponent()
+            ).withStyle(ChatFormatting.DARK_AQUA));
         } else {
             tooltipComponents.add(Component.translatable(
                     "tooltip.mirage_projector.core_booster.empty"

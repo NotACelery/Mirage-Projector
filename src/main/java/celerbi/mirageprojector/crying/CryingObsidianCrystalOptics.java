@@ -2,6 +2,9 @@ package celerbi.mirageprojector.crying;
 
 import celerbi.mirageprojector.block.CoreBoosterBlock;
 import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
+import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import celerbi.mirageprojector.energy.GlowDustBeaconCharging;
+import celerbi.mirageprojector.item.GlowDustItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BeaconBlockEntity;
@@ -17,6 +20,16 @@ public final class CryingObsidianCrystalOptics {
         for (int y = crystalPos.getY() - 1; y >= level.getMinBuildHeight(); y--) {
             BlockPos scanPos = new BlockPos(crystalPos.getX(), y, crystalPos.getZ());
             BlockState state = level.getBlockState(scanPos);
+
+            if (level.getBlockEntity(scanPos) instanceof CoreBoosterBlockEntity booster
+                    && booster.hasChargingDust()
+                    && !GlowDustItem.isFull(booster.chargingDust())
+                    && transmission > 0.0001F) {
+                transmission = GlowDustBeaconCharging.attenuationAfterDust(transmission);
+                if (transmission <= 0.0001F) {
+                    return 0.0F;
+                }
+            }
 
             if (state.getBlock() instanceof CryingObsidianCrystalBlock crystal) {
                 transmission *= crystal.stage().verticalTransmission();

@@ -63,5 +63,11 @@ public final class CoreBoosterItem extends BlockItem {
         tooltipComponents.add(Component.translatable(
                 "tooltip.mirage_projector.core_booster.extract"
         ).withStyle(ChatFormatting.DARK_GRAY));
+        tooltipComponents.add(Component.translatable(
+                "tooltip.mirage_projector.core_booster.glow_dust_insert"
+        ).withStyle(ChatFormatting.GRAY));
+        tooltipComponents.add(Component.translatable(
+                "tooltip.mirage_projector.core_booster.glow_dust_extract"
+        ).withStyle(ChatFormatting.DARK_GRAY));
     }
 }

@@ -4,7 +4,7 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="mirage_projector"
-version="1.0.0"
+version="1.0.7"
 displayName="Mirage Projector"
 logoFile="logo.png"
 logoBlur=false

@@ -128,7 +128,7 @@ public final class ClientMirageLightSync {
         PENDING_REQUESTS.clear();
     }
 
-    private static void invalidateSections(Minecraft minecraft, Set<Long> sectionKeys) {
+    static void invalidateSections(Minecraft minecraft, Set<Long> sectionKeys) {
         if (minecraft == null || sectionKeys == null || sectionKeys.isEmpty()) {
             return;
         }

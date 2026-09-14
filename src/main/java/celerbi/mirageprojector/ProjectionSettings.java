@@ -45,15 +45,20 @@ public record ProjectionSettings(
         int opacityPercent,
         int tintRgb,
         boolean scanlines,
-        boolean debugChassisOverride
+        boolean debugChassisOverride,
+        int horizontalOffsetPixels, // legacy v3 wire/NBT slot; always sanitized to zero
+        int verticalOffsetPixels,   // legacy v3 wire/NBT slot; positive values migrate into Lift, then zero
+        int distanceOffsetPixels
 ) {
-    public static final int SERIALIZATION_VERSION = 2;
+    public static final int SERIALIZATION_VERSION = 3;
 
     public static final int DEBUG_MIN_SCALE_PIXELS = 2;
 
     public static final int DEBUG_MAX_SCALE_PIXELS = 512;
     public static final int DEBUG_MAX_LIFT_PIXELS = 512;
     public static final int DEBUG_MAX_FLOAT_PIXELS = 128;
+    public static final int MAX_PLACEMENT_OFFSET_PIXELS = 256;
+    public static final int MAX_TILT_DEGREES = 90;
 
     public static final ProjectionSettings DEFAULT = new ProjectionSettings(
             "", 0, 0,
@@ -83,7 +88,10 @@ public record ProjectionSettings(
             100,
             0xFFFFFF,
             false,
-            false
+            false,
+            0,
+            0,
+            0
     );
 
     public ProjectionSettings sanitized() {
@@ -111,7 +119,7 @@ public record ProjectionSettings(
                 sourceMode == null ? SourceMode.IMAGE : sourceMode,
                 imageLayoutMode == null ? ImageLayoutMode.SINGLE : imageLayoutMode,
                 Mth.clamp(scalePixels, DEBUG_MIN_SCALE_PIXELS, DEBUG_MAX_SCALE_PIXELS),
-                Mth.clamp(liftPixels, 0, DEBUG_MAX_LIFT_PIXELS),
+                Mth.clamp(liftPixels + Math.max(0, verticalOffsetPixels), 0, DEBUG_MAX_LIFT_PIXELS),
                 rotationEnabled,
                 Mth.clamp(rotationPeriodTicks, 5, 20 * 60),
                 clockwise,
@@ -131,7 +139,10 @@ public record ProjectionSettings(
                 Mth.clamp(opacityPercent, 10, 100),
                 tintRgb & 0xFFFFFF,
                 scanlines,
-                debugChassisOverride
+                debugChassisOverride,
+                0,
+                0,
+                Mth.clamp(distanceOffsetPixels, 0, PrismProjectionSpacing.MAX_DISTANCE_PIXELS)
         );
     }
 
@@ -200,7 +211,22 @@ public record ProjectionSettings(
                 safe.orientationX(), safe.orientationY(), safe.orientationZ(), safe.orientationW(),
                 safe.floatingEnabled(), safe.floatMode(), safe.floatAmplitudePixels(), safe.floatCycleTicks(),
                 safe.floatIntervalDegrees(), backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
-                scanlines, debugChassisOverride);
+                scanlines, debugChassisOverride, 0, 0, safe.distanceOffsetPixels());
+    }
+
+    public ProjectionSettings withPlacement(int prismDistancePixels, float tiltDegrees) {
+        ProjectionTransform.Orientation orientation = ProjectionTransform.orientationFromTiltDegrees(tiltDegrees);
+        return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
+                eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
+                sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                rotationOffsetDegrees, orientation.x(), orientation.y(), orientation.z(), orientation.w(),
+                floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees,
+                backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb, scanlines, debugChassisOverride,
+                0, 0, prismDistancePixels);
+    }
+
+    public float tiltDegrees() {
+        return ProjectionTransform.tiltDegrees(orientationX, orientationY, orientationZ, orientationW);
     }
 
     public ProjectionSettings withImage(String id, int width, int height) {
@@ -209,7 +235,7 @@ public record ProjectionSettings(
                 sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
-                scanlines, debugChassisOverride);
+                scanlines, debugChassisOverride, horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels);
     }
 
     public ProjectionSettings withBackImage(String id, int width, int height) {
@@ -218,7 +244,7 @@ public record ProjectionSettings(
                 sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
-                scanlines, debugChassisOverride);
+                scanlines, debugChassisOverride, horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels);
     }
 
     public ProjectionSettings withDebugChassisOverride(boolean enabled) {
@@ -227,7 +253,7 @@ public record ProjectionSettings(
                 sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
-                scanlines, enabled);
+                scanlines, enabled, horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels);
     }
 
     public ProjectionSettings withSourceMode(SourceMode mode) {
@@ -236,7 +262,7 @@ public record ProjectionSettings(
                 mode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
-                scanlines, debugChassisOverride);
+                scanlines, debugChassisOverride, horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels);
     }
 
     public ProjectionSettings withImageWorkspace(
@@ -251,7 +277,7 @@ public record ProjectionSettings(
                 sourceMode, newImageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, newBackFaceMode, newFlipVertical, fullbright, opacityPercent, tintRgb,
-                newScanlines, debugChassisOverride);
+                newScanlines, debugChassisOverride, horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels);
     }
 
     public ProjectionSettings withImageLayoutMode(ImageLayoutMode mode) {
@@ -260,7 +286,7 @@ public record ProjectionSettings(
                 sourceMode, mode == null ? ImageLayoutMode.SINGLE : mode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
                 rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
-                scanlines, debugChassisOverride);
+                scanlines, debugChassisOverride, horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels);
     }
 
     public ProjectionSettings withScalePixels(int value) {
@@ -303,7 +329,7 @@ public record ProjectionSettings(
                 sourceMode, imageLayoutMode, newScalePixels, newLiftPixels, newRotationEnabled, newRotationPeriodTicks, newClockwise,
                 newRotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, newFloatingEnabled, newFloatMode, newFloatAmplitudePixels, newFloatCycleTicks,
                 newFloatIntervalDegrees, backFaceMode, flipVertical, newFullbright, newOpacityPercent, newTintRgb,
-                scanlines, newDebugChassisOverride);
+                scanlines, newDebugChassisOverride, horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels);
     }
 
     private static ProjectionSettings copy(
@@ -317,7 +343,7 @@ public record ProjectionSettings(
             boolean floatingEnabled, FloatMode floatMode, int floatAmplitudePixels, int floatCycleTicks,
             int floatIntervalDegrees, BackFaceMode backFaceMode, boolean flipVertical,
             boolean fullbright, int opacityPercent, int tintRgb, boolean scanlines,
-            boolean debugChassisOverride
+            boolean debugChassisOverride, int horizontalOffsetPixels, int verticalOffsetPixels, int distanceOffsetPixels
     ) {
         return new ProjectionSettings(
                 imageId, imageWidth, imageHeight,
@@ -329,7 +355,8 @@ public record ProjectionSettings(
                 orientationX, orientationY, orientationZ, orientationW,
                 floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, backFaceMode, flipVertical,
-                fullbright, opacityPercent, tintRgb, scanlines, debugChassisOverride
+                fullbright, opacityPercent, tintRgb, scanlines, debugChassisOverride,
+                horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels
         ).sanitized();
     }
 
@@ -364,11 +391,14 @@ public record ProjectionSettings(
         buffer.writeInt(s.tintRgb());
         buffer.writeBoolean(s.scanlines());
         buffer.writeBoolean(s.debugChassisOverride());
+        buffer.writeVarInt(s.horizontalOffsetPixels());
+        buffer.writeVarInt(s.verticalOffsetPixels());
+        buffer.writeVarInt(s.distanceOffsetPixels());
     }
 
     public static ProjectionSettings read(RegistryFriendlyByteBuf buffer) {
         int serializationVersion = buffer.readVarInt();
-        if (serializationVersion != SERIALIZATION_VERSION) {
+        if (serializationVersion < 2 || serializationVersion > SERIALIZATION_VERSION) {
             throw new IllegalArgumentException("Unsupported ProjectionSettings network format: " + serializationVersion);
         }
         Asset front = readAsset(buffer);
@@ -403,7 +433,10 @@ public record ProjectionSettings(
                 buffer.readVarInt(),
                 buffer.readInt(),
                 buffer.readBoolean(),
-                buffer.readBoolean()
+                buffer.readBoolean(),
+                serializationVersion >= 3 ? buffer.readVarInt() : 0,
+                serializationVersion >= 3 ? buffer.readVarInt() : 0,
+                serializationVersion >= 3 ? buffer.readVarInt() : 0
         ).sanitized();
     }
 
@@ -450,6 +483,9 @@ public record ProjectionSettings(
         tag.putInt("TintRgb", s.tintRgb());
         tag.putBoolean("Scanlines", s.scanlines());
         tag.putBoolean("DebugChassisOverride", s.debugChassisOverride());
+        tag.putInt("HorizontalOffsetPixels", s.horizontalOffsetPixels());
+        tag.putInt("VerticalOffsetPixels", s.verticalOffsetPixels());
+        tag.putInt("DistanceOffsetPixels", s.distanceOffsetPixels());
     }
 
     public static ProjectionSettings load(CompoundTag tag) {
@@ -490,7 +526,10 @@ public record ProjectionSettings(
                 tag.contains("OpacityPercent") ? tag.getInt("OpacityPercent") : d.opacityPercent(),
                 tag.contains("TintRgb") ? tag.getInt("TintRgb") : d.tintRgb(),
                 tag.contains("Scanlines") ? tag.getBoolean("Scanlines") : d.scanlines(),
-                tag.contains("DebugChassisOverride") ? tag.getBoolean("DebugChassisOverride") : d.debugChassisOverride()
+                tag.contains("DebugChassisOverride") ? tag.getBoolean("DebugChassisOverride") : d.debugChassisOverride(),
+                tag.contains("HorizontalOffsetPixels") ? tag.getInt("HorizontalOffsetPixels") : d.horizontalOffsetPixels(),
+                tag.contains("VerticalOffsetPixels") ? tag.getInt("VerticalOffsetPixels") : d.verticalOffsetPixels(),
+                tag.contains("DistanceOffsetPixels") ? tag.getInt("DistanceOffsetPixels") : d.distanceOffsetPixels()
         ).sanitized();
     }
 

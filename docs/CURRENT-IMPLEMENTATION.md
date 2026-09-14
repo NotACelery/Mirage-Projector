@@ -1,11 +1,11 @@
-# Current Implementation — Mirage Projector 1.0.0
+# Current Implementation — Mirage Projector 1.0.7
 
-Version: **1.0.0**
+Version: **1.0.7**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
-Network protocol: **27**
+Network protocol: **28**
 
-This document describes the stable runtime behavior of Mirage Projector 1.0.0. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.7. Historical development notes are archived under `docs/history/` and are not current authority.
 
 ## Canonical projector family
 
@@ -35,6 +35,11 @@ A fixed projector keeps these concepts separate:
 
 `TURN OFF` disables rendering without deleting Image, Item, Banner or Entity data. Selecting `Use <mode> mode` activates that source and re-enables projection. GUI source buttons indicate the source that is actually active, not merely the workspace currently being viewed.
 
+
+## Main projector settings UI
+
+The main projector screen uses a fixed option area with four mutually exclusive tabs: **Geometry**, **Placement**, **Rotation** and **Floating**. Geometry also contains Lighting, Ghost/opacity and Tint. Switching tabs only changes the controls inside that area; Source Workspaces, Power / Capacity, Core slot, inventory and Apply / Cancel stay anchored. The compact 412-pixel panel fits 1920×1080 at GUI Scale 2 without responsive scrolling, while the existing scrollbar remains available at smaller effective heights.
+
 ## Projection source architecture
 
 Built-in source IDs are stable namespaced identifiers:
@@ -50,7 +55,13 @@ Source identity is ordinal-free. Save/network settings are versioned, legacy ord
 
 ## Projection transforms
 
-Shared presentation state is separated from source content through `ProjectionTransform`. Current UI exposes the established scale/lift/rotation/float/tint/ghost controls, while persisted orientation already carries normalized quaternion fields for future direct-manipulation work.
+Shared presentation state is separated from source content through `ProjectionTransform`. The shared fixed-projector transform exposes Scale/Lift, animated yaw and quaternion-backed **Tilt**. Lift is the single non-negative vertical placement axis; independent horizontal/vertical translation is intentionally not a user-facing projector control.
+
+Tilt supports the full **-90° to +90°** range. Mirage Prism applies Tilt independently to each radial face while preserving carousel rotation around the projector center.
+
+Mirage Prism Image/Banner projection additionally uses **Prism Distance**. The UI value is extra radial separation above the no-tilt collision-safe radius: **+0 px** packs adjacent face boundaries as tightly as possible without overlap. `PrismProjectionSpacing` derives the internal absolute radius from each adjacent pair of active faces. At +0 px, equal square faces meet at their lower corners without crossing. Positive/outward Tilt keeps that compact lower-edge baseline; negative/inward Tilt raises the minimum only by the inward reach required to avoid overlap. User-controlled extra distance is capped at **+160 px (10 blocks)**. If an inward angle would need more room than that budget, the UI refuses that angle. Additional or Tilt-required radial separation consumes a small amount of PU.
+
+`ProjectionSettings` network format remains version 3 and network protocol remains 28. Legacy horizontal/vertical offset slots are retained only for wire/NBT compatibility: horizontal sanitizes to zero, while a positive legacy Vertical Offset is absorbed into Lift and then sanitized to zero. Worlds from 1.0.0 remain compatible.
 
 ## Image / GIF
 
@@ -85,7 +96,7 @@ Entity Scan Cards contain frozen projection data rather than live entities. Supp
 - supported pose presets;
 - per-channel projected-equipment visibility.
 
-Entity preview fitting, clearance and world culling use conservative pose/species/equipment-aware bounds. Passenger/vehicle composite scans remain rejected because 1.0.0 does not define a composite snapshot format.
+Entity preview fitting, clearance and world culling use conservative pose/species/equipment-aware bounds. Passenger/vehicle composite scans remain rejected because the 1.0.x line does not define a composite snapshot format.
 
 ## Projection Power
 
@@ -151,9 +162,17 @@ max(vanilla block light, Mirage light)
 
 Mirage virtual light is never fed back into vanilla block-light propagation as a new emitter.
 
-`DYNAMIC_VISUAL` remains a separate backend boundary for future moving/portable emitters.
+`DYNAMIC_VISUAL` is now an operational client-only runtime for moving/portable emitters. Consumers submit moving-source snapshots with stable identity, position, profile, update cadence, camera-cull distance and stale timeout. Directional-cone geometry is solved by the same causal voxel engine, while dynamic fields remain local and never enter the authoritative `STATIC_WORLD` publication channel. No lantern consumes this runtime yet; Glow Dust battery/recharge gameplay now exists independently as the portable-energy foundation.
 
 Physical `mirage_projector:crying_light_node` exists only as migration compatibility for old development worlds and is not created by current gameplay.
+
+## Rechargeable Glow Dust foundation
+
+`mirage_projector:glow_dust` now stores a persistent charge value from 0–1000 units. Fresh/default stacks are full; partial/depleted charge is retained in stack custom data, shown through tooltip/status and the vanilla item charge bar, and drives a client tint so depleted dust looks duller.
+
+Core Boosters now have a separate single-item Glow Dust charging cradle in addition to their existing Core-material socket. Right-click with Glow Dust inserts one cell; sneak-right-click with an empty hand removes the charging cell before the normal Core-material extraction path. A Booster inside a live Beacon column recharges its inserted cell over time. Each actively charging cell removes 0.20 from the outgoing beam transmission, so a clear column naturally tops out at five simultaneous charging cells. Crying Obsidian crystals consume the same attenuated transmission.
+
+The current charge cadence is an implementation/balance baseline (1000-unit capacity, 10 units every 10 ticks while actively charging) and may be tuned before 1.1.0. Glow Dust intentionally has no committed survival recipe yet and is Creative/QA-facing until the lantern/device progression is finalized.
 
 ## Recipe viewers
 
@@ -178,7 +197,7 @@ The in-game `Mirage Handbook` documents General behavior plus one section for ea
 
 ## Compatibility and migration
 
-1.0.0 retains explicit compatibility/migration surfaces where removing them would damage existing worlds:
+The 1.0.x line retains explicit compatibility/migration surfaces where removing them would damage existing worlds:
 
 - old `crying_light_node` relay blocks are migration-only and self-remove;
 - five historical `improved_*_core` block IDs remain migration shims without BlockItems/recipes/Creative exposure;
@@ -187,10 +206,9 @@ The in-game `Mirage Handbook` documents General behavior plus one section for ea
 
 ## Deferred to later releases
 
-1.0.0 does not include:
+1.0.7 does not include:
 
 - portable lantern/projector gameplay;
-- rechargeable Glow Dust batteries;
 - Scan Codex;
 - Dragon Egg / End Resonance gameplay;
 - direct grab/free-rotate hologram manipulation;

@@ -7,7 +7,7 @@
 - Minecraft **1.21.1**
 - NeoForge **21.1.244+**
 - Java **21**
-- Network protocol **27**
+- Network protocol **28**
 
 EMI and JEI are optional. When installed, Mirage Projector exposes its custom projector-upgrade recipes and Crying Obsidian guidance directly in the recipe viewer.
 
@@ -56,8 +56,11 @@ Entity Scan Cards store frozen visual data rather than live ticking entities. Su
 
 ## Presentation controls
 
-Shared controls include Scale, Lift, rotation, rotation period/direction/offset, Floating, float amplitude/timing, world lighting or Fullbright, Ghost/opacity, Tint, image flip and scanlines. The active projection source and projector ON/OFF state are stored independently, so turning a projector off never destroys its configured source data.
-Tall projector workspaces automatically expose vertical scrolling when the selected Minecraft GUI scale leaves less vertical room than the panel needs. At normal window heights the original centered layout is unchanged.
+The main projector screen uses a fixed settings area with four tabs: Geometry, Placement, Rotation and Floating, so changing option groups never moves the source workspaces, PU panel or inventory. Geometry also owns the visual controls (lighting, Ghost/opacity and Tint). Shared controls include Scale, Lift, **Tilt**, rotation and Floating. The active projection source and projector ON/OFF state are stored independently, so turning a projector off never destroys its configured source data.
+
+Lift is the single vertical placement control and never goes below zero. Tilt angles projections through a full ±90°, including high-mounted displays intended to be viewed from below. Mirage Prism additionally exposes **Prism Distance** for Image/Banner faces: +0 px means the four-face cross is packed exactly to its collision-safe boundary, while positive values expand the carousel without scaling its content. Tilt automatically raises that minimum only when required to keep Prism faces from overlapping. Prism Rotation remains a carousel around the projector center; independent horizontal/vertical translation is intentionally not a projector control.
+
+Projector screens automatically expose vertical scrolling when the selected Minecraft GUI scale leaves less vertical room than the panel needs. At normal window heights the original centered layout is unchanged.
 
 ## Projection Power
 
@@ -79,7 +82,7 @@ A `Core Booster` accepts Glass, Quartz, Amethyst Shard, Diamond or Netherite Ing
 
 ## Crying Obsidian ecosystem
 
-Version 1.0.0 includes:
+The 1.0.x line includes:
 
 - Crying Obsidian Shards and shard-based Crying Obsidian crafting;
 - renewable downward crystal growth from Crying Obsidian with lava directly above;
@@ -91,6 +94,8 @@ Version 1.0.0 includes:
 - Obsidian Spike trap blocks.
 
 The static Mirage Light Engine is server-authoritative. Clients receive resolved per-chunk Mirage light sections and combine them with vanilla block light at read time using `max(vanilla, Mirage)`. Static Mirage values are never fed back into vanilla propagation as new emitters.
+
+Since 1.0.5, the project also contains the first **Dynamic Mirage Light** foundation for future portable emitters: client-local moving fields, camera culling, update cadence and directional-cone solving. Since 1.0.7, rechargeable Glow Dust and Beacon/Core-Booster charging are playable foundations; lanterns and portable projectors still do not consume that energy yet.
 
 ## EMI / JEI
 
@@ -107,7 +112,7 @@ With JEI installed, custom projector-upgrade recipes are exposed through the nor
 
 Start with:
 
-- `docs/CURRENT-IMPLEMENTATION.md` — stable 1.0.0 behavior;
+- `docs/CURRENT-IMPLEMENTATION.md` — current 1.0.x behavior;
 - `docs/ARCHITECTURE.md` — runtime architecture and extension boundaries;
 - `docs/REGISTRY-INVENTORY.md` — canonical registry surface;
 - `docs/MIRAGE-LIGHT-ENGINE.md` — static Mirage Light architecture;
@@ -130,4 +135,4 @@ The verification suite checks the current registry/resource surface, Mirage Ligh
 
 ## Version scope
 
-**1.0.0** is the stable fixed-projector release. Portable lanterns/projectors, rechargeable Glow Dust, Scan Codex and Dragon Egg / End Resonance gameplay belong to **1.1.0**. Direct grab/free-rotate hologram interaction belongs to **1.2.0**.
+**1.0.7** is the current implementation snapshot. It keeps the compact Prism carousel/four-tab projector UI from 1.0.6 and adds the first playable Glow Dust battery loop: charge is stored on the item, depleted dust darkens visibly, Core Boosters can hold one dust cell in a Beacon charging cradle, and each actively charging cell removes 20 percentage points from the outgoing beam so a clear column supports at most five simultaneous chargers. User-facing lanterns, portable projectors, Scan Codex and Dragon Egg / End Resonance are still incomplete; the version becomes **1.1.0** only when that feature expansion is complete. Direct grab/free-rotate hologram interaction belongs to **1.2.0**.

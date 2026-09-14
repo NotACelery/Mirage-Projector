@@ -30,7 +30,10 @@ public final class CoreBoosterRenderer implements BlockEntityRenderer<CoreBooste
         }
 
         ItemStack coreStack = blockEntity.material().centerStack();
-        if (coreStack.isEmpty()) {
+        ItemStack glowDust = blockEntity.hasChargingDust()
+                ? blockEntity.chargingDust()
+                : ItemStack.EMPTY;
+        if (coreStack.isEmpty() && glowDust.isEmpty()) {
             return;
         }
 
@@ -39,21 +42,42 @@ public final class CoreBoosterRenderer implements BlockEntityRenderer<CoreBooste
         float rotation = (float) ((gameTime * 3.0D + Math.floorMod(seed, 360L)) % 360.0D);
         float bob = (float) (Math.sin(gameTime * 0.10D + Math.floorMod(seed, 97L)) * 0.010D);
 
-        poseStack.pushPose();
-        poseStack.translate(0.5D, 0.5D + bob, 0.5D);
-        poseStack.mulPose(Axis.YP.rotationDegrees(-rotation));
-        poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
-        poseStack.scale(0.27F, 0.27F, 0.27F);
-        Minecraft.getInstance().getItemRenderer().renderStatic(
-                coreStack,
-                ItemDisplayContext.FIXED,
-                LightTexture.FULL_BRIGHT,
-                OverlayTexture.NO_OVERLAY,
-                poseStack,
-                bufferSource,
-                blockEntity.getLevel(),
-                (int) seed
-        );
-        poseStack.popPose();
+        if (!coreStack.isEmpty()) {
+            poseStack.pushPose();
+            poseStack.translate(0.5D, 0.48D + bob, 0.5D);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-rotation));
+            poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
+            poseStack.scale(0.27F, 0.27F, 0.27F);
+            Minecraft.getInstance().getItemRenderer().renderStatic(
+                    coreStack,
+                    ItemDisplayContext.FIXED,
+                    LightTexture.FULL_BRIGHT,
+                    OverlayTexture.NO_OVERLAY,
+                    poseStack,
+                    bufferSource,
+                    blockEntity.getLevel(),
+                    (int) seed
+            );
+            poseStack.popPose();
+        }
+
+        if (!glowDust.isEmpty()) {
+            poseStack.pushPose();
+            poseStack.translate(0.5D, 0.72D - bob * 0.5D, 0.5D);
+            poseStack.mulPose(Axis.YP.rotationDegrees(rotation * 1.35F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(-28.0F));
+            poseStack.scale(0.20F, 0.20F, 0.20F);
+            Minecraft.getInstance().getItemRenderer().renderStatic(
+                    glowDust,
+                    ItemDisplayContext.FIXED,
+                    LightTexture.FULL_BRIGHT,
+                    OverlayTexture.NO_OVERLAY,
+                    poseStack,
+                    bufferSource,
+                    blockEntity.getLevel(),
+                    (int) (seed ^ 0x5A17C9E3L)
+            );
+            poseStack.popPose();
+        }
     }
 }

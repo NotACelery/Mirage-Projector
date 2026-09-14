@@ -1,10 +1,10 @@
 # Development Guide — Mirage Projector
 
-Stable baseline: **1.0.0**
+Current maintenance baseline: **1.0.4** (initial stable baseline: **1.0.0**)
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
 Java: **21**
-Network protocol: **27**
+Network protocol: **28**
 
 ## Source layout
 
@@ -46,16 +46,16 @@ Run the source-side suite before a build/release handoff:
 python tools/verify_current_line.py
 ```
 
-The suite covers historical regression contracts that remain relevant to 1.0.0 plus current release integrity checks.
+The suite covers historical regression contracts that remain relevant to the 1.0.x line plus current 1.0.7 Prism/UI, dynamic-light, Glow Dust battery and release-integrity checks.
 
 The authoritative compiled build remains Windows `build.bat` under Java 21. A static verifier is not a substitute for NeoForge compilation/runtime smoke testing.
 
 ## Versioning
 
-`gradle.properties` is the single source of the project version used by the build metadata. Stable 1.0.0 uses:
+`gradle.properties` is the single source of the project version used by the build metadata. Current 1.0.7 uses:
 
 ```text
-mod_version=1.0.0
+mod_version=1.0.7
 ```
 
-Future development should branch from this baseline and move to the 1.1.0 development line rather than mutating the stable release snapshot.
+Patch development continues through monotonically increasing `1.0.x` versions. The second version component advances to `1.1.0` only when the planned feature expansion is complete; internal `dev-X` labels are reserved for exceptional recovery/build snapshots rather than normal feature numbering.

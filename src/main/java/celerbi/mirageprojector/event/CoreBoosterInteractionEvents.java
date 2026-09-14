@@ -3,6 +3,8 @@ package celerbi.mirageprojector.event;
 import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import celerbi.mirageprojector.item.GlowDustItem;
+import celerbi.mirageprojector.registry.ModItems;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
@@ -24,6 +26,48 @@ public final class CoreBoosterInteractionEvents {
 
         var player = event.getEntity();
         ItemStack held = event.getItemStack();
+
+        if (!player.isShiftKeyDown() && held.is(ModItems.GLOW_DUST.get())) {
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            event.setCanceled(true);
+            if (event.getLevel().isClientSide) {
+                return;
+            }
+            if (booster.hasChargingDust()) {
+                player.displayClientMessage(Component.translatable(
+                        "message.mirage_projector.core_booster.glow_dust_occupied"
+                ), true);
+                return;
+            }
+            int percent = GlowDustItem.chargePercent(held);
+            if (booster.insertChargingDust(held)) {
+                if (!player.getAbilities().instabuild) {
+                    held.shrink(1);
+                }
+                player.displayClientMessage(Component.translatable(
+                        "message.mirage_projector.core_booster.glow_dust_inserted",
+                        percent
+                ), true);
+            }
+            return;
+        }
+
+        if (player.isShiftKeyDown() && held.isEmpty() && booster.hasChargingDust()) {
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            event.setCanceled(true);
+            if (event.getLevel().isClientSide) {
+                return;
+            }
+            ItemStack returned = booster.extractChargingDust();
+            if (!returned.isEmpty()) {
+                player.setItemInHand(event.getHand(), returned);
+                player.displayClientMessage(Component.translatable(
+                        "message.mirage_projector.core_booster.glow_dust_extracted",
+                        GlowDustItem.chargePercent(returned)
+                ), true);
+            }
+            return;
+        }
 
         if (player.isShiftKeyDown()) {
             if (booster.empty()) {

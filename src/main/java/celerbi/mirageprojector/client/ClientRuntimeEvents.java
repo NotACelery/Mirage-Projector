@@ -39,6 +39,10 @@ public final class ClientRuntimeEvents {
             return;
         }
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+            ClientDynamicMirageLightManager.tick(
+                    Minecraft.getInstance(),
+                    event.getCamera().getPosition()
+            );
             var modelViewStack = RenderSystem.getModelViewStack();
             modelViewStack.pushMatrix();
             modelViewStack.mul(event.getModelViewMatrix());
@@ -62,6 +66,7 @@ public final class ClientRuntimeEvents {
         ClientAssetTransport.resetSession();
         ProjectionClearancePreviewRenderer.clear();
         MirageProjectorRenderer.clearDeferredEntityProjections();
+        ClientDynamicMirageLightManager.resetSession();
         ClientMirageLightSync.resetSession();
     }
 }

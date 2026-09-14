@@ -1,4 +1,4 @@
-# Registry Inventory — Mirage Projector 1.0.0
+# Registry Inventory — Mirage Projector 1.0.7
 
 This file distinguishes active gameplay IDs from compatibility-only IDs.
 
@@ -22,6 +22,7 @@ These are the only runtime projector chassis IDs. No temporary/comparison projec
 - `mirage_projector:crying_obsidian_cluster`
 - `mirage_projector:obsidian_spike`
 - `mirage_projector:crying_obsidian_shard`
+- `mirage_projector:glow_dust` — rechargeable portable-energy cell; charge is ItemStack state, not a second registry item.
 - `mirage_projector:entity_scan_card`
 - `mirage_projector:debug_handbook` — public display name: **Mirage Handbook**; registry ID retained for compatibility.
 
@@ -76,6 +77,7 @@ The Mirage creative tab exposes:
 - six projector chassis in canonical order;
 - Core Booster plus loaded material variants;
 - Crying Obsidian Shard;
+- charged and depleted Glow Dust QA variants;
 - Small/Medium/Large Crying Obsidian Bud and Cluster;
 - Obsidian Spike;
 - Entity Scan Card;

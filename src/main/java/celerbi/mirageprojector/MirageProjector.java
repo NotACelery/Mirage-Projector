@@ -1,6 +1,7 @@
 package celerbi.mirageprojector;
 
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import celerbi.mirageprojector.item.GlowDustItem;
 import celerbi.mirageprojector.network.ModNetworking;
 import celerbi.mirageprojector.registry.ModBlockEntities;
 import celerbi.mirageprojector.registry.ModBlocks;
@@ -19,7 +20,7 @@ import org.slf4j.Logger;
 public final class MirageProjector {
     public static final String MOD_ID = "mirage_projector";
 
-    public static final String NETWORK_PROTOCOL = "27";
+    public static final String NETWORK_PROTOCOL = "28";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public MirageProjector(IEventBus modEventBus) {
@@ -52,6 +53,8 @@ public final class MirageProjector {
         }
         if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
             event.accept(ModItems.CRYING_OBSIDIAN_SHARD.get());
+            event.accept(ModItems.GLOW_DUST.get());
+            event.accept(GlowDustItem.depletedStack(ModItems.GLOW_DUST.get()));
         }
         if (event.getTabKey() == CreativeModeTabs.NATURAL_BLOCKS) {
             event.accept(ModItems.SMALL_CRYING_OBSIDIAN_BUD.get());

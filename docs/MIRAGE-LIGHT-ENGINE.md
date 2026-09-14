@@ -1,8 +1,8 @@
-# Mirage Light Engine — 1.0.0
+# Mirage Light Engine — 1.0.7
 
 Network protocol: **27**
 
-The 1.0.0 static Mirage Light implementation is server-authoritative and is currently used by energized Mature Crying Obsidian Clusters. Moving/portable emitters are intentionally reserved for the separate `DYNAMIC_VISUAL` lifecycle.
+The static Mirage Light implementation remains server-authoritative and is currently used by energized Mature Crying Obsidian Clusters. Since 1.0.5, moving/portable emitters have a separate operational `DYNAMIC_VISUAL` client lifecycle; no user-facing lantern currently consumes it.
 
 ## Core rule
 
@@ -94,13 +94,19 @@ The `/miragelight` command family provides diagnostics such as:
 
 These commands inspect Mirage, vanilla and effective light and are intended for regression/debugging rather than gameplay progression.
 
-## DYNAMIC_VISUAL boundary
+## DYNAMIC_VISUAL runtime
 
-`DYNAMIC_VISUAL` is deliberately separate from `STATIC_WORLD`. Future lanterns, handheld projectors or other rapidly moving emitters must use a lifecycle designed for high-frequency visual changes rather than rebuilding server-authoritative static sections every frame.
+`DYNAMIC_VISUAL` is deliberately separate from `STATIC_WORLD`. Since 1.0.5, the client owns a moving-source manager that accepts `MirageDynamicLightSnapshot` submissions and controls solve cadence, camera culling, stale cleanup and render-section invalidation. Dynamic sources are solved locally into the Mirage aggregate and are never published as authoritative server sections.
+
+The shared solver now supports `DIRECTIONAL_CONE` in addition to omnidirectional fields. A directional profile still propagates causally through adjacent voxels and still obeys normal opacity/face occlusion; cells outside the declared cone are rejected before readiness accounting. Generic profile factories leave actual Focus/Flood/Ambient balance values to the device layer.
+
+A submitted moving source is identified independently from its current block position. Repositioning or redirecting it updates the same source contribution rather than leaving transient emitters behind. Sources outside their camera cull distance are removed from the local aggregate until visible again, and consumers that stop submitting expire automatically. Fields clipped by temporarily unavailable chunks retry at their declared cadence.
+
+Still pending for the 1.1 feature set: actual lantern/portable-projector consumers, remote-player/device synchronization policy, stationary-source block-geometry invalidation, battery integration and large-scale performance QA.
 
 ## Release invariants
 
-For 1.0.0:
+For the static 1.0.x path:
 
 - open level-15 half-decay is exactly `15,15,14,14,...,1,1`;
 - opaque geometry cannot be crossed as air;

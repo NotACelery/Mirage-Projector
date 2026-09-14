@@ -1,4 +1,4 @@
-# Projection Power and Chassis — 1.0.0
+# Projection Power and Chassis — 1.0.4
 
 ## Chassis profiles
 
@@ -41,6 +41,12 @@ Fixed projectors use `ProjectionEnergySource` backed by the installed `Projectio
 - Tall: optional 4-row image layout.
 - Field: one continuous plane.
 - Prism: independent cardinal faces where supported by the source family.
+
+## Mirage Prism radial spacing
+
+Mirage Prism Image/Banner faces use a collision-safe radial Distance from the projector center. The base distance required to keep adjacent face envelopes separated is treated as part of the chassis. Additional separation, including extra distance required by Tilt, adds a deliberately small PU surcharge at **1 PU per 64 px** of extra radial reach (rounded up).
+
+Distance does not scale the projected content and is not available as a generic translation axis on the other projector chassis.
 
 ## Overdrive
 

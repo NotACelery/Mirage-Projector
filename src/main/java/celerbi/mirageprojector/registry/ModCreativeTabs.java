@@ -3,6 +3,7 @@ package celerbi.mirageprojector.registry;
 import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import celerbi.mirageprojector.item.GlowDustItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -32,6 +33,8 @@ public final class ModCreativeTabs {
                         output.accept(CoreBoosterBlockEntity.stackForMaterial(CoreBoosterMaterial.DIAMOND));
                         output.accept(CoreBoosterBlockEntity.stackForMaterial(CoreBoosterMaterial.NETHERITE));
                         output.accept(ModItems.CRYING_OBSIDIAN_SHARD.get());
+                        output.accept(ModItems.GLOW_DUST.get());
+                        output.accept(GlowDustItem.depletedStack(ModItems.GLOW_DUST.get()));
                         output.accept(ModItems.SMALL_CRYING_OBSIDIAN_BUD.get());
                         output.accept(ModItems.MEDIUM_CRYING_OBSIDIAN_BUD.get());
                         output.accept(ModItems.LARGE_CRYING_OBSIDIAN_BUD.get());

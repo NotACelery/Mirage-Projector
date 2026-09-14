@@ -2,6 +2,7 @@ package celerbi.mirageprojector.block;
 
 import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import celerbi.mirageprojector.registry.ModBlockEntities;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.stats.Stats;
@@ -16,6 +17,8 @@ import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -44,6 +47,19 @@ public final class CoreBoosterBlock extends BaseEntityBlock {
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new CoreBoosterBlockEntity(pos, state);
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
+            Level level,
+            BlockState state,
+            BlockEntityType<T> type
+    ) {
+        if (level.isClientSide) {
+            return null;
+        }
+        return createTickerHelper(type, ModBlockEntities.CORE_BOOSTER.get(), CoreBoosterBlockEntity::serverTick);
     }
 
     @Override
@@ -116,9 +132,14 @@ public final class CoreBoosterBlock extends BaseEntityBlock {
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof CoreBoosterBlockEntity booster) {
+            if (!booster.suppressRemovalDrops()) {
+                ItemStack dust = booster.extractChargingDust();
+                if (!dust.isEmpty()) {
+                    Containers.dropItemStack(level, pos.getX() + 0.5D, pos.getY() + 0.65D, pos.getZ() + 0.5D, dust);
+                }
+            }
 
             if (!booster.hasPendingPackedPlayerBreakDrop() && !booster.suppressRemovalDrops()) {
-
                 ItemStack core = booster.extractMaterial();
                 if (!core.isEmpty()) {
                     Containers.dropItemStack(level, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, core);

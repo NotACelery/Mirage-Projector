@@ -3,6 +3,7 @@ package celerbi.mirageprojector.registry;
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.item.CoreBoosterItem;
 import celerbi.mirageprojector.item.EntityScanCardItem;
+import celerbi.mirageprojector.item.GlowDustItem;
 import celerbi.mirageprojector.item.MirageDebugHandbookItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -39,6 +40,8 @@ public final class ModItems {
             ITEMS.registerSimpleBlockItem("obsidian_spike", ModBlocks.OBSIDIAN_SPIKE);
     public static final DeferredItem<Item> CRYING_OBSIDIAN_SHARD =
             ITEMS.registerSimpleItem("crying_obsidian_shard", new Item.Properties());
+    public static final DeferredItem<GlowDustItem> GLOW_DUST =
+            ITEMS.register("glow_dust", () -> new GlowDustItem(new Item.Properties()));
     public static final DeferredItem<EntityScanCardItem> ENTITY_SCAN_CARD =
             ITEMS.register("entity_scan_card", () -> new EntityScanCardItem(new Item.Properties()));
     public static final DeferredItem<MirageDebugHandbookItem> DEBUG_HANDBOOK =

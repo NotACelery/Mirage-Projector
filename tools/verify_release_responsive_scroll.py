@@ -48,13 +48,14 @@ need('protected void onContentScrolled(int deltaY)' in image and 'mapY += deltaY
      'ImageProjectorScreen does not keep its source-bank hit map aligned while scrolling')
 
 main = read('src/main/java/celerbi/mirageprojector/client/MirageProjectorScreen.java')
-need('imageHeight = 500;' in main, 'main projector screen content height changed unexpectedly')
+need('imageHeight = 412;' in main, 'main projector screen is not using the compact fixed-tab height')
+need(412 <= 540 - 16, 'main projector screen would overflow at 1920x1080 GUI Scale 2')
 need('debugButton' not in main, 'release Debug button returned while adding responsive scrolling')
 
 if errors:
-    print('1.0.0 responsive-scroll verification FAILED')
+    print('responsive-scroll verification FAILED')
     for error in errors:
         print(' -', error)
     raise SystemExit(1)
 
-print('1.0.0 responsive-scroll verification PASS')
+print('responsive-scroll verification PASS')

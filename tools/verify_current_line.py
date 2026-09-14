@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Mirage Projector 1.0.0 stable regression and release-audit suite."""
+"""Run the Mirage Projector 1.0.7 regression, Prism/UI, dynamic-light, Glow Dust and release suite."""
 
 from pathlib import Path
 import subprocess
@@ -27,7 +27,10 @@ SUITE = [
     'verify_dev82_mod_logo_integration.py',
     'verify_dev86a_compile_hotfix.py',
     'verify_release_responsive_scroll.py',
-    'verify_release_1_0_0.py',
+    'verify_1_0_7_prism_compaction_and_tabs.py',
+    'verify_1_0_7_dynamic_light_foundation.py',
+    'verify_1_0_7_glow_dust_battery.py',
+    'verify_release_1_0_7.py',
 ]
 
 for name in SUITE:
@@ -36,4 +39,4 @@ for name in SUITE:
     if code:
         raise SystemExit(code)
 
-print(f'\nMIRAGE PROJECTOR 1.0.0 VERIFICATION PASS ({len(SUITE)} gates)')
+print(f'\nMIRAGE PROJECTOR 1.0.7 VERIFICATION PASS ({len(SUITE)} gates)')

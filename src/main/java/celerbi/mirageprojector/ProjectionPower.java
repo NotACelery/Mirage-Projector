@@ -345,6 +345,9 @@ public final class ProjectionPower {
         if (safe.sourceMode() == ProjectionSettings.SourceMode.IMAGE && safe.scanlines()) {
             featureCost += 1;
         }
+        if (PrismProjectionSpacing.supported(safeChassis, safe)) {
+            featureCost += PrismProjectionSpacing.powerCost(safe);
+        }
 
         int gross = BASE_EMITTER_COST + geometryCost + sourceCost + liftCost + floatCost + featureCost;
         int ghostSavings = calculateGhostSavings(gross, safe.transparencyPercent());

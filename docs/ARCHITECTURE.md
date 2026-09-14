@@ -1,6 +1,6 @@
-# Architecture — Mirage Projector 1.0.0
+# Architecture — Mirage Projector 1.0.7
 
-This document describes the stable architecture of the 1.0.0 fixed-projector release. Historical implementation notes live under `docs/history/`.
+This document describes the current 1.0.7 architecture and incremental 1.1 groundwork. Historical implementation notes live under `docs/history/`.
 
 ## 1. State ownership
 
@@ -31,15 +31,20 @@ Unknown registered source IDs and opaque payloads are preserved where possible s
 
 Source content does not own presentation settings. `ProjectionTransform` is the source-agnostic presentation contract and includes:
 
-- scale;
-- lift;
-- orientation/rotation data;
-- float settings;
-- tint;
-- ghost/opacity;
-- related visual controls.
+- scale and lift;
+- Lift as the single non-negative vertical placement axis;
+- Prism-only radial face distance;
+- animated yaw/orientation data;
+- normalized quaternion orientation;
+- float settings.
 
-Persisted orientation is quaternion-ready. Current 1.0.0 UI still exposes the established controls, but later direct-manipulation work can use the same serialized transform instead of rewriting every source format.
+Tint, Ghost/opacity, lighting and other appearance controls remain shared `ProjectionSettings` presentation state, but are intentionally outside the geometric `ProjectionTransform` record.
+
+`ProjectionTransform` owns shared fixed-projector placement. Lift is the single shared vertical axis, while radial Distance is a Mirage Prism capability rather than a universal translation axis. Independent horizontal/vertical translation is intentionally absent.
+
+For ordinary plane projections, animated yaw rotates the projection around the projector center and Tilt is then applied through the persisted quaternion. For Mirage Prism Image/Banner projection, animated yaw rotates the entire four-face cross around the projector center first; each face is then placed radially and receives the same local Tilt. This preserves the intended carousel behavior.
+
+`PrismProjectionSpacing` owns collision-safe radial spacing, translates the user-facing extra-distance value into the internal absolute radius, and applies the small PU surcharge for extra Prism separation. The quaternion remains the long-term orientation representation; later direct-manipulation/free-rotation work can extend it without rewriting source formats.
 
 ## 4. Chassis capabilities
 
@@ -127,7 +132,7 @@ max(vanilla, Mirage)
 
 Virtual Mirage light is never fed back into vanilla propagation as a new emitter.
 
-`STATIC_WORLD` and `DYNAMIC_VISUAL` are separate lifecycles. Moving future light sources must not rebuild static gameplay-light sections every frame.
+`STATIC_WORLD` and `DYNAMIC_VISUAL` are separate lifecycles. `DYNAMIC_VISUAL` is implemented as a client-local moving-source runtime managed by `ClientDynamicMirageLightManager`; it applies update cadence, camera culling, stale cleanup, render-section invalidation and directional-cone solving without publishing into the server-authoritative static channel. Future lantern/projector consumers submit snapshots into this runtime rather than rebuilding static gameplay-light sections every frame.
 
 See `MIRAGE-LIGHT-ENGINE.md`.
 
@@ -149,3 +154,9 @@ The release retains compatibility shims only where old serialized worlds require
 - legacy numeric projection-source IDs — migrated to namespaced source IDs.
 
 Migration IDs are not gameplay products and must not receive recipes, BlockItems or Creative exposure.
+
+## Rechargeable item-energy seam (1.0.7)
+
+Glow Dust charge is item-owned and persisted independently from fixed-projector Core PU. `GlowDustItem` owns charge storage/mutation/visual state; `GlowDustBeaconCharging` owns Beacon-column charging and attenuation; `CoreBoosterBlockEntity` only hosts one charging cell and ticks the shared rule. This keeps portable charge distinct from `ProjectionCoreProfile` while leaving `ProjectionEnergySource` available for future handheld projector adapters.
+
+Beacon attenuation is shared by server charging eligibility, Crying Obsidian optics and the client custom Beacon renderer. A charging cell subtracts 0.20 absolute transmission rather than multiplying by 0.8, which intentionally makes five active cells the clear-path ceiling.

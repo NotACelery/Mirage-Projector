@@ -5,14 +5,15 @@ import net.minecraft.util.Mth;
 /**
  * Source-agnostic projection transform.
  *
- * <p>1.0 still exposes the familiar scale/lift/spin/float controls, but authoritative
- * state already carries a normalized quaternion orientation so 1.2 free manipulation
- * does not need a save-format rewrite. Current 1.0 renderers intentionally leave the
- * quaternion at identity.</p>
+ * <p>Lift is the single vertical placement axis for fixed projectors. The stored distance value is
+ * reserved for Mirage Prism radial face spacing; independent horizontal/vertical translation is intentionally disabled.
+ * Orientation is persisted as a normalized quaternion so Tilt can later grow into full free
+ * orientation without another save-format rewrite.</p>
  */
 public record ProjectionTransform(
         int scalePixels,
         int liftPixels,
+        int distanceOffsetPixels,
         boolean rotationEnabled,
         int rotationPeriodTicks,
         boolean clockwise,
@@ -34,6 +35,7 @@ public record ProjectionTransform(
         return new ProjectionTransform(
                 safe.scalePixels(),
                 safe.liftPixels(),
+                safe.distanceOffsetPixels(),
                 safe.rotationEnabled(),
                 safe.rotationPeriodTicks(),
                 safe.clockwise(),
@@ -55,6 +57,7 @@ public record ProjectionTransform(
         return new ProjectionTransform(
                 Mth.clamp(scalePixels, ProjectionSettings.DEBUG_MIN_SCALE_PIXELS, ProjectionSettings.DEBUG_MAX_SCALE_PIXELS),
                 Mth.clamp(liftPixels, 0, ProjectionSettings.DEBUG_MAX_LIFT_PIXELS),
+                Mth.clamp(distanceOffsetPixels, 0, PrismProjectionSpacing.MAX_DISTANCE_PIXELS),
                 rotationEnabled,
                 Mth.clamp(rotationPeriodTicks, 5, 20 * 60),
                 clockwise,
@@ -70,6 +73,24 @@ public record ProjectionTransform(
 
     public Orientation orientation() {
         return new Orientation(orientationX, orientationY, orientationZ, orientationW);
+    }
+
+    public float tiltDegrees() {
+        return tiltDegrees(orientationX, orientationY, orientationZ, orientationW);
+    }
+
+    public static Orientation orientationFromTiltDegrees(float tiltDegrees) {
+        float clamped = Mth.clamp(tiltDegrees, -ProjectionSettings.MAX_TILT_DEGREES, ProjectionSettings.MAX_TILT_DEGREES);
+        double halfRadians = Math.toRadians(clamped) * 0.5D;
+        return normalizeOrientation((float) Math.sin(halfRadians), 0.0F, 0.0F, (float) Math.cos(halfRadians));
+    }
+
+    public static float tiltDegrees(float x, float y, float z, float w) {
+        Orientation q = normalizeOrientation(x, y, z, w);
+        double numerator = 2.0D * ((double) q.w() * q.x() + (double) q.y() * q.z());
+        double denominator = 1.0D - 2.0D * ((double) q.x() * q.x() + (double) q.y() * q.y());
+        float degrees = (float) Math.toDegrees(Math.atan2(numerator, denominator));
+        return Mth.clamp(degrees, -ProjectionSettings.MAX_TILT_DEGREES, ProjectionSettings.MAX_TILT_DEGREES);
     }
 
     public static Orientation normalizeOrientation(float x, float y, float z, float w) {

@@ -21,9 +21,9 @@ import org.jetbrains.annotations.Nullable;
 
 public final class MirageProjectorMenu extends AbstractContainerMenu {
     public static final int CORE_SLOT_X = 24;
-    public static final int CORE_SLOT_Y = 300;
+    public static final int CORE_SLOT_Y = 200;
     public static final int PLAYER_INV_X = 126;
-    public static final int PLAYER_INV_Y = 384;
+    public static final int PLAYER_INV_Y = 294;
 
     public static final int CORE_SLOT_INDEX = 0;
     public static final int FIRST_PLAYER_SLOT_INDEX = 1;

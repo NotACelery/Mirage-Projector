@@ -27,7 +27,7 @@ need('buffer.writeUtf(s.sourceMode().serializedName(), 128)' in settings,'Projec
 need('SourceMode.parse(buffer.readUtf(128))' in settings,'ProjectionSettings source ID network decode missing')
 need('tag.putString("SourceId"' in settings,'SourceId NBT persistence missing')
 need('fromLegacyOrdinal' in settings and 'tag.contains("SourceMode")' in settings,'legacy SourceMode ordinal migration missing')
-need('SERIALIZATION_VERSION = 2' in settings,'ProjectionSettings serialization version missing')
+need(('SERIALIZATION_VERSION = 2' in settings or 'SERIALIZATION_VERSION = 3' in settings),'ProjectionSettings serialization version missing')
 need('ProjectionSettingsVersion' in settings,'ProjectionSettings NBT format version missing')
 need('sourceMode().ordinal()' not in settings,'source ordinal serialization remains in ProjectionSettings')
 need('sourceMode().ordinal()' not in payload and 'writeUtf(payload.sourceMode().serializedName(), 128)' in payload,'SetProjectionSourcePayload still uses ordinal')
@@ -57,7 +57,7 @@ need('interface ProjectionEnergySource' in energy,'device-agnostic energy bounda
 need('ProjectionEnergySource.fromCore(core)' in power,'ProjectionPower does not adapt fixed Core through energy boundary')
 need('ProjectionEnergySource energySource' in power,'generic ProjectionPower energy overload missing')
 
-need('NETWORK_PROTOCOL = "27"' in main,'network protocol was not bumped to 27 for source/transform codec change')
+need(('NETWORK_PROTOCOL = "27"' in main or 'NETWORK_PROTOCOL = "28"' in main),'network protocol no longer preserves the post-source/transform codec baseline')
 
 # Closed source switches/ordinals should be gone from current runtime source.
 for p in (ROOT/'src/main/java').rglob('*.java'):

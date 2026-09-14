@@ -3,8 +3,11 @@ package celerbi.mirageprojector.client;
 import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.block.CoreBoosterBlock;
 import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
+import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
 import celerbi.mirageprojector.crying.BeaconRelayState;
 import celerbi.mirageprojector.crying.CryingObsidianCrystalStage;
+import celerbi.mirageprojector.energy.GlowDustBeaconCharging;
+import celerbi.mirageprojector.item.GlowDustItem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -38,6 +41,7 @@ public final class CryingObsidianBeaconRenderer {
 
     private static final double RESIDUAL_ORIGIN_Y = 2.0D / 16.0D;
     private static final float BOOSTER_EFFECT_Y = 8.5F / 16.0F;
+    private static final float GLOW_DUST_CHARGE_EFFECT_Y = 11.5F / 16.0F;
     private static final int HOLD_TICKS = 20;
     private static final int COLLAPSE_TICKS = 20;
 
@@ -95,6 +99,13 @@ public final class CryingObsidianBeaconRenderer {
                     relay = relay.apply(material);
                     events.add(ColumnEvent.booster(pos, material));
                 }
+                if (level.getBlockEntity(pos) instanceof CoreBoosterBlockEntity booster
+                        && booster.hasChargingDust()
+                        && !GlowDustItem.isFull(booster.chargingDust())
+                        && transmission > 0.0001F) {
+                    events.add(ColumnEvent.chargingDust(pos));
+                    transmission = GlowDustBeaconCharging.attenuationAfterDust(transmission);
+                }
             }
 
             if (state.getBlock() instanceof CryingObsidianCrystalBlock crystal) {
@@ -135,50 +146,44 @@ public final class CryingObsidianBeaconRenderer {
 
             while (eventIndex < events.size()) {
                 ColumnEvent event = events.get(eventIndex);
-                float eventBottom = event.pos().getY() - beaconPos.getY();
-                if (eventBottom < cursor) {
+                float blockBottom = event.pos().getY() - beaconPos.getY();
+                float eventY = blockBottom;
+                if (event.material() != CoreBoosterMaterial.EMPTY) {
+                    eventY += BOOSTER_EFFECT_Y;
+                } else if (event.chargingDust()) {
+                    eventY += GLOW_DUST_CHARGE_EFFECT_Y;
+                }
+
+                if (eventY < cursor) {
                     eventIndex++;
                     continue;
                 }
-                if (eventBottom > sectionEnd) {
+                if (eventY > sectionEnd) {
                     break;
                 }
 
-                if (eventBottom > cursor) {
+                if (eventY > cursor) {
                     renderVerticalSegment(
                             poseStack,
                             buffers,
                             partialTick,
                             gameTime,
                             cursor,
-                            eventBottom,
+                            eventY,
                             section.getColor(),
                             transmission,
                             relay
                     );
-                    cursor = eventBottom;
+                    cursor = eventY;
                 }
 
                 if (event.material() != CoreBoosterMaterial.EMPTY) {
-                    float effectY = eventBottom + BOOSTER_EFFECT_Y;
-                    if (effectY > cursor) {
-                        renderVerticalSegment(
-                                poseStack,
-                                buffers,
-                                partialTick,
-                                gameTime,
-                                cursor,
-                                Math.min(effectY, sectionEnd),
-                                section.getColor(),
-                                transmission,
-                                relay
-                        );
-                    }
                     relay = relay.apply(event.material());
-                    cursor = effectY;
+                } else if (event.chargingDust()) {
+                    transmission = GlowDustBeaconCharging.attenuationAfterDust(transmission);
                 } else if (event.stage() != null) {
                     transmission *= event.stage().verticalTransmission();
-                    cursor = eventBottom + event.stage().verticalBeamResumeOffset();
+                    cursor = Math.max(cursor, blockBottom + event.stage().verticalBeamResumeOffset());
                 }
                 eventIndex++;
                 if (transmission <= 0.0001F) {
@@ -609,14 +614,19 @@ public final class CryingObsidianBeaconRenderer {
     private record ColumnEvent(
             BlockPos pos,
             CoreBoosterMaterial material,
-            CryingObsidianCrystalStage stage
+            CryingObsidianCrystalStage stage,
+            boolean chargingDust
     ) {
         private static ColumnEvent booster(BlockPos pos, CoreBoosterMaterial material) {
-            return new ColumnEvent(pos, material, null);
+            return new ColumnEvent(pos, material, null, false);
+        }
+
+        private static ColumnEvent chargingDust(BlockPos pos) {
+            return new ColumnEvent(pos, CoreBoosterMaterial.EMPTY, null, true);
         }
 
         private static ColumnEvent crystal(BlockPos pos, CryingObsidianCrystalStage stage) {
-            return new ColumnEvent(pos, CoreBoosterMaterial.EMPTY, stage);
+            return new ColumnEvent(pos, CoreBoosterMaterial.EMPTY, stage, false);
         }
     }
 

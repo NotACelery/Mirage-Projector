@@ -2,27 +2,53 @@
 
 1.1.0 is intentionally a large expansion. It grows Mirage from fixed projectors into a portable illumination/capture/projection ecosystem.
 
+## Pre-1.1 groundwork already delivered in 1.0.x
+
+The fixed-projector placement foundation is no longer a 1.1.0 task. The 1.0.x line provides Lift as the single vertical axis, full ±90° quaternion-backed Tilt, reset controls, and clearance/culling support. Mirage Prism additionally owns collision-safe radial Distance for Image/Banner faces; +0 px is the tight safe carousel baseline and larger values expand the cross without changing content scale. This is a Prism chassis capability, not a universal translation contract. Every new 1.1.0 chassis should explicitly declare which placement capabilities it supports.
+
+Remaining placement architecture for 1.1.0:
+
+- freeze a formal **anchor/pivot semantic** for portable, wall, table and ceiling chassis;
+- decide whether the table/horizontal chassis also covers ceiling mounting or whether a dedicated ceiling projector is required;
+- make source selection UI enumerate compatible registered sources/capabilities instead of permanently hard-coding the four 1.0 built-ins;
+- define the optional Blueprint/Create bridge capability contract explicitly: Table/Horizontal is the preferred 3D host, Wall may expose it as a presentation source where appropriate, and Handheld must reject it.
+
 ## A. Dynamic/Mobile Mirage Light Engine
 
-- `DYNAMIC_VISUAL` backend for moving sources without rebuilding authoritative server block-light fields every frame.
-- player/item/entity-attached source transforms;
-- directional cone/spot and wider flood profiles;
-- profile-controlled open decay, detour policy, radius and shape;
-- update cadence, culling and multiplayer visibility appropriate to moving emitters;
-- no contamination of the static Mature Cluster backend.
+Foundation delivered in **1.0.5**:
+
+- operational client-only `DYNAMIC_VISUAL` fields that never publish into authoritative `STATIC_WORLD`;
+- moving-source snapshots with stable identity, position, profile, solve cadence, camera culling and stale cleanup;
+- UUID/key source identities suitable for future player/entity/device attachments;
+- shared voxel-solver support for `DIRECTIONAL_CONE`;
+- generic ambient/directional dynamic profile factories;
+- render-section invalidation and retry of fields clipped by temporarily unavailable chunks.
+
+Still required before 1.1.0:
+
+- actual lantern/item/entity consumers that submit moving transforms;
+- final Focus/Flood/Ambient profile balance and shape tuning;
+- remote-player/device synchronization and visibility policy;
+- geometry invalidation for nearby block changes while a stationary dynamic emitter remains active;
+- battery/charge integration and performance QA under many simultaneous moving emitters.
 
 ## B. Rechargeable Glow Dust battery ecosystem
 
-Glow Dust receives a committed gameplay role in 1.1.0; older docs saying it has no role are historical.
+Foundation delivered in **1.0.7**:
 
-- Glow Dust stores charge and can be partially discharged.
-- depleted state has a visibly dull/opaque variant of the vanilla-inspired dust sprite.
-- item tooltip exposes charge percentage/status.
-- lantern HUD/hotbar feedback shows device mode/name + battery percentage; empty battery reads `Sin Cargar` / `Discharged`.
-- Glow Dust is consumed as **charge**, not destroyed as a material; depleted dust remains rechargeable.
-- Core Booster + active Beacon beam can recharge Glow Dust.
-- each actively charging dust attenuates the outgoing beam by 20%; target limit is five simultaneous dust charges per beam path.
-- Glow Dust may serve as a very-low-power projection Core/energy medium, but hologram use must not consume the dust itself the way lantern discharge consumes stored charge.
+- Glow Dust stores persistent partial charge and can be discharged/recharged without consuming the material.
+- depleted/partial state visibly darkens the vanilla-inspired dust silhouette; tooltip and item bar expose charge status.
+- Core Boosters own a separate one-cell charging cradle while retaining their normal Core-material socket.
+- an active Beacon column recharges inserted Glow Dust over time.
+- each actively charging cell subtracts 20 percentage points from outgoing beam transmission; a clear column supports at most five simultaneous chargers.
+- Crying Obsidian optics and the custom Beacon renderer consume the same attenuated transmission.
+
+Still required before 1.1.0:
+
+- final survival recipe/progression for Glow Dust;
+- lantern HUD/hotbar feedback with device mode/name + battery percentage; empty battery reads `Sin Cargar` / `Discharged`;
+- actual device discharge/consumption policy and final charge-rate balance;
+- optional very-low-power projection-energy adapter if Glow Dust is accepted as a projection medium, without consuming the dust item itself.
 
 ## C. Lantern family / modes
 

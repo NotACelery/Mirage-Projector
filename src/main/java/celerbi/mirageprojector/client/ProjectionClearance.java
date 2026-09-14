@@ -2,6 +2,7 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionPower;
+import celerbi.mirageprojector.PrismProjectionSpacing;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.entity.EntityProjectionState;
@@ -77,7 +78,9 @@ public final class ProjectionClearance {
                 + safeChassis.physicalTopPixels() * PIXEL
                 + s.liftPixels() * PIXEL;
         double minY = bottom - (s.floatingEnabled() ? s.floatAmplitudePixels() * PIXEL : 0.0D);
-        double maxY = bottom + height;
+        double tiltRadians = Math.toRadians(Math.abs(s.tiltDegrees()));
+        double verticalReach = height * Math.max(0.0D, Math.cos(tiltRadians));
+        double maxY = bottom + verticalReach;
 
         double halfX;
         double halfZ;
@@ -92,18 +95,15 @@ public final class ProjectionClearance {
             halfX = radius;
             halfZ = radius;
         } else if (prism) {
-
-            double radius = Math.max(0.05D, width * 0.5D);
-            if (s.rotationEnabled()) {
-                double swept = radius * Math.sqrt(2.0D);
-                halfX = swept;
-                halfZ = swept;
-            } else {
-                double radians = Math.toRadians(orientationDegrees);
-                double axisExtent = radius * (Math.abs(Math.cos(radians)) + Math.abs(Math.sin(radians)));
-                halfX = axisExtent;
-                halfZ = axisExtent;
-            }
+            double outwardTiltReach = s.tiltDegrees() > 0.0F
+                    ? height * Math.sin(Math.toRadians(s.tiltDegrees()))
+                    : 0.0D;
+            double outerRadius = PrismProjectionSpacing.effectiveDistancePixels(s) * PIXEL
+                    + width * 0.5D + outwardTiltReach;
+            // The four faces form a carousel around the machine center. A circular/square envelope
+            // is intentionally conservative and remains correct for every rotation angle.
+            halfX = Math.max(0.05D, outerRadius);
+            halfZ = Math.max(0.05D, outerRadius);
         } else if (s.rotationEnabled()) {
 
             double radius = Math.max(0.05D, width * 0.5D);
@@ -118,6 +118,12 @@ public final class ProjectionClearance {
                     Math.abs(Math.cos(radians)) * halfWidth + Math.abs(Math.sin(radians)) * thickness);
             halfZ = Math.max(thickness,
                     Math.abs(Math.sin(radians)) * halfWidth + Math.abs(Math.cos(radians)) * thickness);
+        }
+
+        if (!prism) {
+            double tiltReach = height * Math.abs(Math.sin(Math.toRadians(s.tiltDegrees())));
+            halfX += tiltReach;
+            halfZ += tiltReach;
         }
 
         AABB envelope = new AABB(
@@ -162,6 +168,10 @@ public final class ProjectionClearance {
                 || settings.sourceMode() == ProjectionSettings.SourceMode.BANNER)) {
             return 0.0D;
         }
+        return projectorFacingAngle(level, projectorPos);
+    }
+
+    private static double projectorFacingAngle(Level level, BlockPos projectorPos) {
         var state = level.getBlockState(projectorPos);
         if (!state.hasProperty(MirageProjectorBlock.FACING)) {
             return 0.0D;

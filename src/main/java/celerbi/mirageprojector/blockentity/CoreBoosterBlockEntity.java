@@ -3,6 +3,8 @@ package celerbi.mirageprojector.blockentity;
 import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.block.CoreBoosterBlock;
 import celerbi.mirageprojector.crying.CryingObsidianLightField;
+import celerbi.mirageprojector.energy.GlowDustBeaconCharging;
+import celerbi.mirageprojector.item.GlowDustItem;
 import celerbi.mirageprojector.registry.ModBlockEntities;
 import celerbi.mirageprojector.registry.ModItems;
 import java.util.List;
@@ -15,6 +17,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -22,8 +25,10 @@ import org.jetbrains.annotations.Nullable;
 
 public final class CoreBoosterBlockEntity extends BlockEntity {
     public static final String MATERIAL_TAG = "CoreMaterial";
+    public static final String CHARGING_DUST_TAG = "ChargingGlowDust";
 
     private CoreBoosterMaterial legacyLoadedMaterial = CoreBoosterMaterial.EMPTY;
+    private ItemStack chargingDust = ItemStack.EMPTY;
     @Nullable
     private ItemStack pendingPackedPlayerBreakDrop;
     private boolean suppressRemovalDrops;
@@ -41,6 +46,57 @@ public final class CoreBoosterBlockEntity extends BlockEntity {
 
     public boolean empty() {
         return !material().present();
+    }
+
+    public ItemStack chargingDust() {
+        return chargingDust;
+    }
+
+    public boolean hasChargingDust() {
+        return !chargingDust.isEmpty() && chargingDust.is(ModItems.GLOW_DUST.get());
+    }
+
+    public boolean insertChargingDust(ItemStack source) {
+        if (hasChargingDust() || source == null || source.isEmpty() || !source.is(ModItems.GLOW_DUST.get())) {
+            return false;
+        }
+        chargingDust = source.copyWithCount(1);
+        setChangedAndSync();
+        return true;
+    }
+
+    public ItemStack extractChargingDust() {
+        if (!hasChargingDust()) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack result = chargingDust;
+        chargingDust = ItemStack.EMPTY;
+        setChangedAndSync();
+        return result;
+    }
+
+    public static void serverTick(Level level, BlockPos pos, BlockState state, CoreBoosterBlockEntity booster) {
+        if (!(level instanceof ServerLevel serverLevel)
+                || booster == null
+                || serverLevel.getGameTime() % GlowDustBeaconCharging.CHARGE_INTERVAL_TICKS != 0L) {
+            return;
+        }
+        if (!GlowDustBeaconCharging.canChargeAt(serverLevel, pos, booster)) {
+            return;
+        }
+        int added = GlowDustItem.addCharge(booster.chargingDust, GlowDustBeaconCharging.CHARGE_PER_INTERVAL);
+        if (added <= 0) {
+            return;
+        }
+        booster.setChanged();
+        boolean full = GlowDustItem.isFull(booster.chargingDust);
+        if (full || serverLevel.getGameTime() % 20L == 0L) {
+            booster.syncToClients();
+        }
+        if (full) {
+            GlowDustBeaconCharging.scheduleCrystalRecheckAbove(serverLevel, pos);
+            CryingObsidianLightField.refreshSourcesNearNow(serverLevel, List.of(pos));
+        }
     }
 
     public boolean insert(ItemStack source) {
@@ -138,12 +194,30 @@ public final class CoreBoosterBlockEntity extends BlockEntity {
         return CoreBoosterMaterial.byName(tag.getString(MATERIAL_TAG));
     }
 
+    private void setChangedAndSync() {
+        setChanged();
+        syncToClients();
+        if (level instanceof ServerLevel serverLevel) {
+            GlowDustBeaconCharging.scheduleCrystalRecheckAbove(serverLevel, worldPosition);
+            CryingObsidianLightField.refreshSourcesNearNow(serverLevel, List.of(worldPosition));
+        }
+    }
+
+    private void syncToClients() {
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+        }
+    }
+
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         CoreBoosterMaterial current = material();
         if (current.present()) {
             tag.putString(MATERIAL_TAG, current.name());
+        }
+        if (hasChargingDust()) {
+            tag.put(CHARGING_DUST_TAG, chargingDust.copyWithCount(1).save(registries));
         }
     }
 
@@ -153,6 +227,12 @@ public final class CoreBoosterBlockEntity extends BlockEntity {
         legacyLoadedMaterial = tag.contains(MATERIAL_TAG)
                 ? CoreBoosterMaterial.byName(tag.getString(MATERIAL_TAG))
                 : CoreBoosterMaterial.EMPTY;
+        chargingDust = tag.contains(CHARGING_DUST_TAG)
+                ? ItemStack.parseOptional(registries, tag.getCompound(CHARGING_DUST_TAG))
+                : ItemStack.EMPTY;
+        if (!chargingDust.isEmpty() && !chargingDust.is(ModItems.GLOW_DUST.get())) {
+            chargingDust = ItemStack.EMPTY;
+        }
     }
 
     @Override

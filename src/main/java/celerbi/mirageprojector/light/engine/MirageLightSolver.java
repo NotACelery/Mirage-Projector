@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Fixed-point voxel flood solver.
@@ -88,6 +89,11 @@ public final class MirageLightSolver {
                 // "geometry required by this source footprint is not queryable yet" rather
                 // than counting arbitrary unloaded chunks just outside the light radius.
                 if (!withinRadius(origin, nextPos, profile.maxRadius())) {
+                    continue;
+                }
+                // Shape filtering happens before readiness accounting so DYNAMIC_VISUAL
+                // directional sources only depend on chunks/voxels inside their real beam.
+                if (!insideShapeEnvelope(profile, origin, nextPos)) {
                     continue;
                 }
                 if (!MirageLightEngine.isChunkQueryable(level, nextPos)) {
@@ -190,6 +196,36 @@ public final class MirageLightSolver {
 
     private static boolean withinRadius(BlockPos origin, BlockPos pos, int maxRadius) {
         return manhattanDistance(origin, pos) <= maxRadius;
+    }
+
+    /**
+     * Geometric envelope shared by moving and static profiles. Propagation still walks
+     * adjacent voxels and obeys MirageLightOcclusion; this only rejects cells that lie
+     * outside the source's declared shape.
+     */
+    private static boolean insideShapeEnvelope(
+            MirageLightProfile profile,
+            BlockPos origin,
+            BlockPos pos
+    ) {
+        if (profile.shape() == MirageLightShape.OMNIDIRECTIONAL || origin.equals(pos)) {
+            return true;
+        }
+        if (profile.shape() != MirageLightShape.DIRECTIONAL_CONE) {
+            return false;
+        }
+
+        Vec3 forward = profile.normalizedDirection();
+        if (forward.lengthSqr() <= 1.0E-8D) {
+            return false;
+        }
+        Vec3 offset = Vec3.atCenterOf(pos).subtract(Vec3.atCenterOf(origin));
+        if (offset.lengthSqr() <= 1.0E-8D) {
+            return true;
+        }
+        double halfAngle = Math.toRadians(profile.coneAngleDegrees() * 0.5D);
+        double threshold = Math.cos(halfAngle);
+        return forward.dot(offset.normalize()) >= threshold;
     }
 
     private static int manhattanDistance(BlockPos origin, BlockPos pos) {

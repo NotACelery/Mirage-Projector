@@ -1,10 +1,10 @@
-# Documentation Authority — Mirage Projector 1.0.0
+# Documentation Authority — Mirage Projector 1.0.7
 
 This file defines which documents describe the current stable product.
 
 ## Current authority
 
-Use these documents for 1.0.0 behavior and maintenance:
+Use these documents for current 1.0.7 behavior and 1.0.x maintenance:
 
 1. `README.md` — public overview, requirements and feature summary.
 2. `docs/CURRENT-IMPLEMENTATION.md` — canonical runtime behavior.
@@ -21,7 +21,14 @@ Use these documents for 1.0.0 behavior and maintenance:
 13. `docs/ROADMAP.md` — post-1.0 release roadmap.
 14. `docs/WAITLIST-1.1.0.md`, `docs/WAITLIST-1.2.0.md`, `docs/WAITLIST-GENERAL.md` — future work only.
 15. `docs/CHANGELOG.md` — chronological history.
-16. `docs/RELEASE-1.0.0-AUDIT.md` — final cleanup, static-audit and release-boundary record.
+16. `docs/RELEASE-1.0.0-AUDIT.md` — historical initial-release cleanup/audit record.
+17. `docs/RELEASE-1.0.1-PLACEMENT.md` — initial placement-foundation snapshot.
+18. `docs/RELEASE-1.0.2-PRISM-PLACEMENT.md` — historical Prism placement correction.
+19. `docs/RELEASE-1.0.3-COMPILE-HOTFIX.md` — compile-only repair over 1.0.2.
+20. `docs/RELEASE-1.0.4-FIXED-TAB-PLACEMENT.md` — fixed-tab placement/UI contract.
+21. `docs/RELEASE-1.0.5-DYNAMIC-LIGHT-FOUNDATION.md` — current dynamic/mobile Mirage Light foundation contract.
+22. `docs/RELEASE-1.0.6-PRISM-COMPACTION.md` — Mirage Prism spacing and four-tab UI refinement.
+23. `docs/RELEASE-1.0.7-GLOW-DUST.md` — current rechargeable Glow Dust / Beacon charging foundation.
 
 ## Historical material
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Mirage Projector 1.0.7 regression, Prism/UI, dynamic-light, Glow Dust and release suite."""
+"""Run the Mirage Projector 1.0.18 regression, stabilization and release suite."""
 
 from pathlib import Path
 import subprocess
@@ -30,7 +30,27 @@ SUITE = [
     'verify_1_0_7_prism_compaction_and_tabs.py',
     'verify_1_0_7_dynamic_light_foundation.py',
     'verify_1_0_7_glow_dust_battery.py',
-    'verify_release_1_0_7.py',
+    'verify_1_0_9_light_projector.py',
+    'verify_1_0_10_lantern.py',
+    'verify_1_0_11_hand_projector.py',
+    'verify_1_0_12_portable_persistence.py',
+    'verify_1_0_13_shoulder_equipment.py',
+    'verify_roadmap_scope_1_0_13.py',
+    'verify_1_0_14_shoulder_pouch.py',
+    'verify_1_0_15_charging_station.py',
+    'verify_1_0_16_war_banner.py',
+    'verify_1_0_17_scan_codex.py',
+    'verify_1_0_18_stabilization.py',
+    'verify_1_0_18_integrity_cleanup.py',
+    'verify_release_1_0_10.py',
+    'verify_release_1_0_11.py',
+    'verify_release_1_0_12.py',
+    'verify_release_1_0_13.py',
+    'verify_release_1_0_14.py',
+    'verify_release_1_0_15.py',
+    'verify_release_1_0_16.py',
+    'verify_release_1_0_17.py',
+    'verify_release_1_0_18.py',
 ]
 
 for name in SUITE:
@@ -39,4 +59,4 @@ for name in SUITE:
     if code:
         raise SystemExit(code)
 
-print(f'\nMIRAGE PROJECTOR 1.0.7 VERIFICATION PASS ({len(SUITE)} gates)')
+print(f'\nMIRAGE PROJECTOR 1.0.18 VERIFICATION PASS ({len(SUITE)} gates)')

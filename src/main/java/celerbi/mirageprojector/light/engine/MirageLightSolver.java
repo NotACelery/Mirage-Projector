@@ -223,9 +223,22 @@ public final class MirageLightSolver {
         if (offset.lengthSqr() <= 1.0E-8D) {
             return true;
         }
+
+        /*
+         * A cone sampled only at voxel centers can fail to leave its origin whenever the
+         * player's look vector is not almost perfectly aligned to a cardinal neighbor. That
+         * made narrow portable Focus beams appear only at a handful of lucky pitch/yaw angles.
+         * Treat each voxel as the volume it actually occupies instead: the center may sit a
+         * little outside the mathematical cone while the voxel itself still intersects it.
+         */
+        double axial = forward.dot(offset);
+        if (axial < -0.5D) {
+            return false;
+        }
+        double perpendicularSq = Math.max(0.0D, offset.lengthSqr() - axial * axial);
         double halfAngle = Math.toRadians(profile.coneAngleDegrees() * 0.5D);
-        double threshold = Math.cos(halfAngle);
-        return forward.dot(offset.normalize()) >= threshold;
+        double coneRadius = Math.max(0.0D, axial) * Math.tan(halfAngle) + 0.72D;
+        return perpendicularSq <= coneRadius * coneRadius;
     }
 
     private static int manhattanDistance(BlockPos origin, BlockPos pos) {

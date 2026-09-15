@@ -1,10 +1,10 @@
-# Documentation Authority — Mirage Projector 1.0.7
+# Documentation Authority — Mirage Projector 1.0.18
 
 This file defines which documents describe the current stable product.
 
 ## Current authority
 
-Use these documents for current 1.0.7 behavior and 1.0.x maintenance:
+Use these documents for current 1.0.18 behavior and 1.0.x maintenance:
 
 1. `README.md` — public overview, requirements and feature summary.
 2. `docs/CURRENT-IMPLEMENTATION.md` — canonical runtime behavior.
@@ -28,7 +28,18 @@ Use these documents for current 1.0.7 behavior and 1.0.x maintenance:
 20. `docs/RELEASE-1.0.4-FIXED-TAB-PLACEMENT.md` — fixed-tab placement/UI contract.
 21. `docs/RELEASE-1.0.5-DYNAMIC-LIGHT-FOUNDATION.md` — current dynamic/mobile Mirage Light foundation contract.
 22. `docs/RELEASE-1.0.6-PRISM-COMPACTION.md` — Mirage Prism spacing and four-tab UI refinement.
-23. `docs/RELEASE-1.0.7-GLOW-DUST.md` — current rechargeable Glow Dust / Beacon charging foundation.
+23. `docs/RELEASE-1.0.7-GLOW-DUST.md` — historical first rechargeable Glow Dust / Beacon charging foundation.
+24. `docs/RELEASE-1.0.8-BATTERY-POLISH.md` — rechargeable-media / Light Battery foundation and recovered charging fixes.
+25. `docs/RELEASE-1.0.9-LIGHT-PROJECTOR-FOUNDATION.md` — current physical light-projector / first DYNAMIC_VISUAL consumer contract.
+26. `docs/RELEASE-1.0.10-LANTERN.md` — handheld Mirage Lantern / player-following DYNAMIC_VISUAL consumer contract.
+27. `docs/RELEASE-1.0.11-HANDHELD-PROJECTOR.md` — handheld hologram projector / copied portable profile foundation.
+28. `docs/RELEASE-1.0.12-PERSISTENT-PORTABLE-STATE.md` — persistent inventory-active portable state / multiplayer sync / Creative Battery contract.
+29. `docs/RELEASE-1.0.13-SHOULDER-EQUIPMENT.md` — Mirage Equipment / Arm Strap / Shoulder Slot foundation.
+30. `docs/RELEASE-1.0.14-SHOULDER-BATTERY-POUCH.md` — Arm Strap Battery Pouch / upgrade / Auto Battery Swap foundation.
+31. `docs/RELEASE-1.0.15-CHARGING-STATION.md` — dedicated directional Beacon Charging Station / batch logistics foundation.
+32. `docs/RELEASE-1.0.16-WAR-BANNER.md` — portable overhead War Banner presentation / directional and per-viewer billboard controls.
+33. `docs/RELEASE-1.0.17-SCAN-CODEX.md` — persistent Scan Codex library / metadata browser / exact scan-selection foundation.
+34. `docs/RELEASE-1.0.18-MASSIVE-STABILIZATION.md` — QA-driven portable/Shoulder/Charging/Codex stabilization and GUI contract.
 
 ## Historical material
 

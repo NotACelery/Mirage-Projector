@@ -1,0 +1,13 @@
+{
+  "parent": "minecraft:block/cube",
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "down": "mirage_projector:block/charging_station_side",
+    "up": "mirage_projector:block/charging_station_top",
+    "north": "mirage_projector:block/charging_station_output",
+    "south": "mirage_projector:block/charging_station_side",
+    "west": "mirage_projector:block/charging_station_side",
+    "east": "mirage_projector:block/charging_station_side",
+    "particle": "mirage_projector:block/charging_station_side"
+  }
+}

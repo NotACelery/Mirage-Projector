@@ -14,7 +14,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
-@EventBusSubscriber(modid = MirageProjector.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = MirageProjector.MOD_ID, value = Dist.CLIENT)
 public final class ProjectionClearancePreviewRenderer {
     private static BlockPos projectorPos;
     private static ProjectionClearance.Result result = ProjectionClearance.Result.UNKNOWN;

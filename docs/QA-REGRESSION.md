@@ -1,4 +1,4 @@
-# QA Regression Matrix — Mirage Projector 1.0.7
+# QA Regression Matrix — Mirage Projector 1.0.18
 
 Use this matrix after any 1.0.x patch/compatibility change, and as the baseline before integrating the 1.1.0 feature expansion.
 
@@ -9,7 +9,7 @@ Use this matrix after any 1.0.x patch/compatibility change, and as the baseline 
 - Launch with EMI only.
 - Launch with JEI only.
 - Launch with EMI + JEI together.
-- Confirm client/server protocol agreement at protocol 28.
+- Confirm client/server protocol agreement at protocol 31.
 
 ## Placement and fixed-tab UI
 
@@ -165,6 +165,55 @@ No current gameplay path may create `mirage_projector:crying_light_node`; that b
 - a charger reaching 100% stops attenuating the Beam;
 - Crying Obsidian above the chargers responds to the attenuated transmission;
 - breaking a Core Booster in Survival returns the inserted Glow Dust and preserves its charge state.
+
+## Mirage Light Projector / DYNAMIC_VISUAL consumer (current 1.0.18 contract)
+
+- Place the projector facing each horizontal direction and confirm the physical lens and dynamic source follow block facing.
+- Normal right-click opens the Light Projector GUI; direct world gestures must not insert/extract a battery or cycle modes.
+- In the GUI, insert exactly one rechargeable cell and confirm the slot preserves its exact medium/components/charge.
+- Cycle exactly Focus -> Flood -> Ambient -> Off -> Focus through the GUI control.
+- Confirm Focus produces a narrow long directional field, Flood a wider shorter field, Ambient a local omnidirectional field, and Off removes its dynamic field.
+- Rotate the projector through all four horizontal facings and verify Focus/Flood emit reliably rather than disappearing at most angles. The source origin must start outside the chassis and must not self-occlude on its own block.
+- Confirm nearby opaque blocks occlude/reroute Focus/Flood through the Mirage solver rather than behaving as vanilla invisible light sources.
+- Confirm server drain occurs once per second at the current QA values 4/2/1/0.
+- Drain a cell to zero: selected mode must persist, emission must stop, and replacing/recharging the cell from the GUI must resume that selected mode without resetting it.
+- Save/reload the world and relog a second client: mode, cell type and exact charge must agree.
+- Break the projector with a cell installed: the projector block and inserted cell must both survive as drops; no cell duplication or deletion.
+- No battery ItemStack may render floating beneath/inside the placed projector.
+- Jade should show current mode and battery state, or the explicit empty state.
+- Verify multiple nearby light projectors keep separate stable source IDs and stale/off/depleted contributions are removed.
+
+## Mirage Lantern / player-following DYNAMIC_VISUAL consumer (current 1.0.18 contract)
+
+- A fresh Mirage Lantern starts in Off.
+- Normal right-click opens the Lantern GUI. Battery insertion/extraction is possible only through the GUI; the old opposite-hand service gesture must do nothing.
+- Sneak + right-click cycles exactly Off -> Focus -> Flood -> Ambient -> Off.
+- Focus must follow the player's current look direction while rotating/moving; Flood follows the same transform with the wider profile; Ambient follows the player omnidirectionally.
+- Test Focus/Flood while looking horizontally, diagonally, upward and downward. The field must not disappear merely because the cone misses voxel centers; the 1.0.18 cone/voxel-volume intersection must remain effective.
+- Off removes the local dynamic source and consumes no charge.
+- Server drain occurs once per second while the Lantern is held or mounted in the Shoulder Slot; an ordinary inventory-stored Lantern does not drain.
+- Each battery percentage update must NOT trigger the vanilla held-item re-equip/swap animation.
+- The old continuously refreshed actionbar status must not remain after the Lantern is unheld. Action/depletion feedback may appear transiently only.
+- Depleting a cell stops emission without resetting the selected mode; replacing/recharging the cell through the GUI resumes that mode.
+- Test main-hand, off-hand and Shoulder Slot lanterns; stable source identities must not collide.
+- Two-player QA: each client sees the other player's held/mounted Lantern light follow position/aim and mode/depletion state.
+- Dropping/unholding/logging out removes stale player-following dynamic fields within the normal stale window.
+- Save/reload with a partial cell installed: mode, cell type and exact charge survive.
+- Verify the Lantern item remains 16x16 and GUI battery manipulation never changes the installed medium except by explicit player action/drain.
+
+## Rechargeable media / Light Battery (1.0.8)
+
+- Glow Dust still loads old partial/depleted charge values correctly.
+- Light Battery defaults to 4000/4000 and persists exact partial/depleted charge through inventory moves and save/reload.
+- with one clear active Beacon, an empty Light Battery reaches full in roughly 250 seconds at the current +8 / 10-tick baseline.
+- inserting either incomplete Glow Dust or Light Battery into a supported charger preserves exact partial charge and does not replace the Core Booster material socket.
+- Core Booster historical direct cradle interaction remains a separate legacy charger path; portable devices use their real GUIs instead.
+- a fully restored custom Glow Dust output normalizes back to vanilla Glowstone Dust; partial/depleted Glow Dust remains the Mirage rechargeable medium.
+- charging Glow Dust and Light Battery render centrally without visibly clipping through the Core Booster glass.
+- Jade shows the inserted medium name + charge percentage, and shows an explicit empty charging-cell state when vacant.
+- a full rechargeable medium stops attenuating the Beacon; any actively charging supported medium uses the same 0.20 transmission cost.
+- five active rechargeable cells remain the clear-column ceiling; a sixth receives no charge.
+- language-key parity is preserved across en_us/es_cl/es_es.
 
 ## EMI / JEI
 

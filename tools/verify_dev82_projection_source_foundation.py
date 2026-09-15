@@ -57,7 +57,7 @@ need('interface ProjectionEnergySource' in energy,'device-agnostic energy bounda
 need('ProjectionEnergySource.fromCore(core)' in power,'ProjectionPower does not adapt fixed Core through energy boundary')
 need('ProjectionEnergySource energySource' in power,'generic ProjectionPower energy overload missing')
 
-need(('NETWORK_PROTOCOL = "27"' in main or 'NETWORK_PROTOCOL = "28"' in main),'network protocol no longer preserves the post-source/transform codec baseline')
+need(('NETWORK_PROTOCOL = "27"' in main or 'NETWORK_PROTOCOL = "28"' in main or 'NETWORK_PROTOCOL = "29"' in main or 'NETWORK_PROTOCOL = "30"' in main or 'NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main),'network protocol no longer preserves the post-source/transform codec baseline')
 
 # Closed source switches/ordinals should be gone from current runtime source.
 for p in (ROOT/'src/main/java').rglob('*.java'):

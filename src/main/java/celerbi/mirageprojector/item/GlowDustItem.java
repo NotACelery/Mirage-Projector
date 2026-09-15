@@ -17,12 +17,27 @@ import net.minecraft.world.item.component.CustomData;
  * Glow Dust is fully charged; discharged/partial stacks retain their charge state
  * when moved through inventories or the Core Booster charging cradle.</p>
  */
-public final class GlowDustItem extends Item {
+public final class GlowDustItem extends Item implements RechargeableEnergyItem {
     public static final int MAX_CHARGE = 1000;
     private static final String CHARGE_TAG = "MirageGlowCharge";
 
     public GlowDustItem(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public int maxCharge() {
+        return MAX_CHARGE;
+    }
+
+    @Override
+    public String chargeDataKey() {
+        return CHARGE_TAG;
+    }
+
+    @Override
+    public int chargePerInterval() {
+        return 10;
     }
 
     public static int charge(ItemStack stack) {
@@ -118,19 +133,12 @@ public final class GlowDustItem extends Item {
             tooltipComponents.add(Component.translatable(
                     "tooltip.mirage_projector.glow_dust.discharged"
             ).withStyle(ChatFormatting.DARK_GRAY));
-        } else if (charge >= MAX_CHARGE) {
-            tooltipComponents.add(Component.translatable(
-                    "tooltip.mirage_projector.glow_dust.full"
-            ).withStyle(ChatFormatting.LIGHT_PURPLE));
-        } else {
+        } else if (charge < MAX_CHARGE) {
             tooltipComponents.add(Component.translatable(
                     "tooltip.mirage_projector.glow_dust.charge",
                     percent
             ).withStyle(ChatFormatting.LIGHT_PURPLE));
         }
-        tooltipComponents.add(Component.translatable(
-                "tooltip.mirage_projector.glow_dust.recharge"
-        ).withStyle(ChatFormatting.GRAY));
     }
 
     @Override

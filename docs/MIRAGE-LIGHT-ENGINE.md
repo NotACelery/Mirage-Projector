@@ -1,4 +1,4 @@
-# Mirage Light Engine — 1.0.7
+# Mirage Light Engine — 1.0.9
 
 Network protocol: **27**
 
@@ -98,11 +98,11 @@ These commands inspect Mirage, vanilla and effective light and are intended for 
 
 `DYNAMIC_VISUAL` is deliberately separate from `STATIC_WORLD`. Since 1.0.5, the client owns a moving-source manager that accepts `MirageDynamicLightSnapshot` submissions and controls solve cadence, camera culling, stale cleanup and render-section invalidation. Dynamic sources are solved locally into the Mirage aggregate and are never published as authoritative server sections.
 
-The shared solver now supports `DIRECTIONAL_CONE` in addition to omnidirectional fields. A directional profile still propagates causally through adjacent voxels and still obeys normal opacity/face occlusion; cells outside the declared cone are rejected before readiness accounting. Generic profile factories leave actual Focus/Flood/Ambient balance values to the device layer.
+The shared solver supports `DIRECTIONAL_CONE` in addition to omnidirectional fields. A directional profile still propagates causally through adjacent voxels and still obeys normal opacity/face occlusion; cells outside the declared cone are rejected before readiness accounting. Generic profile factories leave actual Focus/Flood/Ambient balance values to the device layer. In 1.0.9 the placed Mirage Light Projector became the first real consumer. **1.0.18 corrects the narrow-cone acceptance test from voxel-center-only sampling to approximate cone/voxel-volume intersection**, preventing Focus/Flood from disappearing at ordinary yaw/pitch angles merely because no adjacent voxel center fell inside the mathematical cone. Device source origins are also seeded slightly outside the player/projector body to prevent the first propagation edge from self-occluding inside its own emitter geometry.
 
 A submitted moving source is identified independently from its current block position. Repositioning or redirecting it updates the same source contribution rather than leaving transient emitters behind. Sources outside their camera cull distance are removed from the local aggregate until visible again, and consumers that stop submitting expire automatically. Fields clipped by temporarily unavailable chunks retry at their declared cadence.
 
-Still pending for the 1.1 feature set: actual lantern/portable-projector consumers, remote-player/device synchronization policy, stationary-source block-geometry invalidation, battery integration and large-scale performance QA.
+Placed-device battery integration is active in 1.0.9 and the first handheld/player-following consumer is active in 1.0.10. Held-lantern state is reconstructed from vanilla tracked player transform/equipment plus the lantern ItemStack summary, avoiding a second movement-light packet path. 1.0.11 reuses that design lesson for portable holograms: handheld projector visuals are likewise reconstructed client-side from tracked held ItemStacks plus player transform rather than adding a separate movement/projector payload. Still pending for the 1.1 feature set: stationary-source block-geometry invalidation after arbitrary nearby block edits, final profile/drain balance, additional moving-entity consumers and large-scale performance QA.
 
 ## Release invariants
 

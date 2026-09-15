@@ -7,7 +7,7 @@
 - Minecraft **1.21.1**
 - NeoForge **21.1.244+**
 - Java **21**
-- Network protocol **28**
+- Network protocol **30**
 
 EMI and JEI are optional. When installed, Mirage Projector exposes its custom projector-upgrade recipes and Crying Obsidian guidance directly in the recipe viewer.
 
@@ -62,6 +62,16 @@ Lift is the single vertical placement control and never goes below zero. Tilt an
 
 Projector screens automatically expose vertical scrolling when the selected Minecraft GUI scale leaves less vertical room than the panel needs. At normal window heights the original centered layout is unchanged.
 
+## Portable illumination and projection
+
+The current 1.0.x expansion line now includes a placed **Mirage Light Projector**, a handheld **Mirage Lantern**, and the first handheld hologram device: **Mirage Hand Projector**. The light projector and lantern reuse the same Focus / Flood / Ambient / Off profiles and rechargeable-media contract instead of maintaining separate light engines. The lantern carries one removable Glow Dust or Light Battery stack internally, preserves its exact charge/components, drains only while held and emitting, and projects through the client-local `DYNAMIC_VISUAL` path while following the player's movement and aim.
+
+The Mirage Hand Projector is the first portable hologram consumer. It stores one removable rechargeable cell plus one copied portable hologram profile taken from a configured placed Mirage Projector. Portable copies preserve the active source family (Image / Item / Banner / Entity) but normalize the output to a smaller compact handheld budget so moving projections stay readable without behaving like a full stationary chassis. Since 1.0.12 an explicitly enabled handheld projector remains active while stored anywhere in the player inventory, using Mirage-owned device-state sync so remote players can still see it. A Creative Battery with infinite charge is available for QA/admin/temporary game modes and has no Survival progression path.
+
+Since 1.0.13, **Mirage Equipment** adds a dedicated Shoulder Strap + Shoulder Slot without consuming armor or offhand space. In 1.0.18 the Strap becomes the real owner of its mounted device, battery pouch and upgrades: a packed Strap can be removed/stored/swapped while retaining its contents, and the right-side inventory panel exposes only the slots currently unlocked. The base Strap has six power-cell slots plus two upgrades; **Shoulder Strap Slot Expansion** raises that to nine cells plus a third upgrade. Auto Battery Swap remains shoulder-only. Since 1.0.15 the directional Charging Station provides four queued inputs, one active charger, four outputs and front-face logistics; 1.0.18 tightens it to incomplete normal rechargeable media, enlarges its GUI and visualizes queued/charging/output stacks in-world. Since 1.0.16 Banner-profile Hand Projectors can use the smaller pole-free overhead War Banner presentation with Directional or per-viewer billboard facing.
+
+Since 1.0.17, the **Mirage Scan Codex** stores multiple distinct frozen entity captures in a server-backed persistent library. Its browser synchronizes summary metadata only, with search, filters, favorites and exact scan selection; 1.0.18 makes that browser non-pausing and removes the blurred/dim background pass. Physical Entity Scan Card duplication remains reserved for the later Duplicating Lectern workflow.
+
 ## Projection Power
 
 | Core material | Base PU | Core Booster amplification |
@@ -95,7 +105,7 @@ The 1.0.x line includes:
 
 The static Mirage Light Engine is server-authoritative. Clients receive resolved per-chunk Mirage light sections and combine them with vanilla block light at read time using `max(vanilla, Mirage)`. Static Mirage values are never fed back into vanilla propagation as new emitters.
 
-Since 1.0.5, the project also contains the first **Dynamic Mirage Light** foundation for future portable emitters: client-local moving fields, camera culling, update cadence and directional-cone solving. Since 1.0.7, rechargeable Glow Dust and Beacon/Core-Booster charging are playable foundations; lanterns and portable projectors still do not consume that energy yet.
+Since 1.0.5, the project contains the **Dynamic Mirage Light** runtime: client-local moving fields, camera culling, update cadence and directional-cone solving. Since 1.0.7/1.0.8, rechargeable Glow Dust, Light Battery and Beacon/Core-Booster charging form the portable-energy foundation. **1.0.9** adds the first real consumer: a placed Mirage Light Projector with a rechargeable cell and Focus/Flood/Ambient/Off modes.
 
 ## EMI / JEI
 
@@ -135,4 +145,4 @@ The verification suite checks the current registry/resource surface, Mirage Ligh
 
 ## Version scope
 
-**1.0.7** is the current implementation snapshot. It keeps the compact Prism carousel/four-tab projector UI from 1.0.6 and adds the first playable Glow Dust battery loop: charge is stored on the item, depleted dust darkens visibly, Core Boosters can hold one dust cell in a Beacon charging cradle, and each actively charging cell removes 20 percentage points from the outgoing beam so a clear column supports at most five simultaneous chargers. User-facing lanterns, portable projectors, Scan Codex and Dragon Egg / End Resonance are still incomplete; the version becomes **1.1.0** only when that feature expansion is complete. Direct grab/free-rotate hologram interaction belongs to **1.2.0**.
+**1.0.18** is the current implementation snapshot. The 1.0.x expansion line now includes rechargeable Glow Dust/Light Batteries, GUI-configured placed/handheld Mirage lighting, persistent portable hologram projectors, packed Shoulder Straps with Shoulder Device/Battery Pouch/upgrades, the directional Beacon Charging Station, War Banner presentation and the persistent **Mirage Scan Codex** library. The Codex stores full frozen scans server-side, exposes a metadata-only searchable/filterable/favoritable browser and persists exact scan selection for the future Duplicating Lectern. Final 1.1.0 work still includes scan-card duplication, remaining projector chassis/anchor semantics, End Resonance, recipes/balance and release polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.

@@ -3,8 +3,9 @@ package celerbi.mirageprojector.blockentity;
 import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.block.CoreBoosterBlock;
 import celerbi.mirageprojector.crying.CryingObsidianLightField;
+import celerbi.mirageprojector.energy.BeaconRechargeableCharger;
 import celerbi.mirageprojector.energy.GlowDustBeaconCharging;
-import celerbi.mirageprojector.item.GlowDustItem;
+import celerbi.mirageprojector.item.RechargeableEnergyItem;
 import celerbi.mirageprojector.registry.ModBlockEntities;
 import celerbi.mirageprojector.registry.ModItems;
 import java.util.List;
@@ -23,7 +24,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-public final class CoreBoosterBlockEntity extends BlockEntity {
+public final class CoreBoosterBlockEntity extends BlockEntity implements BeaconRechargeableCharger {
     public static final String MATERIAL_TAG = "CoreMaterial";
     public static final String CHARGING_DUST_TAG = "ChargingGlowDust";
 
@@ -52,12 +53,17 @@ public final class CoreBoosterBlockEntity extends BlockEntity {
         return chargingDust;
     }
 
+    @Override
+    public ItemStack activeChargingStack() {
+        return chargingDust;
+    }
+
     public boolean hasChargingDust() {
-        return !chargingDust.isEmpty() && chargingDust.is(ModItems.GLOW_DUST.get());
+        return RechargeableEnergyItem.isRechargeable(chargingDust);
     }
 
     public boolean insertChargingDust(ItemStack source) {
-        if (hasChargingDust() || source == null || source.isEmpty() || !source.is(ModItems.GLOW_DUST.get())) {
+        if (hasChargingDust() || source == null || source.isEmpty() || !RechargeableEnergyItem.isRechargeable(source)) {
             return false;
         }
         chargingDust = source.copyWithCount(1);
@@ -84,16 +90,19 @@ public final class CoreBoosterBlockEntity extends BlockEntity {
         if (!GlowDustBeaconCharging.canChargeAt(serverLevel, pos, booster)) {
             return;
         }
-        int added = GlowDustItem.addCharge(booster.chargingDust, GlowDustBeaconCharging.CHARGE_PER_INTERVAL);
+        int added = RechargeableEnergyItem.addCharge(booster.chargingDust);
         if (added <= 0) {
             return;
         }
         booster.setChanged();
-        boolean full = GlowDustItem.isFull(booster.chargingDust);
+        boolean full = RechargeableEnergyItem.isFull(booster.chargingDust);
         if (full || serverLevel.getGameTime() % 20L == 0L) {
             booster.syncToClients();
         }
         if (full) {
+            booster.chargingDust = RechargeableEnergyItem.normalizeFullyChargedOutput(booster.chargingDust);
+            booster.setChanged();
+            booster.syncToClients();
             GlowDustBeaconCharging.scheduleCrystalRecheckAbove(serverLevel, pos);
             CryingObsidianLightField.refreshSourcesNearNow(serverLevel, List.of(pos));
         }
@@ -230,7 +239,7 @@ public final class CoreBoosterBlockEntity extends BlockEntity {
         chargingDust = tag.contains(CHARGING_DUST_TAG)
                 ? ItemStack.parseOptional(registries, tag.getCompound(CHARGING_DUST_TAG))
                 : ItemStack.EMPTY;
-        if (!chargingDust.isEmpty() && !chargingDust.is(ModItems.GLOW_DUST.get())) {
+        if (!chargingDust.isEmpty() && !RechargeableEnergyItem.isRechargeable(chargingDust)) {
             chargingDust = ItemStack.EMPTY;
         }
     }

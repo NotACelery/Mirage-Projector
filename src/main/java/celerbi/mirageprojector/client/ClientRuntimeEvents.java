@@ -11,7 +11,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RenderHandEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
-@EventBusSubscriber(modid = MirageProjector.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = MirageProjector.MOD_ID, value = Dist.CLIENT)
 public final class ClientRuntimeEvents {
     private ClientRuntimeEvents() {
     }
@@ -31,6 +31,12 @@ public final class ClientRuntimeEvents {
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
 
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_TRIPWIRE_BLOCKS) {
+            ClientHeldProjectors.renderVisiblePlayers(
+                    Minecraft.getInstance(),
+                    event.getPoseStack(),
+                    event.getCamera().getPosition(),
+                    0.0F
+            );
             MirageProjectorRenderer.flushDeferredEntityProjections(
                     event.getPoseStack(),
                     event.getCamera().getPosition(),
@@ -39,6 +45,18 @@ public final class ClientRuntimeEvents {
             return;
         }
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+            ClientHeldLanterns.submitVisiblePlayers(
+                    Minecraft.getInstance(),
+                    event.getCamera().getPosition()
+            );
+            ClientShoulderEquipment.submitShoulderLanterns(
+                    Minecraft.getInstance(),
+                    event.getCamera().getPosition()
+            );
+            ClientPlacedLightProjectors.submitNearby(
+                    Minecraft.getInstance(),
+                    event.getCamera().getPosition()
+            );
             ClientDynamicMirageLightManager.tick(
                     Minecraft.getInstance(),
                     event.getCamera().getPosition()
@@ -66,6 +84,10 @@ public final class ClientRuntimeEvents {
         ClientAssetTransport.resetSession();
         ProjectionClearancePreviewRenderer.clear();
         MirageProjectorRenderer.clearDeferredEntityProjections();
+        ClientHeldLanterns.resetSession();
+        ClientHeldProjectors.resetSession();
+        ClientShoulderEquipment.resetSession();
+        ClientPlacedLightProjectors.resetSession();
         ClientDynamicMirageLightManager.resetSession();
         ClientMirageLightSync.resetSession();
     }

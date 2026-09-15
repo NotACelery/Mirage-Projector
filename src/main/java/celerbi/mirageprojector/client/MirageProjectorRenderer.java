@@ -182,6 +182,37 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         ));
     }
 
+    public void renderPortableWarBanner(
+            ItemStack banner,
+            ProjectionSettings settings,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int projectionLight,
+            float yawDegrees,
+            float modelScale,
+            double gameTime
+    ) {
+        if (!(banner.getItem() instanceof BannerItem)) {
+            return;
+        }
+        MultiBufferSource projectionBuffers = ProjectionRenderBuffers.wrap(bufferSource, settings);
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(yawDegrees));
+        renderBannerFace(
+                banner,
+                0.0F,
+                0.0F,
+                0,
+                gameTime,
+                poseStack,
+                projectionBuffers,
+                Math.max(PIXEL, modelScale),
+                projectionLight,
+                null
+        );
+        poseStack.popPose();
+    }
+
     private void renderBannerSource(ProjectionSourceRenderRegistry.RenderContext context) {
         renderProjectedBanners(
                 context.blockEntity(),

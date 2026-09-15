@@ -1,10 +1,12 @@
 package celerbi.mirageprojector.registry;
 
 import celerbi.mirageprojector.MirageProjector;
+import celerbi.mirageprojector.block.ChargingStationBlock;
 import celerbi.mirageprojector.block.CoreBoosterBlock;
 import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
 import celerbi.mirageprojector.block.CryingObsidianLightNodeBlock;
 import celerbi.mirageprojector.block.LegacyImprovedCoreBlock;
+import celerbi.mirageprojector.block.MirageLightProjectorBlock;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.block.ObsidianSpikeBlock;
 import celerbi.mirageprojector.crying.CryingObsidianCrystalStage;
@@ -23,11 +25,27 @@ public final class ModBlocks {
     public static final DeferredBlock<MirageProjectorBlock> TALL_MIRAGE_PROJECTOR = registerProjector("tall_mirage_projector");
     public static final DeferredBlock<MirageProjectorBlock> MIRAGE_FIELD_PROJECTOR = registerProjector("mirage_field_projector");
     public static final DeferredBlock<MirageProjectorBlock> MIRAGE_PRISM = registerProjector("mirage_prism");
+    public static final DeferredBlock<MirageLightProjectorBlock> MIRAGE_LIGHT_PROJECTOR = BLOCKS.register(
+            "mirage_light_projector",
+            () -> new MirageLightProjectorBlock(BlockBehaviour.Properties.of()
+                    .strength(3.5F, 9.0F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion())
+    );
 
 
     public static final DeferredBlock<CoreBoosterBlock> CORE_BOOSTER = BLOCKS.register(
             "core_booster",
             () -> new CoreBoosterBlock(BlockBehaviour.Properties.of()
+                    .strength(3.0F, 9.0F)
+                    .sound(SoundType.GLASS)
+                    .noOcclusion()
+                    .requiresCorrectToolForDrops())
+    );
+
+    public static final DeferredBlock<ChargingStationBlock> CHARGING_STATION = BLOCKS.register(
+            "charging_station",
+            () -> new ChargingStationBlock(BlockBehaviour.Properties.of()
                     .strength(3.0F, 9.0F)
                     .sound(SoundType.GLASS)
                     .noOcclusion()

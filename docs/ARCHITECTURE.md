@@ -1,6 +1,6 @@
-# Architecture — Mirage Projector 1.0.7
+# Architecture — Mirage Projector 1.0.9
 
-This document describes the current 1.0.7 architecture and incremental 1.1 groundwork. Historical implementation notes live under `docs/history/`.
+This document describes the current 1.0.9 architecture and incremental 1.1 groundwork. Historical implementation notes live under `docs/history/`.
 
 ## 1. State ownership
 
@@ -99,6 +99,8 @@ See `ASSET-PIPELINE.md`.
 
 Entity Scan Cards contain frozen projection data rather than a live Entity reference. `EntityScanData` owns captured identity/state while `EntityProjectionState` and `VirtualEquipmentSnapshots` own projector-facing pose/equipment configuration.
 
+1.0.17 adds a higher-level Scan Codex storage boundary. A physical Codex ItemStack carries only `MirageScanCodexId` plus an optional selected scan UUID. Canonical `EntityScanData` roots live in Overworld `ScanCodexSavedData`; browser payloads send metadata summaries only. This keeps large libraries out of routine ItemStack/inventory synchronization and gives the future copy station a server-authoritative `(codex UUID, scan UUID)` lookup contract.
+
 Entity rendering uses conservative bounds shared by preview/clearance/world-culling logic. Passenger/vehicle composites are intentionally rejected until a dedicated relative-transform format exists.
 
 See `ENTITY-AND-SNAPSHOTS.md`.
@@ -132,7 +134,7 @@ max(vanilla, Mirage)
 
 Virtual Mirage light is never fed back into vanilla propagation as a new emitter.
 
-`STATIC_WORLD` and `DYNAMIC_VISUAL` are separate lifecycles. `DYNAMIC_VISUAL` is implemented as a client-local moving-source runtime managed by `ClientDynamicMirageLightManager`; it applies update cadence, camera culling, stale cleanup, render-section invalidation and directional-cone solving without publishing into the server-authoritative static channel. Future lantern/projector consumers submit snapshots into this runtime rather than rebuilding static gameplay-light sections every frame.
+`STATIC_WORLD` and `DYNAMIC_VISUAL` are separate lifecycles. `DYNAMIC_VISUAL` is implemented as a client-local moving-source runtime managed by `ClientDynamicMirageLightManager`; it applies update cadence, camera culling, stale cleanup, render-section invalidation and directional-cone solving without publishing into the server-authoritative static channel. The 1.0.9 Mirage Light Projector is the first placed consumer: clients derive snapshots from synchronized block-entity mode/cell state and submit them into this runtime. 1.0.10 adds the first held consumer: `ClientHeldLanterns` derives stable per-player-hand snapshots from vanilla-tracked player transform plus the held lantern ItemStack summary. 1.0.11 applies the same reconstruction idea to holograms through `ClientHeldProjectors`, which rebuilds temporary projector block entities from tracked held ItemStacks instead of introducing a second portable-projection network path. Both mobile-light and mobile-projection consumers reuse existing runtime boundaries rather than rebuilding static gameplay-light sections every frame.
 
 See `MIRAGE-LIGHT-ENGINE.md`.
 
@@ -155,8 +157,33 @@ The release retains compatibility shims only where old serialized worlds require
 
 Migration IDs are not gameplay products and must not receive recipes, BlockItems or Creative exposure.
 
-## Rechargeable item-energy seam (1.0.7)
+## Rechargeable item-energy seam (1.0.8)
 
-Glow Dust charge is item-owned and persisted independently from fixed-projector Core PU. `GlowDustItem` owns charge storage/mutation/visual state; `GlowDustBeaconCharging` owns Beacon-column charging and attenuation; `CoreBoosterBlockEntity` only hosts one charging cell and ticks the shared rule. This keeps portable charge distinct from `ProjectionCoreProfile` while leaving `ProjectionEnergySource` available for future handheld projector adapters.
+Portable charge remains item-owned and independent from fixed-projector Core PU. `RechargeableEnergyItem` now defines the common capacity/storage/charge-rate contract; `GlowDustItem` and `LightBatteryItem` provide their own media parameters. `GlowDustBeaconCharging` retains the legacy class name for compatibility with the existing light/optics code but now evaluates a generic rechargeable cell. `CoreBoosterBlockEntity` hosts one such cell and ticks the common contract.
 
-Beacon attenuation is shared by server charging eligibility, Crying Obsidian optics and the client custom Beacon renderer. A charging cell subtracts 0.20 absolute transmission rather than multiplying by 0.8, which intentionally makes five active cells the clear-path ceiling.
+The current media are Glow Dust (1000 units, +10 per 10-tick charging pulse) and Light Battery (4000 units, +8 per pulse). Full/default charge may omit its custom charge tag; partial/depleted stacks retain charge in `DataComponents.CUSTOM_DATA`. The old `ChargingGlowDust` block-entity tag is deliberately preserved as a save-compatibility key even though it can now contain either medium. In 1.0.18, fully restored custom Glow Dust normalizes back to vanilla `minecraft:glowstone_dust`; vanilla Glowstone Dust is treated as full energy only when entering a Mirage device and is normalized back to the custom device representation internally. This keeps partial charge out of vanilla crafting/brewing identity while restoring vanilla semantics at 100%.
+
+`MirageLanternItem` is the first portable container for that contract. It serializes the exact installed rechargeable ItemStack inside the lantern ItemStack and mirrors only a small presence/percentage summary for cheap held-device HUD/render decisions. The nested stack remains authoritative for charge consumption/extraction.
+
+Beacon attenuation is shared by server charging eligibility, Crying Obsidian optics and the client custom Beacon renderer. One actively charging cell subtracts 0.20 absolute transmission rather than multiplying by 0.8, which intentionally makes five active cells the clear-path ceiling. `ProjectionEnergySource` remains the future adapter boundary; 1.0.8 does not assign guessed PU or hologram-light values to rechargeable media.
+
+## 12. Mirage player equipment
+
+1.0.13 introduces Mirage-owned shoulder equipment rather than overloading vanilla armor/offhand. In 1.0.18 the persistence boundary is corrected: the player attachment stores only the equipped Shoulder Strap, while the Strap ItemStack owns Shoulder Device, nine potential Battery Pouch positions and three potential upgrade sockets through `DataComponents.CONTAINER`. Six pouch/two upgrade positions are active by default; Expansion activates the remaining three/one. Legacy 14-slot player attachments migrate into the packed Strap on load. Shoulder Device remains capability-driven through `ShoulderMountableDevice`; pouch cells use `RechargeableEnergyItem`, and upgrade uniqueness is enforced through namespaced `ShoulderUpgrade` families.
+
+The server owns slot mutation and mounted-device ticking. Clients receive a compact synchronized shoulder state for inventory presentation, physical shoulder rendering and mounted-light reconstruction; arbitrary normal inventory contents are not exposed. Mirage Hand Projector hologram visibility continues to use its existing device-UUID portable-state publication, avoiding a second hologram sync/render system.
+
+The initial physical mount reserves the right vanilla shoulder while leaving the left available. This reservation is equipment state, not replacement of vanilla shoulder NBT. Optional external equipment-slot bridges may be added later, but Mirage's base equipment contract remains self-contained.
+
+
+## Portable War Banner presentation (1.0.16)
+
+War Banner is a presentation layer on `MirageHandProjectorItem`, not a new projection source or networked entity. Banner source content remains the normalized portable Banner snapshot. The Hand Projector stores Forward/War Banner, Directional/Billboard, bounded size and bounded height in ItemStack custom data already transported by the owner UUID + device UUID portable-state publication.
+
+`ClientHeldProjectors` routes active Banner devices in War Banner mode through a smooth player-relative overhead anchor. The cloth is centered above current pose height; no pole is rendered by this path. Directional facing uses interpolated body yaw. Billboard facing computes horizontal yaw from the banner anchor to the observing camera and never applies camera pitch. `MirageProjectorRenderer` still owns the Banner model/pattern/ghost rendering helper so visual source rendering is shared rather than duplicated.
+
+## Charging Station logistics (1.0.15)
+
+The Charging Station deliberately exposes NeoForge's standard sided `Capabilities.ItemHandler.BLOCK` rather than mod-specific transport hooks. Its block-state `FACING` value is the output/front. Queries from that face receive an extract-only view of the four output slots; the other five directional faces receive an insert-only view of the four input-queue slots. An unsided query receives the same combined policy: insertion targets inputs and extraction targets outputs. The active slot is intentionally not exposed to automation, but remains directly player-accessible through the station menu.
+
+The server tick is a small deterministic pipeline: push one completed output item every eight ticks, move a full active cell to the leftmost compatible output, advance one queued physical item into an empty active slot, then apply a Beacon charging pulse every ten ticks. If the four outputs cannot accept a full cell, the active slot remains occupied and input advancement stops. `BeaconRechargeableCharger` abstracts the active charging stack shared by Core Booster and Charging Station so Beacon transmission/optics no longer hard-code one charger block type.

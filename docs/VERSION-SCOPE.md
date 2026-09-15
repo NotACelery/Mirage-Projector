@@ -1,5 +1,72 @@
 # Version Scope
 
+## 1.0.18 — Massive portable / Shoulder / charging stabilization
+
+1.0.18 advances network protocol to 34 while keeping `ProjectionSettings` format 3. It is a QA-driven stabilization snapshot rather than a new feature family. Mirage Lantern and Hand Projector gain a shared real battery/configuration GUI; Mirage Light Projector gains its own block GUI. Legacy opposite-hand battery service is removed, Lantern Shift+RMB owns the Off/Focus/Flood/Ambient cycle, Hand Projector RMB remains ON/OFF, and battery percentage changes no longer force held-item re-equip animation.
+
+Shoulder Equipment is restructured so the player attachment contains only the equipped Shoulder Strap while the Strap ItemStack itself stores Shoulder Device, battery pouch and upgrades through `DataComponents.CONTAINER`. Legacy 1.0.13–1.0.17 attachment data migrates into the Strap. The inventory panel moves right, reveals only active slots and preserves old devices on the cursor during swaps. The charging/light pass also fixes narrow-cone voxel intersection, moves dynamic source origins outside emitters, restricts Charging Station inputs to incomplete normal media, adds physical station-inventory rendering, normalizes fully recharged custom Glow Dust back to vanilla Glowstone Dust, simplifies player-facing tooltips and makes Scan Codex non-pausing/unblurred.
+
+
+## 1.0.17 — Mirage Scan Codex persistent-library foundation
+
+1.0.17 advances network protocol to 33 while keeping `ProjectionSettings` format 3. It adds `mirage_projector:scan_codex`, a non-stackable physical key to a server-authoritative persistent entity-scan library. Shift + right-click captures canonical frozen `EntityScanData`; repeated captures of the same entity type remain distinct because every stored snapshot keeps its own scan UUID.
+
+The physical Codex stores only a stable Codex UUID plus the selected scan UUID. Full frozen scan roots live in Overworld `SavedData` (`mirage_projector_scan_codices`), while the browser receives metadata summaries only. The browser supports search, All/Favorites/Players/Humanoids/Horses/Other filters, favorites, paging and exact scan selection. 1.0.17 deliberately does not print physical Entity Scan Cards; the selected `(codex UUID, scan UUID)` and `ScanCodexSavedData.copyScanRoot(...)` seam are reserved for the Duplicating Lectern in a later 1.1.0 snapshot.
+
+## 1.0.16 — War Banner portable presentation
+
+1.0.16 advances network protocol to 32 while keeping `ProjectionSettings` format 3. The existing Shoulder Device control payload gains Banner-presentation actions; no second portable-projector state packet is introduced. A Banner-profile Mirage Hand Projector can now switch between normal Forward Projection and a War Banner presentation that renders the holographic banner cloth above the owning player's head even when the active projector is stored in normal inventory.
+
+War Banner defaults to 65% of the same Banner's Forward Projection scale and a +4 px height offset, bounded to 45–80% and 0–12 px. `Directional` follows interpolated player body yaw; `Always Face Viewer` computes a per-observer horizontal billboard yaw while keeping the banner vertical. The mounted-device configuration screen exposes presentation, facing, size and height controls. The device UUID, battery, ON state and profile remain unchanged when presentation is modified. Final positioning/readability QA remains open for 1.1.0 polish.
+
+## 1.0.15 — Dedicated Charging Station / logistics foundation
+
+1.0.15 keeps network protocol 31 and `ProjectionSettings` format 3. It adds `mirage_projector:charging_station`, a horizontal Beacon-powered batch charger with four rechargeable input slots, one player-accessible active slot hard-limited to one cell, and four ordered outputs. The marked output face points toward the placing player, rejects automated insertion, exposes output extraction and pushes one completed item every eight ticks into a compatible adjacent item handler. The other five faces expose insert-only queue access.
+
+Completed cells move to the leftmost compatible output; when all outputs are blocked, the full cell remains in the active slot and queue advancement stops. Charging uses the existing `RechargeableEnergyItem` contract and 0.20 Beacon-transmission attenuation shared with Core Booster charging. The Core Booster material-relay mechanic remains separate.
+
+## 1.0.14 — Shoulder Battery Pouch / upgrade foundation
+
+1.0.14 advances network protocol to 31 while keeping `ProjectionSettings` format 3. The Arm Strap attachment now exposes six purpose-built Battery Pouch slots and two generic shoulder-upgrade sockets. Pouch slots accept only `RechargeableEnergyItem` stacks, preserving full/partial/depleted cell components rather than acting as general storage.
+
+`Auto Battery Swap Patch` atomically replaces a depleted cell in the mounted Lantern/Hand Projector with a charged pouch cell only when the depleted cell can be returned safely. `Battery Pouch Expansion Patch` expands storage from six to nine cells and unlocks a third generic upgrade socket. Duplicate upgrade families are rejected, Expansion cannot be removed while expansion-only slots are occupied, and the Arm Strap cannot be removed while any dependent shoulder content remains. Recipes remain intentionally unfrozen for QA.
+
+## 1.0.13 — Mirage Equipment / Shoulder Slot foundation
+
+1.0.13 advances network protocol to 30 while keeping `ProjectionSettings` format 3. It adds `mirage_projector:arm_strap` plus a Mirage-owned serializable player equipment attachment with dedicated Arm Strap and Shoulder Device slots. The compact inventory extension does not replace armor or offhand space: Arm Strap unlocks the Shoulder Slot, and the slot initially accepts Mirage Lantern and Mirage Hand Projector through the extensible `ShoulderMountableDevice` contract.
+
+Mounted devices continue ticking outside normal inventory/hand slots. Lantern retains its portable light/drain behavior, while Hand Projector retains persistent projection drain and 1.0.12 portable-state publication. The server synchronizes compact shoulder-equipment state for physical shoulder presentation and mounted-light reconstruction. The initial mount reserves the right vanilla shoulder while leaving the left available. Death/keepInventory behavior preserves the real attachment ItemStacks. Final shoulder transform, richer device GUIs, War Banner and cosmetic bird/Parrot skins remain polish/future 1.1 work.
+
+## 1.0.12 — Persistent portable projector state / Creative Battery
+
+1.0.12 advances network protocol to 29 while keeping `ProjectionSettings` format 3. Mirage Hand Projectors now own stable device UUIDs and remain active when moved from a hand into normal player inventory after being explicitly turned ON. Battery drain therefore follows the device ON/OFF state rather than whether the item is currently selected.
+
+Because remote clients cannot inspect arbitrary inventory slots, the server now publishes active portable-projector state by owner UUID + device UUID. Player movement/orientation still comes from vanilla tracking; Mirage only synchronizes portable device state. Clients cache/reconstruct the portable projector through the existing renderer and expire stale entries if publication stops. The new `mirage_projector:creative_battery` implements the normal rechargeable contract with infinite/no-depletion energy for Creative, QA, admin and temporary game-mode use; it has no Survival recipe or loot path. War Banner's final overhead/billboard presentation remains documented for 1.1.0 rather than being rushed into this infrastructure snapshot.
+
+## 1.0.11 — Handheld Mirage Projector / portable copied-profile holograms
+
+1.0.11 keeps protocol 28 and `ProjectionSettings` format 3. It adds `mirage_projector:mirage_hand_projector`, a non-stackable rechargeable handheld hologram projector that stores one exact Glow Dust or Light Battery ItemStack internally plus one compact normalized copy of a placed Mirage Projector profile. Sneak + right-click on a placed Mirage Projector copies the current active source profile; normal right-click toggles the handheld hologram on/off without deleting it; sneak + right-click in air services the removable cell through the opposite hand.
+
+The portable profile preserves the active source family (`Image`, `Item`, `Entity` or `Banner`) but normalizes presentation for moving use: compact chassis, single-source image layout, reduced scale/lift/floating ceilings and opacity capped at 90% so at least 10% ghost remains. Clients reconstruct a temporary projector directly from tracked held ItemStacks plus vanilla player transform and render the hologram in front of the tracked player without adding a custom movement packet. Final handheld self-configuration UI, survival recipe and balance remain open.
+
+## 1.0.10 — Handheld Mirage Lantern / first player-following light consumer
+
+1.0.10 keeps protocol 28 and `ProjectionSettings` format 3. It adds `mirage_projector:mirage_lantern`, a non-stackable handheld Focus/Flood/Ambient/Off emitter that stores one exact Glow Dust or Light Battery ItemStack internally. Sneak + right-click services the removable cell through the opposite hand; normal right-click cycles the shared portable-light mode sequence while powered.
+
+The server drains the installed cell once per second only while the lantern is actually held. Clients derive stable per-player-hand `DYNAMIC_VISUAL` sources from tracked held ItemStacks plus vanilla player position/look state, so local and remote lantern beams move/aim without publishing static chunk light or introducing a dedicated movement packet. A persistent local actionbar shows lantern mode and battery percentage, with depleted/empty state shown as `Discharged` / `Sin Cargar`. Final profile balance and survival recipes remain open.
+
+## 1.0.9 — Physical light projector / first DYNAMIC_VISUAL gameplay consumer
+
+1.0.9 keeps protocol 28 while keeping `ProjectionSettings` format 3. It adds `mirage_projector:mirage_light_projector`, a placed horizontally oriented reflector with one real rechargeable-energy slot. Glow Dust and Light Battery insert through the shared `RechargeableEnergyItem` contract; Shift + right-click returns the exact cell through normal inventory merge semantics.
+
+A loaded projector cycles exactly Focus -> Flood -> Ambient -> Off -> Focus, starting at Focus. Mode/cell state persist and synchronize per block. Clients convert synchronized placed emitters into `DYNAMIC_VISUAL` snapshots; Focus/Flood use directional cones and Ambient uses an omnidirectional local field. The server drains charge once per second using centralized QA values of 4/2/1/0 units for Focus/Flood/Ambient/Off. A depleted cell suspends light without deleting the selected mode. Survival recipe, final handheld/placed light balance, projection-energy PU/Lift and hologram-light values remain open.
+
+## 1.0.8 — Rechargeable energy polish / Light Battery foundation
+
+1.0.8 keeps protocol 28 and `ProjectionSettings` format 3. The 1.0.7 Glow Dust charging path is generalized through `RechargeableEnergyItem`, and the Core Booster charging cradle accepts rechargeable media rather than hard-coding Glow Dust. Glow Dust remains 1000 units at +10 charge per 10-tick pulse. The new Light Battery stores 4000 units at +8 per pulse, giving four times the capacity and roughly five times the empty-to-full charge time (~250 s versus ~50 s).
+
+This snapshot also fixes charging-item extraction so the returned stack can merge with an identical inventory stack, recenters/scales the in-Booster charging render, and exposes the inserted charging medium/percentage through Jade. The Light Battery recipe is intentionally not committed because only the target of about five Glow Dust plus additional materials was recovered. Rechargeable media are not yet assigned guessed projection PU/Lift/light behavior.
+
 ## 1.0.7 — Rechargeable Glow Dust foundation
 
 1.0.7 keeps protocol 28 and `ProjectionSettings` format 3. Glow Dust is now a persistent charge-bearing item with visible depleted/partial state, a Core Booster charging cradle and active Beacon recharge. Each actively charging cell subtracts 20 percentage points from the outgoing beam; on an otherwise clear column the fifth cell is the last one that can receive power. Charging attenuation is shared by the visual Beacon renderer and Crying Obsidian optics. The item has no committed survival recipe yet and no lantern consumes it yet; those progression/device pieces remain part of the 1.1.0 feature set.
@@ -80,10 +147,13 @@ See `WAITLIST-1.2.0.md`.
 
 The following may be developed incrementally across later `1.0.x` snapshots, but the project does not become **1.1.0** until the intended 1.1 feature set is complete enough to ship:
 
-- portable lantern gameplay;
 - rechargeable Glow Dust;
 - portable projectors;
 - Scan Codex;
 - Dragon Egg / End Resonance gameplay.
 
 Direct grab/free rotation remains planned for 1.2.0. Create Blueprint support remains an optional bridge/addon direction rather than a required core feature.
+
+### 1.0.17
+
+Scan Codex persistent-library foundation: physical Codex UUID key, server-side SavedData snapshots, metadata-only searchable/filterable/favoritable browser and exact selected capture identity. Duplicating Lectern remains later 1.1.0 work. Protocol 33; ProjectionSettings format 3.

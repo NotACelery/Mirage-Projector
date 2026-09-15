@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "mirage_projector:item/light_battery_frame",
+    "layer1": "mirage_projector:item/light_battery_charge"
+  }
+}

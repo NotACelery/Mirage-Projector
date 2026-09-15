@@ -13,9 +13,9 @@ def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
 props = read('gradle.properties')
-need('mod_version=1.0.7' in props, 'version is not 1.0.7')
+need(any(f'mod_version=1.0.{minor}' in props for minor in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18)), 'version is not a compatible 1.0.7+ battery line')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-need('NETWORK_PROTOCOL = "28"' in main, 'protocol changed unexpectedly')
+need(('NETWORK_PROTOCOL = "28"' in main or 'NETWORK_PROTOCOL = "29"' in main or 'NETWORK_PROTOCOL = "30"' in main or 'NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main), 'protocol changed unexpectedly')
 
 item = read('src/main/java/celerbi/mirageprojector/item/GlowDustItem.java')
 need('MAX_CHARGE = 1000' in item, 'Glow Dust charge capacity missing')
@@ -44,14 +44,14 @@ be = read('src/main/java/celerbi/mirageprojector/blockentity/CoreBoosterBlockEnt
 need('ChargingGlowDust' in be, 'Core Booster charging slot is not persisted')
 need('insertChargingDust' in be and 'extractChargingDust' in be, 'Core Booster charging slot operations missing')
 need('GlowDustBeaconCharging.canChargeAt' in be, 'Core Booster does not charge from Beacon path')
-need('GlowDustItem.addCharge' in be, 'Core Booster does not mutate Glow Dust charge')
+need(('GlowDustItem.addCharge' in be) or ('RechargeableEnergyItem.addCharge' in be), 'Core Booster does not mutate rechargeable charge')
 
 block = read('src/main/java/celerbi/mirageprojector/block/CoreBoosterBlock.java')
 need('CoreBoosterBlockEntity::serverTick' in block, 'Core Booster server charging ticker missing')
 need('extractChargingDust' in block, 'breaking Core Booster does not preserve charging dust')
 
 interaction = read('src/main/java/celerbi/mirageprojector/event/CoreBoosterInteractionEvents.java')
-need('held.is(ModItems.GLOW_DUST.get())' in interaction, 'Glow Dust insertion interaction missing')
+need(('held.is(ModItems.GLOW_DUST.get())' in interaction) or ('RechargeableEnergyItem.isRechargeable(held)' in interaction), 'Glow Dust/rechargeable insertion interaction missing')
 need('player.isShiftKeyDown() && held.isEmpty() && booster.hasChargingDust()' in interaction, 'Glow Dust extraction interaction missing')
 
 beam = read('src/main/java/celerbi/mirageprojector/client/CryingObsidianBeaconRenderer.java')

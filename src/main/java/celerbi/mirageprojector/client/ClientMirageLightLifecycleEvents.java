@@ -10,7 +10,7 @@ import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /** Client handshake for the authoritative STATIC_WORLD Mirage section mirror. */
-@EventBusSubscriber(modid = MirageProjector.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = MirageProjector.MOD_ID, value = Dist.CLIENT)
 public final class ClientMirageLightLifecycleEvents {
     private ClientMirageLightLifecycleEvents() {
     }

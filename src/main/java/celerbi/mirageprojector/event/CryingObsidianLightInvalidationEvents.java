@@ -27,7 +27,7 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
  * Player placement/breaking, fluid block formation, crop/feature growth, piston paths and explosions all feed
  * the same coalesced queue; a source is still rebuilt at most once for the final tick.
  */
-@EventBusSubscriber(modid = MirageProjector.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = MirageProjector.MOD_ID)
 public final class CryingObsidianLightInvalidationEvents {
     private static final Map<ServerLevel, Set<BlockPos>> PENDING_CHANGES =
             Collections.synchronizedMap(new WeakHashMap<>());

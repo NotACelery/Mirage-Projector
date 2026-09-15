@@ -1,4 +1,4 @@
-# Core Booster and Projector Upgrades — 1.0.0
+# Core Booster and Projector Upgrades — current through 1.0.18
 
 ## Core Booster
 
@@ -19,6 +19,12 @@ An empty Booster accepts one of:
 The loaded material is stored as block/item state. Shift + right-click returns the material. Correctly mined Boosters preserve their loaded material; empty and differently loaded Boosters do not silently merge into one state.
 
 As a projector Core, a loaded Booster maps to the corresponding improved Core profile and provides ×1.50 amplification over the base material output.
+
+### Rechargeable-media cradle
+
+The Booster also has a separate one-cell charging cradle. It accepts supported `RechargeableEnergyItem` media and does not replace the material/Core socket. Current normal media are Glow Dust (1000 units) and Light Battery (4000 units). The historical Booster world interaction remains separate from the 1.0.18 portable-device GUI contract: portable Lantern/Hand Projector batteries are serviced only through their own screens.
+
+A valid live Beacon column charges the inserted cell. An actively charging cell subtracts 0.20 absolute transmission from the outgoing beam; a full cell does not attenuate it. **At 100%, custom rechargeable Glow Dust normalizes back to vanilla `minecraft:glowstone_dust`** so it regains normal vanilla crafting/brewing identity; partial/depleted charge remains represented by the Mirage rechargeable item. The persisted block-entity key remains `ChargingGlowDust` solely for 1.0.7 save compatibility.
 
 ## Beacon / Crying Obsidian identities
 

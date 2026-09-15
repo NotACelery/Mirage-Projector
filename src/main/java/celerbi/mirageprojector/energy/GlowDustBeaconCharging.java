@@ -2,17 +2,17 @@ package celerbi.mirageprojector.energy;
 
 import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
-import celerbi.mirageprojector.item.GlowDustItem;
+import celerbi.mirageprojector.item.RechargeableEnergyItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BeaconBlockEntity;
 
 /**
- * Shared server/client rules for charging Glow Dust from an active Beacon beam.
+ * Shared server/client rules for charging Mirage rechargeable energy media from an active Beacon beam.
  *
- * <p>Every actively charging Dust consumes 20 percentage points of the outgoing
- * beam. A clear beam therefore supports at most five simultaneous charging Dust
+ * <p>Every actively charging cell consumes 20 percentage points of the outgoing
+ * beam. A clear beam therefore supports at most five simultaneous charging
  * cells in one vertical path. Crystal transmission composes with that attenuation.</p>
  */
 public final class GlowDustBeaconCharging {
@@ -28,11 +28,20 @@ public final class GlowDustBeaconCharging {
         return Math.max(0.0F, incoming - TRANSMISSION_COST);
     }
 
+    public static boolean canChargeAt(Level level, BlockPos chargerPos, BeaconRechargeableCharger charger) {
+        return charger != null
+                && charger.activelyConsumesBeaconTransmission()
+                && incomingTransmission(level, chargerPos) > 0.0001F;
+    }
+
+    /** Backward-compatible Core Booster overload retained for historical callers and verifiers. */
     public static boolean canChargeAt(Level level, BlockPos boosterPos, CoreBoosterBlockEntity booster) {
-        return booster != null
-                && booster.hasChargingDust()
-                && !GlowDustItem.isFull(booster.chargingDust())
-                && incomingTransmission(level, boosterPos) > 0.0001F;
+        return canChargeAt(level, boosterPos, (BeaconRechargeableCharger) booster);
+    }
+
+    public static boolean isActiveChargingBlockEntity(net.minecraft.world.level.block.entity.BlockEntity blockEntity) {
+        return blockEntity instanceof BeaconRechargeableCharger charger
+                && charger.activelyConsumesBeaconTransmission();
     }
 
     public static float incomingTransmission(Level level, BlockPos targetPos) {
@@ -49,9 +58,7 @@ public final class GlowDustBeaconCharging {
         for (int y = anchor.pos().getY() + 1; y < targetPos.getY(); y++) {
             BlockPos scanPos = new BlockPos(targetPos.getX(), y, targetPos.getZ());
 
-            if (level.getBlockEntity(scanPos) instanceof CoreBoosterBlockEntity booster
-                    && booster.hasChargingDust()
-                    && !GlowDustItem.isFull(booster.chargingDust())
+            if (isActiveChargingBlockEntity(level.getBlockEntity(scanPos))
                     && transmission > 0.0001F) {
                 transmission = attenuationAfterDust(transmission);
             }

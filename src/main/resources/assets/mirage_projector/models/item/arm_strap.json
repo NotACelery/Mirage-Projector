@@ -1,0 +1,22 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "mirage_projector:item/arm_strap"
+  },
+  "display": {
+    "gui": {
+      "rotation": [0, 0, -12],
+      "scale": [0.92, 0.92, 0.92]
+    },
+    "firstperson_righthand": {
+      "rotation": [0, -90, 20],
+      "translation": [1.13, 3.2, 1.13],
+      "scale": [0.68, 0.68, 0.68]
+    },
+    "firstperson_lefthand": {
+      "rotation": [0, 90, -20],
+      "translation": [1.13, 3.2, 1.13],
+      "scale": [0.68, 0.68, 0.68]
+    }
+  }
+}

@@ -12,9 +12,9 @@ def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
 props = read('gradle.properties')
-need('mod_version=1.0.7' in props, 'version is not 1.0.7')
+need(any(f'mod_version=1.0.{minor}' in props for minor in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18)), 'version is not a compatible 1.0.7+ line')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-need('NETWORK_PROTOCOL = "28"' in main, 'protocol changed unexpectedly')
+need(('NETWORK_PROTOCOL = "28"' in main or 'NETWORK_PROTOCOL = "29"' in main or 'NETWORK_PROTOCOL = "30"' in main or 'NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main), 'protocol changed unexpectedly')
 
 shape = read('src/main/java/celerbi/mirageprojector/light/engine/MirageLightShape.java')
 need('DIRECTIONAL_CONE(true)' in shape, 'directional cone is not runtime-enabled')
@@ -23,7 +23,7 @@ solver = read('src/main/java/celerbi/mirageprojector/light/engine/MirageLightSol
 need('insideShapeEnvelope(profile, origin, nextPos)' in solver, 'solver does not enforce shape envelope')
 need('profile.shape() == MirageLightShape.OMNIDIRECTIONAL' in solver, 'omnidirectional fast path missing')
 need('profile.shape() != MirageLightShape.DIRECTIONAL_CONE' in solver, 'directional cone path missing')
-need('forward.dot(offset.normalize()) >= threshold' in solver, 'cone angular test missing')
+need(('forward.dot(offset.normalize()) >= threshold' in solver) or ('double coneRadius' in solver and 'perpendicularSq <= coneRadius * coneRadius' in solver), 'cone angular/voxel intersection test missing')
 need(solver.index('insideShapeEnvelope(profile, origin, nextPos)') < solver.index('MirageLightEngine.isChunkQueryable(level, nextPos)'),
      'shape filtering must happen before chunk readiness accounting')
 

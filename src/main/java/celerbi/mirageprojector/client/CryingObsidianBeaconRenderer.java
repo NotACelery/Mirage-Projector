@@ -7,7 +7,6 @@ import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
 import celerbi.mirageprojector.crying.BeaconRelayState;
 import celerbi.mirageprojector.crying.CryingObsidianCrystalStage;
 import celerbi.mirageprojector.energy.GlowDustBeaconCharging;
-import celerbi.mirageprojector.item.GlowDustItem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -99,13 +98,12 @@ public final class CryingObsidianBeaconRenderer {
                     relay = relay.apply(material);
                     events.add(ColumnEvent.booster(pos, material));
                 }
-                if (level.getBlockEntity(pos) instanceof CoreBoosterBlockEntity booster
-                        && booster.hasChargingDust()
-                        && !GlowDustItem.isFull(booster.chargingDust())
-                        && transmission > 0.0001F) {
-                    events.add(ColumnEvent.chargingDust(pos));
-                    transmission = GlowDustBeaconCharging.attenuationAfterDust(transmission);
-                }
+            }
+
+            if (GlowDustBeaconCharging.isActiveChargingBlockEntity(level.getBlockEntity(pos))
+                    && transmission > 0.0001F) {
+                events.add(ColumnEvent.chargingDust(pos));
+                transmission = GlowDustBeaconCharging.attenuationAfterDust(transmission);
             }
 
             if (state.getBlock() instanceof CryingObsidianCrystalBlock crystal) {

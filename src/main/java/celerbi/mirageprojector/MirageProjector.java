@@ -2,8 +2,11 @@ package celerbi.mirageprojector;
 
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
 import celerbi.mirageprojector.item.GlowDustItem;
+import celerbi.mirageprojector.item.LightBatteryItem;
 import celerbi.mirageprojector.network.ModNetworking;
+import celerbi.mirageprojector.registry.ModAttachments;
 import celerbi.mirageprojector.registry.ModBlockEntities;
+import celerbi.mirageprojector.registry.ModCapabilities;
 import celerbi.mirageprojector.registry.ModBlocks;
 import celerbi.mirageprojector.registry.ModCreativeTabs;
 import celerbi.mirageprojector.registry.ModItems;
@@ -20,10 +23,11 @@ import org.slf4j.Logger;
 public final class MirageProjector {
     public static final String MOD_ID = "mirage_projector";
 
-    public static final String NETWORK_PROTOCOL = "28";
+    public static final String NETWORK_PROTOCOL = "34";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public MirageProjector(IEventBus modEventBus) {
+        ModAttachments.register(modEventBus);
         ModBlocks.register(modEventBus);
         ModItems.register(modEventBus);
         ModBlockEntities.register(modEventBus);
@@ -32,6 +36,7 @@ public final class MirageProjector {
         ModCreativeTabs.register(modEventBus);
 
         modEventBus.addListener(ModNetworking::registerPayloads);
+        modEventBus.addListener(ModCapabilities::register);
         modEventBus.addListener(this::addCreativeTabContents);
     }
 
@@ -43,7 +48,11 @@ public final class MirageProjector {
             event.accept(ModItems.WIDE_MIRAGE_PROJECTOR.get());
             event.accept(ModItems.TALL_MIRAGE_PROJECTOR.get());
             event.accept(ModItems.MIRAGE_PRISM.get());
+            event.accept(ModItems.MIRAGE_LIGHT_PROJECTOR.get());
+            event.accept(ModItems.MIRAGE_LANTERN.get());
+            event.accept(ModItems.SHOULDER_STRAP.get());
             event.accept(ModItems.CORE_BOOSTER.get());
+            event.accept(ModItems.CHARGING_STATION.get());
             event.accept(CoreBoosterBlockEntity.stackForMaterial(CoreBoosterMaterial.GLASS));
             event.accept(CoreBoosterBlockEntity.stackForMaterial(CoreBoosterMaterial.QUARTZ));
             event.accept(CoreBoosterBlockEntity.stackForMaterial(CoreBoosterMaterial.AMETHYST));
@@ -55,6 +64,8 @@ public final class MirageProjector {
             event.accept(ModItems.CRYING_OBSIDIAN_SHARD.get());
             event.accept(ModItems.GLOW_DUST.get());
             event.accept(GlowDustItem.depletedStack(ModItems.GLOW_DUST.get()));
+            event.accept(ModItems.LIGHT_BATTERY.get());
+            event.accept(LightBatteryItem.depletedStack(ModItems.LIGHT_BATTERY.get()));
         }
         if (event.getTabKey() == CreativeModeTabs.NATURAL_BLOCKS) {
             event.accept(ModItems.SMALL_CRYING_OBSIDIAN_BUD.get());

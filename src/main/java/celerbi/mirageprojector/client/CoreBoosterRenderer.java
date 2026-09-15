@@ -44,10 +44,10 @@ public final class CoreBoosterRenderer implements BlockEntityRenderer<CoreBooste
 
         if (!coreStack.isEmpty()) {
             poseStack.pushPose();
-            poseStack.translate(0.5D, 0.48D + bob, 0.5D);
+            poseStack.translate(0.5D, (glowDust.isEmpty() ? 0.50D : 0.42D) + bob, 0.5D);
             poseStack.mulPose(Axis.YP.rotationDegrees(-rotation));
             poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
-            poseStack.scale(0.27F, 0.27F, 0.27F);
+            poseStack.scale(0.24F, 0.24F, 0.24F);
             Minecraft.getInstance().getItemRenderer().renderStatic(
                     coreStack,
                     ItemDisplayContext.FIXED,
@@ -63,10 +63,12 @@ public final class CoreBoosterRenderer implements BlockEntityRenderer<CoreBooste
 
         if (!glowDust.isEmpty()) {
             poseStack.pushPose();
-            poseStack.translate(0.5D, 0.72D - bob * 0.5D, 0.5D);
-            poseStack.mulPose(Axis.YP.rotationDegrees(rotation * 1.35F));
-            poseStack.mulPose(Axis.XP.rotationDegrees(-28.0F));
-            poseStack.scale(0.20F, 0.20F, 0.20F);
+            poseStack.translate(0.5D, (coreStack.isEmpty() ? 0.50D : 0.61D) - bob * 0.35D, 0.5D);
+            poseStack.mulPose(Axis.YP.rotationDegrees(rotation * 1.20F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F));
+            // The charging medium stays deliberately compact and on the central axis so
+            // generated-item geometry cannot clip through the Booster's inner glass shells.
+            poseStack.scale(0.13F, 0.13F, 0.13F);
             Minecraft.getInstance().getItemRenderer().renderStatic(
                     glowDust,
                     ItemDisplayContext.FIXED,

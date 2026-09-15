@@ -10,7 +10,7 @@ client = read("src/main/java/celerbi/mirageprojector/client/ClientMirageLightSyn
 modnet = read("src/main/java/celerbi/mirageprojector/network/ModNetworking.java")
 main = read("src/main/java/celerbi/mirageprojector/MirageProjector.java")
 
-assert ('NETWORK_PROTOCOL = "27"' in main or 'NETWORK_PROTOCOL = "28"' in main)
+assert ('NETWORK_PROTOCOL = "27"' in main or 'NETWORK_PROTOCOL = "28"' in main or 'NETWORK_PROTOCOL = "29"' in main or 'NETWORK_PROTOCOL = "30"' in main or 'NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main)
 assert 'MirageLightChunkSnapshotPayload' in modnet
 assert 'MirageLightSectionSyncPayload' not in modnet
 assert 'PlayerLoggedInEvent' not in life

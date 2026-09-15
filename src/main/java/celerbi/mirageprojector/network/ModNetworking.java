@@ -106,5 +106,50 @@ public final class ModNetworking {
                 MirageLightChunkRevisionManifestPayload.STREAM_CODEC,
                 MirageLightChunkRevisionManifestPayload::handle
         );
+        registrar.playToClient(
+                PortableProjectorStatePayload.TYPE,
+                PortableProjectorStatePayload.STREAM_CODEC,
+                PortableProjectorStatePayload::handle
+        );
+        registrar.playToServer(
+                ShoulderEquipmentActionPayload.TYPE,
+                ShoulderEquipmentActionPayload.STREAM_CODEC,
+                ShoulderEquipmentActionPayload::handle
+        );
+        registrar.playToClient(
+                ShoulderEquipmentStatePayload.TYPE,
+                ShoulderEquipmentStatePayload.STREAM_CODEC,
+                ShoulderEquipmentStatePayload::handle
+        );
+        registrar.playToClient(
+                ShoulderEquipmentInventoryPayload.TYPE,
+                ShoulderEquipmentInventoryPayload.STREAM_CODEC,
+                ShoulderEquipmentInventoryPayload::handle
+        );
+        registrar.playToClient(
+                OpenScanCodexPayload.TYPE,
+                OpenScanCodexPayload.STREAM_CODEC,
+                OpenScanCodexPayload::handle
+        );
+        registrar.playToServer(
+                ScanCodexActionPayload.TYPE,
+                ScanCodexActionPayload.STREAM_CODEC,
+                ScanCodexActionPayload::handle
+        );
+        registrar.playToServer(
+                OpenPortableDeviceMenuPayload.TYPE,
+                OpenPortableDeviceMenuPayload.STREAM_CODEC,
+                OpenPortableDeviceMenuPayload::handle
+        );
+        registrar.playToServer(
+                PortableDeviceActionPayload.TYPE,
+                PortableDeviceActionPayload.STREAM_CODEC,
+                PortableDeviceActionPayload::handle
+        );
+        registrar.playToServer(
+                LightProjectorActionPayload.TYPE,
+                LightProjectorActionPayload.STREAM_CODEC,
+                LightProjectorActionPayload::handle
+        );
     }
 }

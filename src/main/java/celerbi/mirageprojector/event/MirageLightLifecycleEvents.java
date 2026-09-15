@@ -21,7 +21,7 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
 /**
  * Persistence, chunk lifecycle and player-tracking bridge for authoritative Mirage light.
  */
-@EventBusSubscriber(modid = MirageProjector.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = MirageProjector.MOD_ID)
 public final class MirageLightLifecycleEvents {
     private static final int STALE_SOURCE_AUDIT_TICKS = 20;
     private static final Map<ServerLevel, ChunkLoadBatch> PENDING_LOADED_CHUNKS =

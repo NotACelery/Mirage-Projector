@@ -1,8 +1,10 @@
 package celerbi.mirageprojector.registry;
 
 import celerbi.mirageprojector.MirageProjector;
+import celerbi.mirageprojector.blockentity.ChargingStationBlockEntity;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
 import celerbi.mirageprojector.blockentity.LegacyImprovedCoreBlockEntity;
+import celerbi.mirageprojector.blockentity.MirageLightProjectorBlockEntity;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -26,11 +28,26 @@ public final class ModBlockEntities {
                             ModBlocks.MIRAGE_PRISM.get()
                     ).build(null));
 
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MirageLightProjectorBlockEntity>> MIRAGE_LIGHT_PROJECTOR =
+            BLOCK_ENTITY_TYPES.register("mirage_light_projector", () ->
+                    BlockEntityType.Builder.of(
+                            MirageLightProjectorBlockEntity::new,
+                            ModBlocks.MIRAGE_LIGHT_PROJECTOR.get()
+                    ).build(null));
+
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CoreBoosterBlockEntity>> CORE_BOOSTER =
             BLOCK_ENTITY_TYPES.register("core_booster", () ->
                     BlockEntityType.Builder.of(
                             CoreBoosterBlockEntity::new,
                             ModBlocks.CORE_BOOSTER.get()
+                    ).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ChargingStationBlockEntity>> CHARGING_STATION =
+            BLOCK_ENTITY_TYPES.register("charging_station", () ->
+                    BlockEntityType.Builder.of(
+                            ChargingStationBlockEntity::new,
+                            ModBlocks.CHARGING_STATION.get()
                     ).build(null));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<LegacyImprovedCoreBlockEntity>> LEGACY_IMPROVED_CORE =

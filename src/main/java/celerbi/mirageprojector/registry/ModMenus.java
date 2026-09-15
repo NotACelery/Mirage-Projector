@@ -2,10 +2,13 @@ package celerbi.mirageprojector.registry;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.menu.BannerProjectorMenu;
+import celerbi.mirageprojector.menu.ChargingStationMenu;
 import celerbi.mirageprojector.menu.EntityProjectorMenu;
 import celerbi.mirageprojector.menu.ImageProjectorMenu;
 import celerbi.mirageprojector.menu.ItemProjectorMenu;
 import celerbi.mirageprojector.menu.MirageProjectorMenu;
+import celerbi.mirageprojector.menu.PortableDeviceMenu;
+import celerbi.mirageprojector.menu.MirageLightProjectorMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
@@ -31,6 +34,15 @@ public final class ModMenus {
 
     public static final DeferredHolder<MenuType<?>, MenuType<BannerProjectorMenu>> BANNER_PROJECTOR =
             MENUS.register("banner_projector", () -> IMenuTypeExtension.create(BannerProjectorMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<ChargingStationMenu>> CHARGING_STATION =
+            MENUS.register("charging_station", () -> IMenuTypeExtension.create(ChargingStationMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<PortableDeviceMenu>> PORTABLE_DEVICE =
+            MENUS.register("portable_device", () -> IMenuTypeExtension.create(PortableDeviceMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<MirageLightProjectorMenu>> MIRAGE_LIGHT_PROJECTOR =
+            MENUS.register("mirage_light_projector", () -> IMenuTypeExtension.create(MirageLightProjectorMenu::new));
 
     private ModMenus() {
     }

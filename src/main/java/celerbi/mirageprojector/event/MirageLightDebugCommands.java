@@ -21,7 +21,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 /** Diagnostics for the authoritative Mirage Light Engine. */
-@EventBusSubscriber(modid = MirageProjector.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = MirageProjector.MOD_ID)
 public final class MirageLightDebugCommands {
     private MirageLightDebugCommands() {
     }

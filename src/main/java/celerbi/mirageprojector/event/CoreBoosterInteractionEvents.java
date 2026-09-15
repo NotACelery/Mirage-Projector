@@ -3,8 +3,7 @@ package celerbi.mirageprojector.event;
 import celerbi.mirageprojector.CoreBoosterMaterial;
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
-import celerbi.mirageprojector.item.GlowDustItem;
-import celerbi.mirageprojector.registry.ModItems;
+import celerbi.mirageprojector.item.RechargeableEnergyItem;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
@@ -13,7 +12,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
-@EventBusSubscriber(modid = MirageProjector.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = MirageProjector.MOD_ID)
 public final class CoreBoosterInteractionEvents {
     private CoreBoosterInteractionEvents() {
     }
@@ -27,7 +26,7 @@ public final class CoreBoosterInteractionEvents {
         var player = event.getEntity();
         ItemStack held = event.getItemStack();
 
-        if (!player.isShiftKeyDown() && held.is(ModItems.GLOW_DUST.get())) {
+        if (!player.isShiftKeyDown() && RechargeableEnergyItem.isRechargeable(held)) {
             event.setCancellationResult(InteractionResult.SUCCESS);
             event.setCanceled(true);
             if (event.getLevel().isClientSide) {
@@ -35,18 +34,19 @@ public final class CoreBoosterInteractionEvents {
             }
             if (booster.hasChargingDust()) {
                 player.displayClientMessage(Component.translatable(
-                        "message.mirage_projector.core_booster.glow_dust_occupied"
+                        "message.mirage_projector.core_booster.charging_occupied"
                 ), true);
                 return;
             }
-            int percent = GlowDustItem.chargePercent(held);
+            int percent = RechargeableEnergyItem.chargePercent(held);
+            Component mediumName = held.getHoverName();
             if (booster.insertChargingDust(held)) {
                 if (!player.getAbilities().instabuild) {
                     held.shrink(1);
                 }
                 player.displayClientMessage(Component.translatable(
-                        "message.mirage_projector.core_booster.glow_dust_inserted",
-                        percent
+                        "message.mirage_projector.core_booster.charging_inserted",
+                        mediumName, percent
                 ), true);
             }
             return;
@@ -60,10 +60,14 @@ public final class CoreBoosterInteractionEvents {
             }
             ItemStack returned = booster.extractChargingDust();
             if (!returned.isEmpty()) {
-                player.setItemInHand(event.getHand(), returned);
+                int percent = RechargeableEnergyItem.chargePercent(returned);
+                Component mediumName = returned.getHoverName();
+                if (!player.getInventory().add(returned)) {
+                    player.drop(returned, false);
+                }
                 player.displayClientMessage(Component.translatable(
-                        "message.mirage_projector.core_booster.glow_dust_extracted",
-                        GlowDustItem.chargePercent(returned)
+                        "message.mirage_projector.core_booster.charging_extracted",
+                        mediumName, percent
                 ), true);
             }
             return;

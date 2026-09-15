@@ -1,4 +1,4 @@
-# Core Booster and Projector Upgrades — current through 1.0.18
+# Core Booster and Projector Upgrades — current through 1.0.20
 
 ## Core Booster
 

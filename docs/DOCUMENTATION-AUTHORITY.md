@@ -1,10 +1,10 @@
-# Documentation Authority — Mirage Projector 1.0.18
+# Documentation Authority — Mirage Projector 1.0.20
 
 This file defines which documents describe the current stable product.
 
 ## Current authority
 
-Use these documents for current 1.0.18 behavior and 1.0.x maintenance:
+Use these documents for current 1.0.20 behavior and 1.0.x maintenance:
 
 1. `README.md` — public overview, requirements and feature summary.
 2. `docs/CURRENT-IMPLEMENTATION.md` — canonical runtime behavior.
@@ -40,6 +40,8 @@ Use these documents for current 1.0.18 behavior and 1.0.x maintenance:
 32. `docs/RELEASE-1.0.16-WAR-BANNER.md` — portable overhead War Banner presentation / directional and per-viewer billboard controls.
 33. `docs/RELEASE-1.0.17-SCAN-CODEX.md` — persistent Scan Codex library / metadata browser / exact scan-selection foundation.
 34. `docs/RELEASE-1.0.18-MASSIVE-STABILIZATION.md` — QA-driven portable/Shoulder/Charging/Codex stabilization and GUI contract.
+35. `docs/RELEASE-1.0.19-QA-FOLLOWUP.md` — runtime-QA interaction, GUI, Creative inventory, Charging Station, Codex background and initial visual-light renderer bridge corrections.
+36. `docs/RELEASE-1.0.20-SODIUM-LIGHT-BRIDGE-HOTFIX.md` — Sodium `LevelSlice` crash correction for the packed-light visual bridge.
 
 ## Historical material
 

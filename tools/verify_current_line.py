@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Mirage Projector 1.0.18 regression, stabilization and release suite."""
+"""Run the Mirage Projector 1.0.20 regression, Sodium hotfix and release suite."""
 
 from pathlib import Path
 import subprocess
@@ -42,6 +42,7 @@ SUITE = [
     'verify_1_0_17_scan_codex.py',
     'verify_1_0_18_stabilization.py',
     'verify_1_0_18_integrity_cleanup.py',
+    'verify_1_0_19_qa_followup.py',
     'verify_release_1_0_10.py',
     'verify_release_1_0_11.py',
     'verify_release_1_0_12.py',
@@ -51,6 +52,8 @@ SUITE = [
     'verify_release_1_0_16.py',
     'verify_release_1_0_17.py',
     'verify_release_1_0_18.py',
+    'verify_1_0_20_sodium_light_bridge.py',
+    'verify_release_1_0_20.py',
 ]
 
 for name in SUITE:
@@ -59,4 +62,4 @@ for name in SUITE:
     if code:
         raise SystemExit(code)
 
-print(f'\nMIRAGE PROJECTOR 1.0.18 VERIFICATION PASS ({len(SUITE)} gates)')
+print(f'\nMIRAGE PROJECTOR 1.0.20 VERIFICATION PASS ({len(SUITE)} gates)')

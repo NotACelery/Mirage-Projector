@@ -1,4 +1,4 @@
-# Registry Inventory — Mirage Projector 1.0.18
+# Registry Inventory — Mirage Projector 1.0.20
 
 This file distinguishes active gameplay IDs from compatibility-only IDs.
 
@@ -124,6 +124,10 @@ War Banner adds no registry IDs. It is additional state/render behavior of the e
 - world-global full scan libraries persist through Overworld SavedData file `mirage_projector_scan_codices.dat`;
 - `OpenScanCodexPayload` and `ScanCodexActionPayload` are protocol-33 play payloads.
 
+
+## 1.0.20 registry note
+
+1.0.20 adds no gameplay registry IDs and intentionally keeps network protocol 34. The hotfix changes only the client packed-light query path over the existing 1.0.19 identities; no registry IDs are added or renamed.
 
 ## 1.0.18 registry note
 

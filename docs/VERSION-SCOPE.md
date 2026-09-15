@@ -1,5 +1,13 @@
 # Version Scope
 
+## 1.0.20 — Sodium packed-light bridge hotfix
+
+1.0.20 keeps network protocol 34 and `ProjectionSettings` format 3. It is a focused compatibility hotfix over 1.0.19: `LevelRendererMirageLightMixin` no longer calls `BlockAndTintGetter#getLightEngine()` from the packed-light return hook because Sodium supplies a `LevelSlice` whose light-engine accessor throws `UnsupportedOperationException` during chunk meshing. The bridge now resolves Mirage virtual light from the active client level and preserves the renderer's already-packed sky channel. No gameplay IDs or wire formats change.
+
+## 1.0.19 — Runtime QA follow-up
+
+1.0.19 keeps network protocol 34 and `ProjectionSettings` format 3. It is the direct runtime-QA correction to 1.0.18: Lantern and placed Light Projector use normal RMB for mode cycling and Shift+RMB for their GUIs; custom device/station screens restore item hover tooltips; the compact Lantern screen is shortened; Mirage Equipment initializes in Creative inventory; Charging Station input/output world lanes and Jade active-charge percentage are corrected; Scan Codex explicitly suppresses vanilla `renderBackground` blur/dimming; and the first `LevelRenderer` packed-light bridge merges Mirage virtual block light into terrain vertex light. The existing floor Mirage Light Projector is retained; future visible yaw/pitch aiming, a separate wall light projector, and vanilla-lantern-like ground placement for the handheld Lantern remain 1.1.0 work.
+
 ## 1.0.18 — Massive portable / Shoulder / charging stabilization
 
 1.0.18 advances network protocol to 34 while keeping `ProjectionSettings` format 3. It is a QA-driven stabilization snapshot rather than a new feature family. Mirage Lantern and Hand Projector gain a shared real battery/configuration GUI; Mirage Light Projector gains its own block GUI. Legacy opposite-hand battery service is removed, Lantern Shift+RMB owns the Off/Focus/Flood/Ambient cycle, Hand Projector RMB remains ON/OFF, and battery percentage changes no longer force held-item re-equip animation.

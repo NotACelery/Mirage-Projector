@@ -575,5 +575,6 @@
   "gui.mirage_projector.portable_device.war_banner_facing": "Orientación del estandarte: %s",
   "gui.mirage_projector.portable_device.war_banner_facing.directional": "Direccional",
   "gui.mirage_projector.portable_device.war_banner_facing.billboard": "Siempre hacia el observador",
-  "tooltip.mirage_projector.shoulder_strap_slot_expansion": "Añade 3 ranuras al inventario de la Correa de Hombro"
+  "tooltip.mirage_projector.shoulder_strap_slot_expansion": "Añade 3 ranuras al inventario de la Correa de Hombro",
+  "jade.mirage_projector.charging_station.progress": "%s cargándose: %s%%"
 }

@@ -2,8 +2,10 @@ package celerbi.mirageprojector.compat.jade;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.block.CoreBoosterBlock;
+import celerbi.mirageprojector.block.ChargingStationBlock;
 import celerbi.mirageprojector.block.MirageLightProjectorBlock;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import celerbi.mirageprojector.blockentity.ChargingStationBlockEntity;
 import celerbi.mirageprojector.blockentity.MirageLightProjectorBlockEntity;
 import celerbi.mirageprojector.item.RechargeableEnergyItem;
 import net.minecraft.network.chat.Component;
@@ -27,6 +29,7 @@ public final class CoreBoosterJadePlugin implements IWailaPlugin {
     public void registerClient(IWailaClientRegistration registration) {
         registration.registerBlockComponent(CoreBoosterComponent.INSTANCE, CoreBoosterBlock.class);
         registration.registerBlockComponent(LightProjectorComponent.INSTANCE, MirageLightProjectorBlock.class);
+        registration.registerBlockComponent(ChargingStationComponent.INSTANCE, ChargingStationBlock.class);
     }
 
     private enum LightProjectorComponent implements IBlockComponentProvider {
@@ -52,6 +55,37 @@ public final class CoreBoosterJadePlugin implements IWailaPlugin {
             } else {
                 tooltip.add(Component.translatable("jade.mirage_projector.light_projector.battery_empty"));
             }
+        }
+
+        @Override
+        public ResourceLocation getUid() {
+            return UID;
+        }
+    }
+
+
+    private enum ChargingStationComponent implements IBlockComponentProvider {
+        INSTANCE;
+
+        private static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(
+                MirageProjector.MOD_ID,
+                "charging_station_progress"
+        );
+
+        @Override
+        public void appendTooltip(ITooltip tooltip, BlockAccessor accessor, IPluginConfig config) {
+            if (!(accessor.getBlockEntity() instanceof ChargingStationBlockEntity station)) {
+                return;
+            }
+            var active = station.activeChargingStack();
+            if (active.isEmpty()) {
+                return;
+            }
+            tooltip.add(Component.translatable(
+                    "jade.mirage_projector.charging_station.progress",
+                    active.getHoverName(),
+                    RechargeableEnergyItem.chargePercent(active)
+            ));
         }
 
         @Override

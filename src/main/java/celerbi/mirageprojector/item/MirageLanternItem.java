@@ -151,18 +151,18 @@ public final class MirageLanternItem extends Item implements ShoulderRechargeabl
         }
 
         if (player.isShiftKeyDown()) {
-            PortableLightMode next = mode(lantern).next();
-            setMode(lantern, next);
-            player.displayClientMessage(Component.translatable(next.hudTranslationKey()), true);
+            if (player instanceof ServerPlayer serverPlayer) {
+                PortableDeviceMenu.open(
+                        serverPlayer,
+                        hand == InteractionHand.MAIN_HAND ? PortableDeviceSource.MAIN_HAND : PortableDeviceSource.OFF_HAND
+                );
+            }
             return InteractionResultHolder.sidedSuccess(lantern, false);
         }
 
-        if (player instanceof ServerPlayer serverPlayer) {
-            PortableDeviceMenu.open(
-                    serverPlayer,
-                    hand == InteractionHand.MAIN_HAND ? PortableDeviceSource.MAIN_HAND : PortableDeviceSource.OFF_HAND
-            );
-        }
+        PortableLightMode next = mode(lantern).next();
+        setMode(lantern, next);
+        player.displayClientMessage(Component.translatable(next.hudTranslationKey()), true);
         return InteractionResultHolder.sidedSuccess(lantern, false);
     }
 

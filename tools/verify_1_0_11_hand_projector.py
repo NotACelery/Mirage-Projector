@@ -18,8 +18,8 @@ def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding='utf-8')
 
 props = read('gradle.properties')
-stabilized_1018 = 'mod_version=1.0.18' in props
-need(any(f'mod_version=1.0.{minor}' in props for minor in (11, 12, 13, 14, 15, 16, 17, 18)), 'gradle.properties is not a compatible 1.0.11+ line')
+stabilized_1018 = any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20'))
+need(any(f'mod_version=1.0.{minor}' in props for minor in (11, 12, 13, 14, 15, 16, 17, 18, 19, 20)), 'gradle.properties is not a compatible 1.0.11+ line')
 
 items = read('src/main/java/celerbi/mirageprojector/registry/ModItems.java')
 need('MIRAGE_HAND_PROJECTOR' in items, 'Mirage Hand Projector is not registered')

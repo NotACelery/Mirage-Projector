@@ -119,6 +119,11 @@ public final class ScanCodexScreen extends Screen {
     }
 
     @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Inventory-like screen: keep the live world visible and sharp behind the Codex.
+    }
+
+    @Override
     public boolean isPauseScreen() {
         return false;
     }

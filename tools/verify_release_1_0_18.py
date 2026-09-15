@@ -48,7 +48,7 @@ def load_json_no_duplicates(path: Path):
 
 # Release metadata / platform baseline.
 props = read('gradle.properties')
-need('mod_version=1.0.18' in props, 'gradle.properties is not 1.0.18')
+need(any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20')), 'gradle.properties is not a compatible 1.0.18+ line')
 need('minecraft_version=1.21.1' in props, 'Minecraft baseline changed')
 need('neo_version=21.1.244' in props, 'NeoForge baseline changed')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
@@ -414,13 +414,13 @@ current_impl = read('docs/CURRENT-IMPLEMENTATION.md')
 roadmap = read('docs/ROADMAP.md')
 development = read('docs/DEVELOPMENT.md')
 authority = read('docs/DOCUMENTATION-AUTHORITY.md')
-need('Mirage Projector 1.0.18' in current_impl and 'Network protocol: **34**' in current_impl,
-     'current implementation authority is not on 1.0.18/protocol 34')
-need('Current implementation snapshot: **1.0.18**' in roadmap, 'roadmap current snapshot is not 1.0.18')
-need('Current maintenance baseline: **1.0.18**' in development and 'Network protocol: **34**' in development,
-     'development guide baseline is not 1.0.18/protocol 34')
-need('Documentation Authority — Mirage Projector 1.0.18' in authority,
-     'documentation authority heading is not 1.0.18')
+need(('Mirage Projector 1.0.18' in current_impl or 'Mirage Projector 1.0.19' in current_impl or 'Mirage Projector 1.0.20' in current_impl) and 'Network protocol: **34**' in current_impl,
+     'current implementation authority is not on a compatible protocol-34 line')
+need(('Current implementation snapshot: **1.0.18**' in roadmap or 'Current implementation snapshot: **1.0.19**' in roadmap or 'Current implementation snapshot: **1.0.20**' in roadmap), 'roadmap current snapshot is not a compatible 1.0.18+ line')
+need(('Current maintenance baseline: **1.0.18**' in development or 'Current maintenance baseline: **1.0.19**' in development or 'Current maintenance baseline: **1.0.20**' in development) and 'Network protocol: **34**' in development,
+     'development guide baseline is not a compatible protocol-34 line')
+need(('Documentation Authority — Mirage Projector 1.0.18' in authority or 'Documentation Authority — Mirage Projector 1.0.19' in authority or 'Documentation Authority — Mirage Projector 1.0.20' in authority),
+     'documentation authority heading is not a compatible 1.0.18+ line')
 
 portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')
 portable_screen = read('src/main/java/celerbi/mirageprojector/client/PortableDeviceScreen.java')
@@ -433,7 +433,7 @@ need('CYCLE_LANTERN_MODE' in portable_screen and 'toggle_projection' in portable
 need('DataComponents.CONTAINER' in strap_container, 'Shoulder Strap does not own packed inventory')
 need('INPUT_COUNT' in station_renderer and 'OUTPUT_COUNT' in station_renderer,
      'Charging Station inventory renderer missing')
-need('isPauseScreen()' in scan_screen and 'return false;' in scan_screen and 'renderBackground(' not in scan_screen,
+need('isPauseScreen()' in scan_screen and 'return false;' in scan_screen and 'public void renderBackground' in scan_screen and 'applyBlur' not in scan_screen,
      'Scan Codex inventory-like no-pause/no-blur contract missing')
 
 # 1.0.18 integrity cleanup removes the deprecated explicit EventBusSubscriber.Bus selector.

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.20 — Sodium packed-light bridge hotfix
+
+- Fixes a runtime crash while Sodium compiles chunk meshes after the 1.0.19 visual-light bridge.
+- `LevelRendererMirageLightMixin` no longer calls `BlockAndTintGetter#getLightEngine()` because Sodium supplies a `LevelSlice` whose light-engine accessor intentionally throws `UnsupportedOperationException`.
+- The client-only packed-light bridge now resolves Mirage virtual light from the active `ClientLevel`, while preserving the vanilla packed sky-light channel from the renderer query.
+- Network protocol remains 34 and `ProjectionSettings` format remains 3. No gameplay IDs or wire formats changed.
+
+## 1.0.19 — Runtime QA follow-up
+
+- Corrected Mirage Lantern controls to normal RMB mode cycling and Shift+RMB GUI opening; battery service remains GUI-only.
+- Corrected placed Mirage Light Projector controls to normal RMB mode cycling and Shift+RMB GUI opening.
+- Added the packed-light LevelRenderer bridge required for virtual Mirage light to affect rendered terrain vertices, while preserving vanilla sky light.
+- Added explicit item hover tooltips to Portable Device, Mirage Light Projector and Charging Station screens and compacted the Lantern screen to remove excess vertical space/title overlap.
+- Enabled the Mirage Equipment panel in Creative inventory in addition to Survival inventory.
+- Corrected Charging Station in-world input/output stack lane placement and added Jade active-cell name + charge percentage feedback.
+- Scan Codex now overrides vanilla `renderBackground(...)` as a no-op, closing the runtime blur regression while remaining non-pausing.
+- Kept the existing floor Mirage Light Projector as an accepted device and documented later visible yaw/pitch aiming, separate wall-light hardware and vanilla-lantern-like handheld ground placement as remaining 1.1.0 work.
+- Network protocol remains 34; `ProjectionSettings` remains format 3.
+
 ## 1.0.18 — Massive stabilization
 
 - Added real battery/configuration GUIs for Mirage Lantern, Mirage Hand Projector and Mirage Light Projector; legacy quick/opposite-hand battery service is removed.

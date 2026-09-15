@@ -17,7 +17,7 @@ def read(rel):
 props = read('gradle.properties')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 settings = read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
-need('mod_version=1.0.18' in props, 'version is not 1.0.18')
+need(any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20')), 'version is not a compatible 1.0.18+ line')
 need('NETWORK_PROTOCOL = "34"' in main, '1.0.18 network protocol is not 34')
 need('SERIALIZATION_VERSION = 3' in settings, 'ProjectionSettings format changed from 3')
 
@@ -43,8 +43,8 @@ need('CYCLE_BANNER_PRESENTATION' in portable_action and 'WAR_BANNER_SIZE_UP' in 
 lantern = read('src/main/java/celerbi/mirageprojector/item/MirageLanternItem.java')
 need('return PortableLightMode.OFF;' in lantern, 'Lantern default is not OFF')
 need('player.isShiftKeyDown()' in lantern and 'mode(lantern).next()' in lantern,
-     'Lantern Shift+RMB mode cycle missing')
-need('PortableDeviceMenu.open' in lantern, 'Lantern RMB does not open its GUI')
+     'Lantern retains GUI/mode interaction paths')
+need('PortableDeviceMenu.open' in lantern, 'Lantern portable GUI path missing')
 need('replaceEnergyCell' in lantern, 'Lantern GUI battery replacement hook missing')
 need('serviceCell' not in lantern, 'Lantern still exposes legacy opposite-hand battery service')
 need('shouldCauseReequipAnimation' in lantern and 'slotChanged || oldStack.getItem() != newStack.getItem()' in lantern,
@@ -74,7 +74,7 @@ need('MIRAGE_LIGHT_PROJECTOR' in menus and 'MirageLightProjectorMenu' in menus, 
 need('ModMenus.MIRAGE_LIGHT_PROJECTOR.get(), MirageLightProjectorScreen::new' in client_events,
      'Light Projector screen is not registered')
 need('LightProjectorActionPayload.TYPE' in network, 'Light Projector action payload is not registered')
-need('openMenu(projector' in light_interaction, 'Light Projector RMB does not open GUI')
+need('openMenu(projector' in light_interaction and 'projector.cycleMode()' in light_interaction, 'Light Projector GUI/mode paths missing')
 need('implements MenuProvider' in light_be and 'new MirageLightProjectorMenu' in light_be,
      'Light Projector block entity is not a menu provider')
 need('RechargeableEnergyItem.isRechargeable(stack)' in light_menu, 'Light Projector GUI battery slot is not rechargeable-only')
@@ -101,9 +101,9 @@ need('player.containerMenu.setCarried(installed.copy())' in shoulder_runtime,
 equipment_client = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentClientEvents.java')
 panel = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentPanelWidget.java')
 slot_widget = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentSlotWidget.java')
-need('panelX = guiLeft + 180' in equipment_client, 'Mirage Equipment panel is not on the right side')
-need('toggleX = guiLeft + 156' in equipment_client and 'toggleY = guiTop + 61' in equipment_client,
-     'Mirage Equipment toggle is not anchored below crafting result')
+need(('panelX = guiLeft + 180' in equipment_client or 'creative ? 200 : 180' in equipment_client), 'Mirage Equipment panel is not on the right side')
+need((('toggleX = guiLeft + 156' in equipment_client and 'toggleY = guiTop + 61' in equipment_client) or ('creative ? 178 : 156' in equipment_client and 'creative ? 8 : 61' in equipment_client)),
+     'Mirage Equipment toggle placement contract missing')
 need('if (!strapPresent)' in equipment_client and 'return;' in equipment_client,
      'empty Mirage Equipment panel does not collapse to Strap-only')
 need('localActiveBatterySlots()' in equipment_client and 'localActiveUpgradeSlots()' in equipment_client,
@@ -174,7 +174,7 @@ need('direction.scale(0.72D)' in placed_lights, 'placed Light Projector source s
 codex = read('src/main/java/celerbi/mirageprojector/client/ScanCodexScreen.java')
 need('public boolean isPauseScreen()' in codex and 'return false;' in codex,
      'Scan Codex still pauses singleplayer')
-need('renderBackground(' not in codex, 'Scan Codex still invokes vanilla blurred/dim background')
+need('public void renderBackground' in codex and 'applyBlur' not in codex, 'Scan Codex no-op blurred/dim background override missing')
 
 # User-facing naming/upgrade polish.
 items = read('src/main/java/celerbi/mirageprojector/registry/ModItems.java')

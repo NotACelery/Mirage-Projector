@@ -9,7 +9,8 @@
     "client.LivingEntityRendererMixin",
     "client.ItemInHandRendererMixin",
     "client.BeaconRendererMixin",
-    "client.RenderChunkRegionMirageLightMixin"
+    "client.RenderChunkRegionMirageLightMixin",
+    "client.LevelRendererMirageLightMixin"
   ],
   "injectors": {
     "defaultRequire": 1

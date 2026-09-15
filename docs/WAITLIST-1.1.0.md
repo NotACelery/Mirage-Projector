@@ -2,7 +2,7 @@
 
 1.1.0 is intentionally a large expansion. It grows Mirage from fixed projectors into a portable illumination/capture/projection ecosystem.
 
-## 1.1.0 delivery map after the 1.0.18 stabilization audit
+## 1.1.0 delivery map after the 1.0.19 QA follow-up
 
 ### Already delivered as 1.0.x foundations
 
@@ -29,6 +29,7 @@
 - optional shoulder-device cosmetic skin support / first bird disguise;
 - **delivered in 1.0.17 foundation:** Mirage Scan Codex persistent library, search/filters/favorites and exact capture selection; final recipe/art/QA remain;
 - **delivered in 1.0.18 stabilization:** device GUIs, packed Shoulder Strap inventory/migration, dynamic-light angle fix, Charging Station input/UI/render polish, Glow Dust full-charge normalization and non-pausing Codex UX;
+- **delivered in 1.0.19 QA follow-up:** corrected Lantern/Light Projector gestures, device/station hover tooltips, compact Lantern GUI, Creative Mirage Equipment visibility, Charging Station lane/Jade progress, explicit Codex no-blur override and the final packed-light visual bridge for DYNAMIC_VISUAL terrain rendering;
 - Duplicating Lectern / physical scan-copy workflow;
 - horizontal/table projector and wall/data-show projector families;
 - final source/chassis capability enumeration and portable/wall/table anchor semantics;
@@ -529,3 +530,10 @@ Fallback candidate if the preferred line feels too explicit during final release
 
 Do **not** add a normal changelog bullet explicitly describing End Resonance unless the feature is intentionally declassified later.
 
+
+### Physical illumination projector follow-up
+
+- Keep the existing floor-standing `Mirage Light Projector`; it was not part of the original lantern-on-ground request, but is now an accepted device.
+- Its lamp head should later gain visible horizontal rotation + vertical tilt so players can aim the beam at a chosen point/direction.
+- A true wall-mounted light projector remains a separate pending 1.1.0 chassis/device; the floor model does not replace it.
+- The handheld Mirage Lantern should still eventually support being placed temporarily as a vanilla-lantern-like portable beacon without turning into the wall projector.

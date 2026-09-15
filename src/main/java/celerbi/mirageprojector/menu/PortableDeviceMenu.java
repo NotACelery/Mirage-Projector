@@ -21,12 +21,14 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
     public static final int BATTERY_X = 31;
     public static final int BATTERY_Y = 48;
     public static final int PLAYER_INV_X = 17;
-    public static final int PLAYER_INV_Y = 190;
+    public static final int COMPACT_PLAYER_INV_Y = 100;
+    public static final int PROJECTOR_PLAYER_INV_Y = 190;
     public static final int MACHINE_SLOT_COUNT = 1;
 
     private final Inventory playerInventory;
     private final PortableDeviceSource source;
     private final DeviceBatteryContainer battery;
+    private final int playerInvY;
 
     public PortableDeviceMenu(int containerId, Inventory inventory, RegistryFriendlyByteBuf buffer) {
         this(containerId, inventory, PortableDeviceSource.byOrdinal(buffer.readVarInt()));
@@ -36,6 +38,10 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
         super(ModMenus.PORTABLE_DEVICE.get(), containerId);
         this.playerInventory = inventory;
         this.source = source == null ? PortableDeviceSource.MAIN_HAND : source;
+        ItemStack device = this.source.resolve(inventory.player);
+        this.playerInvY = device.getItem() instanceof MirageHandProjectorItem
+                ? PROJECTOR_PLAYER_INV_Y
+                : COMPACT_PLAYER_INV_Y;
         this.battery = new DeviceBatteryContainer(inventory.player, this.source);
         addSlot(new Slot(battery, 0, BATTERY_X, BATTERY_Y) {
             @Override
@@ -53,6 +59,14 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
 
     public PortableDeviceSource source() {
         return source;
+    }
+
+    public int playerInvY() {
+        return playerInvY;
+    }
+
+    public boolean projectorLayout() {
+        return playerInvY == PROJECTOR_PLAYER_INV_Y;
     }
 
     public ItemStack batteryStack() {
@@ -80,11 +94,11 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(inventory, col + row * 9 + 9,
-                        PLAYER_INV_X + col * 18, PLAYER_INV_Y + row * 18));
+                        PLAYER_INV_X + col * 18, playerInvY + row * 18));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(inventory, col, PLAYER_INV_X + col * 18, PLAYER_INV_Y + 58));
+            addSlot(new Slot(inventory, col, PLAYER_INV_X + col * 18, playerInvY + 58));
         }
     }
 

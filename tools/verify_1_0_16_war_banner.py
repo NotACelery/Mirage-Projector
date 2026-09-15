@@ -13,8 +13,8 @@ def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
 props = read('gradle.properties')
-stabilized_1018 = 'mod_version=1.0.18' in props
-need(('mod_version=1.0.16' in props or 'mod_version=1.0.17' in props or 'mod_version=1.0.18' in props), 'version is not a compatible 1.0.16+ line')
+stabilized_1018 = any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20'))
+need(('mod_version=1.0.16' in props or 'mod_version=1.0.17' in props or 'mod_version=1.0.18' in props or 'mod_version=1.0.19' in props or 'mod_version=1.0.20' in props), 'version is not a compatible 1.0.16+ line')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 need(('NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main), '1.0.16+ War Banner protocol baseline missing')
 

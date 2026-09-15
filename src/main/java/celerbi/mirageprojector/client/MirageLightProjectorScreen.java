@@ -52,6 +52,12 @@ public final class MirageLightProjectorScreen extends AbstractContainerScreen<Mi
         graphics.drawString(font, Component.translatable("container.inventory"), inventoryLabelX, inventoryLabelY, 0xFFBEB8C8, false);
     }
 
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
+        renderTooltip(graphics, mouseX, mouseY);
+    }
+
     private static void slot(GuiGraphics graphics, int x, int y, int border) {
         graphics.fill(x,y,x+18,y+18,border); graphics.fill(x+1,y+1,x+17,y+17,0xFF171A20);
     }

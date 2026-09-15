@@ -48,11 +48,11 @@ def load_json_no_duplicates(path: Path):
 
 # Release metadata / platform baseline.
 props = read('gradle.properties')
-need(('mod_version=1.0.14' in props or 'mod_version=1.0.15' in props or 'mod_version=1.0.16' in props or 'mod_version=1.0.17' in props or 'mod_version=1.0.18' in props or 'mod_version=1.0.19' in props or 'mod_version=1.0.20' in props), 'gradle.properties is not a compatible 1.0.14+ line')
+need(any(v in props for v in ('mod_version=1.0.19', 'mod_version=1.0.20')), 'gradle.properties is not a compatible 1.0.19+ line')
 need('minecraft_version=1.21.1' in props, 'Minecraft baseline changed')
 need('neo_version=21.1.244' in props, 'NeoForge baseline changed')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-need(('NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main), 'network protocol is not a compatible 1.0.14+ value')
+need('NETWORK_PROTOCOL = "34"' in main, 'network protocol is not 34')
 mods_toml = read('src/main/templates/META-INF/neoforge.mods.toml')
 need('version="${mod_version}"' in mods_toml, 'NeoForge metadata is not wired to mod_version')
 need('logoFile="logo.png"' in mods_toml, 'NeoForge metadata logo missing')
@@ -112,8 +112,8 @@ block_ids |= set(re.findall(r'BLOCKS\.register\(\s*"([a-z0-9_]+)"', blocks_text)
 item_ids = set(re.findall(r'ITEMS\.registerSimpleBlockItem\("([a-z0-9_]+)"', items_text))
 item_ids |= set(re.findall(r'ITEMS\.registerSimpleItem\("([a-z0-9_]+)"', items_text))
 item_ids |= set(re.findall(r'ITEMS\.register\("([a-z0-9_]+)"', items_text))
-need(len(block_ids) >= 19, f'expected at least 19 registered blocks, got {len(block_ids)}')
-need(len(item_ids) >= 24, f'expected at least 24 registered items, got {len(item_ids)}')
+need(len(block_ids) == 20, f'expected 20 registered blocks, got {len(block_ids)}')
+need(len(item_ids) == 26, f'expected 26 registered items, got {len(item_ids)}')
 need('mirage_lantern' in item_ids, 'Mirage Lantern item registry ID missing')
 need('mirage_hand_projector' in item_ids, 'Mirage Hand Projector item registry ID missing')
 need((MODELS / 'item/mirage_lantern.json').exists(), 'Mirage Lantern item model missing')
@@ -362,7 +362,8 @@ for base in release_text_roots:
         if path.suffix in {'.java', '.json', '.py', '.toml'}:
             need('\t' not in text, f'tab character in release-facing text: {path.relative_to(ROOT)}')
 
-# 1.0.14 shoulder pouch / upgrade release surface.
+# 1.0.14 shoulder pouch / upgrade release surface retained.
+
 need('AUTO_BATTERY_SWAP_PATCH' in items_text, 'Auto Battery Swap Patch registry entry missing')
 need(('SHOULDER_STRAP_SLOT_EXPANSION' in items_text) or ('BATTERY_POUCH_EXPANSION_PATCH' in items_text), 'Shoulder Strap Slot Expansion registry contract missing')
 need((MODELS / 'item/auto_battery_swap_patch.json').exists(), 'Auto Battery Swap Patch model missing')
@@ -371,17 +372,96 @@ need((RES / 'assets/mirage_projector/textures/item/auto_battery_swap_patch.png')
 need((RES / 'assets/mirage_projector/textures/item/battery_pouch_expansion_patch.png').exists(), 'Battery Pouch Expansion Patch texture missing')
 need((DOCS / 'RELEASE-1.0.14-SHOULDER-BATTERY-POUCH.md').exists(), '1.0.14 release note missing')
 
-# Non-blocking deprecation note for existing NeoForge annotations.
+
+# 1.0.15 dedicated Charging Station release surface.
+need('charging_station' in block_ids, 'Charging Station block registry ID missing')
+need('charging_station' in item_ids, 'Charging Station item registry ID missing')
+need((MODELS / 'block/charging_station.json').exists(), 'Charging Station block model missing')
+need((MODELS / 'item/charging_station.json').exists(), 'Charging Station item model missing')
+need((RES / 'assets/mirage_projector/blockstates/charging_station.json').exists(), 'Charging Station blockstate missing')
+need((RES / 'assets/mirage_projector/textures/block/charging_station_output.png').exists(), 'Charging Station output texture missing')
+need((RES / 'data/mirage_projector/loot_table/blocks/charging_station.json').exists(), 'Charging Station loot table missing')
+need((DOCS / 'RELEASE-1.0.15-CHARGING-STATION.md').exists(), '1.0.15 release note missing')
+
+
+# 1.0.16 War Banner release surface.
+hand_projector = read('src/main/java/celerbi/mirageprojector/item/MirageHandProjectorItem.java')
+held_projectors = read('src/main/java/celerbi/mirageprojector/client/ClientHeldProjectors.java')
+shoulder_control = read('src/main/java/celerbi/mirageprojector/network/PortableDeviceActionPayload.java') if (ROOT / 'src/main/java/celerbi/mirageprojector/network/PortableDeviceActionPayload.java').exists() else read('src/main/java/celerbi/mirageprojector/network/ShoulderDeviceControlPayload.java')
+need('MirageHandProjectorBannerPresentation' in hand_projector, 'War Banner presentation state missing')
+need('WarBannerFacing' in hand_projector and 'BILLBOARD' in hand_projector, 'War Banner facing state missing')
+need('renderWarBanner' in held_projectors, 'War Banner client route missing')
+need('CYCLE_BANNER_PRESENTATION' in shoulder_control, 'War Banner control payload actions missing')
+need((DOCS / 'RELEASE-1.0.16-WAR-BANNER.md').exists(), '1.0.16 release note missing')
+
+
+# 1.0.17 Scan Codex release surface.
+need('scan_codex' in item_ids, 'Scan Codex registry ID missing')
+need((MODELS / 'item/scan_codex.json').exists(), 'Scan Codex item model missing')
+scan_codex_item = read('src/main/java/celerbi/mirageprojector/item/ScanCodexItem.java')
+scan_codex_data = read('src/main/java/celerbi/mirageprojector/scan/ScanCodexSavedData.java')
+scan_codex_screen = read('src/main/java/celerbi/mirageprojector/client/ScanCodexScreen.java')
+need('MirageScanCodexId' in scan_codex_item and 'MirageScanCodexSelected' in scan_codex_item, 'Codex ItemStack identity/selection state missing')
+need('extends SavedData' in scan_codex_data and 'copyScanRoot' in scan_codex_data, 'server-backed Codex SavedData missing')
+need('EditBox' in scan_codex_screen and 'TOGGLE_FAVORITE' in scan_codex_screen, 'Codex searchable/favorite browser missing')
+need('OpenScanCodexPayload.TYPE' in network and 'ScanCodexActionPayload.TYPE' in network, 'Codex payload registration missing')
+need((DOCS / 'RELEASE-1.0.17-SCAN-CODEX.md').exists(), '1.0.17 release note missing')
+
+# 1.0.18 massive-stabilization release surface.
+need((DOCS / 'RELEASE-1.0.18-MASSIVE-STABILIZATION.md').exists(), '1.0.18 release note missing')
+need((DOCS / 'history/handoffs/NEXT-CHAT-HANDOFF-1.0.18-STABILIZATION.md').exists(), '1.0.18 handoff missing')
+current_impl = read('docs/CURRENT-IMPLEMENTATION.md')
+roadmap = read('docs/ROADMAP.md')
+development = read('docs/DEVELOPMENT.md')
+authority = read('docs/DOCUMENTATION-AUTHORITY.md')
+need('Mirage Projector 1.0.19' in current_impl and 'Network protocol: **34**' in current_impl,
+     'current implementation authority is not on 1.0.19/protocol 34')
+need('Current implementation snapshot: **1.0.19**' in roadmap, 'roadmap current snapshot is not 1.0.19')
+need('Current maintenance baseline: **1.0.19**' in development and 'Network protocol: **34**' in development,
+     'development guide baseline is not 1.0.19/protocol 34')
+need('Documentation Authority — Mirage Projector 1.0.19' in authority,
+     'documentation authority heading is not 1.0.19')
+
+portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')
+portable_screen = read('src/main/java/celerbi/mirageprojector/client/PortableDeviceScreen.java')
+strap_container = read('src/main/java/celerbi/mirageprojector/equipment/ShoulderStrapContainer.java')
+station_renderer = read('src/main/java/celerbi/mirageprojector/client/ChargingStationRenderer.java')
+scan_screen = read('src/main/java/celerbi/mirageprojector/client/ScanCodexScreen.java')
+need('RechargeableEnergyItem.isRechargeable(stack)' in portable_menu, 'portable GUI battery slot contract missing')
+need('CYCLE_LANTERN_MODE' in portable_screen and 'toggle_projection' in portable_screen,
+     'portable configuration screen controls missing')
+need('DataComponents.CONTAINER' in strap_container, 'Shoulder Strap does not own packed inventory')
+need('INPUT_COUNT' in station_renderer and 'OUTPUT_COUNT' in station_renderer,
+     'Charging Station inventory renderer missing')
+need('isPauseScreen()' in scan_screen and 'return false;' in scan_screen and 'public void renderBackground' in scan_screen and 'applyBlur' not in scan_screen,
+     'Scan Codex inventory-like no-pause/no-blur contract missing')
+
+# 1.0.19 QA follow-up release surface.
+need((DOCS / 'RELEASE-1.0.19-QA-FOLLOWUP.md').exists(), '1.0.19 release note missing')
+need((DOCS / 'history/handoffs/NEXT-CHAT-HANDOFF-1.0.19-QA-FOLLOWUP.md').exists(), '1.0.19 handoff missing')
+qa19 = ROOT / 'tools/verify_1_0_19_qa_followup.py'
+need(qa19.exists(), '1.0.19 QA follow-up verifier missing')
+level_renderer_mixin = SRC / 'celerbi/mirageprojector/mixin/client/LevelRendererMirageLightMixin.java'
+need(level_renderer_mixin.exists(), 'LevelRenderer Mirage visual-light bridge missing')
+if level_renderer_mixin.exists():
+    bridge = level_renderer_mixin.read_text(encoding='utf-8')
+    need('MirageLightEngine.virtualBlockLight' in bridge and 'LightTexture.pack' in bridge,
+         'LevelRenderer Mirage visual-light bridge is incomplete')
+equipment_client = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentClientEvents.java')
+need('CreativeModeInventoryScreen' in equipment_client, 'Mirage Equipment Creative inventory support missing')
+need('jade.mirage_projector.charging_station.progress' in langs.get('en_us', {}),
+     'Charging Station Jade progress localization missing')
+
+# 1.0.18 integrity cleanup removes the deprecated explicit EventBusSubscriber.Bus selector.
 dep_sites = [str(p.relative_to(ROOT)) for p in SRC.rglob('*.java') if 'EventBusSubscriber.Bus.' in p.read_text(encoding='utf-8')]
-if dep_sites:
-    notes.append(f'known non-blocking EventBusSubscriber.Bus deprecation sites: {len(dep_sites)}')
+need(not dep_sites, f'deprecated explicit EventBusSubscriber.Bus selectors remain: {dep_sites}')
 
 if errors:
-    print('Mirage Projector 1.0.14 release audit FAILED')
+    print('Mirage Projector 1.0.19 release audit FAILED')
     for error in errors:
         print(' -', error)
     raise SystemExit(1)
 
-print(f'Mirage Projector 1.0.14 release audit PASS ({len(json_files)} JSON, {len(block_ids)} blocks, {len(item_ids)} items, {len(langs.get("en_us", {}))} lang keys)')
+print(f'Mirage Projector 1.0.19 release audit PASS ({len(json_files)} JSON, {len(block_ids)} blocks, {len(item_ids)} items, {len(langs.get("en_us", {}))} lang keys)')
 for note in notes:
     print('NOTE', note)

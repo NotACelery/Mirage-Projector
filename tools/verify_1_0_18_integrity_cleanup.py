@@ -17,7 +17,7 @@ def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
 # Current line / format invariants.
-need('mod_version=1.0.18' in read('gradle.properties'), 'version is not 1.0.18')
+need(any(v in read('gradle.properties') for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20')), 'version is not a compatible 1.0.18+ line')
 need('NETWORK_PROTOCOL = "34"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java'), 'network protocol is not 34')
 need('SERIALIZATION_VERSION = 3' in read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java'), 'ProjectionSettings format changed')
 
@@ -111,7 +111,7 @@ for locale, data in langs.items():
 # Stabilized portable GUI must have enough vertical separation for War Banner controls and inventory.
 portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')
 portable_screen = read('src/main/java/celerbi/mirageprojector/client/PortableDeviceScreen.java')
-need('PLAYER_INV_Y = 190' in portable_menu, 'Portable Device player inventory Y was not moved below controls')
+need('PROJECTOR_PLAYER_INV_Y = 190' in portable_menu, 'Portable Device player inventory Y was not moved below controls')
 need('HEIGHT = 274' in portable_screen, 'Portable Device screen height does not fit stabilized controls')
 need('gui.mirage_projector.portable_device.banner_presentation' in portable_screen, 'War Banner presentation button does not expose current state')
 need('gui.mirage_projector.portable_device.war_banner_facing' in portable_screen, 'War Banner facing button does not expose current state')

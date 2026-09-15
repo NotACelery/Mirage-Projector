@@ -34,11 +34,13 @@ public final class ChargingStationRenderer implements BlockEntityRenderer<Chargi
         pose.mulPose(Axis.YP.rotationDegrees(-yaw));
 
         double[] xs = {-0.27D, -0.09D, 0.09D, 0.27D};
+        // Local -Z is the block's FACING/front output after the yaw transform.
+        // Inputs sit at the back (+Z), active cell stays centered, completed cells sit near output (-Z).
         for (int i=0;i<ChargingStationBlockEntity.INPUT_COUNT;i++)
-            renderStack(be, be.inventory().getStackInSlot(ChargingStationBlockEntity.INPUT_START+i), pose, buffers, xs[i], 0.53D, -0.25D, 0.16F);
+            renderStack(be, be.inventory().getStackInSlot(ChargingStationBlockEntity.INPUT_START+i), pose, buffers, xs[i], 0.53D, 0.25D, 0.16F);
         renderStack(be, be.inventory().getStackInSlot(ChargingStationBlockEntity.CHARGING_SLOT), pose, buffers, 0.0D, 0.60D, 0.0D, 0.20F);
         for (int i=0;i<ChargingStationBlockEntity.OUTPUT_COUNT;i++)
-            renderStack(be, be.inventory().getStackInSlot(ChargingStationBlockEntity.OUTPUT_START+i), pose, buffers, xs[i], 0.53D, 0.25D, 0.16F);
+            renderStack(be, be.inventory().getStackInSlot(ChargingStationBlockEntity.OUTPUT_START+i), pose, buffers, xs[i], 0.53D, -0.25D, 0.16F);
         pose.popPose();
     }
 

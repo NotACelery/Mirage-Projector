@@ -66,6 +66,12 @@ public final class ChargingStationScreen extends AbstractContainerScreen<Chargin
         graphics.drawCenteredString(font, status, 135, 83, color);
     }
 
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
+        renderTooltip(graphics, mouseX, mouseY);
+    }
+
     private static void section(GuiGraphics g,int x,int y,int w,int h){g.fill(x,y,x+w,y+h,0xA20B0E13);g.fill(x,y,x+2,y+h,0xFF4C3858);}
     private static void drawSlotFrame(GuiGraphics g,int x,int y,int b){g.fill(x,y,x+18,y+18,b);g.fill(x+1,y+1,x+17,y+17,0xFF171A20);}
     private static void drawArrow(GuiGraphics g,int x1,int y1,int x2,int y2){int m=(y1+y2)/2;g.fill(x1,m-1,x2-2,m+1,0xFF7B7085);g.fill(x2-4,y1,x2,y2,0xFF7B7085);}

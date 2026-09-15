@@ -17,8 +17,8 @@ def read(rel):
 
 
 props = read('gradle.properties')
-stabilized_1018 = 'mod_version=1.0.18' in props
-need(any(f'mod_version=1.0.{minor}' in props for minor in (10, 11, 12, 13, 14, 15, 16, 17, 18)), 'version is not a compatible 1.0.10+ line')
+stabilized_1018 = any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20'))
+need(any(f'mod_version=1.0.{minor}' in props for minor in (10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)), 'version is not a compatible 1.0.10+ line')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 need(('NETWORK_PROTOCOL = "28"' in main or 'NETWORK_PROTOCOL = "29"' in main or 'NETWORK_PROTOCOL = "30"' in main or 'NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main), '1.0.10 unexpectedly changed network protocol')
 

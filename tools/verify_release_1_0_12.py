@@ -48,7 +48,7 @@ def load_json_no_duplicates(path: Path):
 
 # Release metadata / platform baseline.
 props = read('gradle.properties')
-need(any(f'mod_version=1.0.{minor}' in props for minor in (12, 13, 14, 15, 16, 17, 18)), 'gradle.properties is not a compatible 1.0.12+ line')
+need(any(f'mod_version=1.0.{minor}' in props for minor in (12, 13, 14, 15, 16, 17, 18, 19, 20)), 'gradle.properties is not a compatible 1.0.12+ line')
 need('minecraft_version=1.21.1' in props, 'Minecraft baseline changed')
 need('neo_version=21.1.244' in props, 'NeoForge baseline changed')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')

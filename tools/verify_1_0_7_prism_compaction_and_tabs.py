@@ -17,7 +17,7 @@ clearance=read('src/main/java/celerbi/mirageprojector/client/ProjectionClearance
 power=read('src/main/java/celerbi/mirageprojector/ProjectionPower.java')
 settings=read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
 
-need(any(f'mod_version=1.0.{minor}' in props for minor in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18)),'version is not a compatible 1.0.7+ line')
+need(any(f'mod_version=1.0.{minor}' in props for minor in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)),'version is not a compatible 1.0.7+ line')
 need('MAX_EXTRA_DISTANCE_PIXELS = 160' in spacing,'Prism user distance cap is not 160 px / 10 blocks')
 need('Math.min(a.widthPixels(), b.widthPixels()) * 0.5D' in spacing,'adjacent-face tight collision floor is missing')
 need('tiltDegrees < 0.0F' in spacing,'Prism spacing does not distinguish inward from outward tilt')

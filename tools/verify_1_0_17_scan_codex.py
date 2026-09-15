@@ -13,7 +13,7 @@ def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
 props = read('gradle.properties')
-need(('mod_version=1.0.17' in props or 'mod_version=1.0.18' in props), 'version is not 1.0.17')
+need(('mod_version=1.0.17' in props or 'mod_version=1.0.18' in props or 'mod_version=1.0.19' in props or 'mod_version=1.0.20' in props), 'version is not 1.0.17')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 need(('NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main), '1.0.17 must use network protocol 33')
 

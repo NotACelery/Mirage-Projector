@@ -1,11 +1,11 @@
-# Current Implementation — Mirage Projector 1.0.18
+# Current Implementation — Mirage Projector 1.0.20
 
-Version: **1.0.18**
+Version: **1.0.20**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
 Network protocol: **34**
 
-This document describes the current implementation behavior of Mirage Projector 1.0.18. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.20. Historical development notes are archived under `docs/history/` and are not current authority.
 
 ## Canonical projector family
 
@@ -27,17 +27,17 @@ Crafting upgrades preserve stored projector state. Mirage Projector upgrades int
 
 `mirage_projector:mirage_light_projector` is the placed `DYNAMIC_VISUAL` light emitter. It is horizontally oriented and owns one real rechargeable-energy slot through the shared `RechargeableEnergyItem` contract.
 
-Since 1.0.18, normal right-click opens a real Light Projector container screen. Battery insertion/extraction and mode configuration live in that GUI rather than being overloaded onto direct block gestures. The one-cell slot accepts rechargeable media and preserves exact charge/components. Focus/Flood/Ambient/Off remain the shared operating modes; Focus is the placed projector default.
+Since 1.0.19, **normal right-click cycles Focus / Flood / Ambient / Off** and **sneak + right-click opens the Light Projector container screen**. Battery insertion/extraction lives only in that GUI; direct block gestures never insert or extract cells. The one-cell slot accepts rechargeable media and preserves exact charge/components. Focus/Flood/Ambient/Off remain the shared operating modes; Focus is the placed projector default.
 
 Mode and energy-cell state persist in the block entity and synchronize to clients. Nearby clients submit a stable block-position light source into `ClientDynamicMirageLightManager`. Focus and Flood use directional-cone solving; Ambient is omnidirectional; Off submits no source. Server drain remains 4/2/1/0 units per second as the current QA balance values.
 
-1.0.18 removes the old physical renderer that showed the battery floating below the projector. The dynamic source is now seeded just outside the projector chassis so the first propagation edge cannot self-occlude inside the emitter block. Jade continues to report mode and battery state.
+1.0.18 removed the old physical renderer that showed the battery floating below the projector and seeded the dynamic source outside the chassis. 1.0.19 adds the missing packed-light renderer bridge: Mirage virtual block-light is merged into both `LevelRenderer.getLightColor(...)` overloads while preserving vanilla sky light. 1.0.20 hardens that bridge for Sodium by resolving the Mirage field from the active `ClientLevel` instead of calling `getLightEngine()` on Sodium's temporary `LevelSlice`. This is the source-side correction for the QA state where light-level overlays detected the field but world vertices remained visually dark; final confirmation remains an in-game QA gate. Jade continues to report mode and battery state.
 
 ## Handheld Mirage Lantern
 
 `mirage_projector:mirage_lantern` is the player-following `DYNAMIC_VISUAL` light. It stores one exact rechargeable ItemStack internally, preserving cell type, components and partial charge.
 
-Since 1.0.18, **normal right-click opens the Lantern GUI** and battery service is available only through that GUI. **Sneak + right-click** cycles `Off -> Focus -> Flood -> Ambient -> Off`; a fresh Lantern defaults to Off. The old opposite-hand battery insert/extract gesture is removed.
+Since 1.0.19, **normal right-click** cycles `Off -> Focus -> Flood -> Ambient -> Off` and **sneak + right-click opens the Lantern GUI**. Battery service is available only through that GUI; a fresh Lantern defaults to Off. The old opposite-hand battery insert/extract gesture is removed.
 
 Server-side drain occurs once per second only while the Lantern is held or mounted in the Shoulder Slot and its selected mode emits. Current values remain Focus 4/s, Flood 2/s, Ambient 1/s and Off 0/s. Depletion keeps the selected mode but disables emission until a charged cell is installed.
 
@@ -61,7 +61,7 @@ Mirage Equipment provides a dedicated player equipment socket without consuming 
 
 Since 1.0.18 the player attachment itself stores only the currently equipped Shoulder Strap. The Strap ItemStack owns the Shoulder Device, Battery Pouch and upgrade inventory through vanilla `DataComponents.CONTAINER`. This makes a packed strap a portable mini-morral: multiple straps can be prepared with different batteries/upgrades, removed, stored and exchanged without unpacking their contents. Legacy 1.0.13–1.0.17 attachment layouts are folded into the Strap ItemStack automatically on load.
 
-The inventory extension opens on the **right** side of the vanilla inventory. With no Strap installed, the expanded Mirage panel exposes only one Shoulder Strap socket. Installing a Strap dynamically reveals the Shoulder Device, six base power-cell slots and two base upgrade sockets. Expansion reveals the final three battery slots and third upgrade socket; inactive positions do not exist visually as X/locked slots. The toggle remains inside the vanilla inventory region below the crafting-result area.
+The inventory extension opens on the **right** side of both the normal Survival inventory and the Creative inventory. With no Strap installed, the expanded Mirage panel exposes only one Shoulder Strap socket. Installing a Strap dynamically reveals the Shoulder Device, six base power-cell slots and two base upgrade sockets. Expansion reveals the final three battery slots and third upgrade socket; inactive positions do not exist visually as X/locked slots. The toggle remains inside the vanilla inventory region below the crafting-result area.
 
 The Shoulder Slot accepts `ShoulderMountableDevice` implementations, currently Mirage Lantern and Mirage Hand Projector. Right-clicking the occupied Shoulder Device slot opens the same real portable-device GUI used by handheld devices. Device replacement follows normal cursor swap semantics: the previous device stays on the cursor instead of being dropped into the world. The Strap cannot be removed while a device is mounted, but batteries/upgrades travel safely inside it. Shift-hovering a packed Strap in normal inventory exposes a compact contents preview.
 
@@ -112,7 +112,7 @@ Tilt supports the full **-90° to +90°** range. Mirage Prism applies Tilt indep
 
 Mirage Prism Image/Banner projection additionally uses **Prism Distance**. The UI value is extra radial separation above the no-tilt collision-safe radius: **+0 px** packs adjacent face boundaries as tightly as possible without overlap. `PrismProjectionSpacing` derives the internal absolute radius from each adjacent pair of active faces. At +0 px, equal square faces meet at their lower corners without crossing. Positive/outward Tilt keeps that compact lower-edge baseline; negative/inward Tilt raises the minimum only by the inward reach required to avoid overlap. User-controlled extra distance is capped at **+160 px (10 blocks)**. If an inward angle would need more room than that budget, the UI refuses that angle. Additional or Tilt-required radial separation consumes a small amount of PU.
 
-`ProjectionSettings` network format remains version 3. Network protocol is **34** in 1.0.18. The compatibility token includes the portable-device menu/action surface introduced by the stabilization wave plus the earlier War Banner, Shoulder Equipment and portable-projector payloads. Legacy horizontal/vertical offset slots remain only for wire/NBT compatibility: horizontal sanitizes to zero, while positive legacy Vertical Offset is absorbed into Lift and then sanitized to zero. Worlds from 1.0.0 remain compatible.
+`ProjectionSettings` network format remains version 3. Network protocol remains **34** in 1.0.20; this QA follow-up adds no wire-format change. The compatibility token includes the portable-device menu/action surface introduced by the stabilization wave plus the earlier War Banner, Shoulder Equipment and portable-projector payloads. Legacy horizontal/vertical offset slots remain only for wire/NBT compatibility: horizontal sanitizes to zero, while positive legacy Vertical Offset is absorbed into Lift and then sanitized to zero. Worlds from 1.0.0 remain compatible.
 
 ## Image / GIF
 
@@ -263,13 +263,15 @@ The directional Charging Station keeps the 1.0.15 `4 input -> 1 active -> 4 outp
 
 1.0.18 restricts the charging queue to **incomplete Glow Dust / Light Battery media**. Full media and Creative Battery are rejected. The active slot remains hard-limited to one physical item; a completed cell stays there if all four output positions are blocked.
 
+1.0.19 corrects the glass-chamber visualization so queued/depleted input stacks render on the rear/input lane and completed outputs render nearest the block's front/output face. Jade now adds the name and live percentage of the active charging cell rather than exposing only inventory contents.
+
 The GUI is enlarged so Input Queue, Charging, Output and player Inventory no longer overlap and there is more clearance for third-party inventory buttons. A block-entity renderer now visualizes the four queued stacks, the active charging item and the four completed-output stacks in distinct physical regions that rotate with station facing.
 
 ## Mirage Scan Codex (1.0.17)
 
 The Scan Codex remains a physical UUID key to server-side `ScanCodexSavedData`, supporting multiple independent snapshots, search, filters, favorites and exact scan selection without synchronizing full scan NBT to the browser.
 
-1.0.18 changes only its screen behavior: the Codex now behaves like an inventory/book overlay rather than a pause menu. `isPauseScreen()` returns false and the screen does not invoke vanilla's blurred/dim background pass, so the world continues running visibly behind the Codex panel.
+1.0.19 closes the Codex background regression observed in runtime QA. `isPauseScreen()` returns false and `renderBackground(...)` is explicitly overridden as a no-op, preventing vanilla `Screen.render()` from applying its blur/dim pass while the live world continues behind the Codex panel.
 
 ## Deferred to later releases
 

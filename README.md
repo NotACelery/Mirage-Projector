@@ -7,7 +7,7 @@
 - Minecraft **1.21.1**
 - NeoForge **21.1.244+**
 - Java **21**
-- Network protocol **30**
+- Network protocol **34**
 
 EMI and JEI are optional. When installed, Mirage Projector exposes its custom projector-upgrade recipes and Crying Obsidian guidance directly in the recipe viewer.
 
@@ -70,7 +70,7 @@ The Mirage Hand Projector is the first portable hologram consumer. It stores one
 
 Since 1.0.13, **Mirage Equipment** adds a dedicated Shoulder Strap + Shoulder Slot without consuming armor or offhand space. In 1.0.18 the Strap becomes the real owner of its mounted device, battery pouch and upgrades: a packed Strap can be removed/stored/swapped while retaining its contents, and the right-side inventory panel exposes only the slots currently unlocked. The base Strap has six power-cell slots plus two upgrades; **Shoulder Strap Slot Expansion** raises that to nine cells plus a third upgrade. Auto Battery Swap remains shoulder-only. Since 1.0.15 the directional Charging Station provides four queued inputs, one active charger, four outputs and front-face logistics; 1.0.18 tightens it to incomplete normal rechargeable media, enlarges its GUI and visualizes queued/charging/output stacks in-world. Since 1.0.16 Banner-profile Hand Projectors can use the smaller pole-free overhead War Banner presentation with Directional or per-viewer billboard facing.
 
-Since 1.0.17, the **Mirage Scan Codex** stores multiple distinct frozen entity captures in a server-backed persistent library. Its browser synchronizes summary metadata only, with search, filters, favorites and exact scan selection; 1.0.18 makes that browser non-pausing and removes the blurred/dim background pass. Physical Entity Scan Card duplication remains reserved for the later Duplicating Lectern workflow.
+Since 1.0.17, the **Mirage Scan Codex** stores multiple distinct frozen entity captures in a server-backed persistent library. Its browser synchronizes summary metadata only, with search, filters, favorites and exact scan selection. 1.0.19 makes the Codex explicitly inventory-like: it does not pause singleplayer and overrides the vanilla screen background pass so the live world remains sharp instead of blurred/dimmed. Physical Entity Scan Card duplication remains reserved for the later Duplicating Lectern workflow.
 
 ## Projection Power
 
@@ -145,4 +145,4 @@ The verification suite checks the current registry/resource surface, Mirage Ligh
 
 ## Version scope
 
-**1.0.18** is the current implementation snapshot. The 1.0.x expansion line now includes rechargeable Glow Dust/Light Batteries, GUI-configured placed/handheld Mirage lighting, persistent portable hologram projectors, packed Shoulder Straps with Shoulder Device/Battery Pouch/upgrades, the directional Beacon Charging Station, War Banner presentation and the persistent **Mirage Scan Codex** library. The Codex stores full frozen scans server-side, exposes a metadata-only searchable/filterable/favoritable browser and persists exact scan selection for the future Duplicating Lectern. Final 1.1.0 work still includes scan-card duplication, remaining projector chassis/anchor semantics, End Resonance, recipes/balance and release polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.
+**1.0.20** is the current implementation snapshot. The 1.0.x expansion line now includes rechargeable Glow Dust/Light Batteries, GUI-configured placed/handheld Mirage lighting with 1.0.19 interaction/visual-light QA corrections plus the 1.0.20 Sodium packed-light hotfix, persistent portable hologram projectors, packed Shoulder Straps with Shoulder Device/Battery Pouch/upgrades, the directional Beacon Charging Station, War Banner presentation and the persistent **Mirage Scan Codex** library. The Codex stores full frozen scans server-side, exposes a metadata-only searchable/filterable/favoritable browser and persists exact scan selection for the future Duplicating Lectern. Final 1.1.0 work still includes scan-card duplication, remaining projector chassis/anchor semantics, End Resonance, recipes/balance and release polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.

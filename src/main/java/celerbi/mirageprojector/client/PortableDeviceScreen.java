@@ -24,9 +24,9 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
     public PortableDeviceScreen(PortableDeviceMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = WIDTH;
-        imageHeight = HEIGHT;
+        imageHeight = menu.projectorLayout() ? HEIGHT : 184;
         inventoryLabelX = PortableDeviceMenu.PLAYER_INV_X;
-        inventoryLabelY = PortableDeviceMenu.PLAYER_INV_Y - 12;
+        inventoryLabelY = menu.playerInvY() - 12;
     }
 
     @Override
@@ -34,7 +34,7 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         super.init();
         ItemStack device = currentDevice();
         int x = leftPos + 66;
-        int y = topPos + 28;
+        int y = topPos + 38;
         int w = 112;
 
         if (device.is(ModItems.MIRAGE_LANTERN.get())) {
@@ -92,19 +92,19 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.battery"), x + 18, y + 31, 0xFFD7B8F5, false);
         slotFrame(graphics, x + PortableDeviceMenu.BATTERY_X - 1, y + PortableDeviceMenu.BATTERY_Y - 1, 0xFF7954A0);
 
-        graphics.fill(x + 10, y + PortableDeviceMenu.PLAYER_INV_Y - 17, x + imageWidth - 10, y + imageHeight - 8, 0xA20B0E13);
+        graphics.fill(x + 10, y + menu.playerInvY() - 17, x + imageWidth - 10, y + imageHeight - 8, 0xA20B0E13);
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 slotFrame(graphics,
                         x + PortableDeviceMenu.PLAYER_INV_X + col * 18 - 1,
-                        y + PortableDeviceMenu.PLAYER_INV_Y + row * 18 - 1,
+                        y + menu.playerInvY() + row * 18 - 1,
                         0xFF4D4A52);
             }
         }
         for (int col = 0; col < 9; col++) {
             slotFrame(graphics,
                     x + PortableDeviceMenu.PLAYER_INV_X + col * 18 - 1,
-                    y + PortableDeviceMenu.PLAYER_INV_Y + 58 - 1,
+                    y + menu.playerInvY() + 58 - 1,
                     0xFF4D4A52);
         }
     }
@@ -117,13 +117,19 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         if (device.getItem() instanceof MirageLanternItem) {
             graphics.drawString(font,
                     Component.translatable("gui.mirage_projector.portable_device.mode", Component.translatable(MirageLanternItem.mode(device).displayTranslationKey())),
-                    66, 12, 0xFFD7B8F5, false);
+                    10, 20, 0xFFD7B8F5, false);
         } else if (device.getItem() instanceof MirageHandProjectorItem) {
             Component state = Component.translatable(MirageHandProjectorItem.projectionEnabled(device)
                     ? "gui.mirage_projector.portable_device.on"
                     : "gui.mirage_projector.portable_device.off");
-            graphics.drawString(font, state, 66, 12, 0xFFD7B8F5, false);
+            graphics.drawString(font, state, 10, 20, 0xFFD7B8F5, false);
         }
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
+        renderTooltip(graphics, mouseX, mouseY);
     }
 
     private ItemStack currentDevice() {

@@ -575,5 +575,6 @@
   "gui.mirage_projector.portable_device.war_banner_facing": "War Banner Facing: %s",
   "gui.mirage_projector.portable_device.war_banner_facing.directional": "Directional",
   "gui.mirage_projector.portable_device.war_banner_facing.billboard": "Always Face Viewer",
-  "tooltip.mirage_projector.shoulder_strap_slot_expansion": "Adds 3 slots to the Shoulder Strap Inventory"
+  "tooltip.mirage_projector.shoulder_strap_slot_expansion": "Adds 3 slots to the Shoulder Strap Inventory",
+  "jade.mirage_projector.charging_station.progress": "%s charging: %s%%"
 }

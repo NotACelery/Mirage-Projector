@@ -1,4 +1,4 @@
-# QA Regression Matrix — Mirage Projector 1.0.18
+# QA Regression Matrix — Mirage Projector 1.0.20
 
 Use this matrix after any 1.0.x patch/compatibility change, and as the baseline before integrating the 1.1.0 feature expansion.
 
@@ -166,12 +166,12 @@ No current gameplay path may create `mirage_projector:crying_light_node`; that b
 - Crying Obsidian above the chargers responds to the attenuated transmission;
 - breaking a Core Booster in Survival returns the inserted Glow Dust and preserves its charge state.
 
-## Mirage Light Projector / DYNAMIC_VISUAL consumer (current 1.0.18 contract)
+## Mirage Light Projector / DYNAMIC_VISUAL consumer (current 1.0.20 contract)
 
 - Place the projector facing each horizontal direction and confirm the physical lens and dynamic source follow block facing.
-- Normal right-click opens the Light Projector GUI; direct world gestures must not insert/extract a battery or cycle modes.
-- In the GUI, insert exactly one rechargeable cell and confirm the slot preserves its exact medium/components/charge.
-- Cycle exactly Focus -> Flood -> Ambient -> Off -> Focus through the GUI control.
+- Normal right-click cycles exactly Focus -> Flood -> Ambient -> Off -> Focus; it must not insert/extract a battery.
+- Sneak + right-click opens the Light Projector GUI. In the GUI, insert exactly one rechargeable cell and confirm the slot preserves its exact medium/components/charge.
+- The GUI cycle button must also change the same persisted mode without creating a second mode state.
 - Confirm Focus produces a narrow long directional field, Flood a wider shorter field, Ambient a local omnidirectional field, and Off removes its dynamic field.
 - Rotate the projector through all four horizontal facings and verify Focus/Flood emit reliably rather than disappearing at most angles. The source origin must start outside the chassis and must not self-occlude on its own block.
 - Confirm nearby opaque blocks occlude/reroute Focus/Flood through the Mirage solver rather than behaving as vanilla invisible light sources.
@@ -183,13 +183,13 @@ No current gameplay path may create `mirage_projector:crying_light_node`; that b
 - Jade should show current mode and battery state, or the explicit empty state.
 - Verify multiple nearby light projectors keep separate stable source IDs and stale/off/depleted contributions are removed.
 
-## Mirage Lantern / player-following DYNAMIC_VISUAL consumer (current 1.0.18 contract)
+## Mirage Lantern / player-following DYNAMIC_VISUAL consumer (current 1.0.20 contract)
 
 - A fresh Mirage Lantern starts in Off.
-- Normal right-click opens the Lantern GUI. Battery insertion/extraction is possible only through the GUI; the old opposite-hand service gesture must do nothing.
-- Sneak + right-click cycles exactly Off -> Focus -> Flood -> Ambient -> Off.
+- Normal right-click cycles exactly Off -> Focus -> Flood -> Ambient -> Off. It must never insert/extract the cell directly.
+- Sneak + right-click opens the Lantern GUI. Battery insertion/extraction is possible only through the GUI; the old opposite-hand service gesture must do nothing.
 - Focus must follow the player's current look direction while rotating/moving; Flood follows the same transform with the wider profile; Ambient follows the player omnidirectionally.
-- Test Focus/Flood while looking horizontally, diagonally, upward and downward. The field must not disappear merely because the cone misses voxel centers; the 1.0.18 cone/voxel-volume intersection must remain effective.
+- Test Focus/Flood while looking horizontally, diagonally, upward and downward. The field must not disappear merely because the cone misses voxel centers; the 1.0.18 cone/voxel-volume intersection must remain effective. Since 1.0.19, also verify that the same field visibly illuminates world geometry, not only Simple Light Level/debug overlays; in 1.0.20 this additionally validates that the packed-light renderer bridge survives Sodium chunk meshing without touching `LevelSlice#getLightEngine()`.
 - Off removes the local dynamic source and consumes no charge.
 - Server drain occurs once per second while the Lantern is held or mounted in the Shoulder Slot; an ordinary inventory-stored Lantern does not drain.
 - Each battery percentage update must NOT trigger the vanilla held-item re-equip/swap animation.
@@ -250,3 +250,13 @@ No current gameplay path may create `mirage_projector:crying_light_node`; that b
 ```text
 python tools/verify_current_line.py
 ```
+
+## 1.0.20 Sodium packed-light bridge hotfix
+
+- Creative inventory must expose the same Mirage Equipment toggle/panel instead of hiding the Shoulder Strap socket.
+- Portable Device, Mirage Light Projector and Charging Station container slots must show normal item hover tooltips.
+- Lantern GUI must use the compact layout without title/mode overlap or the large Hand Projector dead space.
+- Charging Station world visualization must place queue/input stacks on the back/input lane and completed outputs on the front/output lane.
+- Jade must add the currently charging cell name + live percent when a Charging Station has an active cell.
+- Scan Codex must keep the live world sharp: no pause and no vanilla blurred/dim `renderBackground` pass.
+- Existing floor Mirage Light Projector remains a supported device. Its later visible yaw/pitch aiming, a separate wall projector and handheld Lantern ground placement are future 1.1.0 work, not regressions of this wave.

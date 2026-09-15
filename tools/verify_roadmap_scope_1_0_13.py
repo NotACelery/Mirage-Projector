@@ -13,7 +13,7 @@ w12=read('docs/WAITLIST-1.2.0.md')
 road=read('docs/ROADMAP.md')
 audit=read('docs/history/audits/PRE-1.0.14-ROADMAP-AUDIT.md')
 
-need(any(h in w11 for h in ('## 1.1.0 delivery map after the 1.0.13 audit','## 1.1.0 delivery map after the 1.0.17 audit','## 1.1.0 delivery map after the 1.0.18 stabilization audit')), '1.1 delivery map missing')
+need(any(h in w11 for h in ('## 1.1.0 delivery map after the 1.0.13 audit','## 1.1.0 delivery map after the 1.0.17 audit','## 1.1.0 delivery map after the 1.0.18 stabilization audit','## 1.1.0 delivery map after the 1.0.19 QA follow-up')), '1.1 delivery map missing')
 need('Shoulder Strap Battery Pouch / upgrade system' in w11, '1.1 shoulder pouch contract missing')
 need('6 Battery Pouch slots' in w11 and '6 to 9 battery slots' in w11, '1.1 pouch capacity contract missing')
 need('Auto Battery Swap Patch' in w11 and ('Battery Pouch Expansion Patch' in w11 or 'Shoulder Strap Slot Expansion' in w11), '1.1 upgrade set missing')

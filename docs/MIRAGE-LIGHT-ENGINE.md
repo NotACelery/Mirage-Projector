@@ -1,8 +1,8 @@
-# Mirage Light Engine — 1.0.9
+# Mirage Light Engine — 1.0.20
 
-Network protocol: **27**
+Network protocol: **34**
 
-The static Mirage Light implementation remains server-authoritative and is currently used by energized Mature Crying Obsidian Clusters. Since 1.0.5, moving/portable emitters have a separate operational `DYNAMIC_VISUAL` client lifecycle; no user-facing lantern currently consumes it.
+The static Mirage Light implementation remains server-authoritative and is currently used by energized Mature Crying Obsidian Clusters. Since 1.0.5, moving/portable emitters have a separate operational `DYNAMIC_VISUAL` client lifecycle. Mirage Lantern and Mirage Light Projector are current consumers; Shoulder-mounted Lanterns reuse the same client-local source manager.
 
 ## Core rule
 
@@ -116,3 +116,9 @@ For the static 1.0.x path:
 - publication is atomic across dependency windows;
 - clients recover through chunk snapshots/revisions;
 - physical legacy relays are migration-only.
+
+## Packed-light visual bridge
+
+The solver/storage/query path and the baked world-vertex light path are separate concerns. Runtime QA in 1.0.18 proved that Simple Light Level could observe correct Mirage virtual values while terrain still appeared visually dark. 1.0.19 therefore introduced a merge of `MirageLightEngine.virtualBlockLight(...)` into both 1.21.1 `LevelRenderer.getLightColor(...)` packed-light overloads, preserving the existing sky channel with `LightTexture.pack(block, sky)`. 1.0.20 keeps that bridge but makes it Sodium-safe: the return hook queries the active `ClientLevel` rather than `BlockAndTintGetter#getLightEngine()`, because Sodium's chunk-meshing `LevelSlice` intentionally rejects that accessor. Section invalidation remains responsible for forcing affected compiled sections to rebuild.
+
+This bridge is client-visual only and does not publish `DYNAMIC_VISUAL` values into authoritative vanilla block-light propagation. Runtime confirmation of visible terrain illumination remains a mandatory 1.0.20 QA item.

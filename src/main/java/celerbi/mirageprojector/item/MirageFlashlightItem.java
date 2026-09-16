@@ -3,9 +3,14 @@ package celerbi.mirageprojector.item;
 import celerbi.mirageprojector.light.device.PortableLightMode;
 import celerbi.mirageprojector.menu.PortableDeviceMenu;
 import celerbi.mirageprojector.menu.PortableDeviceSource;
+import celerbi.mirageprojector.block.MirageFlashlightBeaconBlock;
+import celerbi.mirageprojector.blockentity.MirageLightProjectorBlockEntity;
+import celerbi.mirageprojector.registry.ModBlocks;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.nbt.CompoundTag;
@@ -17,30 +22,40 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gameevent.GameEvent;
 
 /**
  * Handheld Mirage illumination device backed by one removable rechargeable cell.
  *
- * <p>The exact cell ItemStack is serialized inside the lantern ItemStack so partial charge and
+ * <p>The exact cell ItemStack is serialized inside the flashlight ItemStack so partial charge and
  * future rechargeable-media components survive insertion/extraction. A tiny duplicated summary
  * (cell-present + percent) is maintained beside it so held-device rendering/HUD code can decide
- * whether the lantern emits without decoding nested registry-aware ItemStack data every frame.</p>
+ * whether the flashlight emits without decoding nested registry-aware ItemStack data every frame.</p>
  */
-public final class MirageLanternItem extends Item implements ShoulderRechargeableDevice {
+public final class MirageFlashlightItem extends Item implements ShoulderRechargeableDevice {
     private static final String MODE_TAG = "MirageLanternMode";
     private static final String CELL_TAG = "MirageLanternCell";
     private static final String CELL_PRESENT_TAG = "MirageLanternCellPresent";
     private static final String CELL_PERCENT_TAG = "MirageLanternCellPercent";
 
-    public MirageLanternItem(Properties properties) {
+    public MirageFlashlightItem(Properties properties) {
         super(properties);
     }
 
-    public static PortableLightMode mode(ItemStack lantern) {
-        CompoundTag tag = customTag(lantern);
+    /** Public rename while the legacy registry ID `mirage_lantern` stays stable for world compatibility. */
+    @Override
+    public String getDescriptionId() {
+        return "item.mirage_projector.mirage_flashlight";
+    }
+
+    public static PortableLightMode mode(ItemStack flashlight) {
+        CompoundTag tag = customTag(flashlight);
         if (!tag.contains(MODE_TAG)) {
             return PortableLightMode.OFF;
         }
@@ -53,26 +68,26 @@ public final class MirageLanternItem extends Item implements ShoulderRechargeabl
         return PortableLightMode.OFF;
     }
 
-    public static void setMode(ItemStack lantern, PortableLightMode mode) {
-        if (lantern == null || lantern.isEmpty()) {
+    public static void setMode(ItemStack flashlight, PortableLightMode mode) {
+        if (flashlight == null || flashlight.isEmpty()) {
             return;
         }
         PortableLightMode safe = mode == null ? PortableLightMode.OFF : mode;
-        CustomData.update(DataComponents.CUSTOM_DATA, lantern, tag -> {
+        CustomData.update(DataComponents.CUSTOM_DATA, flashlight, tag -> {
             if (safe == PortableLightMode.OFF) {
                 tag.remove(MODE_TAG);
             } else {
                 tag.putString(MODE_TAG, safe.serializedName());
             }
         });
-        removeEmptyCustomData(lantern);
+        removeEmptyCustomData(flashlight);
     }
 
-    public static ItemStack energyCell(ItemStack lantern, HolderLookup.Provider registries) {
-        if (lantern == null || lantern.isEmpty() || registries == null) {
+    public static ItemStack energyCell(ItemStack flashlight, HolderLookup.Provider registries) {
+        if (flashlight == null || flashlight.isEmpty() || registries == null) {
             return ItemStack.EMPTY;
         }
-        CompoundTag tag = customTag(lantern);
+        CompoundTag tag = customTag(flashlight);
         if (!tag.contains(CELL_TAG)) {
             return ItemStack.EMPTY;
         }
@@ -80,74 +95,120 @@ public final class MirageLanternItem extends Item implements ShoulderRechargeabl
         return RechargeableEnergyItem.isRechargeable(stored) ? stored.copyWithCount(1) : ItemStack.EMPTY;
     }
 
-    public static boolean hasEnergyCell(ItemStack lantern) {
-        return customTag(lantern).getBoolean(CELL_PRESENT_TAG);
+    public static boolean hasEnergyCell(ItemStack flashlight) {
+        return customTag(flashlight).getBoolean(CELL_PRESENT_TAG);
     }
 
-    public static int energyPercent(ItemStack lantern) {
-        return Mth.clamp(customTag(lantern).getInt(CELL_PERCENT_TAG), 0, 100);
+    public static int energyPercent(ItemStack flashlight) {
+        return Mth.clamp(customTag(flashlight).getInt(CELL_PERCENT_TAG), 0, 100);
     }
 
-    public static boolean emitting(ItemStack lantern) {
-        return lantern != null
-                && !lantern.isEmpty()
-                && hasEnergyCell(lantern)
-                && energyPercent(lantern) > 0
-                && mode(lantern).emitsLight();
+    public static boolean emitting(ItemStack flashlight) {
+        return flashlight != null
+                && !flashlight.isEmpty()
+                && hasEnergyCell(flashlight)
+                && energyPercent(flashlight) > 0
+                && mode(flashlight).emitsLight();
     }
 
     public static boolean insertEnergyCell(
-            ItemStack lantern,
+            ItemStack flashlight,
             ItemStack source,
             HolderLookup.Provider registries
     ) {
-        if (lantern == null || lantern.isEmpty() || hasEnergyCell(lantern)
+        if (flashlight == null || flashlight.isEmpty() || hasEnergyCell(flashlight)
                 || !RechargeableEnergyItem.isRechargeable(source) || registries == null) {
             return false;
         }
-        writeEnergyCell(lantern, RechargeableEnergyItem.normalizeForDevice(source), registries);
+        writeEnergyCell(flashlight, RechargeableEnergyItem.normalizeForDevice(source), registries);
         return true;
     }
 
-    public static ItemStack extractEnergyCell(ItemStack lantern, HolderLookup.Provider registries) {
-        ItemStack stored = energyCell(lantern, registries);
+    public static ItemStack extractEnergyCell(ItemStack flashlight, HolderLookup.Provider registries) {
+        ItemStack stored = energyCell(flashlight, registries);
         if (stored.isEmpty()) {
-            clearEnergyCell(lantern);
+            clearEnergyCell(flashlight);
             return ItemStack.EMPTY;
         }
-        clearEnergyCell(lantern);
+        clearEnergyCell(flashlight);
         return stored;
     }
 
     /** GUI/container-only battery replacement path. */
-    public static void replaceEnergyCell(ItemStack lantern, ItemStack cell, HolderLookup.Provider registries) {
+    public static void replaceEnergyCell(ItemStack flashlight, ItemStack cell, HolderLookup.Provider registries) {
         if (cell == null || cell.isEmpty()) {
-            clearEnergyCell(lantern);
+            clearEnergyCell(flashlight);
         } else if (RechargeableEnergyItem.isRechargeable(cell)) {
-            writeEnergyCell(lantern, RechargeableEnergyItem.normalizeForDevice(cell), registries);
+            writeEnergyCell(flashlight, RechargeableEnergyItem.normalizeForDevice(cell), registries);
         }
     }
 
-    public static Component hudComponent(ItemStack lantern) {
-        Component modeName = Component.translatable(mode(lantern).displayTranslationKey());
-        if (!hasEnergyCell(lantern) || energyPercent(lantern) <= 0) {
+    public static Component hudComponent(ItemStack flashlight) {
+        Component modeName = Component.translatable(mode(flashlight).displayTranslationKey());
+        if (!hasEnergyCell(flashlight) || energyPercent(flashlight) <= 0) {
             return Component.translatable(
-                    "hud.mirage_projector.lantern.status_discharged",
+                    "hud.mirage_projector.flashlight.status_discharged",
                     modeName
             );
         }
         return Component.translatable(
-                "hud.mirage_projector.lantern.status",
+                "hud.mirage_projector.flashlight.status",
                 modeName,
-                energyPercent(lantern)
+                energyPercent(flashlight)
         );
+    }
+
+    /**
+     * Sneak + RMB on the top of a supporting block places the flashlight temporarily in-world.
+     * The world form owns the same cell/mode and returns them to the handheld item when broken.
+     */
+    @Override
+    public net.minecraft.world.InteractionResult useOn(UseOnContext context) {
+        Player player = context.getPlayer();
+        if (player == null || !player.isShiftKeyDown() || context.getClickedFace() != Direction.UP) {
+            return net.minecraft.world.InteractionResult.PASS;
+        }
+
+        Level level = context.getLevel();
+        BlockPos target = context.getClickedPos().above();
+        if (!level.getBlockState(target).canBeReplaced()) {
+            return net.minecraft.world.InteractionResult.PASS;
+        }
+
+        BlockState placedState = ModBlocks.MIRAGE_FLASHLIGHT_BEACON.get().defaultBlockState()
+                .setValue(MirageFlashlightBeaconBlock.FACING, player.getDirection());
+        if (!placedState.canSurvive(level, target)) {
+            return net.minecraft.world.InteractionResult.FAIL;
+        }
+        if (level.isClientSide) {
+            return net.minecraft.world.InteractionResult.SUCCESS;
+        }
+        if (!level.setBlock(target, placedState, Block.UPDATE_ALL)) {
+            return net.minecraft.world.InteractionResult.FAIL;
+        }
+        if (!(level.getBlockEntity(target) instanceof MirageLightProjectorBlockEntity placed)) {
+            level.removeBlock(target, false);
+            return net.minecraft.world.InteractionResult.FAIL;
+        }
+
+        ItemStack flashlight = context.getItemInHand();
+        placed.setMode(mode(flashlight));
+        ItemStack cell = energyCell(flashlight, level.registryAccess());
+        if (!cell.isEmpty()) {
+            placed.setEnergyCell(cell);
+        }
+        level.gameEvent(player, GameEvent.BLOCK_PLACE, target);
+        if (!player.getAbilities().instabuild) {
+            flashlight.shrink(1);
+        }
+        return net.minecraft.world.InteractionResult.SUCCESS;
     }
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        ItemStack lantern = player.getItemInHand(hand);
+        ItemStack flashlight = player.getItemInHand(hand);
         if (level.isClientSide) {
-            return InteractionResultHolder.sidedSuccess(lantern, true);
+            return InteractionResultHolder.sidedSuccess(flashlight, true);
         }
 
         if (player.isShiftKeyDown()) {
@@ -157,13 +218,13 @@ public final class MirageLanternItem extends Item implements ShoulderRechargeabl
                         hand == InteractionHand.MAIN_HAND ? PortableDeviceSource.MAIN_HAND : PortableDeviceSource.OFF_HAND
                 );
             }
-            return InteractionResultHolder.sidedSuccess(lantern, false);
+            return InteractionResultHolder.sidedSuccess(flashlight, false);
         }
 
-        PortableLightMode next = mode(lantern).next();
-        setMode(lantern, next);
+        PortableLightMode next = mode(flashlight).next();
+        setMode(flashlight, next);
         player.displayClientMessage(Component.translatable(next.hudTranslationKey()), true);
-        return InteractionResultHolder.sidedSuccess(lantern, false);
+        return InteractionResultHolder.sidedSuccess(flashlight, false);
     }
 
     @Override
@@ -238,22 +299,25 @@ public final class MirageLanternItem extends Item implements ShoulderRechargeabl
             TooltipFlag tooltipFlag
     ) {
         tooltipComponents.add(Component.translatable(
-                "tooltip.mirage_projector.lantern.mode",
+                "tooltip.mirage_projector.flashlight.mode",
                 Component.translatable(mode(stack).displayTranslationKey())
         ).withStyle(ChatFormatting.LIGHT_PURPLE));
         if (!hasEnergyCell(stack) || energyPercent(stack) <= 0) {
             tooltipComponents.add(Component.translatable(
-                    "tooltip.mirage_projector.lantern.discharged"
+                    "tooltip.mirage_projector.flashlight.discharged"
             ).withStyle(ChatFormatting.DARK_GRAY));
         } else {
             tooltipComponents.add(Component.translatable(
-                    "tooltip.mirage_projector.lantern.charge",
+                    "tooltip.mirage_projector.flashlight.charge",
                     energyPercent(stack)
             ).withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         tooltipComponents.add(Component.translatable(
-                "tooltip.mirage_projector.lantern.use"
+                "tooltip.mirage_projector.flashlight.use"
         ).withStyle(ChatFormatting.GRAY));
+        tooltipComponents.add(Component.translatable(
+                "tooltip.mirage_projector.flashlight.place"
+        ).withStyle(ChatFormatting.DARK_GRAY));
     }
 
     @Override
@@ -281,33 +345,33 @@ public final class MirageLanternItem extends Item implements ShoulderRechargeabl
     }
 
     private static void writeEnergyCell(
-            ItemStack lantern,
+            ItemStack flashlight,
             ItemStack cell,
             HolderLookup.Provider registries
     ) {
         if (cell == null || cell.isEmpty() || !RechargeableEnergyItem.isRechargeable(cell)) {
-            clearEnergyCell(lantern);
+            clearEnergyCell(flashlight);
             return;
         }
         ItemStack stored = cell.copyWithCount(1);
         int percent = RechargeableEnergyItem.chargePercent(stored);
-        CustomData.update(DataComponents.CUSTOM_DATA, lantern, tag -> {
+        CustomData.update(DataComponents.CUSTOM_DATA, flashlight, tag -> {
             tag.put(CELL_TAG, stored.save(registries));
             tag.putBoolean(CELL_PRESENT_TAG, true);
             tag.putInt(CELL_PERCENT_TAG, percent);
         });
     }
 
-    private static void clearEnergyCell(ItemStack lantern) {
-        if (lantern == null || lantern.isEmpty()) {
+    private static void clearEnergyCell(ItemStack flashlight) {
+        if (flashlight == null || flashlight.isEmpty()) {
             return;
         }
-        CustomData.update(DataComponents.CUSTOM_DATA, lantern, tag -> {
+        CustomData.update(DataComponents.CUSTOM_DATA, flashlight, tag -> {
             tag.remove(CELL_TAG);
             tag.remove(CELL_PRESENT_TAG);
             tag.remove(CELL_PERCENT_TAG);
         });
-        removeEmptyCustomData(lantern);
+        removeEmptyCustomData(flashlight);
     }
 
     private static CompoundTag customTag(ItemStack stack) {

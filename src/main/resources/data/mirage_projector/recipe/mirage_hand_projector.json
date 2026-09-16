@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "SDS",
+    "CFC",
+    " B "
+  ],
+  "key": {
+    "S": { "item": "mirage_projector:crying_obsidian_shard" },
+    "D": { "item": "mirage_projector:mirage_display" },
+    "C": { "item": "minecraft:copper_ingot" },
+    "F": { "item": "mirage_projector:mirage_lantern" },
+    "B": { "item": "mirage_projector:light_battery" }
+  },
+  "result": {
+    "id": "mirage_projector:mirage_hand_projector",
+    "count": 1
+  }
+}

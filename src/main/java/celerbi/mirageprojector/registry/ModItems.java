@@ -9,7 +9,7 @@ import celerbi.mirageprojector.item.MirageHandProjectorItem;
 import celerbi.mirageprojector.item.GlowDustItem;
 import celerbi.mirageprojector.item.LightBatteryItem;
 import celerbi.mirageprojector.item.MirageDebugHandbookItem;
-import celerbi.mirageprojector.item.MirageLanternItem;
+import celerbi.mirageprojector.item.MirageFlashlightItem;
 import celerbi.mirageprojector.item.PresentationRemoteItem;
 import celerbi.mirageprojector.item.ScanCodexItem;
 import celerbi.mirageprojector.item.ShoulderUpgradePatchItem;
@@ -37,10 +37,13 @@ public final class ModItems {
             ITEMS.registerSimpleBlockItem("mirage_prism", ModBlocks.MIRAGE_PRISM);
     public static final DeferredItem<BlockItem> MIRAGE_TABLE_PROJECTOR =
             ITEMS.registerSimpleBlockItem("mirage_table_projector", ModBlocks.MIRAGE_TABLE_PROJECTOR);
-    public static final DeferredItem<BlockItem> MIRAGE_WALL_PROJECTOR =
-            ITEMS.registerSimpleBlockItem("mirage_wall_projector", ModBlocks.MIRAGE_WALL_PROJECTOR);
+    // Legacy registry ID remains `mirage_wall_projector`; public identity is Mirage Wall Display.
+    public static final DeferredItem<BlockItem> MIRAGE_WALL_DISPLAY =
+            ITEMS.registerSimpleBlockItem("mirage_wall_projector", ModBlocks.MIRAGE_WALL_DISPLAY);
     public static final DeferredItem<BlockItem> MIRAGE_LIGHT_PROJECTOR =
             ITEMS.registerSimpleBlockItem("mirage_light_projector", ModBlocks.MIRAGE_LIGHT_PROJECTOR);
+    public static final DeferredItem<BlockItem> MIRAGE_WALL_PROJECTOR =
+            ITEMS.registerSimpleBlockItem("mirage_wall_illuminator", ModBlocks.MIRAGE_WALL_PROJECTOR);
     public static final DeferredItem<CoreBoosterItem> CORE_BOOSTER =
             ITEMS.register("core_booster", () -> new CoreBoosterItem(ModBlocks.CORE_BOOSTER.get(), new Item.Properties()));
     public static final DeferredItem<BlockItem> CHARGING_STATION =
@@ -63,8 +66,9 @@ public final class ModItems {
             ITEMS.register("light_battery", () -> new LightBatteryItem(new Item.Properties().stacksTo(16)));
     public static final DeferredItem<CreativeBatteryItem> CREATIVE_BATTERY =
             ITEMS.register("creative_battery", () -> new CreativeBatteryItem(new Item.Properties().stacksTo(1)));
-    public static final DeferredItem<MirageLanternItem> MIRAGE_LANTERN =
-            ITEMS.register("mirage_lantern", () -> new MirageLanternItem(new Item.Properties().stacksTo(1)));
+    // Registry ID intentionally stays `mirage_lantern`; public/runtime identity is Mirage Flashlight.
+    public static final DeferredItem<MirageFlashlightItem> MIRAGE_FLASHLIGHT =
+            ITEMS.register("mirage_lantern", () -> new MirageFlashlightItem(new Item.Properties().stacksTo(1)));
     // Registry ID intentionally stays `arm_strap` for world/save compatibility; public name is Shoulder Strap.
     public static final DeferredItem<ShoulderStrapItem> SHOULDER_STRAP =
             ITEMS.register("arm_strap", () -> new ShoulderStrapItem(new Item.Properties().stacksTo(1)));

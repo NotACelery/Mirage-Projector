@@ -7,7 +7,7 @@ import net.minecraft.world.phys.Vec3;
 /**
  * One client-visible moving Mirage light sample.
  *
- * <p>Consumers (lanterns, moving projectors, entity-attached emitters) submit the latest
+ * <p>Consumers (flashlights, moving projectors, entity-attached emitters) submit the latest
  * transform repeatedly. The client runtime decides when the voxel field actually needs a
  * rebuild, so callers do not have to solve or dirty world sections every render frame.</p>
  */

@@ -1,6 +1,17 @@
+## 1.0.32 — Survival progression / Flashlight / wall illumination
+
+1.0.32 now uses network protocol 43 and keeps `ProjectionSettings` format 4. It commits the first Survival-progression recipe wave, publicly/runtime-renames Mirage Lantern to Mirage Flashlight while preserving legacy registry/NBT compatibility, disambiguates the presentation chassis as Mirage Wall Display, adds a separate true wall-mounted Mirage Wall Projector illumination device, and lets the Flashlight be placed temporarily without losing its battery or mode. The floor Light Projector receives the iron/Crying-Obsidian/magenta visual pass. Visible floor-projector yaw/pitch aiming remains pending.
+- Survival crafting remains vanilla `crafting_shaped`, with all twelve new progression rows natively discoverable in JEI/EMI and protected by a dedicated viewer regression gate.
+
+
+
+### 1.0.32 Table dedicated runtime hotfix
+
+Runtime QA replaced the remaining shared Table presentation semantics with a Table-owned screen/runtime rules layer. The Table settings GUI remains visually/functionally 1:1 with the fixed-projector GUI, while Table placement, front/back classification, rotation/tilt transforms and render bounds are owned by `MirageTableProjectorLogic`. Main-menu opening data now includes the server-authoritative chassis ordinal so the client cannot race into the wrong screen; this advances protocol 42 → 43 without changing ProjectionSettings format 4 or persistent world data.
+
 ## 1.0.31
 
-Canonical fixed-projector workspace/runtime rebuild. Image/Item/Entity/Banner workspace opening now atomically selects the corresponding source server-side, and main/workspace menus carry authoritative settings plus projection-enabled snapshots instead of relying on client BlockEntity timing. Table remains on the same base projector menu/screen path as Mirage Display. Main Cancel restores the opening baseline and exits; projector header/source spacing is padded; Scan Codex book canvas is explicitly rendered once before widgets while blur/dimming stays disabled. Network protocol 41; ProjectionSettings format 4.
+Canonical fixed-projector workspace/runtime rebuild plus the recovered portable/player/Table completion wave. Image/Item/Entity/Banner workspace opening atomically selects the corresponding source server-side, and main/workspace menus carry authoritative settings plus projection-enabled snapshots. Table remains on the shared base-projector menu/screen path, adds X/Y/Z placement offsets and Tilt, starts new placements with Rotation OFF, and pivots image transforms around image center. Player scans preserve identity/skin without armor or held equipment and expose Base Skin / All Layers. Hand Projector now uses a real physical Projection Core independently from rechargeable energy, caps Compact Scale at 10 px, removes Copy Target Projector, and imports image assets directly. Network protocol 42; ProjectionSettings format 4.
 
 ## 1.0.30
 

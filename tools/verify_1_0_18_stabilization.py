@@ -14,10 +14,11 @@ def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
 # Release line / protocol / serialization.
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 # Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 # Later protocol bumps preserve this historical contract.
@@ -42,14 +43,15 @@ need('OpenPortableDeviceMenuPayload.TYPE' in network and 'PortableDeviceActionPa
      'portable-device payloads are not registered')
 need('RechargeableEnergyItem.isRechargeable(stack)' in portable_menu and 'getMaxStackSize()' in portable_menu,
      'Portable Device GUI does not own a one-cell rechargeable slot')
-need('CYCLE_LANTERN_MODE' in portable_action and 'COPY_TARGET_PROJECTOR' in portable_action,
+need('CYCLE_FLASHLIGHT_MODE' in portable_action and 'SELECT_IMAGE' in portable_action
+     and 'PortableDeviceScalePayload.TYPE' in network and 'PortableDeviceImagePayload.TYPE' in network,
      'portable GUI actions are incomplete')
 need('CYCLE_BANNER_PRESENTATION' in portable_action and 'WAR_BANNER_SIZE_UP' in portable_action,
      'War Banner controls were not preserved in portable GUI')
 
-lantern = read('src/main/java/celerbi/mirageprojector/item/MirageLanternItem.java')
+lantern = read('src/main/java/celerbi/mirageprojector/item/MirageFlashlightItem.java')
 need('return PortableLightMode.OFF;' in lantern, 'Lantern default is not OFF')
-need('player.isShiftKeyDown()' in lantern and 'mode(lantern).next()' in lantern,
+need('player.isShiftKeyDown()' in lantern and 'mode(flashlight).next()' in lantern,
      'Lantern retains GUI/mode interaction paths')
 need('PortableDeviceMenu.open' in lantern, 'Lantern portable GUI path missing')
 need('replaceEnergyCell' in lantern, 'Lantern GUI battery replacement hook missing')
@@ -108,8 +110,8 @@ need('player.containerMenu.setCarried(installed.copy())' in shoulder_runtime,
 equipment_client = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentClientEvents.java')
 panel = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentPanelWidget.java')
 slot_widget = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentSlotWidget.java')
-need(('panelX = guiLeft + 180' in equipment_client or 'creative ? 200 : 180' in equipment_client or 'int panelX = rightEdge + 28;' in equipment_client or 'int panelX = rightEdge + 13;' in equipment_client), 'Mirage Equipment panel is not on/docked to the right side')
-need((('toggleX = guiLeft + 156' in equipment_client and 'toggleY = guiTop + 61' in equipment_client) or ('creative ? 178 : 156' in equipment_client and 'creative ? 8 : 61' in equipment_client) or ('int toggleX = rightEdge + 7;' in equipment_client and 'creative ? 10 : 61' in equipment_client) or ('int toggleX = rightEdge - 2;' in equipment_client and 'creative ? 10 : 61' in equipment_client)),
+need(('panelX = guiLeft + 180' in equipment_client or 'creative ? 200 : 180' in equipment_client or 'int panelX = rightEdge + 28;' in equipment_client or 'int panelX = rightEdge + 13;' in equipment_client or 'int panelX = rightEdge + 24;' in equipment_client), 'Mirage Equipment panel is not on/docked to the right side')
+need((('toggleX = guiLeft + 156' in equipment_client and 'toggleY = guiTop + 61' in equipment_client) or ('creative ? 178 : 156' in equipment_client and 'creative ? 8 : 61' in equipment_client) or ('int toggleX = rightEdge + 7;' in equipment_client and 'creative ? 10 : 61' in equipment_client) or ('int toggleX = rightEdge - 2;' in equipment_client and 'creative ? 10 : 61' in equipment_client) or ('int toggleX = rightEdge + 5;' in equipment_client and 'creative ? 10 : 61' in equipment_client)),
      'Mirage Equipment toggle placement contract missing')
 need((('if (!strapPresent)' in equipment_client and 'return;' in equipment_client) or ('if (strapPresent)' in equipment_client and 'EMPTY_HEIGHT = 50' in panel)),
      'empty Mirage Equipment panel does not collapse to Strap-only')
@@ -168,7 +170,7 @@ need('normalizeFullyChargedOutput' in station_be and 'normalizeFullyChargedOutpu
 
 # Dynamic-light QA fix: voxel-volume cone intersection plus source positions outside emitter/player body.
 solver = read('src/main/java/celerbi/mirageprojector/light/engine/MirageLightSolver.java')
-held_lights = read('src/main/java/celerbi/mirageprojector/client/ClientHeldLanterns.java')
+held_lights = read('src/main/java/celerbi/mirageprojector/client/ClientHeldFlashlights.java')
 shoulder_client = read('src/main/java/celerbi/mirageprojector/client/ClientShoulderEquipment.java')
 placed_lights = read('src/main/java/celerbi/mirageprojector/client/ClientPlacedLightProjectors.java')
 need('double coneRadius' in solver and 'perpendicularSq <= coneRadius * coneRadius' in solver,

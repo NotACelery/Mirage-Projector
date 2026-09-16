@@ -211,6 +211,11 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
 
     public MirageProjectorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MIRAGE_PROJECTOR.get(), pos, state);
+        if (MirageProjectorBlock.chassisProfile(state) == ProjectionChassisProfile.TABLE) {
+            // A table projector is primarily a stationary presentation surface. Rotation remains
+            // available, but new tables start still instead of immediately spinning their source.
+            settings = settings.withRotationEnabled(false);
+        }
     }
 
     public ProjectionSettings settings() {
@@ -759,6 +764,12 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         return pose;
     }
 
+    public boolean togglePlayerAllLayers() {
+        boolean allLayers = entityProjectionState.togglePlayerAllLayers();
+        setChangedAndSync();
+        return allLayers;
+    }
+
     public HorsePosePreset cycleHorsePose() {
         HorsePosePreset pose = entityProjectionState.cycleHorsePose();
         setChangedAndSync();
@@ -931,6 +942,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         buffer.writeBlockPos(worldPosition);
         settings.write(buffer);
         buffer.writeBoolean(projectionEnabled);
+        buffer.writeVarInt(chassisProfile().ordinal());
     }
 
     @Override

@@ -1,18 +1,26 @@
-# Current Implementation — Mirage Projector 1.0.31
+# Current Implementation — Mirage Projector 1.0.32
 
-Version: **1.0.31**
+Version: **1.0.32**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
-Network protocol: **41**
+Network protocol: **43**
 
-This document describes the current implementation behavior of Mirage Projector 1.0.31. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.32. Historical development notes are archived under `docs/history/` and are not current authority.
 
 
 
+
+## 1.0.32 Survival progression / Flashlight / wall illumination
+
+1.0.32 keeps network protocol **42** and `ProjectionSettings` format **4**. The former Mirage Lantern is now the public/runtime **Mirage Flashlight**; Java symbols, UI text and active documentation use Flashlight while the registry ID `mirage_projector:mirage_lantern` and existing `MirageLantern...` ItemStack NBT keys remain intentionally stable so old worlds retain configured devices. The Flashlight uses a compact 3D Crying-Obsidian / magenta-glass model and may be placed temporarily on a sturdy block top; placement transfers its exact rechargeable cell and mode into the world form, and breaking/support loss returns one Flashlight with that same state.
+
+The illumination family now contains two fixed chassis. **Mirage Light Projector** remains the floor-standing emitter and receives the iron-block body / Crying-Obsidian band / magenta-lens art pass. **Mirage Wall Projector** (`mirage_projector:mirage_wall_illuminator`) is a new true wall-mounted Focus/Flood/Ambient/Off emitter using the same synchronized battery/menu/runtime contract. The historical presentation/Data-show registry `mirage_projector:mirage_wall_projector` remains stable but is now publicly/code-named **Mirage Wall Display**.
+
+Survival progression is now committed for Light Battery, Mirage Flashlight, Mirage Light Projector, Mirage Wall Projector, Shoulder Strap, Auto Battery Swap Patch, Shoulder Strap Slot Expansion, Charging Station, Mirage Hand Projector, Scan Codex, Mirage Table Projector and Mirage Wall Display. Light Battery consumes exactly five Glow Dust media in an X, with Copper above, Redstone below and Iron on the sides; the recipe accepts full vanilla Glowstone Dust or the rechargeable custom Glow Dust so existing charge-preservation logic remains meaningful. Glow Dust itself intentionally has no crafting recipe. The remaining illumination blocker is visible yaw/pitch aiming for the floor Light Projector.
 
 ## 1.0.31 canonical workspace/runtime rebuild
 
-1.0.31 advances network protocol to **41** while retaining `ProjectionSettings` format **4**. Fixed-projector source navigation is now atomic and server-authoritative: opening Image, Item, Entity or Banner first activates that source on the server and then opens the matching workspace. The main menu and all four source workspaces receive authoritative settings and projection-enabled snapshots in their opening data, so UI state no longer depends on a client BlockEntity update arriving before screen construction. This is especially important for the Table chassis, which continues to use the same `MirageProjectorMenu` / `MirageProjectorScreen` path as Mirage Display and the original projectors; Table-specific behavior remains limited to horizontal placement/render/capability semantics. Main-screen Cancel restores the opening baseline and closes the UI. Header/source-workspace spacing is padded so Wall controls do not collide with the source region. Scan Codex keeps vanilla blur/dimming disabled but draws its parchment/book canvas exactly once from the explicit screen render path before widgets, preventing both the transparent-book regression and historical double rendering.
+1.0.31 advances network protocol to **42** while retaining `ProjectionSettings` format **4**. Fixed-projector source navigation is now atomic and server-authoritative: opening Image, Item, Entity or Banner first activates that source on the server and then opens the matching workspace. The main menu and all four source workspaces receive authoritative settings and projection-enabled snapshots in their opening data, so UI state no longer depends on a client BlockEntity update arriving before screen construction. This is especially important for the Table chassis, which continues to use the same `MirageProjectorMenu` / `MirageProjectorScreen` path as Mirage Display and the original projectors; Table-specific behavior remains limited to horizontal placement/render/capability semantics. Main-screen Cancel restores the opening baseline and closes the UI. Header/source-workspace spacing is padded so Wall controls do not collide with the source region. Scan Codex keeps vanilla blur/dimming disabled but draws its parchment/book canvas exactly once from the explicit screen render path before widgets, preventing both the transparent-book regression and historical double rendering.
 
 ## 1.0.30 UX/runtime interaction wave
 
@@ -41,15 +49,17 @@ The runtime exposes eight projector chassis:
 5. Tall Mirage Projector
 6. Mirage Prism
 7. Mirage Table Projector
-8. Mirage Wall Projector
+8. Mirage Wall Display
 
 The project no longer registers alternate/comparison projector IDs. Each chassis has one canonical block/item identity, model, VoxelShape and renderer layout.
 
-Crafting upgrades preserve stored projector state. Mirage Projector upgrades into Mirage Display, which branches into Wide, Tall, Prism and Field variants. Table and Wall are 1.1 anchor-family foundations and do not yet have frozen Survival recipes.
+Crafting upgrades preserve stored projector state. Mirage Projector upgrades into Mirage Display, which branches into Wide, Tall, Prism and Field variants. Table and the presentation-oriented Wall chassis are 1.1 anchor-family foundations; their Survival recipes are now frozen in 1.0.32. The presentation chassis is publicly named Mirage Wall Display to distinguish it from the new wall-mounted illumination projector.
 
 ### Table / Horizontal anchor
 
 `mirage_projector:mirage_table_projector` must stand on a sturdy top surface. Image and Banner plane sources use a horizontal tabletop anchor; Item and Entity sources remain upright above the same chassis so it can act as a holographic display plinth. The normal Lift/Tilt/Rotation/Floating contracts remain available. Sneak + empty-hand right-click packs the complete BlockEntity state back into one Table Projector item. Removing its support uses the same packed-state drop path instead of spilling the Core/card/staging inventories separately.
+
+Runtime ownership is now Table-specific: `MirageTableProjectorScreen` mirrors the canonical settings GUI 1:1, while `MirageTableProjectorLogic` owns Table angle/bob, X/Z anchor offsets, horizontal planar placement, upright volumetric placement, front/back classification and render bounds. Rotation of an untilted tabletop image changes only its in-plane reading direction; visibility is derived from the exact render quaternion chain rather than an independent yaw approximation. The existing BlockEntity/menu/storage contract remains shared strictly for world/save compatibility.
 
 ### Wall / Data-show anchor
 
@@ -80,7 +90,7 @@ Mode and energy-cell state persist in the block entity and synchronize to client
 
 1.0.18 removed the old physical renderer that showed the battery floating below the projector and seeded the dynamic source outside the chassis. 1.0.19 adds the missing packed-light renderer bridge: Mirage virtual block-light is merged into both `LevelRenderer.getLightColor(...)` overloads while preserving vanilla sky light. 1.0.20 hardens that bridge for Sodium by resolving the Mirage field from the active `ClientLevel` instead of calling `getLightEngine()` on Sodium's temporary `LevelSlice`. 1.0.21 keeps that bridge and fixes its runtime invalidation contract: authoritative updates refresh a complete one-section render halo, while moving emitters refresh only the neighboring render sections whose shared face/edge/corner light bytes actually changed. This addresses terrain/wall meshes that otherwise remained stale until an unrelated block update. Jade continues to report mode and battery state.
 
-## Handheld Mirage Lantern
+## Handheld Mirage Flashlight
 
 `mirage_projector:mirage_lantern` is the player-following `DYNAMIC_VISUAL` light. It stores one exact rechargeable ItemStack internally, preserving cell type, components and partial charge.
 
@@ -122,7 +132,7 @@ Since 1.0.18 the player attachment itself stores only the currently equipped Sho
 
 The inventory extension opens on the **right** side of both the normal Survival inventory and the Creative inventory. With no Strap installed, the expanded Mirage panel exposes only one Shoulder Strap socket. Installing a Strap dynamically reveals the Shoulder Device, six base power-cell slots and two base upgrade sockets. Expansion reveals the final three battery slots and third upgrade socket; inactive positions do not exist visually as X/locked slots. The toggle remains inside the vanilla inventory region below the crafting-result area.
 
-The Shoulder Slot accepts `ShoulderMountableDevice` implementations, currently Mirage Lantern and Mirage Hand Projector. In 1.0.21 the mounted-item transform uses the corrected positive shoulder-height translation rather than mirroring the device down toward the player feet, and the shoulder Lantern light anchor follows the right-shoulder position while retaining the player look vector for Focus/Flood direction. Right-clicking the occupied Shoulder Device slot opens the same real portable-device GUI used by handheld devices. Device replacement follows normal cursor swap semantics: the previous device stays on the cursor instead of being dropped into the world. The Strap cannot be removed while a device is mounted, but batteries/upgrades travel safely inside it. Shift-hovering a packed Strap in normal inventory exposes a compact contents preview.
+The Shoulder Slot accepts `ShoulderMountableDevice` implementations, currently Mirage Flashlight and Mirage Hand Projector. In 1.0.21 the mounted-item transform uses the corrected positive shoulder-height translation rather than mirroring the device down toward the player feet, and the shoulder Lantern light anchor follows the right-shoulder position while retaining the player look vector for Focus/Flood direction. Right-clicking the occupied Shoulder Device slot opens the same real portable-device GUI used by handheld devices. Device replacement follows normal cursor swap semantics: the previous device stays on the cursor instead of being dropped into the world. The Strap cannot be removed while a device is mounted, but batteries/upgrades travel safely inside it. Shift-hovering a packed Strap in normal inventory exposes a compact contents preview.
 
 Mounted devices retain their normal runtime. The right shoulder remains reserved against vanilla shoulder riders while occupied; the left shoulder remains available. Normal armor/offhand slots and vanilla F swap-hands behavior remain untouched.
 
@@ -272,7 +282,7 @@ max(vanilla block light, Mirage light)
 
 Mirage virtual light is never fed back into vanilla block-light propagation as a new emitter.
 
-`DYNAMIC_VISUAL` is now an operational client-only runtime for moving/portable emitters. Consumers submit moving-source snapshots with stable identity, position, profile, update cadence, camera-cull distance and stale timeout. Directional-cone geometry is solved by the same causal voxel engine, while dynamic fields remain local and never enter the authoritative `STATIC_WORLD` publication channel. The placed Mirage Light Projector and handheld Mirage Lantern both consume this runtime directly; the latter follows tracked player position/aim and uses stable per-player-hand source identities.
+`DYNAMIC_VISUAL` is now an operational client-only runtime for moving/portable emitters. Consumers submit moving-source snapshots with stable identity, position, profile, update cadence, camera-cull distance and stale timeout. Directional-cone geometry is solved by the same causal voxel engine, while dynamic fields remain local and never enter the authoritative `STATIC_WORLD` publication channel. The placed Mirage Light Projector and handheld Mirage Flashlight both consume this runtime directly; the latter follows tracked player position/aim and uses stable per-player-hand source identities.
 
 Physical `mirage_projector:crying_light_node` exists only as migration compatibility for old development worlds and is not created by current gameplay.
 
@@ -284,7 +294,7 @@ Rechargeable energy is ItemStack-owned through `RechargeableEnergyItem`. Mirage 
 
 Glow Dust tooltips now show only `Discharged` at zero or percentage while partial; fully restored vanilla dust needs no Mirage tooltip. Light Battery tooltips show only percentage/discharged state and no longer explain internal capacity ratios or charger implementation.
 
-Core Booster and Charging Station both use the shared Beacon recharge contract and both normalize completed custom Glow Dust back to vanilla output. A crafting hook is prepared so a future Light Battery recipe consuming exactly five Glow Dust media inherits the average charge fraction of those five dust inputs. The remaining recipe materials are still intentionally unfrozen.
+Core Booster and Charging Station both use the shared Beacon recharge contract and both normalize completed custom Glow Dust back to vanilla output. In 1.0.32 the Light Battery recipe is frozen around exactly five Glow Dust media (`G C G / I G I / G R G`); the crafting hook transfers the average charge fraction of those five media into the resulting battery. The recipe accepts both vanilla full Glowstone Dust and rechargeable Mirage Glow Dust.
 
 ## Recipe viewers
 
@@ -302,6 +312,8 @@ EMI integration exposes:
 JEI integration exposes custom projector upgrade recipes through the vanilla Crafting category and supplies ingredient information for projector progression and renewable Crying Obsidian growth.
 
 Both integrations are optional. Mirage Projector loads normally when either or both recipe viewers are absent.
+
+The 1.0.32 Survival-progression set is intentionally data-driven with vanilla `minecraft:crafting_shaped` recipes. JEI and EMI both read those rows directly from the vanilla RecipeManager, so Light Battery, Mirage Flashlight, Mirage Light Projector, Mirage Wall Projector, Shoulder Strap, both Strap patches, Charging Station, Mirage Hand Projector, Mirage Scan Codex, Mirage Table Projector and Mirage Wall Display appear in the ordinary Crafting category without duplicate custom viewer recipes. The Light Battery row uses the shared `mirage_projector:glow_dust_media` tag, allowing the viewer ingredient slot to cycle between vanilla Glowstone Dust and rechargeable Mirage Glow Dust.
 
 ## Public handbook
 

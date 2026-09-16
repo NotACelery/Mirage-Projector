@@ -12,10 +12,11 @@ def need(cond, msg):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 # Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 # Later protocol bumps preserve this historical contract.
@@ -27,10 +28,10 @@ need(('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or
 need(('SERIALIZATION_VERSION = 3' in settings or 'SERIALIZATION_VERSION = 4' in settings), 'ProjectionSettings format is not a compatible v3/v4 line')
 
 # Correct portable/placed interaction semantics from QA.
-lantern = read('src/main/java/celerbi/mirageprojector/item/MirageLanternItem.java')
+lantern = read('src/main/java/celerbi/mirageprojector/item/MirageFlashlightItem.java')
 shift = lantern.find('if (player.isShiftKeyDown())')
 open_menu = lantern.find('PortableDeviceMenu.open', shift)
-mode_cycle = lantern.find('PortableLightMode next = mode(lantern).next()')
+mode_cycle = lantern.find('PortableLightMode next = mode(flashlight).next()')
 need(shift >= 0 and open_menu > shift and mode_cycle > open_menu,
      'Lantern must open GUI on Shift+RMB and cycle mode on normal RMB')
 need('serviceCell' not in lantern, 'Lantern reintroduced direct hand battery service')
@@ -53,9 +54,9 @@ portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceM
 portable_screen = read('src/main/java/celerbi/mirageprojector/client/PortableDeviceScreen.java')
 light_screen = read('src/main/java/celerbi/mirageprojector/client/MirageLightProjectorScreen.java')
 station_screen = read('src/main/java/celerbi/mirageprojector/client/ChargingStationScreen.java')
-need('COMPACT_PLAYER_INV_Y = 100' in portable_menu and ('PROJECTOR_PLAYER_INV_Y = 198' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 190' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 158' in portable_menu),
+need('COMPACT_PLAYER_INV_Y = 100' in portable_menu and ('PROJECTOR_PLAYER_INV_Y = 232' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 198' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 190' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 158' in portable_menu),
      'portable menu does not separate compact Lantern and Hand Projector layouts')
-need(('imageHeight = menu.projectorLayout() ? HEIGHT : 184' in portable_screen or 'imageHeight = menu.projectorLayout() ? PROJECTOR_HEIGHT : LANTERN_HEIGHT' in portable_screen),
+need(('imageHeight = menu.projectorLayout() ? HEIGHT : 184' in portable_screen or 'imageHeight = menu.projectorLayout() ? PROJECTOR_HEIGHT : LANTERN_HEIGHT' in portable_screen or 'imageHeight = menu.projectorLayout() ? PROJECTOR_HEIGHT : FLASHLIGHT_HEIGHT' in portable_screen),
      'Lantern/Hand Projector layouts are not independently sized')
 need('10, 20' in portable_screen or ', 20,' in portable_screen,
      'portable device status text was not moved below title')
@@ -71,7 +72,7 @@ for name, text in (
 equipment_client = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentClientEvents.java')
 need('CreativeModeInventoryScreen' in equipment_client and 'instanceof CreativeModeInventoryScreen' in equipment_client,
      'Mirage Equipment is not exposed in Creative inventory')
-need((('creative ? 200 : 180' in equipment_client and 'creative ? 178 : 156' in equipment_client) or ('int panelX = rightEdge + 28;' in equipment_client and 'int toggleX = rightEdge + 7;' in equipment_client) or ('int panelX = rightEdge + 13;' in equipment_client and 'int toggleX = rightEdge - 2;' in equipment_client)),
+need((('creative ? 200 : 180' in equipment_client and 'creative ? 178 : 156' in equipment_client) or ('int panelX = rightEdge + 28;' in equipment_client and 'int toggleX = rightEdge + 7;' in equipment_client) or ('int panelX = rightEdge + 13;' in equipment_client and 'int toggleX = rightEdge - 2;' in equipment_client) or ('int panelX = rightEdge + 24;' in equipment_client and 'int toggleX = rightEdge + 5;' in equipment_client)),
      'Creative Mirage Equipment panel/toggle placement contract missing')
 
 # Codex behaves like an inventory overlay: live world, no vanilla blur/dim pass.
@@ -117,10 +118,10 @@ need('floor-standing `Mirage Light Projector`' in waitlist,
      'accepted floor Mirage Light Projector is not documented')
 need('yaw' in waitlist.lower() and 'pitch' in waitlist.lower(),
      'future floor Light Projector yaw/pitch aiming is not documented')
-need('wall-mounted light projector' in waitlist.lower(),
-     'separate wall-mounted light projector remains undocumented')
-need('vanilla-lantern-like portable beacon' in waitlist.lower(),
-     'future placeable Lantern behavior is not documented')
+need('wall-mounted' in waitlist.lower() and 'mirage wall projector' in waitlist.lower(),
+     'separate wall-mounted light projector delivery is undocumented')
+need('placed temporarily' in waitlist.lower() and 'portable beacon' in waitlist.lower(),
+     'placeable Flashlight behavior is not documented')
 
 # Lang parity includes new Jade charge-progress text.
 langs = {}

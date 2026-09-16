@@ -7,7 +7,7 @@
 - Minecraft **1.21.1**
 - NeoForge **21.1.244+**
 - Java **21**
-- Network protocol **41**
+- Network protocol **43**
 
 EMI and JEI are optional. When installed, Mirage Projector exposes its custom projector-upgrade recipes and Crying Obsidian guidance directly in the recipe viewer.
 
@@ -22,7 +22,7 @@ EMI and JEI are optional. When installed, Mirage Projector exposes its custom pr
 | Tall Mirage Projector | 32×80 | 96 | 16 | ×2.00 |
 | Mirage Prism | 48×48 baseline | 96 | 12 | ×2.00 |
 | Mirage Table Projector | 48×48 | 64 | 12 | ×1.50 |
-| Mirage Wall Projector / Data-show | wall-targeted | — | — | ×1.50 |
+| Mirage Wall Display / Data-show | wall-targeted | — | — | ×1.50 |
 
 The nominal envelope is an efficiency target rather than a hard render cap. Sufficient Projection Power can push a projector into Overdrive.
 
@@ -66,9 +66,9 @@ Projector screens automatically expose vertical scrolling when the selected Mine
 
 ## Portable illumination and projection
 
-The current 1.0.x expansion line now includes a placed **Mirage Light Projector**, a handheld **Mirage Lantern**, and the first handheld hologram device: **Mirage Hand Projector**. The light projector and lantern reuse the same Focus / Flood / Ambient / Off profiles and rechargeable-media contract instead of maintaining separate light engines. The lantern carries one removable Glow Dust or Light Battery stack internally, preserves its exact charge/components, drains only while held and emitting, and projects through the client-local `DYNAMIC_VISUAL` path while following the player's movement and aim.
+The current 1.0.x expansion line includes a floor-standing **Mirage Light Projector**, a wall-mounted **Mirage Wall Projector**, the handheld **Mirage Flashlight**, and the portable hologram **Mirage Hand Projector**. The three illumination devices reuse the same Focus / Flood / Ambient / Off profiles and rechargeable-media contract instead of maintaining separate light engines. The Flashlight carries one removable Glow Dust or Light Battery stack internally, preserves its exact charge/components, drains only while emitting, follows the player's movement/aim through `DYNAMIC_VISUAL`, and can be placed temporarily on a block top without losing its cell or selected mode.
 
-The Mirage Hand Projector is the first portable hologram consumer. It stores one removable rechargeable cell plus one copied portable hologram profile taken from a configured placed Mirage Projector. Portable copies preserve the active source family (Image / Item / Banner / Entity) but normalize the output to a smaller compact handheld budget so moving projections stay readable without behaving like a full stationary chassis. Since 1.0.12 an explicitly enabled handheld projector remains active while stored anywhere in the player inventory, using Mirage-owned device-state sync so remote players can still see it. A Creative Battery with infinite charge is available for QA/admin/temporary game modes and has no Survival progression path.
+The Mirage Hand Projector is a direct portable hologram consumer with its own physical Projection Core, rechargeable energy cell and Image / Item / Entity / Banner source controls. It normalizes output to the Compact 10 px scale budget instead of copying another projector's profile. An explicitly enabled handheld projector remains active while stored anywhere in the player inventory, using Mirage-owned device-state sync so remote players can still see it. A Creative Battery with infinite charge remains available only for QA/admin/temporary game modes and has no Survival progression path.
 
 Since 1.0.13, **Mirage Equipment** adds a dedicated Shoulder Strap + Shoulder Slot without consuming armor or offhand space. In 1.0.18 the Strap becomes the real owner of its mounted device, battery pouch and upgrades: a packed Strap can be removed/stored/swapped while retaining its contents, and the right-side inventory panel exposes only the slots currently unlocked. The base Strap has six power-cell slots plus two upgrades; **Shoulder Strap Slot Expansion** raises that to nine cells plus a third upgrade. Auto Battery Swap remains shoulder-only. Since 1.0.15 the directional Charging Station provides four queued inputs, one active charger, four outputs and front-face logistics; 1.0.18 tightens it to incomplete normal rechargeable media, enlarges its GUI and visualizes queued/charging/output stacks in-world. Since 1.0.16 Banner-profile Hand Projectors can use the smaller pole-free overhead War Banner presentation with Directional or per-viewer billboard facing.
 
@@ -120,6 +120,8 @@ With EMI installed:
 
 With JEI installed, custom projector-upgrade recipes are exposed through the normal Crafting category and Crying Obsidian/projector guidance is available through ingredient information.
 
+The 1.0.32 Survival-progression recipes (Light Battery, Mirage Flashlight, Light/Wall projectors, Shoulder Strap + patches, Charging Station, Hand Projector, Scan Codex, Table Projector and Wall Display) are ordinary vanilla `crafting_shaped` recipes. Both JEI and EMI therefore expose them directly in their normal Crafting category from the shared RecipeManager rather than through duplicate Mirage-specific wrappers. The Light Battery entry expands `mirage_projector:glow_dust_media`, so the five Glow Dust slots accept both full vanilla Glowstone Dust and rechargeable Mirage Glow Dust.
+
 ## Documentation
 
 Start with:
@@ -147,6 +149,6 @@ The verification suite checks the current registry/resource surface, Mirage Ligh
 
 ## Version scope
 
-**1.0.31** is the current implementation snapshot. It rebuilds fixed-projector workspace routing around one server-authoritative flow shared by Mirage Projector, Mirage Display, Table and the other canonical chassis. Opening Image, Item, Entity or Banner now atomically selects that source on the server before the workspace opens, and every workspace receives an authoritative settings/ON-state snapshot instead of depending on a possibly stale client BlockEntity. The Table Projector therefore remains a normal canonical projector with only its horizontal anchor/geometry differences rather than maintaining a parallel UI. Main-screen Cancel now restores the opening settings and closes. The projector header/source area has additional padding, and the Scan Codex explicitly renders its book canvas once before its widgets while keeping vanilla blur/dimming disabled. Network protocol is **41** and `ProjectionSettings` format remains **4**. All 1.0.30 portable-source, Shoulder, Wall/Data-show, Presentation Remote, Scan Card and presentation-deck contracts remain intact.
+**1.0.32** is the current implementation snapshot. It closes the first Survival-progression wave for the 1.1 feature set: Light Battery now uses the fixed five-Glow-Dust X recipe, Mirage Lantern is publicly/runtime-renamed **Mirage Flashlight** while keeping the legacy `mirage_lantern` registry/NBT identities for world compatibility, Shoulder Strap/upgrades, Charging Station, Hand Projector, Scan Codex, Table Projector and Wall Display gain Survival recipes, and the floor Light Projector receives the agreed iron/Crying-Obsidian visual pass. A separate wall-mounted illumination chassis is now the public **Mirage Wall Projector** (`mirage_wall_illuminator` internally), while the old presentation chassis is the **Mirage Wall Display**. The Flashlight also gains a temporary placed world form that preserves mode and battery. Network protocol advances to **43** and `ProjectionSettings` format remains **4**. The floor Light Projector aiming/yaw-pitch follow-up remains intentionally pending. The Table runtime is now isolated behind a dedicated 1:1 settings screen and Table-only render/visibility/placement rules; save format remains unchanged; the main-menu opening payload now carries authoritative chassis identity.
 
 **1.0.24** established the current Scan Codex/Card and Hand Projector portable UI contracts. It keeps the vanilla Lectern as the physical Scan Codex workstation while replacing Paper-copy semantics with blank Entity Scan Cards, adding destructive successful imports from filled Mirage cards and optional Easy Mob Farm capture cards, expanding the Codex into a scrollable categorized detail browser, and compacting the Hand Projector into a lite portable UI whose Forward/War Banner, Directional/Billboard, size and height controls update from live device state. Reverse Mirage → Easy Mob Farm card export remains deferred; if added later its cost is measured in experience levels rather than raw XP. Final 1.1.0 work still includes the Wall presentation slide-deck architecture, optional Create Blueprint bridge, End Resonance, recipes/balance and release polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.

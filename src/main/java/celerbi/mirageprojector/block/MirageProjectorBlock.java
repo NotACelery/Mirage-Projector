@@ -284,7 +284,7 @@ public class MirageProjectorBlock extends BaseEntityBlock {
             if (state.is(ModBlocks.MIRAGE_TABLE_PROJECTOR.get())) {
                 return ProjectionChassisProfile.TABLE;
             }
-            if (state.is(ModBlocks.MIRAGE_WALL_PROJECTOR.get())) {
+            if (state.is(ModBlocks.MIRAGE_WALL_DISPLAY.get())) {
                 return ProjectionChassisProfile.WALL;
             }
         }

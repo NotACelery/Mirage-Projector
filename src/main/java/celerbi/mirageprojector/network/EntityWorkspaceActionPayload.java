@@ -110,6 +110,11 @@ public record EntityWorkspaceActionPayload(
                         projector.toggleProjectedEntityEquipmentVisibility(payload.channel());
                     }
                 }
+                case TOGGLE_PLAYER_LAYERS -> {
+                    if (projector.entityProjectionState().activeEntityIsPlayer()) {
+                        projector.togglePlayerAllLayers();
+                    }
+                }
             }
         });
     }
@@ -128,7 +133,8 @@ public record EntityWorkspaceActionPayload(
         RETURN_STAGING,
         CAPTURE_EQUIPPED,
         CYCLE_POSE,
-        TOGGLE_VISIBILITY;
+        TOGGLE_VISIBILITY,
+        TOGGLE_PLAYER_LAYERS;
 
         static Action fromOrdinal(int ordinal) {
             if (ordinal < 0 || ordinal >= values().length) {

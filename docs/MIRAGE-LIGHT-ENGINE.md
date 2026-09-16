@@ -2,7 +2,7 @@
 
 Network protocol: **35**
 
-The static Mirage Light implementation remains server-authoritative and is currently used by energized Mature Crying Obsidian Clusters. Since 1.0.5, moving/portable emitters have a separate operational `DYNAMIC_VISUAL` client lifecycle. Mirage Lantern and Mirage Light Projector are current consumers; Shoulder-mounted Lanterns reuse the same client-local source manager.
+The static Mirage Light implementation remains server-authoritative and is currently used by energized Mature Crying Obsidian Clusters. Since 1.0.5, moving/portable emitters have a separate operational `DYNAMIC_VISUAL` client lifecycle. Mirage Flashlight, Mirage Light Projector and Mirage Wall Projector are current consumers; Shoulder-mounted Flashlights reuse the same client-local source manager. The temporary placed Flashlight form reuses the placed-light BlockEntity/runtime instead of introducing another light engine.
 
 ## Core rule
 

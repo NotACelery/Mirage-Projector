@@ -9,9 +9,10 @@ def need(c,m):
     if not c: errors.append(m)
 def read(r): return (ROOT/r).read_text(encoding='utf-8')
 
-props=read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props=read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main=read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
 settings=read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
 need(any(v in props for v in ('mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not a compatible 1.0.26+ line')
 need(any(v in main for v in ('NETWORK_PROTOCOL = "38"', 'NETWORK_PROTOCOL = "39"', 'NETWORK_PROTOCOL = "40"')),'1.0.26 protocol must be 38')
@@ -114,10 +115,10 @@ for locale in ('en_us','es_cl','es_es'):
 need(set(langs['en_us'])==set(langs['es_cl'])==set(langs['es_es']),'language key parity broken')
 
 need((ROOT/'docs/RELEASE-1.0.26-PRESENTATION-CONTROL.md').exists(),'1.0.26 release note missing')
-need(any(v in read('docs/ROADMAP.md') for v in ('Current implementation snapshot: **1.0.26**', 'Current implementation snapshot: **1.0.27**', 'Current implementation snapshot: **1.0.28**', 'Current implementation snapshot: **1.0.29**', 'Current implementation snapshot: **1.0.30**', 'Current implementation snapshot: **1.0.31**')), 'roadmap baseline is not a compatible 1.0.26+ line')
-need(any(v in read('docs/DEVELOPMENT.md') for v in ('Current maintenance baseline: **1.0.26**', 'Current maintenance baseline: **1.0.27**', 'Current maintenance baseline: **1.0.28**', 'Current maintenance baseline: **1.0.29**', 'Current maintenance baseline: **1.0.30**', 'Current maintenance baseline: **1.0.31**')), 'development baseline is not a compatible 1.0.26+ line')
-need(any(v in read('docs/CURRENT-IMPLEMENTATION.md') for v in ('Mirage Projector 1.0.26', 'Mirage Projector 1.0.27', 'Mirage Projector 1.0.28', 'Mirage Projector 1.0.29', 'Mirage Projector 1.0.30', 'Mirage Projector 1.0.31')), 'current implementation baseline is not a compatible 1.0.26+ line')
-need(any(v in read('docs/DOCUMENTATION-AUTHORITY.md') for v in ('Documentation Authority — Mirage Projector 1.0.26', 'Documentation Authority — Mirage Projector 1.0.27', 'Documentation Authority — Mirage Projector 1.0.28', 'Documentation Authority — Mirage Projector 1.0.29', 'Documentation Authority — Mirage Projector 1.0.30', 'Documentation Authority — Mirage Projector 1.0.31')), 'documentation authority baseline is not a compatible 1.0.26+ line')
+need(any(v in read('docs/ROADMAP.md') for v in ('Current implementation snapshot: **1.0.26**', 'Current implementation snapshot: **1.0.27**', 'Current implementation snapshot: **1.0.28**', 'Current implementation snapshot: **1.0.29**', 'Current implementation snapshot: **1.0.30**', 'Current implementation snapshot: **1.0.31**', 'Current implementation snapshot: **1.0.32**')), 'roadmap baseline is not a compatible 1.0.26+ line')
+need(any(v in read('docs/DEVELOPMENT.md') for v in ('Current maintenance baseline: **1.0.26**', 'Current maintenance baseline: **1.0.27**', 'Current maintenance baseline: **1.0.28**', 'Current maintenance baseline: **1.0.29**', 'Current maintenance baseline: **1.0.30**', 'Current maintenance baseline: **1.0.31**', 'Current maintenance baseline: **1.0.32**')), 'development baseline is not a compatible 1.0.26+ line')
+need(any(v in read('docs/CURRENT-IMPLEMENTATION.md') for v in ('Mirage Projector 1.0.26', 'Mirage Projector 1.0.27', 'Mirage Projector 1.0.28', 'Mirage Projector 1.0.29', 'Mirage Projector 1.0.30', 'Mirage Projector 1.0.31', 'Mirage Projector 1.0.32')), 'current implementation baseline is not a compatible 1.0.26+ line')
+need(any(v in read('docs/DOCUMENTATION-AUTHORITY.md') for v in ('Documentation Authority — Mirage Projector 1.0.26', 'Documentation Authority — Mirage Projector 1.0.27', 'Documentation Authority — Mirage Projector 1.0.28', 'Documentation Authority — Mirage Projector 1.0.29', 'Documentation Authority — Mirage Projector 1.0.30', 'Documentation Authority — Mirage Projector 1.0.31', 'Documentation Authority — Mirage Projector 1.0.32')), 'documentation authority baseline is not a compatible 1.0.26+ line')
 need('## 1.0.26' in read('docs/CHANGELOG.md'),'changelog missing 1.0.26')
 need('## 1.0.26' in read('docs/VERSION-SCOPE.md'),'version scope missing 1.0.26')
 

@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "mirage_projector:block/mirage_wall_illuminator" },
+    "facing=east": { "model": "mirage_projector:block/mirage_wall_illuminator", "y": 90 },
+    "facing=south": { "model": "mirage_projector:block/mirage_wall_illuminator", "y": 180 },
+    "facing=west": { "model": "mirage_projector:block/mirage_wall_illuminator", "y": 270 }
+  }
+}

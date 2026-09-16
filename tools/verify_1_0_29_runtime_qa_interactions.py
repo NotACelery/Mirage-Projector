@@ -12,9 +12,10 @@ def need(condition, message):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
 events = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentClientEvents.java')
 slot = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentSlotWidget.java')
 action = read('src/main/java/celerbi/mirageprojector/network/ShoulderEquipmentActionPayload.java')
@@ -36,7 +37,8 @@ need('SERIALIZATION_VERSION = 4' in read('src/main/java/celerbi/mirageprojector/
 # Mirage Equipment visibility + real interaction outside the vanilla container rectangle.
 need('creative.isInventoryOpen()' in events, 'Creative Mirage Equipment is not gated to the player inventory tab')
 need(('int toggleX = rightEdge + 7;' in events and 'int panelX = rightEdge + 28;' in events)
-     or ('int toggleX = rightEdge - 2;' in events and 'int panelX = rightEdge + 13;' in events),
+     or ('int toggleX = rightEdge - 2;' in events and 'int panelX = rightEdge + 13;' in events)
+     or ('int toggleX = rightEdge + 5;' in events and 'int panelX = rightEdge + 24;' in events),
      'Mirage Equipment is not docked at a supported inventory-frame position')
 need('ScreenEvent.MouseButtonPressed.Pre' in events and 'event.setCanceled(true)' in events,
      'external Mirage Equipment slot clicks are not intercepted before vanilla outside-drop handling')

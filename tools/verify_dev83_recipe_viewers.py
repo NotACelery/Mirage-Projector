@@ -16,7 +16,7 @@ def read(rel):
 
 
 gradle = read('build.gradle')
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 need('emi_version=1.1.24+1.21.1' in props, 'gradle.properties missing emi_version')
 need('jei_version=19.25.0.321' in props, 'gradle.properties missing jei_version')
 need('mod_version=0.1.0-dev.86a' in props, 'gradle.properties is not dev.86a')

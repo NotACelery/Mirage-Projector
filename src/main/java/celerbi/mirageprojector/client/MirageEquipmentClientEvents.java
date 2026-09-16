@@ -55,9 +55,9 @@ public final class MirageEquipmentClientEvents {
         // Creative's page arrows/trash controls.
         // Visually dock the extension to the vanilla frame instead of leaving the toggle/panel
         // floating in the empty screen area.
-        int toggleX = rightEdge - 2;
+        int toggleX = rightEdge + 5;
         int toggleY = guiTop + (creative ? 10 : 61);
-        int panelX = rightEdge + 13;
+        int panelX = rightEdge + 24;
         int panelY = guiTop + 3;
 
         equipmentToggle = Button.builder(
@@ -127,9 +127,18 @@ public final class MirageEquipmentClientEvents {
      */
     @SubscribeEvent
     public static void onScreenRender(ScreenEvent.Render.Pre event) {
-        if (event.getScreen() == equipmentScreen) {
-            applyInventoryTabVisibility(event.getScreen());
+        if (event.getScreen() != equipmentScreen) {
+            return;
         }
+
+        // Creative keeps one screen instance while rebuilding its child widgets as tabs change.
+        // If vanilla discarded our extension, rebuild the current screen once so the Mirage
+        // Equipment toggle comes back when the Inventory tab is selected again.
+        if (equipmentToggle != null && !event.getScreen().children().contains(equipmentToggle)) {
+            MinecraftScreenReinitializer.reinitialize(event.getScreen());
+            return;
+        }
+        applyInventoryTabVisibility(event.getScreen());
     }
 
     /**

@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:glowstone_dust",
+    "mirage_projector:glow_dust"
+  ]
+}

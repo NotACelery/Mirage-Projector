@@ -1,3 +1,26 @@
+## 1.0.32 — Table dedicated runtime hotfix
+
+- Rebuilt Mirage Table Projector client runtime behind a dedicated Table dispatcher/rules class while preserving the existing GUI 1:1.
+- Table planar front/back now derives from the exact render quaternion chain instead of approximate viewer/yaw math.
+- Table owns X/Y/Z anchor semantics, planar vs volumetric placement and an offset-aware render envelope.
+- Removed the legacy shared `applyTableSurfaceOffsets` path from the canonical fixed-projector renderer.
+- Main projector screen registration now uses an explicitly typed shared screen factory so NeoForge 1.21.1 can compile the dedicated Table/non-Table routing without generic type-inference ambiguity.
+- Network protocol is 43 because main-menu opening data now carries authoritative chassis identity; ProjectionSettings format stays 4.
+
+## 1.0.32 — Survival progression / Flashlight / wall illumination
+- Fixed overlay-source cleanup so pre-rename Lantern Java files are tombstoned before compilation when 1.0.32 is copied over a 1.0.31 project directory; removed the fragile `CALL :delete_file` cleanup helper.
+
+- Renamed Mirage Lantern runtime/public identity to Mirage Flashlight while preserving the legacy registry/NBT compatibility surface.
+- Added committed Survival recipes for the rechargeable/portable/Shoulder/Charging/Codex/Table/Wall progression set.
+- Added the exact five-Glow-Dust Light Battery recipe and common Glow Dust media tag.
+- Reworked Flashlight and floor Light Projector visual language around Crying Obsidian, magenta glass and iron.
+- Renamed the presentation chassis publicly/code-wise to Mirage Wall Display while retaining its legacy registry ID.
+- Added a separate true Mirage Wall Projector illumination chassis.
+- Added temporary placed Flashlight form with battery/mode round-trip.
+- All twelve Survival-progression recipes are standard shaped Crafting entries and are explicitly regression-gated for native JEI/EMI discovery; Light Battery exposes both vanilla Glowstone Dust and rechargeable Mirage Glow Dust through `mirage_projector:glow_dust_media`.
+- Network protocol remains 42; ProjectionSettings format remains 4.
+
+
 ## 1.0.31 — Canonical workspace/runtime rebuild
 
 - Replaces split client source-selection + workspace navigation with atomic server-authoritative Image/Item/Entity/Banner workspace opening.
@@ -6,7 +29,12 @@
 - Main Cancel restores the opening configuration and closes the interface.
 - Adds padding to the projector header/source-workspace region so Wall controls do not overlap the source section.
 - Restores the Scan Codex parchment/book canvas through one explicit render pass while preserving the no-blur/no-dim contract.
-- Network protocol 41; ProjectionSettings format 4.
+- Player scans are identity/skin-only: armor and held equipment are neither captured nor reloaded, including legacy Player scans; Entity Workspace can switch between Base Skin and All Layers.
+- Table Placement adds X/Y/Z offsets and Tilt with independent resets; new Tables start with Rotation OFF and Table images rotate/tilt around their geometric center.
+- Hand Projector removes Copy Target Projector, caps Compact scale at 10 px, stores a physical Projection Core separately from its rechargeable battery, and requires Core + energy + valid source.
+- Portable Device UI is rebuilt around Source Workspaces, Geometry/Scale, Core + Energy and contextual War Banner controls; Image mode imports assets directly through the shared upload transport.
+- Adds dedicated portable Scale and Image payloads.
+- Network protocol 42; ProjectionSettings format 4.
 
 ## 1.0.30 — UX/runtime interaction wave
 
@@ -396,3 +424,5 @@ First stable Mirage Projector release for Minecraft 1.21.1 / NeoForge 21.1.244+.
 - Responsive vertical scrolling for projector GUIs on constrained GUI heights.
 
 Development-version chronology is preserved in `docs/history/development-notes/CHANGELOG-DEVELOPMENT.md`.
+
+- Fixed Mirage Table Projector image visibility across rotation angles by using the correct horizontal-plane front normal; zero-tilt table rotation no longer flips front/back classification.

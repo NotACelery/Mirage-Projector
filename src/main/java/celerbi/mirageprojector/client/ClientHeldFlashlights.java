@@ -1,6 +1,6 @@
 package celerbi.mirageprojector.client;
 
-import celerbi.mirageprojector.item.MirageLanternItem;
+import celerbi.mirageprojector.item.MirageFlashlightItem;
 import celerbi.mirageprojector.light.device.PortableLightMode;
 import celerbi.mirageprojector.light.engine.MirageDynamicLightSnapshot;
 import celerbi.mirageprojector.light.engine.MirageLightSourceId;
@@ -13,18 +13,18 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Converts tracked player-held lantern ItemStacks into player-following DYNAMIC_VISUAL sources.
+ * Converts tracked player-held flashlight ItemStacks into player-following DYNAMIC_VISUAL sources.
  *
  * <p>No extra movement packet is needed: player position/look already arrive through vanilla
  * entity tracking and the held ItemStack carries the synchronized Mirage mode/cell summary.</p>
  */
-public final class ClientHeldLanterns {
+public final class ClientHeldFlashlights {
     private static final double CULL_DISTANCE = 96.0D;
     private static final int REFRESH_TICKS = 2;
     private static final int STALE_TICKS = 4;
     private static long lastSubmitTick = Long.MIN_VALUE;
 
-    private ClientHeldLanterns() {
+    private ClientHeldFlashlights() {
     }
 
     public static void submitVisiblePlayers(Minecraft minecraft, Vec3 cameraPosition) {
@@ -57,13 +57,13 @@ public final class ClientHeldLanterns {
             Vec3 camera,
             double cullSq
     ) {
-        String kind = hand == InteractionHand.MAIN_HAND ? "lantern_main" : "lantern_off";
+        String kind = hand == InteractionHand.MAIN_HAND ? "flashlight_main" : "flashlight_off";
         MirageLightSourceId sourceId = MirageLightSourceId.entity(kind, player.getUUID());
-        if (!stack.is(ModItems.MIRAGE_LANTERN.get()) || !(stack.getItem() instanceof MirageLanternItem)) {
+        if (!stack.is(ModItems.MIRAGE_FLASHLIGHT.get()) || !(stack.getItem() instanceof MirageFlashlightItem)) {
             ClientDynamicMirageLightManager.remove(sourceId);
             return;
         }
-        if (!MirageLanternItem.emitting(stack)) {
+        if (!MirageFlashlightItem.emitting(stack)) {
             ClientDynamicMirageLightManager.remove(sourceId);
             return;
         }
@@ -75,7 +75,7 @@ public final class ClientHeldLanterns {
             return;
         }
 
-        PortableLightMode mode = MirageLanternItem.mode(stack);
+        PortableLightMode mode = MirageFlashlightItem.mode(stack);
         ClientDynamicMirageLightManager.submit(new MirageDynamicLightSnapshot(
                 sourceId,
                 sourcePos,

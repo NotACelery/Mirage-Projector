@@ -36,7 +36,8 @@ public final class ScanCodexMenu extends AbstractContainerMenu {
     public static final int IMPORT_SLOT_X = 500;
     public static final int IMPORT_SLOT_Y = 93;
 
-    public static final int PLAYER_INV_X = 153;
+    // Center the 9-slot inventory against the physical Codex pages, not the optional side extensions.
+    public static final int PLAYER_INV_X = 163;
     public static final int PLAYER_INV_Y = 337;
 
     private final Inventory playerInventory;

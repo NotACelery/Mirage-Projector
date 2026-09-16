@@ -11,9 +11,10 @@ def need(condition, message):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
 recipe = read('src/main/java/celerbi/mirageprojector/recipe/ScanCardClearingRecipe.java')
 serializer = read('src/main/java/celerbi/mirageprojector/recipe/ScanCardClearingRecipeSerializer.java')
 recipe_json = read('src/main/resources/data/mirage_projector/recipe/clear_entity_scan_card.json')

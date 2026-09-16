@@ -139,9 +139,11 @@ public final class ScanCodexSavedData extends SavedData {
                     view.playerSource(),
                     view.hadCustomName(),
                     stored.favorite,
-                    stored.root.contains("Equipment")
+                    view.playerSource()
+                            ? 0
+                            : (stored.root.contains("Equipment")
                             ? stored.root.getCompound("Equipment").getAllKeys().size()
-                            : 0
+                            : 0)
             )));
         }
         return List.copyOf(result);

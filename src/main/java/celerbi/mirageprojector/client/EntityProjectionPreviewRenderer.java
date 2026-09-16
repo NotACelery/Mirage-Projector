@@ -247,7 +247,8 @@ public final class EntityProjectionPreviewRenderer {
         }
 
         EntityScanData.View scan = active.get();
-        String equipmentFingerprint = EntityProjectionClientEntityFactory.equipmentFingerprint(state, scan.kind());
+        String equipmentFingerprint = EntityProjectionClientEntityFactory.equipmentFingerprint(state, scan.kind())
+                + (scan.playerSource() ? "|layers=" + state.playerAllLayers() : "");
         if (cachedLevel == level
                 && scan.scanId().equals(cachedScanId)
                 && equipmentFingerprint.equals(cachedEquipmentFingerprint)) {

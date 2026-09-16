@@ -3,9 +3,13 @@ package celerbi.mirageprojector.client;
 import celerbi.mirageprojector.registry.ModBlockEntities;
 import celerbi.mirageprojector.registry.ModMenus;
 import celerbi.mirageprojector.registry.ModItems;
+import celerbi.mirageprojector.menu.MirageProjectorMenu;
+import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.item.GlowDustItem;
 import celerbi.mirageprojector.item.LightBatteryItem;
 import net.minecraft.util.FastColor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.util.Mth;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
@@ -16,7 +20,7 @@ public final class ClientEvents {
     }
 
     public static void registerScreens(RegisterMenuScreensEvent event) {
-        event.register(ModMenus.MIRAGE_PROJECTOR.get(), MirageProjectorScreen::new);
+        event.register(ModMenus.MIRAGE_PROJECTOR.get(), ClientEvents::createMirageProjectorScreen);
         event.register(ModMenus.ENTITY_PROJECTOR.get(), EntityProjectorScreen::new);
         event.register(ModMenus.IMAGE_PROJECTOR.get(), ImageProjectorScreen::new);
         event.register(ModMenus.ITEM_PROJECTOR.get(), ItemProjectorScreen::new);
@@ -27,6 +31,14 @@ public final class ClientEvents {
         event.register(ModMenus.SCAN_CODEX.get(), ScanCodexScreen::new);
     }
 
+
+
+    private static ResponsiveContainerScreen<MirageProjectorMenu> createMirageProjectorScreen(
+            MirageProjectorMenu menu, Inventory inventory, Component title) {
+        return menu.chassisProfile() == ProjectionChassisProfile.TABLE
+                ? new MirageTableProjectorScreen(menu, inventory, title)
+                : new MirageProjectorScreen(menu, inventory, title);
+    }
 
     public static void registerItemColors(RegisterColorHandlersEvent.Item event) {
         event.register((stack, tintIndex) -> {

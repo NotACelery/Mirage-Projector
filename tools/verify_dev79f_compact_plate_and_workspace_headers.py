@@ -78,7 +78,8 @@ need("244, 62, 0xFF9FBED1" in image_screen, "Image multi-source summary still ov
 props=(ROOT/'gradle.properties').read_text()
 main=(ROOT/'src/main/java/celerbi/mirageprojector/MirageProjector.java').read_text()
 # Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 need('mod_version=0.1.0-dev.79g' in props, 'version is not dev.79g')

@@ -13,6 +13,7 @@ public final class EntityProjectionState {
     private HumanoidPosePreset humanoidPose = HumanoidPosePreset.STANDING;
     private HorsePosePreset horsePose = HorsePosePreset.IDLE;
     private GenericPosePreset genericPose = GenericPosePreset.IDLE;
+    private boolean playerAllLayers = true;
     private final VirtualEquipmentSnapshots humanoidIncoming = new VirtualEquipmentSnapshots();
     private final VirtualEquipmentSnapshots humanoidProjected = new VirtualEquipmentSnapshots();
     private final VirtualEquipmentSnapshots horseIncoming = new VirtualEquipmentSnapshots();
@@ -73,6 +74,23 @@ public final class EntityProjectionState {
 
     public void setGenericPose(GenericPosePreset pose) {
         genericPose = pose == null ? GenericPosePreset.IDLE : pose;
+    }
+
+    public boolean playerAllLayers() {
+        return playerAllLayers;
+    }
+
+    public boolean togglePlayerAllLayers() {
+        playerAllLayers = !playerAllLayers;
+        return playerAllLayers;
+    }
+
+    public void setPlayerAllLayers(boolean allLayers) {
+        playerAllLayers = allLayers;
+    }
+
+    public boolean activeEntityIsPlayer() {
+        return activeEntity().map(EntityScanData.View::playerSource).orElse(false);
     }
 
     public boolean hasProjectedHumanoidEquipment() {
@@ -168,7 +186,7 @@ public final class EntityProjectionState {
     }
 
     public int captureEquippedHumanoidLoadout(Player player) {
-        if (player == null) {
+        if (player == null || activeEntityIsPlayer()) {
             return 0;
         }
 
@@ -198,6 +216,10 @@ public final class EntityProjectionState {
 
         EntityScanData.View scan = view.get();
 
+        if (scan.playerSource()) {
+            clearHumanoidEquipmentOnly();
+        }
+
         switch (scan.kind()) {
             case HUMANOID -> clearHorseWorkspace();
             case HORSE -> clearHumanoidWorkspace();
@@ -210,13 +232,17 @@ public final class EntityProjectionState {
         activeEntityScan = root.get();
 
         switch (scan.kind()) {
-            case HUMANOID -> loadIncoming(
-                    humanoidIncoming,
-                    humanoidProjected,
-                    scan.equipment(),
-                    registries,
-                    EntityScanData.HUMANOID_SLOTS
-            );
+            case HUMANOID -> {
+                if (!scan.playerSource()) {
+                    loadIncoming(
+                            humanoidIncoming,
+                            humanoidProjected,
+                            scan.equipment(),
+                            registries,
+                            EntityScanData.HUMANOID_SLOTS
+                    );
+                }
+            }
             case HORSE -> loadIncoming(
                     horseIncoming,
                     horseProjected,
@@ -282,6 +308,14 @@ public final class EntityProjectionState {
         humanoidPose = HumanoidPosePreset.STANDING;
     }
 
+    private void clearHumanoidEquipmentOnly() {
+        humanoidIncoming.clearAll();
+        humanoidProjected.clearAll();
+        for (VirtualEquipmentSnapshots.Channel channel : HUMANOID_CHANNELS) {
+            hiddenEquipmentChannels.remove(channel);
+        }
+    }
+
     public void clearHorseWorkspace() {
         horseIncoming.clearAll();
         horseProjected.clearAll();
@@ -299,6 +333,7 @@ public final class EntityProjectionState {
         root.putString("HumanoidPose", humanoidPose.serializedName());
         root.putString("HorsePose", horsePose.serializedName());
         root.putString("GenericPose", genericPose.serializedName());
+        root.putBoolean("PlayerAllLayers", playerAllLayers);
         root.put("HumanoidIncoming", humanoidIncoming.save(registries));
         root.put("HumanoidProjected", humanoidProjected.save(registries));
         root.put("HorseIncoming", horseIncoming.save(registries));
@@ -324,6 +359,7 @@ public final class EntityProjectionState {
         genericPose = root != null && root.contains("GenericPose")
                 ? GenericPosePreset.fromSerializedName(root.getString("GenericPose"))
                 : GenericPosePreset.IDLE;
+        playerAllLayers = root == null || !root.contains("PlayerAllLayers") || root.getBoolean("PlayerAllLayers");
         humanoidIncoming.load(root == null ? new CompoundTag() : root.getCompound("HumanoidIncoming"), registries);
         humanoidProjected.load(root == null ? new CompoundTag() : root.getCompound("HumanoidProjected"), registries);
         horseIncoming.load(root == null ? new CompoundTag() : root.getCompound("HorseIncoming"), registries);
@@ -347,6 +383,9 @@ public final class EntityProjectionState {
     private void pruneIncompatibleWorkspaceForActiveEntity() {
         if (!hasActiveEntity()) {
             return;
+        }
+        if (activeEntityIsPlayer()) {
+            clearHumanoidEquipmentOnly();
         }
         switch (activeKind()) {
             case HUMANOID -> clearHorseWorkspace();

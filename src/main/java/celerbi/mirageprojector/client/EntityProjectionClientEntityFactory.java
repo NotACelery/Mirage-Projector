@@ -72,7 +72,7 @@ public final class EntityProjectionClientEntityFactory {
                 }
             }
             if (scan.playerSource() && living instanceof MirageRemotePlayer player) {
-                player.applyFrozenVisualState(scan);
+                player.applyFrozenVisualState(scan, state.playerAllLayers());
             }
             if (scan.kind() == EntityScanData.Kind.GENERIC
                     && EntityScanData.supportsSittingPose(scan.entityType())
@@ -309,8 +309,8 @@ public final class EntityProjectionClientEntityFactory {
             frozenSkin = Minecraft.getInstance().getSkinManager().lookupInsecure(profile);
         }
 
-        private void applyFrozenVisualState(EntityScanData.View scan) {
-            this.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, (byte) (scan.playerModelParts() & 0xFF));
+        private void applyFrozenVisualState(EntityScanData.View scan, boolean allLayers) {
+            this.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, (byte) (allLayers ? (scan.playerModelParts() & 0xFF) : 0));
             HumanoidArm arm = "left".equalsIgnoreCase(scan.playerMainArm())
                     ? HumanoidArm.LEFT
                     : HumanoidArm.RIGHT;

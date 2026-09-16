@@ -82,7 +82,8 @@ solver = (ROOT / 'src/main/java/celerbi/mirageprojector/light/engine/MirageLight
 payload = (ROOT / 'src/main/java/celerbi/mirageprojector/network/MirageLightChunkSnapshotPayload.java').read_text(encoding='utf-8')
 main = (ROOT / 'src/main/java/celerbi/mirageprojector/MirageProjector.java').read_text(encoding='utf-8')
 # Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 # Later protocol bumps preserve this historical contract.

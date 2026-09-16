@@ -2,11 +2,11 @@
   "parent": "minecraft:block/block",
   "ambientocclusion": false,
   "textures": {
-    "metal": "minecraft:block/polished_deepslate",
-    "trim": "minecraft:block/obsidian",
-    "glass": "minecraft:block/tinted_glass",
-    "lens": "minecraft:block/crying_obsidian",
-    "particle": "minecraft:block/polished_deepslate"
+    "metal": "minecraft:block/iron_block",
+    "trim": "minecraft:block/crying_obsidian",
+    "glass": "minecraft:block/magenta_stained_glass",
+    "lens": "minecraft:block/magenta_stained_glass",
+    "particle": "minecraft:block/iron_block"
   },
   "elements": [
     {
@@ -45,18 +45,42 @@
     },
     {
       "from": [3, 7, 3],
-      "to": [13, 14, 12],
+      "to": [13, 9, 12],
       "faces": {
         "down": { "texture": "#metal" },
         "up": { "texture": "#metal" },
-        "north": { "texture": "#lens" },
-        "south": { "texture": "#glass" },
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
         "west": { "texture": "#metal" },
         "east": { "texture": "#metal" }
       }
     },
     {
-      "from": [5, 9, 2.75],
+      "from": [3, 9, 3],
+      "to": [13, 10, 12],
+      "faces": {
+        "down": { "texture": "#trim" },
+        "up": { "texture": "#trim" },
+        "north": { "texture": "#trim" },
+        "south": { "texture": "#trim" },
+        "west": { "texture": "#trim" },
+        "east": { "texture": "#trim" }
+      }
+    },
+    {
+      "from": [3, 10, 3],
+      "to": [13, 14, 12],
+      "faces": {
+        "down": { "texture": "#metal" },
+        "up": { "texture": "#metal" },
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
+        "west": { "texture": "#metal" },
+        "east": { "texture": "#metal" }
+      }
+    },
+    {
+      "from": [5, 10, 2.75],
       "to": [11, 13, 3],
       "faces": {
         "north": { "texture": "#glass" },

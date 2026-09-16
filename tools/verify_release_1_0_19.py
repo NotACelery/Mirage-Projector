@@ -47,13 +47,14 @@ def load_json_no_duplicates(path: Path):
 
 
 # Release metadata / platform baseline.
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 need(any(v in props for v in ('mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22')), 'gradle.properties is not a compatible 1.0.19+ line')
 need('minecraft_version=1.21.1' in props, 'Minecraft baseline changed')
 need('neo_version=21.1.244' in props, 'NeoForge baseline changed')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 # Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 # Later protocol bumps preserve this historical contract.
@@ -437,7 +438,7 @@ strap_container = read('src/main/java/celerbi/mirageprojector/equipment/Shoulder
 station_renderer = read('src/main/java/celerbi/mirageprojector/client/ChargingStationRenderer.java')
 scan_screen = read('src/main/java/celerbi/mirageprojector/client/ScanCodexScreen.java')
 need('RechargeableEnergyItem.isRechargeable(stack)' in portable_menu, 'portable GUI battery slot contract missing')
-need('CYCLE_LANTERN_MODE' in portable_screen and 'toggle_projection' in portable_screen,
+need('CYCLE_FLASHLIGHT_MODE' in portable_screen and 'toggle_projection' in portable_screen,
      'portable configuration screen controls missing')
 need('DataComponents.CONTAINER' in strap_container, 'Shoulder Strap does not own packed inventory')
 need('INPUT_COUNT' in station_renderer and 'OUTPUT_COUNT' in station_renderer,

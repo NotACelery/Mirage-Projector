@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "CMC",
+    "IOR",
+    " G "
+  ],
+  "key": {
+    "C": { "item": "minecraft:copper_ingot" },
+    "M": { "item": "minecraft:magenta_stained_glass_pane" },
+    "I": { "item": "minecraft:iron_ingot" },
+    "O": { "item": "mirage_projector:crying_obsidian_cluster" },
+    "R": { "item": "minecraft:redstone" },
+    "G": { "tag": "mirage_projector:glow_dust_media" }
+  },
+  "result": {
+    "id": "mirage_projector:mirage_lantern",
+    "count": 1
+  }
+}

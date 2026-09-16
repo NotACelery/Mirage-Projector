@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "LBL",
+    "ISI",
+    " G "
+  ],
+  "key": {
+    "L": { "item": "minecraft:leather" },
+    "B": { "item": "minecraft:book" },
+    "I": { "item": "minecraft:ink_sac" },
+    "S": { "item": "mirage_projector:entity_scan_card" },
+    "G": { "item": "minecraft:glowstone_dust" }
+  },
+  "result": {
+    "id": "mirage_projector:scan_codex",
+    "count": 1
+  }
+}

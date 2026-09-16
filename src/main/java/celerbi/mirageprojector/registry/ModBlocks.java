@@ -7,8 +7,10 @@ import celerbi.mirageprojector.block.CryingObsidianCrystalBlock;
 import celerbi.mirageprojector.block.CryingObsidianLightNodeBlock;
 import celerbi.mirageprojector.block.LegacyImprovedCoreBlock;
 import celerbi.mirageprojector.block.MirageLightProjectorBlock;
+import celerbi.mirageprojector.block.MirageFlashlightBeaconBlock;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.block.MirageTableProjectorBlock;
+import celerbi.mirageprojector.block.MirageWallDisplayBlock;
 import celerbi.mirageprojector.block.MirageWallProjectorBlock;
 import celerbi.mirageprojector.block.ObsidianSpikeBlock;
 import celerbi.mirageprojector.crying.CryingObsidianCrystalStage;
@@ -34,9 +36,10 @@ public final class ModBlocks {
                     .sound(SoundType.STONE)
                     .noOcclusion())
     );
-    public static final DeferredBlock<MirageWallProjectorBlock> MIRAGE_WALL_PROJECTOR = BLOCKS.register(
+    // Legacy registry ID remains `mirage_wall_projector`; this chassis is the presentation/Data-show Wall Display.
+    public static final DeferredBlock<MirageWallDisplayBlock> MIRAGE_WALL_DISPLAY = BLOCKS.register(
             "mirage_wall_projector",
-            () -> new MirageWallProjectorBlock(BlockBehaviour.Properties.of()
+            () -> new MirageWallDisplayBlock(BlockBehaviour.Properties.of()
                     .strength(50.0F, 1200.0F)
                     .sound(SoundType.STONE)
                     .noOcclusion())
@@ -45,6 +48,20 @@ public final class ModBlocks {
             "mirage_light_projector",
             () -> new MirageLightProjectorBlock(BlockBehaviour.Properties.of()
                     .strength(3.5F, 9.0F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion())
+    );
+    public static final DeferredBlock<MirageWallProjectorBlock> MIRAGE_WALL_PROJECTOR = BLOCKS.register(
+            "mirage_wall_illuminator",
+            () -> new MirageWallProjectorBlock(BlockBehaviour.Properties.of()
+                    .strength(3.5F, 9.0F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion())
+    );
+    public static final DeferredBlock<MirageFlashlightBeaconBlock> MIRAGE_FLASHLIGHT_BEACON = BLOCKS.register(
+            "mirage_flashlight_beacon",
+            () -> new MirageFlashlightBeaconBlock(BlockBehaviour.Properties.of()
+                    .strength(1.0F, 3.0F)
                     .sound(SoundType.METAL)
                     .noOcclusion())
     );

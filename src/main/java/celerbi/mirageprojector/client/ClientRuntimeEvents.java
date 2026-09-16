@@ -45,11 +45,11 @@ public final class ClientRuntimeEvents {
             return;
         }
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_LEVEL) {
-            ClientHeldLanterns.submitVisiblePlayers(
+            ClientHeldFlashlights.submitVisiblePlayers(
                     Minecraft.getInstance(),
                     event.getCamera().getPosition()
             );
-            ClientShoulderEquipment.submitShoulderLanterns(
+            ClientShoulderEquipment.submitShoulderFlashlights(
                     Minecraft.getInstance(),
                     event.getCamera().getPosition()
             );
@@ -84,7 +84,7 @@ public final class ClientRuntimeEvents {
         ClientAssetTransport.resetSession();
         ProjectionClearancePreviewRenderer.clear();
         MirageProjectorRenderer.clearDeferredEntityProjections();
-        ClientHeldLanterns.resetSession();
+        ClientHeldFlashlights.resetSession();
         ClientHeldProjectors.resetSession();
         ClientShoulderEquipment.resetSession();
         ClientPlacedLightProjectors.resetSession();

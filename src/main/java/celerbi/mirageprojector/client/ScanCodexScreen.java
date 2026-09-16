@@ -49,8 +49,8 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
     private static final int PAGE = 0xFFF0DFC0;
     private static final int PAGE_SHADE = 0xFFE8D3AE;
     private static final int PAGE_LINE = 0xFFB89B73;
-    private static final int INK = 0xFF392B24;
-    private static final int MUTED_INK = 0xFF725F50;
+    private static final int INK = 0xFF211713;
+    private static final int MUTED_INK = 0xFF4C392F;
     private static final int ROW = 0x44B89B73;
     private static final int ROW_HOVER = 0x668C6E84;
     private static final int ROW_SELECTED = 0x998C5A7A;
@@ -401,15 +401,17 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         graphics.drawCenteredString(font, trim(titleText, 32), bx + 116, by + 20, INK);
         graphics.drawString(font, trim(entry.entityType().toString(), 28), bx + 245, by + 21, MUTED_INK, false);
 
-        graphics.fill(bx + 28, by + 44, bx + 208, by + 238, 0x33B89B73);
+        // Give the entity almost the full left page. The viewport is intentionally taller and
+        // starts slightly lower so tall mobs keep their head inside the page instead of clipping.
+        graphics.fill(bx + 18, by + 38, bx + 220, by + 246, 0x33B89B73);
         previewRenderer.render(
                 graphics,
                 previewState,
                 ProjectionSettings.DEFAULT,
-                bx + 30,
+                bx + 20,
                 by + 46,
-                176,
-                188,
+                198,
+                196,
                 mouseX,
                 mouseY
         );
@@ -521,7 +523,7 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
     }
 
     private void renderLecternInventory(GuiGraphics graphics) {
-        int panelX = leftPos + 141;
+        int panelX = leftPos + 151;
         int panelY = topPos + 322;
         graphics.fill(panelX, panelY, panelX + 186, panelY + 92, 0xE8E8D3AE);
         for (int row = 0; row < 3; row++) {

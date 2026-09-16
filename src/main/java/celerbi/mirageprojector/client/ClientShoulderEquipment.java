@@ -1,6 +1,6 @@
 package celerbi.mirageprojector.client;
 
-import celerbi.mirageprojector.item.MirageLanternItem;
+import celerbi.mirageprojector.item.MirageFlashlightItem;
 import celerbi.mirageprojector.light.device.PortableLightMode;
 import celerbi.mirageprojector.light.engine.MirageDynamicLightSnapshot;
 import celerbi.mirageprojector.light.engine.MirageLightSourceId;
@@ -141,7 +141,7 @@ public final class ClientShoulderEquipment {
         return state == null ? ItemStack.EMPTY : state.device().copy();
     }
 
-    public static void submitShoulderLanterns(Minecraft minecraft, Vec3 cameraPosition) {
+    public static void submitShoulderFlashlights(Minecraft minecraft, Vec3 cameraPosition) {
         if (minecraft == null || minecraft.level == null) {
             return;
         }
@@ -156,9 +156,9 @@ public final class ClientShoulderEquipment {
         Vec3 camera = cameraPosition == null ? Vec3.ZERO : cameraPosition;
         double cullSq = LIGHT_CULL_DISTANCE * LIGHT_CULL_DISTANCE;
         for (Player player : level.players()) {
-            MirageLightSourceId sourceId = MirageLightSourceId.entity("lantern_shoulder", player.getUUID());
+            MirageLightSourceId sourceId = MirageLightSourceId.entity("flashlight_shoulder", player.getUUID());
             ItemStack stack = device(player.getUUID());
-            if (!stack.is(ModItems.MIRAGE_LANTERN.get()) || !MirageLanternItem.emitting(stack)) {
+            if (!stack.is(ModItems.MIRAGE_FLASHLIGHT.get()) || !MirageFlashlightItem.emitting(stack)) {
                 ClientDynamicMirageLightManager.remove(sourceId);
                 continue;
             }
@@ -183,7 +183,7 @@ public final class ClientShoulderEquipment {
                 continue;
             }
 
-            PortableLightMode mode = MirageLanternItem.mode(stack);
+            PortableLightMode mode = MirageFlashlightItem.mode(stack);
             ClientDynamicMirageLightManager.submit(new MirageDynamicLightSnapshot(
                     sourceId,
                     sourcePos,
@@ -242,7 +242,7 @@ public final class ClientShoulderEquipment {
             Map.Entry<UUID, SyncedState> entry = iterator.next();
             if (now - entry.getValue().lastSeenTick() > STALE_TICKS) {
                 ClientDynamicMirageLightManager.remove(MirageLightSourceId.entity(
-                        "lantern_shoulder",
+                        "flashlight_shoulder",
                         entry.getKey()
                 ));
                 iterator.remove();

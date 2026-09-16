@@ -162,6 +162,16 @@ public final class ModNetworking {
                 PortableDeviceActionPayload::handle
         );
         registrar.playToServer(
+                PortableDeviceScalePayload.TYPE,
+                PortableDeviceScalePayload.STREAM_CODEC,
+                PortableDeviceScalePayload::handle
+        );
+        registrar.playToServer(
+                PortableDeviceImagePayload.TYPE,
+                PortableDeviceImagePayload.STREAM_CODEC,
+                PortableDeviceImagePayload::handle
+        );
+        registrar.playToServer(
                 LightProjectorActionPayload.TYPE,
                 LightProjectorActionPayload.STREAM_CODEC,
                 LightProjectorActionPayload::handle

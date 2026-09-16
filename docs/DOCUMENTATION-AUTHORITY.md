@@ -1,10 +1,10 @@
-# Documentation Authority — Mirage Projector 1.0.31
+# Documentation Authority — Mirage Projector 1.0.32
 
 This file defines which documents describe the current stable product.
 
 ## Current authority
 
-Use these documents for current 1.0.31 behavior and 1.0.x maintenance:
+Use these documents for current 1.0.32 behavior and 1.0.x maintenance:
 
 1. `README.md` — public overview, requirements and feature summary.
 2. `docs/CURRENT-IMPLEMENTATION.md` — canonical runtime behavior.
@@ -50,6 +50,7 @@ Use these documents for current 1.0.31 behavior and 1.0.x maintenance:
 42. `docs/RELEASE-1.0.26-PRESENTATION-CONTROL.md` — current automatic deck / paired Data-show remote control contract.
 43. `docs/RELEASE-1.0.30-UX-RUNTIME-WAVE.md` — portable-source, Shoulder interaction, live Wall placement, remote input, Entity workspace and Codex runtime-QA contract.
 44. `docs/RELEASE-1.0.31-TABLE-RUNTIME-REBUILD.md` — current canonical workspace routing, Table runtime/menu authority and Codex render correction contract.
+45. `docs/RELEASE-1.0.32-SURVIVAL-PROGRESSION.md` — Survival recipe, Flashlight identity/placeable form and wall-illumination chassis contract.
 
 ## Historical material
 

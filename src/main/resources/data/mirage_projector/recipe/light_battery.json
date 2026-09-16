@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "GCG",
+    "IGI",
+    "GRG"
+  ],
+  "key": {
+    "G": { "tag": "mirage_projector:glow_dust_media" },
+    "C": { "item": "minecraft:copper_ingot" },
+    "I": { "item": "minecraft:iron_ingot" },
+    "R": { "item": "minecraft:redstone" }
+  },
+  "result": {
+    "id": "mirage_projector:light_battery",
+    "count": 1
+  }
+}

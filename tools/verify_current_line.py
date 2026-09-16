@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Mirage Projector 1.0.31 cumulative regression/runtime rebuild suite."""
+"""Run the Mirage Projector 1.0.32 cumulative regression/survival-progression suite."""
 
 from pathlib import Path
 import subprocess
@@ -71,6 +71,12 @@ SUITE = [
     'verify_release_1_0_30.py',
     'verify_1_0_31_table_runtime_rebuild.py',
     'verify_release_1_0_31.py',
+    'verify_1_0_32_survival_progression.py',
+    'verify_1_0_32_recipe_viewers.py',
+    'verify_1_0_32_overlay_cleanup.py',
+    'verify_1_0_32_table_rotation_visibility.py',
+    'verify_1_0_32_table_dedicated_runtime.py',
+    'verify_release_1_0_32.py',
 ]
 
 for name in SUITE:
@@ -79,4 +85,4 @@ for name in SUITE:
     if code:
         raise SystemExit(code)
 
-print(f'\nMIRAGE PROJECTOR 1.0.31 VERIFICATION PASS ({len(SUITE)} gates)')
+print(f'\nMIRAGE PROJECTOR 1.0.32 VERIFICATION PASS ({len(SUITE)} gates)')

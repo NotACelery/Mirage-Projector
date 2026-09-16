@@ -1,9 +1,4 @@
-Mirage Projector cumulative pre-build cleanup - 1.0.28
-Started: 16-09-2026  9:51:56,28
+Mirage Projector cumulative pre-build cleanup - 1.0.32
+Started: 16-09-2026 16:04:52,28
 DELETE DIR build
-Finished OK: 16-09-2026  9:51:56,70
-Finished OK: 16-09-2026  9:51:56,72
-Finished OK: 16-09-2026  9:51:56,74
-Finished OK: 16-09-2026  9:51:56,79
-Finished OK: 16-09-2026  9:51:56,81
-Finished OK: 16-09-2026  9:51:56,84
+Finished OK: 16-09-2026 16:04:52,35

@@ -12,12 +12,13 @@ def need(cond, msg):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 stabilized_1018 = any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30'))
 need(any(f'mod_version=1.0.{minor}' in props for minor in (9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30)), 'current branch is not a compatible 1.0.9+ line')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 # Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 # Later protocol bumps preserve this historical contract.
@@ -95,7 +96,7 @@ waitlist = read('docs/WAITLIST-1.1.0.md')
 need(('up to **4 rechargeable cells/batteries**' in waitlist or '**4 input queue slots**' in waitlist), 'charging-station four-cell input queue not documented')
 need('exactly **1 active charging slot**' in waitlist, 'charging-station active slot not documented')
 need(('**4–5 output slots**' in waitlist or 'exactly **4 output slots**' in waitlist), 'charging-station output target not documented')
-need('approximately **5 Glow Dust plus additional casing/electrical materials**' in waitlist, 'unresolved Light Battery recipe target not documented')
+need(('approximately **5 Glow Dust plus additional casing/electrical materials**' in waitlist or 'G C G / I G I / G R G' in waitlist), 'Light Battery recipe target/frozen layout not documented')
 
 
 # 1.0.9 physical light-projector consumer.

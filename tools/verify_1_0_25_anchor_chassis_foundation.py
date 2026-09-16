@@ -12,9 +12,10 @@ def need(cond, msg):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
 settings = read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
 need(any(v in props for v in ('mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not a compatible 1.0.25+ line')
 need(any(v in main for v in ('NETWORK_PROTOCOL = "37"', 'NETWORK_PROTOCOL = "38"', 'NETWORK_PROTOCOL = "39"', 'NETWORK_PROTOCOL = "40"')), '1.0.25 network protocol must be 37')
@@ -38,18 +39,18 @@ blocks = read('src/main/java/celerbi/mirageprojector/registry/ModBlocks.java')
 items = read('src/main/java/celerbi/mirageprojector/registry/ModItems.java')
 be_registry = read('src/main/java/celerbi/mirageprojector/registry/ModBlockEntities.java')
 creative = read('src/main/java/celerbi/mirageprojector/registry/ModCreativeTabs.java')
-for token in ('MIRAGE_TABLE_PROJECTOR', 'MirageTableProjectorBlock', 'MIRAGE_WALL_PROJECTOR', 'MirageWallProjectorBlock'):
+for token in ('MIRAGE_TABLE_PROJECTOR', 'MirageTableProjectorBlock', 'MIRAGE_WALL_DISPLAY', 'MirageWallDisplayBlock'):
     need(token in blocks, f'new projector block registration missing: {token}')
 for token in ('mirage_table_projector', 'mirage_wall_projector'):
     need(token in items, f'new projector BlockItem missing: {token}')
-need('ModBlocks.MIRAGE_TABLE_PROJECTOR.get()' in be_registry and 'ModBlocks.MIRAGE_WALL_PROJECTOR.get()' in be_registry,
+need('ModBlocks.MIRAGE_TABLE_PROJECTOR.get()' in be_registry and 'ModBlocks.MIRAGE_WALL_DISPLAY.get()' in be_registry,
      'Table/Wall do not reuse canonical Mirage projector BlockEntity type')
-need('ModItems.MIRAGE_TABLE_PROJECTOR.get()' in creative and 'ModItems.MIRAGE_WALL_PROJECTOR.get()' in creative,
+need('ModItems.MIRAGE_TABLE_PROJECTOR.get()' in creative and 'ModItems.MIRAGE_WALL_DISPLAY.get()' in creative,
      'Table/Wall are not exposed for QA in Mirage Creative tab')
 
 base = read('src/main/java/celerbi/mirageprojector/block/MirageProjectorBlock.java')
 table = read('src/main/java/celerbi/mirageprojector/block/MirageTableProjectorBlock.java')
-wall = read('src/main/java/celerbi/mirageprojector/block/MirageWallProjectorBlock.java')
+wall = read('src/main/java/celerbi/mirageprojector/block/MirageWallDisplayBlock.java')
 block_entity = read('src/main/java/celerbi/mirageprojector/blockentity/MirageProjectorBlockEntity.java')
 for token in ('TABLE_SHAPE', 'WALL_SHAPE', 'ProjectionChassisProfile.TABLE', 'ProjectionChassisProfile.WALL',
               'player.isShiftKeyDown()', 'copyPendingPackedPlayerBreakDrop()', 'level.removeBlock(pos, false)'):
@@ -107,16 +108,17 @@ for token in ('initWallPresentation()', 'moveSelectedWallSlide', 'stepWallSlide'
     need(token in image_screen, f'Wall PowerPoint-like playlist GUI missing: {token}')
 
 renderer = read('src/main/java/celerbi/mirageprojector/client/MirageProjectorRenderer.java')
+table_logic = read('src/main/java/celerbi/mirageprojector/client/MirageTableProjectorLogic.java')
 for token in ('renderWallDataShowImage', 'wallProjectionSurface()', 'activeWallImage()', 'wallPlaneYaw',
               'usesHorizontalPlaneFor(settings.sourceMode())'):
     need(token in renderer, f'render anchor/Data-show contract missing: {token}')
 need('WALL_OUTWARD' not in renderer, 'renderer still contains obsolete wall-mounted outward anchor')
-need('Axis.XP.rotationDegrees(-90.0F)' in renderer,
+need('Axis.XP.rotationDegrees(-90.0F)' in renderer or 'Axis.XP.rotationDegrees(-90.0F)' in table_logic,
      'Table planar sources are not rotated to horizontal tabletop presentation')
 
 screen = read('src/main/java/celerbi/mirageprojector/client/MirageProjectorScreen.java')
 for token in ('supportsWallXyOffset()', 'horizontalOffsetSlider', 'verticalOffsetSlider',
-              'withWallOffsets(horizontalOffsetPixels, verticalOffsetPixels)', 'WallProjectionSurface.resolve',
+              ('withWallOffsets(horizontalOffsetPixels, verticalOffsetPixels)' if 'withWallOffsets(horizontalOffsetPixels, verticalOffsetPixels)' in screen else 'withSurfaceOffsets(horizontalOffsetPixels, verticalOffsetPixels)'), 'WallProjectionSurface.resolve',
               'ProjectionSourceRegistry.isCompatible'):
     need(token in screen, f'Wall settings/compatibility GUI contract missing: {token}')
 
@@ -148,10 +150,15 @@ need('minecraft:block/obsidian' in wall_model and 'minecraft:block/crying_obsidi
      and 'mirage_projector:block/crying_obsidian_emitter' in wall_model,
      'Wall first-pass Data-show art does not use Obsidian + Crying Obsidian optical language')
 
-# Recipes deliberately remain unfrozen.
+# 1.0.25 deliberately left these recipes unfrozen; later 1.0.32 progression may freeze them.
 for rel in ('src/main/resources/data/mirage_projector/recipe/mirage_table_projector.json',
-            'src/main/resources/data/mirage_projector/recipe/mirage_wall_projector.json'):
-    need(not (ROOT / rel).exists(), f'provisional 1.0.25 chassis recipe was frozen unexpectedly: {rel}')
+            'src/main/resources/data/mirage_projector/recipe/mirage_wall_display.json'):
+    path = ROOT / rel
+    if path.exists():
+        try:
+            json.loads(path.read_text(encoding='utf-8'))
+        except Exception as exc:
+            need(False, f'later frozen chassis recipe is invalid JSON: {rel}: {exc}')
 
 langs = {}
 required_lang = (
@@ -171,10 +178,10 @@ for token in ('Data-show, not wall-mounted', 'actual aspect-correct image rectan
               'distance surcharge', '9-slot presentation playlist', 'network protocol to **37**',
               'format **3** to **4**', 'Survival recipe'):
     need(token in release, f'1.0.25 release contract missing: {token}')
-need(any(v in read('docs/ROADMAP.md') for v in ('Current implementation snapshot: **1.0.25**', 'Current implementation snapshot: **1.0.26**', 'Current implementation snapshot: **1.0.27**', 'Current implementation snapshot: **1.0.28**', 'Current implementation snapshot: **1.0.29**', 'Current implementation snapshot: **1.0.30**', 'Current implementation snapshot: **1.0.31**')), 'roadmap baseline is not a compatible 1.0.25+ line')
-need(any(v in read('docs/DEVELOPMENT.md') for v in ('Current maintenance baseline: **1.0.25**', 'Current maintenance baseline: **1.0.26**', 'Current maintenance baseline: **1.0.27**', 'Current maintenance baseline: **1.0.28**', 'Current maintenance baseline: **1.0.29**', 'Current maintenance baseline: **1.0.30**', 'Current maintenance baseline: **1.0.31**')), 'development baseline is not a compatible 1.0.25+ line')
-need(any(v in read('docs/CURRENT-IMPLEMENTATION.md') for v in ('Mirage Projector 1.0.25', 'Mirage Projector 1.0.26', 'Mirage Projector 1.0.27', 'Mirage Projector 1.0.28', 'Mirage Projector 1.0.29', 'Mirage Projector 1.0.30', 'Mirage Projector 1.0.31')), 'current implementation baseline is not a compatible 1.0.25+ line')
-need(any(v in read('docs/DOCUMENTATION-AUTHORITY.md') for v in ('Documentation Authority — Mirage Projector 1.0.25', 'Documentation Authority — Mirage Projector 1.0.26', 'Documentation Authority — Mirage Projector 1.0.27', 'Documentation Authority — Mirage Projector 1.0.28', 'Documentation Authority — Mirage Projector 1.0.29', 'Documentation Authority — Mirage Projector 1.0.30', 'Documentation Authority — Mirage Projector 1.0.31')),
+need(any(v in read('docs/ROADMAP.md') for v in ('Current implementation snapshot: **1.0.25**', 'Current implementation snapshot: **1.0.26**', 'Current implementation snapshot: **1.0.27**', 'Current implementation snapshot: **1.0.28**', 'Current implementation snapshot: **1.0.29**', 'Current implementation snapshot: **1.0.30**', 'Current implementation snapshot: **1.0.31**', 'Current implementation snapshot: **1.0.32**')), 'roadmap baseline is not a compatible 1.0.25+ line')
+need(any(v in read('docs/DEVELOPMENT.md') for v in ('Current maintenance baseline: **1.0.25**', 'Current maintenance baseline: **1.0.26**', 'Current maintenance baseline: **1.0.27**', 'Current maintenance baseline: **1.0.28**', 'Current maintenance baseline: **1.0.29**', 'Current maintenance baseline: **1.0.30**', 'Current maintenance baseline: **1.0.31**', 'Current maintenance baseline: **1.0.32**')), 'development baseline is not a compatible 1.0.25+ line')
+need(any(v in read('docs/CURRENT-IMPLEMENTATION.md') for v in ('Mirage Projector 1.0.25', 'Mirage Projector 1.0.26', 'Mirage Projector 1.0.27', 'Mirage Projector 1.0.28', 'Mirage Projector 1.0.29', 'Mirage Projector 1.0.30', 'Mirage Projector 1.0.31', 'Mirage Projector 1.0.32')), 'current implementation baseline is not a compatible 1.0.25+ line')
+need(any(v in read('docs/DOCUMENTATION-AUTHORITY.md') for v in ('Documentation Authority — Mirage Projector 1.0.25', 'Documentation Authority — Mirage Projector 1.0.26', 'Documentation Authority — Mirage Projector 1.0.27', 'Documentation Authority — Mirage Projector 1.0.28', 'Documentation Authority — Mirage Projector 1.0.29', 'Documentation Authority — Mirage Projector 1.0.30', 'Documentation Authority — Mirage Projector 1.0.31', 'Documentation Authority — Mirage Projector 1.0.32')),
      'documentation authority baseline is not a compatible 1.0.25+ line')
 
 for forbidden in ('build', 'run', '.gradle', '.gradle-dist', '__pycache__'):

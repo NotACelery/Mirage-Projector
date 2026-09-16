@@ -19,9 +19,9 @@ public final class RechargeableCraftingEvents {
     }
 
     /**
-     * Any future Light Battery recipe that consumes exactly five Glow Dust media inherits the
-     * average charge of those five ingredients. The other recipe ingredients remain intentionally
-     * unfrozen; this hook therefore does not invent the final survival recipe.
+     * The frozen 1.0.32 Light Battery recipe consumes exactly five Glow Dust media. The crafted
+     * battery inherits the average charge fraction of those five ingredients, regardless of whether
+     * each recipe slot contains vanilla full Glowstone Dust or Mirage's partially charged Glow Dust.
      */
     @SubscribeEvent
     public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {

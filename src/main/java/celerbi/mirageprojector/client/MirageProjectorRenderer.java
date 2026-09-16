@@ -150,6 +150,12 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         }
 
         ProjectionChassisProfile chassis = blockEntity.chassisProfile();
+        if (chassis == ProjectionChassisProfile.TABLE) {
+            renderTableProjectorRuntime(
+                    blockEntity, settings, partialTick, poseStack, bufferSource, packedLight, gameTime
+            );
+            return;
+        }
         float angle = projectionBaseAngle(blockEntity, settings)
                 + (chassis.supportsRotation() ? rotationAngle(settings, gameTime) : 0.0F);
         float bob = chassis.supportsFloating() ? bobOffset(settings, gameTime) : 0.0F;
@@ -184,6 +190,54 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                         gameTime
                 )
         ));
+    }
+
+    /**
+     * Dedicated Table runtime. The Table deliberately does not route through the canonical
+     * fixed-projector dispatcher: it owns its angle/bob/anchor semantics and source dispatch so
+     * future Table rules cannot regress upright chassis behaviour (or vice versa).
+     */
+    private void renderTableProjectorRuntime(
+            MirageProjectorBlockEntity blockEntity,
+            ProjectionSettings settings,
+            float partialTick,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            double gameTime
+    ) {
+        if (!blockEntity.projectionEnabled()) {
+            equippedItemCache.remove(blockEntity);
+            return;
+        }
+
+        float angle = MirageTableProjectorLogic.projectionAngle(blockEntity, settings, gameTime);
+        float bob = MirageTableProjectorLogic.bobOffset(settings, gameTime);
+        int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
+
+        if (!blockEntity.hasProjectedSourceContent()) {
+            equippedItemCache.remove(blockEntity);
+            renderBook(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
+            return;
+        }
+        if (!blockEntity.powerStatus().active()) {
+            return;
+        }
+
+        ProjectionSourceRenderRegistry.RenderContext context = new ProjectionSourceRenderRegistry.RenderContext(
+                this,
+                blockEntity,
+                settings,
+                partialTick,
+                poseStack,
+                bufferSource,
+                packedLight,
+                angle,
+                bob,
+                projectionLight,
+                gameTime
+        );
+        ProjectionSourceRenderRegistry.renderer(settings.sourceMode()).ifPresent(renderer -> renderer.render(context));
     }
 
     /**
@@ -684,7 +738,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         String equipmentFingerprint = EntityProjectionClientEntityFactory.equipmentFingerprint(
                 blockEntity.entityProjectionState(),
                 scan.kind()
-        );
+        ) + (scan.playerSource() ? "|layers=" + blockEntity.entityProjectionState().playerAllLayers() : "");
         EntityCacheEntry cached = entityCache.get(blockEntity);
         if (cached != null
                 && cached.level() == clientLevel
@@ -1392,6 +1446,11 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
 
         poseStack.pushPose();
         applyPlaneProjectionPlacement(blockEntity, settings, poseStack, bottom, angle);
+        if (blockEntity.chassisProfile() == ProjectionChassisProfile.TABLE) {
+            // Table images rotate/tilt around their geometric center rather than around the near
+            // image edge. X is already centered by the face mesh; center the local Y axis too.
+            poseStack.translate(0.0D, -size.height() * 0.5D, 0.0D);
+        }
         PoseStack.Pose pose = poseStack.last();
         Matrix4f matrix = pose.pose();
 
@@ -1409,19 +1468,24 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             float angle,
             double baseY
     ) {
+        if (blockEntity.chassisProfile() == ProjectionChassisProfile.TABLE) {
+            return MirageTableProjectorLogic.isCameraOnFrontSide(blockEntity, settings, angle, baseY);
+        }
         Minecraft minecraft = Minecraft.getInstance();
         Vec3 camera = minecraft.gameRenderer.getMainCamera().getPosition();
         BlockPos pos = blockEntity.getBlockPos();
         double originX = pos.getX() + 0.5D;
         double originY = pos.getY() + baseY;
         double originZ = pos.getZ() + 0.5D;
-
         double yawRadians = Math.toRadians(angle);
         double tiltRadians = Math.toRadians(settings.tiltDegrees());
+        double sinTilt = Math.sin(tiltRadians);
         double cosTilt = Math.cos(tiltRadians);
-        // Local +Z is the front normal. The renderer applies Tilt first in local space, then world yaw.
+
+        // Canonical fixed projectors are upright planes. Table never reaches this path: its
+        // physical side classification is owned by MirageTableProjectorLogic.
         double normalX = Math.sin(yawRadians) * cosTilt;
-        double normalY = -Math.sin(tiltRadians);
+        double normalY = -sinTilt;
         double normalZ = Math.cos(yawRadians) * cosTilt;
 
         double toCameraX = camera.x - originX;
@@ -1633,13 +1697,12 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             double baseY,
             float finalYawDegrees
     ) {
+        if (blockEntity != null && blockEntity.chassisProfile() == ProjectionChassisProfile.TABLE) {
+            MirageTableProjectorLogic.applyPlanarPlacement(blockEntity, settings, poseStack, baseY, finalYawDegrees);
+            return;
+        }
         applyAnchorTranslation(blockEntity, poseStack, baseY);
         poseStack.mulPose(Axis.YP.rotationDegrees(finalYawDegrees));
-        if (blockEntity != null && blockEntity.chassisProfile().usesHorizontalPlaneFor(settings.sourceMode())) {
-            // Native Image/Banner planes are XY with +Z front. -90° around X makes +Z become +Y,
-            // producing a true table/map surface while keeping Lift on the world Y axis.
-            poseStack.mulPose(Axis.XP.rotationDegrees(-90.0F));
-        }
         ProjectionTransform.Orientation orientation = settings.transform().orientation();
         poseStack.mulPose(new Quaternionf(orientation.x(), orientation.y(), orientation.z(), orientation.w()));
     }
@@ -1651,6 +1714,10 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             double baseY,
             float finalYawDegrees
     ) {
+        if (blockEntity != null && blockEntity.chassisProfile() == ProjectionChassisProfile.TABLE) {
+            MirageTableProjectorLogic.applyVolumetricPlacement(blockEntity, settings, poseStack, baseY, finalYawDegrees);
+            return;
+        }
         applyAnchorTranslation(blockEntity, poseStack, baseY);
         poseStack.mulPose(Axis.YP.rotationDegrees(finalYawDegrees));
         ProjectionTransform.Orientation orientation = settings.transform().orientation();
@@ -1723,6 +1790,10 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     public AABB getRenderBoundingBox(MirageProjectorBlockEntity blockEntity) {
         ProjectionSettings settings = blockEntity.settings();
         BlockPos pos = blockEntity.getBlockPos();
+
+        if (blockEntity.chassisProfile() == ProjectionChassisProfile.TABLE) {
+            return MirageTableProjectorLogic.renderBoundingBox(blockEntity);
+        }
 
         if (blockEntity.chassisProfile() == ProjectionChassisProfile.WALL) {
             AABB machine = new AABB(pos).inflate(0.25D);

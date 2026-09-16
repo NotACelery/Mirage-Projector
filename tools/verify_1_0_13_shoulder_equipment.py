@@ -13,12 +13,13 @@ def need(condition, message):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 stabilized_1018 = any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30'))
 need(any(v in props for v in ('mod_version=1.0.13', 'mod_version=1.0.14', 'mod_version=1.0.15', 'mod_version=1.0.16', 'mod_version=1.0.17', 'mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not a compatible 1.0.13+ line')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 # Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 # Later protocol bumps preserve this historical contract.
@@ -58,7 +59,7 @@ need(
 )
 
 mountable = read('src/main/java/celerbi/mirageprojector/item/ShoulderMountableDevice.java')
-lantern = read('src/main/java/celerbi/mirageprojector/item/MirageLanternItem.java')
+lantern = read('src/main/java/celerbi/mirageprojector/item/MirageFlashlightItem.java')
 projector = read('src/main/java/celerbi/mirageprojector/item/MirageHandProjectorItem.java')
 need('interface ShoulderMountableDevice' in mountable, 'shoulder mountable device contract missing')
 need(('implements ShoulderMountableDevice' in lantern or 'implements ShoulderRechargeableDevice' in lantern), 'Mirage Lantern is not shoulder mountable')
@@ -76,7 +77,7 @@ for payload in payloads:
     need(f'{payload}.TYPE' in network, f'{payload} is not registered')
 
 client = read('src/main/java/celerbi/mirageprojector/client/ClientShoulderEquipment.java')
-need('submitShoulderLanterns' in client and 'ClientDynamicMirageLightManager.submit' in client, 'mounted Lantern dynamic-light bridge missing')
+need('submitShoulderFlashlights' in client and 'ClientDynamicMirageLightManager.submit' in client, 'mounted Lantern dynamic-light bridge missing')
 need('renderMountedDevice' in client, 'physical shoulder-device render helper missing')
 client_events = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentClientEvents.java')
 need('InventoryScreen' in client_events and 'ScreenEvent.Init.Post' in client_events, 'inventory equipment panel hook missing')
@@ -89,13 +90,13 @@ portable_screen_path = ROOT / 'src/main/java/celerbi/mirageprojector/client/Port
 legacy_screen = legacy_screen_path.read_text(encoding='utf-8') if legacy_screen_path.exists() else ''
 portable_screen = portable_screen_path.read_text(encoding='utf-8') if portable_screen_path.exists() else ''
 need(
-    ('CYCLE_LANTERN_MODE' in legacy_screen and 'TOGGLE_PROJECTOR' in legacy_screen)
-    or ('CYCLE_LANTERN_MODE' in portable_screen and 'TOGGLE_PROJECTOR' in portable_screen),
+    ('CYCLE_FLASHLIGHT_MODE' in legacy_screen and 'TOGGLE_PROJECTOR' in legacy_screen)
+    or ('CYCLE_FLASHLIGHT_MODE' in portable_screen and 'TOGGLE_PROJECTOR' in portable_screen),
     'initial shoulder device controls incomplete'
 )
 
 runtime_events = read('src/main/java/celerbi/mirageprojector/client/ClientRuntimeEvents.java')
-need('ClientShoulderEquipment.submitShoulderLanterns' in runtime_events, 'shoulder Lantern submission not wired')
+need('ClientShoulderEquipment.submitShoulderFlashlights' in runtime_events, 'shoulder Lantern submission not wired')
 need('ClientShoulderEquipment.resetSession' in runtime_events, 'shoulder client state reset missing')
 
 mixin = read('src/main/java/celerbi/mirageprojector/mixin/PlayerShoulderReservationMixin.java')

@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 public final class MirageProjector {
     public static final String MOD_ID = "mirage_projector";
 
-    public static final String NETWORK_PROTOCOL = "41";
+    public static final String NETWORK_PROTOCOL = "43";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public MirageProjector(IEventBus modEventBus) {
@@ -49,7 +49,8 @@ public final class MirageProjector {
             event.accept(ModItems.TALL_MIRAGE_PROJECTOR.get());
             event.accept(ModItems.MIRAGE_PRISM.get());
             event.accept(ModItems.MIRAGE_LIGHT_PROJECTOR.get());
-            event.accept(ModItems.MIRAGE_LANTERN.get());
+            event.accept(ModItems.MIRAGE_WALL_PROJECTOR.get());
+            event.accept(ModItems.MIRAGE_FLASHLIGHT.get());
             event.accept(ModItems.PRESENTATION_REMOTE.get());
             event.accept(ModItems.SHOULDER_STRAP.get());
             event.accept(ModItems.CORE_BOOSTER.get());

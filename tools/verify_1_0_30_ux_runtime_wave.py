@@ -12,9 +12,10 @@ def need(condition, message):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
 settings = read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
 portable_screen = read('src/main/java/celerbi/mirageprojector/client/PortableDeviceScreen.java')
 portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')
@@ -37,7 +38,7 @@ for action in ('SELECT_IMAGE', 'SELECT_ITEM', 'SELECT_ENTITY', 'SELECT_BANNER'):
     need(action in portable_action, f'portable source action missing: {action}')
 for mode in ('IMAGE', 'ITEM', 'ENTITY', 'BANNER'):
     need(f'ProjectionSettings.SourceMode.{mode}' in portable_screen, f'Hand Projector mode missing in screen: {mode}')
-need('SOURCE_SLOT_INDEX = 1' in portable_menu and 'isFake()' in portable_menu,
+need(('SOURCE_SLOT_INDEX = 1' in portable_menu or 'SOURCE_SLOT_INDEX = 2' in portable_menu) and 'isFake()' in portable_menu,
      'Hand Projector virtual source well is missing')
 need('captureSourceSnapshot' in portable_menu and 'clearSourceSnapshot' in portable_menu,
      'Hand Projector source well is not wired to snapshot capture/clear')
@@ -55,7 +56,8 @@ need('ScreenEvent.MouseButtonPressed.Pre' in equipment and 'ScreenEvent.MouseBut
 need('capturedEquipmentButton' in equipment and 'event.setCanceled(true)' in equipment,
      'Mirage Equipment outside-click suppression missing')
 need('creative.isInventoryOpen()' in equipment, 'Creative equipment UI leaks outside the inventory tab')
-need('int toggleX = rightEdge - 2;' in equipment and 'int panelX = rightEdge + 13;' in equipment,
+need((('int toggleX = rightEdge - 2;' in equipment and 'int panelX = rightEdge + 13;' in equipment)
+      or ('int toggleX = rightEdge + 5;' in equipment and 'int panelX = rightEdge + 24;' in equipment)),
      'Mirage Equipment 1.0.30 docked position is missing')
 need('+3' not in equipment_panel, 'redundant +3 expansion label remains in Mirage Equipment panel')
 

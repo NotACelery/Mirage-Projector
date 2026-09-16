@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "SLS",
+    "LCL",
+    " N "
+  ],
+  "key": {
+    "S": { "item": "minecraft:string" },
+    "L": { "item": "minecraft:leather" },
+    "C": { "item": "minecraft:chest" },
+    "N": { "item": "minecraft:iron_nugget" }
+  },
+  "result": {
+    "id": "mirage_projector:battery_pouch_expansion_patch",
+    "count": 1
+  }
+}

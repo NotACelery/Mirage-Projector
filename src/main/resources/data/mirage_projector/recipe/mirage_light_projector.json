@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "SCS",
+    "IFI",
+    "SOS"
+  ],
+  "key": {
+    "S": { "item": "mirage_projector:crying_obsidian_shard" },
+    "C": { "item": "minecraft:copper_ingot" },
+    "I": { "item": "minecraft:iron_ingot" },
+    "F": { "item": "mirage_projector:mirage_lantern" },
+    "O": { "item": "minecraft:crying_obsidian" }
+  },
+  "result": {
+    "id": "mirage_projector:mirage_light_projector",
+    "count": 1
+  }
+}

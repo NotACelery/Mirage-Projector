@@ -27,7 +27,7 @@ public final class ModBlockEntities {
                             ModBlocks.MIRAGE_FIELD_PROJECTOR.get(),
                             ModBlocks.MIRAGE_PRISM.get(),
                             ModBlocks.MIRAGE_TABLE_PROJECTOR.get(),
-                            ModBlocks.MIRAGE_WALL_PROJECTOR.get()
+                            ModBlocks.MIRAGE_WALL_DISPLAY.get()
                     ).build(null));
 
 
@@ -35,7 +35,9 @@ public final class ModBlockEntities {
             BLOCK_ENTITY_TYPES.register("mirage_light_projector", () ->
                     BlockEntityType.Builder.of(
                             MirageLightProjectorBlockEntity::new,
-                            ModBlocks.MIRAGE_LIGHT_PROJECTOR.get()
+                            ModBlocks.MIRAGE_LIGHT_PROJECTOR.get(),
+                            ModBlocks.MIRAGE_WALL_PROJECTOR.get(),
+                            ModBlocks.MIRAGE_FLASHLIGHT_BEACON.get()
                     ).build(null));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CoreBoosterBlockEntity>> CORE_BOOSTER =

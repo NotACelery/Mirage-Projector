@@ -8,13 +8,14 @@ errors=[]; notes=[]
 def read(rel): return (ROOT/rel).read_text(encoding='utf-8')
 def need(c,m):
     if not c: errors.append(m)
-props=read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props=read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 need('mod_version=0.1.0-dev.86a' in props,'gradle.properties is not dev.86a')
 need('minecraft_version=1.21.1' in props,'Minecraft baseline changed')
 need('neo_version=21.1.244' in props,'NeoForge baseline changed')
 main=read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 # Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 need('NETWORK_PROTOCOL = "27"' in main,'network protocol is not 27')

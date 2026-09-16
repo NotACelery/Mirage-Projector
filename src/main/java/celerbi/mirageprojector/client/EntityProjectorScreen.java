@@ -48,11 +48,13 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
     private Button captureLoadoutButton;
     private Button returnGearButton;
     private Button poseButton;
+    private Button playerLayersButton;
     private Button confirmReplaceButton;
     private Button cancelReplaceButton;
     private VirtualEquipmentSnapshots.Channel pendingConflict;
     private Component status = Component.translatable("gui.mirage_projector.entity.ready");
     private EntityScanData.Kind lastKind;
+    private boolean lastPlayerSource;
 
     public EntityProjectorScreen(EntityProjectorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -111,6 +113,18 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
                 .build());
         poseButton.setTooltip(Tooltip.create(Component.translatable(
                 "tooltip.mirage_projector.entity.pose"
+        )));
+
+
+        playerLayersButton = addRenderableWidget(Button.builder(Component.empty(), button ->
+                PacketDistributor.sendToServer(new EntityWorkspaceActionPayload(
+                        menu.projectorPos(),
+                        EntityWorkspaceActionPayload.Action.TOGGLE_PLAYER_LAYERS,
+                        null
+                ))
+        ).bounds(leftPos + 404, topPos + ACTION_Y, 146, 20).build());
+        playerLayersButton.setTooltip(Tooltip.create(Component.translatable(
+                "tooltip.mirage_projector.entity.player_layers"
         )));
 
         confirmReplaceButton = addRenderableWidget(Button.builder(
@@ -184,11 +198,12 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
 
     private void refreshVisibilityButtons() {
         EntityScanData.Kind kind = menu.effectiveKind();
+        boolean playerSource = menu.state().activeEntityIsPlayer();
         for (Map.Entry<VirtualEquipmentSnapshots.Channel, Button> entry : visibilityButtons.entrySet()) {
             VirtualEquipmentSnapshots.Channel channel = entry.getKey();
             Button button = entry.getValue();
             boolean supported = switch (kind) {
-                case HUMANOID -> channel.humanoid();
+                case HUMANOID -> !playerSource && channel.humanoid();
                 case HORSE -> channel.horse();
                 case GENERIC -> false;
             };
@@ -268,22 +283,45 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
 
     private void updateModeWidgets(boolean force) {
         EntityScanData.Kind kind = menu.effectiveKind();
-        if (!force && kind == lastKind) {
+        boolean playerSource = menu.state().activeEntityIsPlayer();
+        if (!force && kind == lastKind && playerSource == lastPlayerSource) {
+            refreshPlayerLayersButton();
             return;
         }
         lastKind = kind;
+        lastPlayerSource = playerSource;
         pendingConflict = null;
-        captureLoadoutButton.visible = kind == EntityScanData.Kind.HUMANOID;
-        returnGearButton.visible = kind == EntityScanData.Kind.HUMANOID || kind == EntityScanData.Kind.HORSE;
+        captureLoadoutButton.visible = kind == EntityScanData.Kind.HUMANOID && !playerSource;
+        returnGearButton.visible = (kind == EntityScanData.Kind.HUMANOID && !playerSource)
+                || kind == EntityScanData.Kind.HORSE;
+        refreshPlayerLayersButton();
         refreshConflictButtons();
+    }
+
+    private void refreshPlayerLayersButton() {
+        if (playerLayersButton == null) {
+            return;
+        }
+        boolean playerSource = menu.state().activeEntityIsPlayer();
+        playerLayersButton.visible = playerSource && pendingConflict == null;
+        playerLayersButton.active = playerSource;
+        if (playerSource) {
+            playerLayersButton.setMessage(Component.translatable(
+                    "gui.mirage_projector.entity.player_layers",
+                    Component.translatable(menu.state().playerAllLayers()
+                            ? "gui.mirage_projector.entity.player_layers.all"
+                            : "gui.mirage_projector.entity.player_layers.base")
+            ));
+        }
     }
 
     private void refreshActionableButtons() {
         EntityScanData.Kind kind = menu.effectiveKind();
+        boolean playerSource = menu.state().activeEntityIsPlayer();
         for (Map.Entry<VirtualEquipmentSnapshots.Channel, Button> entry : applyButtons.entrySet()) {
             VirtualEquipmentSnapshots.Channel channel = entry.getKey();
             boolean supported = switch (kind) {
-                case HUMANOID -> channel.humanoid();
+                case HUMANOID -> !playerSource && channel.humanoid();
                 case HORSE -> channel.horse();
                 case GENERIC -> false;
             };
@@ -311,6 +349,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
                     || lastKind == EntityScanData.Kind.HORSE
                     || (lastKind == EntityScanData.Kind.GENERIC && menu.supportsGenericSittingPose()));
         }
+        refreshPlayerLayersButton();
     }
 
     private void refreshModeButton() {
@@ -395,7 +434,8 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
         drawSlotFrame(graphics, x + EntityProjectorMenu.CARD_X - 1, y + EntityProjectorMenu.CARD_Y - 1, 0xFF75658A);
 
         EntityScanData.Kind kind = menu.effectiveKind();
-        if (kind == EntityScanData.Kind.HUMANOID) {
+        boolean playerSource = menu.state().activeEntityIsPlayer();
+        if (kind == EntityScanData.Kind.HUMANOID && !playerSource) {
             for (VirtualEquipmentSnapshots.Channel channel : humanoidChannels()) {
                 drawEquipmentFrames(graphics, x, y, channel);
             }
@@ -522,7 +562,8 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
         graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.visibility").getString(), 34), 333, 134, 0xFFC9CED7, false);
 
         EntityScanData.Kind kind = menu.effectiveKind();
-        if (kind == EntityScanData.Kind.HUMANOID) {
+        boolean playerSource = menu.state().activeEntityIsPlayer();
+        if (kind == EntityScanData.Kind.HUMANOID && !playerSource) {
             for (VirtualEquipmentSnapshots.Channel channel : humanoidChannels()) {
                 renderRow(graphics, channel);
             }
@@ -530,6 +571,9 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
             for (VirtualEquipmentSnapshots.Channel channel : horseChannels()) {
                 renderRow(graphics, channel);
             }
+        } else if (playerSource) {
+            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.player_skin_only").getString(), 330), 18, 164, 0xFFC4C9D3, false);
+            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.player_skin_only_hint").getString(), 330), 18, 179, 0xFF8F98A8, false);
         } else {
             graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_1").getString(), 330), 18, 164, 0xFFC4C9D3, false);
             graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_2").getString(), 330), 18, 179, 0xFF8F98A8, false);
@@ -567,7 +611,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
             EntityScanData.Kind kind = menu.effectiveKind();
             VirtualEquipmentSnapshots.Channel[] channels = kind == EntityScanData.Kind.HORSE
                     ? horseChannels()
-                    : kind == EntityScanData.Kind.HUMANOID
+                    : kind == EntityScanData.Kind.HUMANOID && !menu.state().activeEntityIsPlayer()
                     ? humanoidChannels()
                     : new VirtualEquipmentSnapshots.Channel[0];
             for (VirtualEquipmentSnapshots.Channel channel : channels) {

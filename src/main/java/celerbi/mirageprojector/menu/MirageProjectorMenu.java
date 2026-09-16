@@ -31,6 +31,7 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
     private final BlockPos projectorPos;
     private final ProjectionSettings initialSettings;
     private final boolean initialProjectionEnabled;
+    private final ProjectionChassisProfile initialChassisProfile;
     @Nullable
     private final MirageProjectorBlockEntity projector;
 
@@ -39,6 +40,7 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
         projectorPos = buffer.readBlockPos();
         initialSettings = ProjectionSettings.read(buffer);
         initialProjectionEnabled = buffer.readBoolean();
+        initialChassisProfile = readChassis(buffer.readVarInt());
         projector = inventory.player.level().getBlockEntity(projectorPos) instanceof MirageProjectorBlockEntity be ? be : null;
         ItemStackHandler coreHandler = projector == null ? new ItemStackHandler(1) : projector.coreItem();
         addCoreSlot(coreHandler);
@@ -50,6 +52,7 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
         this.projectorPos = projector.getBlockPos();
         this.initialSettings = projector.settings();
         this.initialProjectionEnabled = projector.projectionEnabled();
+        this.initialChassisProfile = projector.chassisProfile();
         this.projector = projector;
         addCoreSlot(projector.coreItem());
         addPlayerInventory(inventory);
@@ -109,7 +112,12 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
         return ProjectionCoreProfile.fromStack(coreStack());
     }
     public ProjectionChassisProfile chassisProfile() {
-        return projector == null ? ProjectionChassisProfile.COMPACT : projector.chassisProfile();
+        return initialChassisProfile;
+    }
+
+    private static ProjectionChassisProfile readChassis(int ordinal) {
+        ProjectionChassisProfile[] values = ProjectionChassisProfile.values();
+        return ordinal >= 0 && ordinal < values.length ? values[ordinal] : ProjectionChassisProfile.COMPACT;
     }
     public boolean hasProjectedSourceContent() {
         return projector != null && projector.hasProjectedSourceContent();

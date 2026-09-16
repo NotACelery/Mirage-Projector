@@ -21,7 +21,8 @@ public enum ProjectionChassisProfile {
     // values sent through workspace menus remain stable. Final Survival recipes/balance are still
     // intentionally provisional; these entries freeze the runtime anchor semantics first.
     TABLE("Table", Geometry.PLANE, 48, 48, 64, 12, 1.50F, 6, 4.0F, Anchor.TABLE_HORIZONTAL,
-            PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING),
+            PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING,
+            PlacementCapability.TABLE_XZ_OFFSET),
     WALL("Wall", Geometry.PLANE, 64, 36, 0, 0, 1.50F, 6, 3.0F, Anchor.WALL_TARGET,
             PlacementCapability.WALL_XY_OFFSET);
 
@@ -101,6 +102,7 @@ public enum ProjectionChassisProfile {
     public boolean supportsFloating() { return supports(PlacementCapability.FLOATING); }
     public boolean supportsPrismDistance() { return supports(PlacementCapability.PRISM_DISTANCE); }
     public boolean supportsWallXyOffset() { return supports(PlacementCapability.WALL_XY_OFFSET); }
+    public boolean supportsTableXzOffset() { return supports(PlacementCapability.TABLE_XZ_OFFSET); }
     public boolean supportsPresentationDeck() { return this == TABLE || this == WALL; }
 
     /**
@@ -129,6 +131,7 @@ public enum ProjectionChassisProfile {
         ROTATION,
         FLOATING,
         PRISM_DISTANCE,
-        WALL_XY_OFFSET
+        WALL_XY_OFFSET,
+        TABLE_XZ_OFFSET
     }
 }

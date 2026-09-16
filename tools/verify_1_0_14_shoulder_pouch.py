@@ -9,11 +9,12 @@ def need(c,m):
     if not c: errors.append(m)
 def read(rel): return (ROOT/rel).read_text(encoding='utf-8')
 
-props=read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props=read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 need(any(v in props for v in ('mod_version=1.0.14', 'mod_version=1.0.15', 'mod_version=1.0.16', 'mod_version=1.0.17', 'mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not a compatible 1.0.14+ line')
 main=read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 # Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
 main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 need(('NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or ('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or ('NETWORK_PROTOCOL = \"36\"' in main or ('NETWORK_PROTOCOL = \"37\"' in main or 'NETWORK_PROTOCOL = \"38\"' in main))))),'1.0.14+ shoulder pouch protocol baseline missing')
@@ -36,7 +37,7 @@ upgrade=read('src/main/java/celerbi/mirageprojector/item/ShoulderUpgrade.java')
 need('ResourceLocation shoulderUpgradeFamily' in upgrade,'generic namespaced shoulder upgrade family missing')
 recharge=read('src/main/java/celerbi/mirageprojector/item/ShoulderRechargeableDevice.java')
 need('shoulderEnergyCell' in recharge and 'shoulderInsertEnergyCell' in recharge and 'shoulderExtractEnergyCell' in recharge,'generic rechargeable shoulder-device cell exchange missing')
-for rel in ('src/main/java/celerbi/mirageprojector/item/MirageLanternItem.java','src/main/java/celerbi/mirageprojector/item/MirageHandProjectorItem.java'):
+for rel in ('src/main/java/celerbi/mirageprojector/item/MirageFlashlightItem.java','src/main/java/celerbi/mirageprojector/item/MirageHandProjectorItem.java'):
     text=read(rel)
     need('implements ShoulderRechargeableDevice' in text,f'{rel} does not expose shoulder battery exchange')
 

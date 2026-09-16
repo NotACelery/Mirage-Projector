@@ -3,6 +3,7 @@ package celerbi.mirageprojector.blockentity;
 import celerbi.mirageprojector.item.RechargeableEnergyItem;
 import celerbi.mirageprojector.light.device.PortableLightMode;
 import celerbi.mirageprojector.registry.ModBlockEntities;
+import celerbi.mirageprojector.registry.ModBlocks;
 import celerbi.mirageprojector.menu.MirageLightProjectorMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -94,6 +95,11 @@ public final class MirageLightProjectorBlockEntity extends BlockEntity implement
         return result;
     }
 
+    public void setMode(PortableLightMode mode) {
+        this.mode = mode == null ? PortableLightMode.OFF : mode;
+        setChangedAndSync();
+    }
+
     public PortableLightMode cycleMode() {
         mode = mode.next();
         setChangedAndSync();
@@ -127,6 +133,12 @@ public final class MirageLightProjectorBlockEntity extends BlockEntity implement
 
     @Override
     public Component getDisplayName() {
+        if (getBlockState().is(ModBlocks.MIRAGE_WALL_PROJECTOR)) {
+            return Component.translatable("container.mirage_projector.wall_projector");
+        }
+        if (getBlockState().is(ModBlocks.MIRAGE_FLASHLIGHT_BEACON)) {
+            return Component.translatable("container.mirage_projector.flashlight");
+        }
         return Component.translatable("container.mirage_projector.light_projector");
     }
 

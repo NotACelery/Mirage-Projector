@@ -157,7 +157,7 @@ public final class ClientMirageLightSync {
     /**
      * Optimized invalidation for moving DYNAMIC_VISUAL emitters.
      *
-     * <p>A moving Lantern may rebuild every two ticks, so the full 3x3x3 halo above would be
+     * <p>A moving Flashlight may rebuild every two ticks, so the full 3x3x3 halo above would be
      * needlessly expensive. Instead, always rebuild sections whose Mirage bytes changed and
      * rebuild a neighboring render section only when a changed voxel lies on the matching
      * section face/edge/corner that the neighbor can sample.</p>

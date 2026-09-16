@@ -12,9 +12,10 @@ def need(cond, msg):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
+main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
 need(any(v in props for v in ('mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not a compatible 1.0.24+ line')
 need(('NETWORK_PROTOCOL = "36"' in main or ('NETWORK_PROTOCOL = "37"' in main or ('NETWORK_PROTOCOL = "38"' in main or 'NETWORK_PROTOCOL = "39"' in main or 'NETWORK_PROTOCOL = "40"' in main))), '1.0.24+ network protocol baseline missing')
 need(any(v in read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java') for v in ('SERIALIZATION_VERSION = 3', 'SERIALIZATION_VERSION = 4')),
@@ -98,15 +99,16 @@ need('IMPORT_EASY_MOB_FARM' not in payload, 'old Easy-Mob-Farm-only import actio
 
 portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')
 portable = read('src/main/java/celerbi/mirageprojector/client/PortableDeviceScreen.java')
-need(('PROJECTOR_PLAYER_INV_Y = 198' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 158' in portable_menu), 'Hand Projector inventory is not using separated lite layout')
-need(('PROJECTOR_HEIGHT = 294' in portable or 'PROJECTOR_HEIGHT = 242' in portable), 'Hand Projector screen is not using its dedicated compact height')
+need(('PROJECTOR_PLAYER_INV_Y = 232' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 198' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 158' in portable_menu), 'Hand Projector inventory is not using separated lite layout')
+need(('PROJECTOR_HEIGHT = 326' in portable or 'PROJECTOR_HEIGHT = 294' in portable or 'PROJECTOR_HEIGHT = 242' in portable), 'Hand Projector screen is not using its dedicated compact height')
 for token in ('bannerPresentationButton', 'warBannerFacingButton', 'updateProjectorControls()',
               'CYCLE_BANNER_PRESENTATION', 'CYCLE_WAR_BANNER_FACING',
               'WAR_BANNER_SIZE_DOWN', 'WAR_BANNER_SIZE_UP', 'WAR_BANNER_HEIGHT_DOWN', 'WAR_BANNER_HEIGHT_UP',
               'mode == ProjectionSettings.SourceMode.BANNER',
               'MirageHandProjectorItem.warBannerActive(device)', 'war_banner_size_value', 'war_banner_height_value'):
     need(token in portable, f'portable lite/banner UI contract missing: {token}')
-need('bannerPresentationButton.visible = banner' in portable and 'warBannerFacingButton.visible = warBanner' in portable,
+need((('bannerPresentationButton.visible = banner' in portable and 'warBannerFacingButton.visible = warBanner' in portable)
+      or ('setVisible(bannerPresentationButton, banner)' in portable and 'setVisible(warBannerFacingButton, warBanner)' in portable)),
      'Banner controls are not dynamically visibility-bound to live state')
 
 release = read('docs/RELEASE-1.0.24-CODEX-LIBRARY-CARD-REWORK.md')

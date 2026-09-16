@@ -15,11 +15,26 @@ screen=read('src/main/java/celerbi/mirageprojector/client/MirageProjectorScreen.
 codex=read('src/main/java/celerbi/mirageprojector/client/ScanCodexScreen.java')
 profile=read('src/main/java/celerbi/mirageprojector/ProjectionChassisProfile.java')
 table_block=read('src/main/java/celerbi/mirageprojector/block/MirageTableProjectorBlock.java')
+scan_data=read('src/main/java/celerbi/mirageprojector/entity/EntityScanData.java')
+entity_state=read('src/main/java/celerbi/mirageprojector/entity/EntityProjectionState.java')
+entity_factory=read('src/main/java/celerbi/mirageprojector/client/EntityProjectionClientEntityFactory.java')
+entity_screen=read('src/main/java/celerbi/mirageprojector/client/EntityProjectorScreen.java')
+entity_payload=read('src/main/java/celerbi/mirageprojector/network/EntityWorkspaceActionPayload.java')
+settings=read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
+renderer=read('src/main/java/celerbi/mirageprojector/client/MirageProjectorRenderer.java')
+portable_item=read('src/main/java/celerbi/mirageprojector/item/MirageHandProjectorItem.java')
+portable_menu=read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')
+portable_screen=read('src/main/java/celerbi/mirageprojector/client/PortableDeviceScreen.java')
+portable_action=read('src/main/java/celerbi/mirageprojector/network/PortableDeviceActionPayload.java')
+networking=read('src/main/java/celerbi/mirageprojector/network/ModNetworking.java')
 
-need('mod_version=1.0.31' in props, 'version is not 1.0.31')
-need('NETWORK_PROTOCOL = "41"' in main, 'protocol is not 41')
+need(any(v in props for v in ('mod_version=1.0.31', 'mod_version=1.0.32')), 'version is not a compatible 1.0.31+ line')
+need(any(v in main for v in ('NETWORK_PROTOCOL = "42"', 'NETWORK_PROTOCOL = "43"')), 'protocol is not a compatible 42+ line')
 need('buffer.writeBoolean(projectionEnabled);' in be, 'main menu does not publish projection-enabled state')
 need('initialProjectionEnabled = buffer.readBoolean();' in menu, 'main menu does not consume projection-enabled state')
+need(('buffer.writeVarInt(chassisProfile().ordinal());' in be and 'initialChassisProfile = readChassis(buffer.readVarInt());' in menu)
+     or ('NETWORK_PROTOCOL = "42"' in main or 'NETWORK_PROTOCOL = "43"' in main),
+     'later Table-specific screen routing lacks authoritative chassis opening data')
 need('selectedSourceMode = base.sourceMode();' in screen and 'projectionEnabled = menu.initialProjectionEnabled();' in screen,
      'main screen still depends on stale client BE source state')
 need('return selectedSourceMode;' in screen, 'main screen source mode is not menu-snapshot driven')
@@ -72,6 +87,66 @@ renderbg=codex[codex.find('protected void renderBg'):codex.find('private void re
 need('renderCodexCanvas(' not in renderbg, 'Codex canvas is still drawn a second time from renderBg')
 need('public void renderBackground' in codex and 'physical Codex overlays the live world' in codex,
      'Codex no-blur/no-dim contract missing')
+
+# Recovered 1.0.31 completion wave: Player scans are skin/profile-only.
+need('CompoundTag equipment = playerSource' in scan_data and 'new CompoundTag()' in scan_data,
+     'legacy Player scans still reload equipment')
+need('if (!(target instanceof Player))' in scan_data and 'stripHumanoidEquipment(entityData);' in scan_data,
+     'new Player scans still capture humanoid equipment')
+need('private boolean playerAllLayers = true;' in entity_state
+     and 'root.putBoolean("PlayerAllLayers", playerAllLayers);' in entity_state,
+     'Player Base Skin / All Layers state is not persistent')
+need('state.playerAllLayers()' in entity_factory and 'DATA_PLAYER_MODE_CUSTOMISATION' in entity_factory,
+     'Player layer mask is not applied by the client entity factory')
+need('TOGGLE_PLAYER_LAYERS' in entity_payload and 'playerLayersButton' in entity_screen,
+     'Entity Workspace Player layer toggle missing')
+need('!scan.playerSource()' in entity_state and 'clearHumanoidEquipmentOnly()' in entity_state,
+     'Player projection state does not reject inherited equipment')
+
+# Table placement/pivot completion.
+need('PlacementCapability.TABLE_XZ_OFFSET' in profile and 'supportsTableXzOffset()' in profile,
+     'Table X/Z placement capability missing')
+need('withSurfaceOffsets' in settings and 'withRotationEnabled' in settings,
+     'Table offset/default-rotation helpers missing')
+need('settings = settings.withRotationEnabled(false);' in be,
+     'new Table projectors do not default Rotation OFF')
+need('tableXOffsetSlider' in screen and 'tableZOffsetSlider' in screen
+     and 'gui.mirage_projector.table.offset_y' in screen,
+     'Table X/Y/Z Placement controls missing')
+table_logic=read('src/main/java/celerbi/mirageprojector/client/MirageTableProjectorLogic.java')
+need('applyAnchorAndOffsets' in table_logic and 'horizontalOffsetPixels()' in table_logic
+     and 'verticalOffsetPixels()' in table_logic and '-size.height() * 0.5D' in renderer,
+     'Table renderer lacks dedicated X/Z anchor offsets or image-center pivot')
+
+# Hand Projector: physical Core + independent rechargeable energy + direct Image/Scale controls.
+need('PORTABLE_MAX_SCALE_PIXELS = 10' in portable_item, 'Hand Projector Compact scale cap is not 10 px')
+need('MirageHandProjectorCore' in portable_item and 'ProjectionCoreProfile coreProfile' in portable_item,
+     'Hand Projector physical Projection Core persistence missing')
+need('portableState.remove("CoreItem")' in portable_item,
+     'physical Hand Projector Core can be duplicated into the portable profile')
+need('coreProfile(projector, registries)' in portable_item and 'handheldEnergySource' not in portable_item,
+     'portable PU evaluation still treats battery as a Core')
+need('hasCore(projector)' in portable_item and 'hasEnergyCell(projector)' in portable_item,
+     'portable runtime does not require both Core and energy')
+need('setPortableScale' in portable_item and 'setImageSource' in portable_item,
+     'portable Scale/Image server mutations missing')
+need('CORE_SLOT_INDEX = 1' in portable_menu and 'MACHINE_SLOT_COUNT = 3' in portable_menu
+     and 'DeviceCoreContainer' in portable_menu,
+     'Portable Device menu lacks a physical Core slot')
+need('SOURCE WORKSPACES' not in portable_screen or 'source_workspaces' in portable_screen,
+     'Portable Device Source Workspaces presentation missing')
+need('ScaleSlider' in portable_screen and 'openImagePicker' in portable_screen
+     and 'ClientAssetTransport.uploadIfPresent' in portable_screen,
+     'Portable Device Scale/direct Image UI missing')
+need('COPY_TARGET_PROJECTOR' not in portable_action and 'copyPortableProfile' not in portable_item
+     and 'copy_target' not in portable_screen,
+     'obsolete Copy Target Projector flow still active')
+need('PortableDeviceScalePayload.TYPE' in networking and 'PortableDeviceImagePayload.TYPE' in networking,
+     'new portable Scale/Image payloads are not registered')
+need((ROOT/'src/main/java/celerbi/mirageprojector/network/PortableDeviceScalePayload.java').exists(),
+     'PortableDeviceScalePayload source missing')
+need((ROOT/'src/main/java/celerbi/mirageprojector/network/PortableDeviceImagePayload.java').exists(),
+     'PortableDeviceImagePayload source missing')
 
 if errors:
     print('Mirage Projector 1.0.31 Table/runtime rebuild verification FAILED')

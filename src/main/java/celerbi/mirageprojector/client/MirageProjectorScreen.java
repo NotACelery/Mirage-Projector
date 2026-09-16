@@ -80,6 +80,8 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     private IntSlider distanceOffsetSlider;
     private IntSlider horizontalOffsetSlider;
     private IntSlider verticalOffsetSlider;
+    private IntSlider tableXOffsetSlider;
+    private IntSlider tableZOffsetSlider;
     private IntSlider tiltSlider;
     private IntSlider floatAmplitudeSlider;
     private IntSlider floatTimingSlider;
@@ -199,7 +201,12 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
                     refreshDynamicLimits(true);
                     updateClearance(true);
                 },
-                value -> Component.translatable("gui.mirage_projector.lift", value).getString()
+                value -> Component.translatable(
+                        menu.chassisProfile() == ProjectionChassisProfile.TABLE
+                                ? "gui.mirage_projector.table.offset_y"
+                                : "gui.mirage_projector.lift",
+                        value
+                ).getString()
         ));
         liftSlider.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.lift.dynamic")));
 
@@ -251,6 +258,25 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
                     previewWallSettings();
                 },
                 value -> Component.translatable("gui.mirage_projector.wall.offset_y", value).getString()
+        ));
+
+        tableXOffsetSlider = addRenderableWidget(new IntSlider(
+                x + 12, row2, half, 20,
+                -ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, horizontalOffsetPixels,
+                value -> {
+                    horizontalOffsetPixels = value;
+                    updateClearance(true);
+                },
+                value -> Component.translatable("gui.mirage_projector.table.offset_x", value).getString()
+        ));
+        tableZOffsetSlider = addRenderableWidget(new IntSlider(
+                x + 20 + half, row2, half, 20,
+                -ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, verticalOffsetPixels,
+                value -> {
+                    verticalOffsetPixels = value;
+                    updateClearance(true);
+                },
+                value -> Component.translatable("gui.mirage_projector.table.offset_z", value).getString()
         ));
 
         resetPlacementButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.reset_position"), button -> {
@@ -377,7 +403,8 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
 
     private void refreshSettingsTabVisibility() {
         ProjectionChassisProfile chassis = menu.chassisProfile();
-        boolean placementAvailable = chassis.supportsLift() || chassis.supportsTilt() || chassis.supportsPrismDistance() || chassis.supportsWallXyOffset();
+        boolean placementAvailable = chassis.supportsLift() || chassis.supportsTilt() || chassis.supportsPrismDistance()
+                || chassis.supportsWallXyOffset() || chassis.supportsTableXzOffset();
         boolean rotationAvailable = chassis.supportsRotation();
         boolean floatingAvailable = chassis.supportsFloating();
 
@@ -399,14 +426,25 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
 
         setWidgetState(scaleSlider, geometry, geometry);
         boolean wallOffsets = placement && chassis.supportsWallXyOffset();
+        boolean tableOffsets = placement && chassis.supportsTableXzOffset();
         setWidgetState(liftSlider, placement && chassis.supportsLift() && !wallOffsets, placement && chassis.supportsLift() && !wallOffsets);
         setWidgetState(tiltSlider, placement && chassis.supportsTilt() && !wallOffsets, placement && chassis.supportsTilt() && !wallOffsets);
-        boolean prismDistance = placement && chassis.supportsPrismDistance() && prismSpacingAvailable() && !wallOffsets;
+        boolean prismDistance = placement && chassis.supportsPrismDistance() && prismSpacingAvailable() && !wallOffsets && !tableOffsets;
         setWidgetState(distanceOffsetSlider, prismDistance, prismDistance);
         setWidgetState(horizontalOffsetSlider, wallOffsets, wallOffsets);
         setWidgetState(verticalOffsetSlider, wallOffsets, wallOffsets);
-        setWidgetState(resetPlacementButton, placement && (chassis.supportsLift() || chassis.supportsPrismDistance() || chassis.supportsWallXyOffset()), placement);
+        setWidgetState(tableXOffsetSlider, tableOffsets, tableOffsets);
+        setWidgetState(tableZOffsetSlider, tableOffsets, tableOffsets);
+        setWidgetState(resetPlacementButton, placement && (chassis.supportsLift() || chassis.supportsPrismDistance()
+                || chassis.supportsWallXyOffset() || chassis.supportsTableXzOffset()), placement);
         setWidgetState(resetTiltButton, placement && chassis.supportsTilt(), placement && chassis.supportsTilt());
+        if (resetPlacementButton != null) {
+            resetPlacementButton.setMessage(Component.translatable(
+                    chassis == ProjectionChassisProfile.TABLE
+                            ? "gui.mirage_projector.table.reset_offset"
+                            : "gui.mirage_projector.reset_position"
+            ));
+        }
 
         setWidgetState(rotationButton, rotation, rotation);
         setWidgetState(rotationPeriodSlider, rotation, rotation);
@@ -506,7 +544,12 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
                     refreshDynamicLimits(true);
                     updateClearance(true);
                 },
-                value -> Component.translatable("gui.mirage_projector.lift", value).getString());
+                value -> Component.translatable(
+                        menu.chassisProfile() == ProjectionChassisProfile.TABLE
+                                ? "gui.mirage_projector.table.offset_y"
+                                : "gui.mirage_projector.lift",
+                        value
+                ).getString());
         if (floatAmplitudeSlider != null) floatAmplitudeSlider.reconfigure(
                 0, floatLimit, floatAmplitudePixels,
                 value -> {
@@ -625,8 +668,8 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
                 floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees,
                 fullbright, 100 - transparencyPercent, tintRgb, debugChassisOverride
         ).withPlacement(distanceOffsetPixels, tiltDegrees);
-        if (menu.chassisProfile().supportsWallXyOffset()) {
-            built = built.withWallOffsets(horizontalOffsetPixels, verticalOffsetPixels);
+        if (menu.chassisProfile().supportsWallXyOffset() || menu.chassisProfile().supportsTableXzOffset()) {
+            built = built.withSurfaceOffsets(horizontalOffsetPixels, verticalOffsetPixels);
         }
         return built;
     }
@@ -663,6 +706,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         refreshPlacementControls();
         refreshDynamicLimits(false);
         refreshWallOffsetSliders();
+        refreshTableOffsetSliders();
         refreshSettingsTabVisibility();
     }
 
@@ -687,6 +731,29 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
                         previewWallSettings();
                     },
                     value -> Component.translatable("gui.mirage_projector.wall.offset_y", value).getString()
+            );
+        }
+    }
+
+    private void refreshTableOffsetSliders() {
+        if (tableXOffsetSlider != null) {
+            tableXOffsetSlider.reconfigure(
+                    -ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, horizontalOffsetPixels,
+                    value -> {
+                        horizontalOffsetPixels = value;
+                        updateClearance(true);
+                    },
+                    value -> Component.translatable("gui.mirage_projector.table.offset_x", value).getString()
+            );
+        }
+        if (tableZOffsetSlider != null) {
+            tableZOffsetSlider.reconfigure(
+                    -ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, verticalOffsetPixels,
+                    value -> {
+                        verticalOffsetPixels = value;
+                        updateClearance(true);
+                    },
+                    value -> Component.translatable("gui.mirage_projector.table.offset_z", value).getString()
             );
         }
     }

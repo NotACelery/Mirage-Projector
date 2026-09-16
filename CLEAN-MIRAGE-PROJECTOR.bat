@@ -9,7 +9,7 @@ set /a REMOVED=0
 set /a SKIPPED=0
 set /a FAILED=0
 
->"%LOG%" echo Mirage Projector cumulative pre-build cleanup - 1.0.28
+>"%LOG%" echo Mirage Projector cumulative pre-build cleanup - 1.0.32
 >>"%LOG%" echo Started: %DATE% %TIME%
 
 if not exist "gradle.properties" goto :wrong_folder
@@ -18,43 +18,57 @@ if errorlevel 1 goto :wrong_folder
 
 if "%FROM_BUILD%"=="0" (
     echo ============================================================
-    echo      MIRAGE PROJECTOR - LIMPIEZA ACUMULATIVA 1.0.28
+    echo      MIRAGE PROJECTOR - LIMPIEZA ACUMULATIVA 1.0.32
     echo ============================================================
     echo Proyecto: %CD%
     echo.
 )
 
 rem Runtime/source leftovers that can survive when a newer snapshot is copied
-rem over an older Windows project directory.
-call :delete_file "src\main\java\celerbi\mirageprojector\block\DuplicatingLecternBlock.java"
-call :delete_file "src\main\java\celerbi\mirageprojector\block\ImprovedCoreBlock.java"
-call :delete_file "src\main\java\celerbi\mirageprojector\blockentity\ImprovedCoreBlockEntity.java"
-call :delete_file "src\main\java\celerbi\mirageprojector\client\ImprovedCoreRenderer.java"
-call :delete_file "src\main\java\celerbi\mirageprojector\mixin\client\CryingObsidianGrowthMixin.java"
-call :delete_file "src\main\java\celerbi\mirageprojector\mixin\client\CryingObsidianRandomTickStateMixin.java"
-call :delete_file "src\main\java\celerbi\mirageprojector\mixin\client\RenderLayerMixin.java"
-call :delete_file "src\main\java\celerbi\mirageprojector\network\MirageLightSourceSyncPayload.java"
-call :delete_file "src\main\java\celerbi\mirageprojector\network\MirageLightSectionSyncPayload.java"
-call :delete_file "tools\verify_dev76a_legacy_payload_tombstone.py"
-
-call :delete_file "src\main\resources\assets\mirage_projector\models\item\improved_amethyst_core.json"
-call :delete_file "src\main\resources\assets\mirage_projector\models\item\improved_core_item_base.json"
-call :delete_file "src\main\resources\assets\mirage_projector\models\item\improved_diamond_core.json"
-call :delete_file "src\main\resources\assets\mirage_projector\models\item\improved_glass_core.json"
-call :delete_file "src\main\resources\assets\mirage_projector\models\item\improved_netherite_core.json"
-call :delete_file "src\main\resources\assets\mirage_projector\models\item\improved_quartz_core.json"
-
-call :delete_file "src\main\resources\data\mirage_projector\loot_table\blocks\improved_amethyst_core.json"
-call :delete_file "src\main\resources\data\mirage_projector\loot_table\blocks\improved_diamond_core.json"
-call :delete_file "src\main\resources\data\mirage_projector\loot_table\blocks\improved_glass_core.json"
-call :delete_file "src\main\resources\data\mirage_projector\loot_table\blocks\improved_netherite_core.json"
-call :delete_file "src\main\resources\data\mirage_projector\loot_table\blocks\improved_quartz_core.json"
-
-call :delete_file "src\main\resources\data\mirage_projector\recipe\improved_amethyst_core.json"
-call :delete_file "src\main\resources\data\mirage_projector\recipe\improved_diamond_core.json"
-call :delete_file "src\main\resources\data\mirage_projector\recipe\improved_glass_core.json"
-call :delete_file "src\main\resources\data\mirage_projector\recipe\improved_netherite_core.json"
-call :delete_file "src\main\resources\data\mirage_projector\recipe\improved_quartz_core.json"
+rem over an older Windows project directory. Keep this list cumulative.
+for %%F in (
+    "src\main\java\celerbi\mirageprojector\block\DuplicatingLecternBlock.java"
+    "src\main\java\celerbi\mirageprojector\block\ImprovedCoreBlock.java"
+    "src\main\java\celerbi\mirageprojector\blockentity\ImprovedCoreBlockEntity.java"
+    "src\main\java\celerbi\mirageprojector\client\ImprovedCoreRenderer.java"
+    "src\main\java\celerbi\mirageprojector\mixin\client\CryingObsidianGrowthMixin.java"
+    "src\main\java\celerbi\mirageprojector\mixin\client\CryingObsidianRandomTickStateMixin.java"
+    "src\main\java\celerbi\mirageprojector\mixin\client\RenderLayerMixin.java"
+    "src\main\java\celerbi\mirageprojector\network\MirageLightSourceSyncPayload.java"
+    "src\main\java\celerbi\mirageprojector\network\MirageLightSectionSyncPayload.java"
+    "tools\verify_dev76a_legacy_payload_tombstone.py"
+    "src\main\resources\assets\mirage_projector\models\item\improved_amethyst_core.json"
+    "src\main\resources\assets\mirage_projector\models\item\improved_core_item_base.json"
+    "src\main\resources\assets\mirage_projector\models\item\improved_diamond_core.json"
+    "src\main\resources\assets\mirage_projector\models\item\improved_glass_core.json"
+    "src\main\resources\assets\mirage_projector\models\item\improved_netherite_core.json"
+    "src\main\resources\assets\mirage_projector\models\item\improved_quartz_core.json"
+    "src\main\resources\data\mirage_projector\loot_table\blocks\improved_amethyst_core.json"
+    "src\main\resources\data\mirage_projector\loot_table\blocks\improved_diamond_core.json"
+    "src\main\resources\data\mirage_projector\loot_table\blocks\improved_glass_core.json"
+    "src\main\resources\data\mirage_projector\loot_table\blocks\improved_netherite_core.json"
+    "src\main\resources\data\mirage_projector\loot_table\blocks\improved_quartz_core.json"
+    "src\main\resources\data\mirage_projector\recipe\improved_amethyst_core.json"
+    "src\main\resources\data\mirage_projector\recipe\improved_diamond_core.json"
+    "src\main\resources\data\mirage_projector\recipe\improved_glass_core.json"
+    "src\main\resources\data\mirage_projector\recipe\improved_netherite_core.json"
+    "src\main\resources\data\mirage_projector\recipe\improved_quartz_core.json"
+    "src\main\java\celerbi\mirageprojector\client\ClientHeldLanterns.java"
+    "src\main\java\celerbi\mirageprojector\item\MirageLanternItem.java"
+) do (
+    if exist "%%~F" (
+        >>"%LOG%" echo DELETE %%~F
+        del /f /q "%%~F" >nul 2>nul
+        if exist "%%~F" (
+            >>"%LOG%" echo ERROR DELETE %%~F
+            set /a FAILED+=1
+        ) else (
+            set /a REMOVED+=1
+        )
+    ) else (
+        set /a SKIPPED+=1
+    )
+)
 
 rem Build output is always regenerated and can retain deleted classes/resources.
 if exist "build" (
@@ -93,21 +107,6 @@ if "%FROM_BUILD%"=="0" (
     echo.
 )
 endlocal & exit /b 0
-
-:delete_file
-if exist "%~1" (
-    >>"%LOG%" echo DELETE %~1
-    del /f /q "%~1" >nul 2>nul
-    if exist "%~1" (
-        >>"%LOG%" echo ERROR DELETE %~1
-        set /a FAILED+=1
-    ) else (
-        set /a REMOVED+=1
-    )
-) else (
-    set /a SKIPPED+=1
-)
-goto :eof
 
 :wrong_folder
 echo ERROR: CLEAN-MIRAGE-PROJECTOR.bat no esta en la raiz correcta de Mirage Projector.

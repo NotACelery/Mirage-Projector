@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "IDI",
+    "CSC",
+    " H "
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "D": { "item": "mirage_projector:mirage_display" },
+    "C": { "item": "minecraft:copper_ingot" },
+    "S": { "item": "mirage_projector:crying_obsidian_shard" },
+    "H": { "item": "minecraft:smooth_stone_slab" }
+  },
+  "result": {
+    "id": "mirage_projector:mirage_wall_projector",
+    "count": 1
+  }
+}

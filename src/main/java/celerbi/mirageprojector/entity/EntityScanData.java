@@ -111,7 +111,9 @@ public final class EntityScanData {
                 : Player.DEFAULT_MAIN_HAND.name().toLowerCase(Locale.ROOT);
         String playerSkinModel = playerProfile.getString("SkinModel");
         CompoundTag entityData = root.contains("EntityData") ? root.getCompound("EntityData").copy() : new CompoundTag();
-        CompoundTag equipment = root.contains("Equipment") ? root.getCompound("Equipment").copy() : new CompoundTag();
+        CompoundTag equipment = playerSource
+                ? new CompoundTag()
+                : (root.contains("Equipment") ? root.getCompound("Equipment").copy() : new CompoundTag());
 
         if (nameplateText.isBlank() && playerSource) {
             nameplateText = displayName;
@@ -168,8 +170,13 @@ public final class EntityScanData {
 
         CompoundTag equipment = new CompoundTag();
         if (kind == Kind.HUMANOID) {
-            for (EquipmentSlot slot : HUMANOID_SLOTS) {
-                saveEquipmentSlot(equipment, slot, target.getItemBySlot(slot), registries);
+            // Player scans intentionally preserve only the frozen player identity/skin state.
+            // Armor and held items belong to the equipment workspace for non-player humanoids and
+            // must never become part of a Player scan (including after loading legacy cards).
+            if (!(target instanceof Player)) {
+                for (EquipmentSlot slot : HUMANOID_SLOTS) {
+                    saveEquipmentSlot(equipment, slot, target.getItemBySlot(slot), registries);
+                }
             }
             stripHumanoidEquipment(entityData);
         } else if (kind == Kind.HORSE) {

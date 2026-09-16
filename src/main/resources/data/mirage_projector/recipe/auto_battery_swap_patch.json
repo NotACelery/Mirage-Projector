@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "SRS",
+    "LVC",
+    " N "
+  ],
+  "key": {
+    "S": { "item": "minecraft:string" },
+    "R": { "item": "minecraft:redstone" },
+    "L": { "item": "minecraft:leather" },
+    "V": { "item": "minecraft:lever" },
+    "C": { "item": "minecraft:copper_ingot" },
+    "N": { "item": "minecraft:iron_nugget" }
+  },
+  "result": {
+    "id": "mirage_projector:auto_battery_swap_patch",
+    "count": 1
+  }
+}

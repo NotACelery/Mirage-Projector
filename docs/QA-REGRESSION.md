@@ -183,9 +183,9 @@ No current gameplay path may create `mirage_projector:crying_light_node`; that b
 - Jade should show current mode and battery state, or the explicit empty state.
 - Verify multiple nearby light projectors keep separate stable source IDs and stale/off/depleted contributions are removed.
 
-## Mirage Lantern / player-following DYNAMIC_VISUAL consumer (current 1.0.21 contract)
+## Mirage Flashlight / player-following DYNAMIC_VISUAL consumer (legacy 1.0.21 contract, current Flashlight identity)
 
-- A fresh Mirage Lantern starts in Off.
+- A fresh Mirage Flashlight starts in Off.
 - Normal right-click cycles exactly Off -> Focus -> Flood -> Ambient -> Off. It must never insert/extract the cell directly.
 - Sneak + right-click opens the Lantern GUI. Battery insertion/extraction is possible only through the GUI; the old opposite-hand service gesture must do nothing.
 - Focus must follow the player's current look direction while rotating/moving; Flood follows the same transform with the wider profile; Ambient follows the player omnidirectionally.
@@ -230,7 +230,16 @@ No current gameplay path may create `mirage_projector:crying_light_node`; that b
 
 - custom projector upgrades appear under Crafting;
 - Crying Obsidian shaped recipes appear normally;
-- projector/Crying Obsidian ingredient information is present.
+- projector/Crying Obsidian ingredient information is present;
+- the twelve 1.0.32 Survival recipes appear once each under Crafting: Light Battery, Mirage Flashlight, Mirage Light Projector, Mirage Wall Projector, Shoulder Strap, Auto Battery Swap Patch, Shoulder Strap Slot Expansion, Charging Station, Mirage Hand Projector, Mirage Scan Codex, Mirage Table Projector and Mirage Wall Display;
+- the Light Battery grid is `GCG / IGI / GRG`, and each `G` slot accepts/cycles both vanilla Glowstone Dust and rechargeable Mirage Glow Dust.
+
+### EMI 1.0.32 Survival progression
+
+- the same twelve 1.0.32 Survival recipes appear once each under Crafting;
+- none is duplicated by a Mirage synthetic EMI wrapper;
+- the Light Battery grid is `GCG / IGI / GRG`, with `mirage_projector:glow_dust_media` exposing both supported Glow Dust media;
+- looking up either a recipe output or one of its ingredients opens the expected Crafting row.
 
 ## Persistence / migration
 
@@ -266,7 +275,7 @@ python tools/verify_current_line.py
 
 - Move a Focus/Flood/Ambient Lantern across chunk-section boundaries in darkness. Previously lit terrain must darken again without breaking blocks, and newly reached terrain/walls must illuminate without walking close enough to trigger an unrelated rebuild.
 - Repeat with Sodium enabled and watch broad/tall walls plus floor/ceiling boundaries; no stale rectangular mesh patches should persist.
-- Equip Mirage Lantern in Shoulder Device and inspect third person from multiple angles. The physical item must sit near the right shoulder rather than below the feet; its light origin should follow the shoulder while Focus/Flood direction follows the player look vector.
+- Equip Mirage Flashlight in Shoulder Device and inspect third person from multiple angles. The physical item must sit near the right shoulder rather than below the feet; its light origin should follow the shoulder while Focus/Flood direction follows the player look vector.
 - Copy a valid fixed-projector profile into Mirage Hand Projector, insert a charged cell and enable projection from both RMB and GUI. Non-War-Banner Image/Item/Entity/Banner content must render even though the portable projector has no physical fixed-projector Core.
 - Disable/re-enable and move the active Hand Projector between hand, inventory and Shoulder Device; persistent-state rendering/drain must remain intact.
 
@@ -325,3 +334,14 @@ python tools/verify_current_line.py
 13. Confirm the invalidity test ignores irregular terrain outside the actual aspect-correct image rectangle, including tall and 16:9 images.
 14. Pack/move/re-place a Data-show with automatic state and a docked remote. Deck and automation state must survive; extracting the remote must refresh its location binding.
 15. Multiplayer: a bound remote action is server-authoritative and changes the same active slide for all tracking clients.
+
+
+### Table dedicated runtime / rotation visibility
+
+- Open a Mirage Table Projector and compare its main screen against a normal fixed projector: widget positions, tabs, source buttons, Placement/Rotation/Floating controls, Apply and Cancel must remain 1:1.
+- Keep the camera completely still above the Table, set Tilt to 0, and sweep Rotation Offset through the entire 0–360° range in both directions. The image must remain rendered for the full revolution; Rotation may change only in-plane reading direction.
+- Enable automatic Rotation and observe at least two complete revolutions without moving the camera. No ~80–90° disappearance window is allowed.
+- Repeat with positive and negative Tilt. Front/back changes must follow the physically tilted plane, not an independent yaw threshold.
+- Repeat with X/Z offsets and high Lift; the projection must not disappear because the physical chassis leaves the frustum.
+- Verify Image/Banner remain horizontal and Item/Entity remain upright above the same Table anchor.
+- Reopen the Table UI immediately after placement/chunk load. It must route to the Table-specific screen from server-provided chassis identity, without relying on a client BlockEntity synchronization race.

@@ -1,6 +1,8 @@
 # Mirage Projector 1.0.31 — Table / Canonical Workspace Runtime Rebuild
 
-1.0.31 is a runtime architecture correction over 1.0.30. It advances the custom payload protocol to **41** because fixed-projector menu opening data and workspace routing changed. `ProjectionSettings` remains format **4**.
+1.0.31 is a runtime architecture correction over 1.0.30. It advances the custom payload protocol to **42** because fixed-projector menu opening data and workspace routing changed. `ProjectionSettings` remains format **4**.
+
+The completion pass also finalizes the recovered Player/Table/portable changes: Player scans are skin/profile-only with Base Skin / All Layers; Table gains X/Y/Z offsets, Tilt, Rotation-OFF defaults and center-pivot image transforms; Hand Projector stores a physical Projection Core separately from its battery, requires Core + energy + source, caps Compact scale at 10 px, removes Copy Target Projector and supports direct image import through dedicated Scale/Image payloads.
 
 ## Why the Table Projector looked inert
 
@@ -27,7 +29,7 @@ The Codex continues to suppress vanilla `renderBackground(...)`, preserving the 
 ## Compatibility / validation
 
 - Minecraft 1.21.1 / NeoForge 21.1.244+ / Java 21.
-- Network protocol **41**.
+- Network protocol **42**.
 - `ProjectionSettings` format **4**.
 - No registry IDs are renamed.
 - Table retains the canonical fixed-projector BlockEntity/menu/screen architecture.

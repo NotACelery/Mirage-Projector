@@ -234,6 +234,17 @@ public record ProjectionSettings(
                 opacityPercent, tintRgb, scanlines, debugChassisOverride, xPixels, yPixels, distanceOffsetPixels);
     }
 
+    /** Shared persisted two-axis surface offsets: Wall uses X/Y, Table uses X/Z. */
+    public ProjectionSettings withSurfaceOffsets(int firstAxisPixels, int secondAxisPixels) {
+        return withWallOffsets(firstAxisPixels, secondAxisPixels);
+    }
+
+    public ProjectionSettings withRotationEnabled(boolean enabled) {
+        return withPresentation(scalePixels, liftPixels, enabled, rotationPeriodTicks, clockwise, rotationOffsetDegrees,
+                floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees, fullbright,
+                opacityPercent, tintRgb, debugChassisOverride);
+    }
+
     public float tiltDegrees() {
         return ProjectionTransform.tiltDegrees(orientationX, orientationY, orientationZ, orientationW);
     }

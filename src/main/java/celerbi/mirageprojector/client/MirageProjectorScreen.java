@@ -6,6 +6,9 @@ import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.PrismProjectionSpacing;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.ProjectionSourceRegistry;
+import celerbi.mirageprojector.WallProjectionSurface;
+import celerbi.mirageprojector.ImageSourceBank;
+import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.menu.MirageProjectorMenu;
 import celerbi.mirageprojector.network.OpenBannerWorkspacePayload;
 import celerbi.mirageprojector.network.OpenEntityWorkspacePayload;
@@ -13,6 +16,7 @@ import celerbi.mirageprojector.network.OpenImageWorkspacePayload;
 import celerbi.mirageprojector.network.OpenItemWorkspacePayload;
 import celerbi.mirageprojector.network.UpdateProjectorPayload;
 import celerbi.mirageprojector.network.SetProjectionEnabledPayload;
+import celerbi.mirageprojector.network.UnpairPresentationRemotePayload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -24,14 +28,19 @@ import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
+import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class MirageProjectorScreen extends ResponsiveContainerScreen<MirageProjectorMenu> {
-    private final ProjectionSettings base;
+    private ProjectionSettings base;
+    private ProjectionSettings.SourceMode selectedSourceMode;
+    private boolean projectionEnabled;
     private int scalePixels;
     private int liftPixels;
     private int distanceOffsetPixels;
+    private int horizontalOffsetPixels;
+    private int verticalOffsetPixels;
     private int tiltDegrees;
     private boolean rotationEnabled;
     private int rotationPeriodTicks;
@@ -52,6 +61,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     private Button entityModeButton;
     private Button bannerModeButton;
     private Button turnOffButton;
+    private Button unpairRemoteButton;
     private Button rotationButton;
     private Button directionButton;
     private Button orientationButton;
@@ -68,6 +78,8 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     private IntSlider scaleSlider;
     private IntSlider liftSlider;
     private IntSlider distanceOffsetSlider;
+    private IntSlider horizontalOffsetSlider;
+    private IntSlider verticalOffsetSlider;
     private IntSlider tiltSlider;
     private IntSlider floatAmplitudeSlider;
     private IntSlider floatTimingSlider;
@@ -79,6 +91,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     private int floatLimit;
     private ProjectionCoreProfile observedCore = ProjectionCoreProfile.NONE;
     private ProjectionClearance.Result clearance = ProjectionClearance.Result.UNKNOWN;
+    private WallProjectionSurface.Result wallSurface = WallProjectionSurface.Result.invalid(WallProjectionSurface.Failure.NO_WALL);
     private long lastClearanceTick = Long.MIN_VALUE;
 
     public MirageProjectorScreen(MirageProjectorMenu menu, Inventory inventory, Component title) {
@@ -88,9 +101,13 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         inventoryLabelX = MirageProjectorMenu.PLAYER_INV_X;
         inventoryLabelY = MirageProjectorMenu.PLAYER_INV_Y - 12;
         base = menu.initialSettings();
+        selectedSourceMode = base.sourceMode();
+        projectionEnabled = menu.initialProjectionEnabled();
         scalePixels = base.scalePixels();
         liftPixels = base.liftPixels();
         distanceOffsetPixels = base.distanceOffsetPixels();
+        horizontalOffsetPixels = base.horizontalOffsetPixels();
+        verticalOffsetPixels = base.verticalOffsetPixels();
         tiltDegrees = Math.round(base.tiltDegrees());
         rotationEnabled = base.rotationEnabled();
         rotationPeriodTicks = base.rotationPeriodTicks();
@@ -122,25 +139,32 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         imageModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.image_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 12, y + 30, sourceButtonWidth, 20).build());
+        }).bounds(x + 12, y + 40, sourceButtonWidth, 20).build());
         itemModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.item_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenItemWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 12 + sourceButtonWidth + sourceGap, y + 30, sourceButtonWidth, 20).build());
+        }).bounds(x + 12 + sourceButtonWidth + sourceGap, y + 40, sourceButtonWidth, 20).build());
         entityModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.entity_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenEntityWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 2, y + 30, sourceButtonWidth, 20).build());
+        }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 2, y + 40, sourceButtonWidth, 20).build());
         bannerModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.banner_short"), button -> {
             saveSettings();
             PacketDistributor.sendToServer(new OpenBannerWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 3, y + 30, sourceButtonWidth, 20).build());
+        }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 3, y + 40, sourceButtonWidth, 20).build());
 
-        turnOffButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.turn_off"), button ->
-                PacketDistributor.sendToServer(new SetProjectionEnabledPayload(menu.projectorPos(), false))
-        ).bounds(x + imageWidth - 112, y + 4, 100, 18).build());
+        turnOffButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.turn_off"), button -> {
+            projectionEnabled = false;
+            PacketDistributor.sendToServer(new SetProjectionEnabledPayload(menu.projectorPos(), false));
+            refreshProjectionStateButtons();
+        }).bounds(x + imageWidth - 104, y + 6, 92, 18).build());
 
-        int tabY = y + 68;
+        unpairRemoteButton = addRenderableWidget(Button.builder(
+                Component.translatable("gui.mirage_projector.wall.unpair_remote"),
+                button -> PacketDistributor.sendToServer(new UnpairPresentationRemotePayload(menu.projectorPos()))
+        ).bounds(x + imageWidth - 204, y + 6, 94, 18).build());
+
+        int tabY = y + 76;
         int tabGap = 5;
         int tabWidth = 94;
         geometryTabButton = addSettingsTab(SettingsTab.GEOMETRY, x + 12, tabY, tabWidth);
@@ -161,6 +185,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
                     refreshPlacementControls();
                     refreshDynamicLimits(true);
                     updateClearance(true);
+                    previewWallSettings();
                 },
                 value -> Component.translatable("gui.mirage_projector.scale", value).getString()
         ));
@@ -207,13 +232,37 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         ));
         distanceOffsetSlider.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.offset_distance")));
 
+        horizontalOffsetSlider = addRenderableWidget(new IntSlider(
+                x + 12, row1, wide, 20,
+                -ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, horizontalOffsetPixels,
+                value -> {
+                    horizontalOffsetPixels = value;
+                    updateClearance(true);
+                    previewWallSettings();
+                },
+                value -> Component.translatable("gui.mirage_projector.wall.offset_x", value).getString()
+        ));
+        verticalOffsetSlider = addRenderableWidget(new IntSlider(
+                x + 12, row2, wide, 20,
+                -ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, verticalOffsetPixels,
+                value -> {
+                    verticalOffsetPixels = value;
+                    updateClearance(true);
+                    previewWallSettings();
+                },
+                value -> Component.translatable("gui.mirage_projector.wall.offset_y", value).getString()
+        ));
+
         resetPlacementButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.reset_position"), button -> {
             liftPixels = 0;
             distanceOffsetPixels = 0;
+            horizontalOffsetPixels = 0;
+            verticalOffsetPixels = 0;
             enforcePrismSpacing();
             refreshPlacementControls();
             refreshDynamicLimits(true);
             updateClearance(true);
+            previewWallSettings();
         }).bounds(x + 12, row3, half, 20).build());
         resetTiltButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.reset_tilt"), button -> {
             tiltDegrees = 0;
@@ -298,10 +347,16 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
 
         addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> {
             saveSettings();
-            onClose();
+            base = buildSettings();
+            updateClearance(true);
         }).bounds(x + 12, y + 382, half, 22).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button -> onClose())
-                .bounds(x + 20 + half, y + 382, half, 22).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button -> {
+            restoreFromBase();
+            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), base));
+            updateClearance(true);
+            // Cancel means discard the preview and leave the projector UI.
+            onClose();
+        }).bounds(x + 20 + half, y + 382, half, 22).build());
 
         refreshLabels();
         refreshFloatTimingSlider();
@@ -321,18 +376,37 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     }
 
     private void refreshSettingsTabVisibility() {
+        ProjectionChassisProfile chassis = menu.chassisProfile();
+        boolean placementAvailable = chassis.supportsLift() || chassis.supportsTilt() || chassis.supportsPrismDistance() || chassis.supportsWallXyOffset();
+        boolean rotationAvailable = chassis.supportsRotation();
+        boolean floatingAvailable = chassis.supportsFloating();
+
+        if ((selectedSettingsTab == SettingsTab.PLACEMENT && !placementAvailable)
+                || (selectedSettingsTab == SettingsTab.ROTATION && !rotationAvailable)
+                || (selectedSettingsTab == SettingsTab.FLOATING && !floatingAvailable)) {
+            selectedSettingsTab = SettingsTab.GEOMETRY;
+        }
+
         boolean geometry = selectedSettingsTab == SettingsTab.GEOMETRY;
-        boolean placement = selectedSettingsTab == SettingsTab.PLACEMENT;
-        boolean rotation = selectedSettingsTab == SettingsTab.ROTATION;
-        boolean floating = selectedSettingsTab == SettingsTab.FLOATING;
+        boolean placement = selectedSettingsTab == SettingsTab.PLACEMENT && placementAvailable;
+        boolean rotation = selectedSettingsTab == SettingsTab.ROTATION && rotationAvailable;
+        boolean floating = selectedSettingsTab == SettingsTab.FLOATING && floatingAvailable;
+
+        setWidgetState(geometryTabButton, true, true);
+        setWidgetState(placementTabButton, placementAvailable, placementAvailable);
+        setWidgetState(rotationTabButton, rotationAvailable, rotationAvailable);
+        setWidgetState(floatingTabButton, floatingAvailable, floatingAvailable);
 
         setWidgetState(scaleSlider, geometry, geometry);
-        setWidgetState(liftSlider, placement, placement);
-        setWidgetState(tiltSlider, placement, placement);
-        boolean prismDistance = placement && prismSpacingAvailable();
+        boolean wallOffsets = placement && chassis.supportsWallXyOffset();
+        setWidgetState(liftSlider, placement && chassis.supportsLift() && !wallOffsets, placement && chassis.supportsLift() && !wallOffsets);
+        setWidgetState(tiltSlider, placement && chassis.supportsTilt() && !wallOffsets, placement && chassis.supportsTilt() && !wallOffsets);
+        boolean prismDistance = placement && chassis.supportsPrismDistance() && prismSpacingAvailable() && !wallOffsets;
         setWidgetState(distanceOffsetSlider, prismDistance, prismDistance);
-        setWidgetState(resetPlacementButton, placement, placement);
-        setWidgetState(resetTiltButton, placement, placement);
+        setWidgetState(horizontalOffsetSlider, wallOffsets, wallOffsets);
+        setWidgetState(verticalOffsetSlider, wallOffsets, wallOffsets);
+        setWidgetState(resetPlacementButton, placement && (chassis.supportsLift() || chassis.supportsPrismDistance() || chassis.supportsWallXyOffset()), placement);
+        setWidgetState(resetTiltButton, placement && chassis.supportsTilt(), placement && chassis.supportsTilt());
 
         setWidgetState(rotationButton, rotation, rotation);
         setWidgetState(rotationPeriodSlider, rotation, rotation);
@@ -422,6 +496,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
                     refreshPlacementControls();
                     refreshDynamicLimits(true);
                     updateClearance(true);
+                    previewWallSettings();
                 },
                 value -> Component.translatable("gui.mirage_projector.scale", value).getString());
         if (liftSlider != null) liftSlider.reconfigure(
@@ -545,11 +620,75 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     }
 
     private ProjectionSettings buildSettings() {
-        return base.withSourceMode(currentSourceMode()).withPresentation(
+        ProjectionSettings built = base.withSourceMode(currentSourceMode()).withPresentation(
                 scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise, rotationOffsetDegrees,
                 floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees,
                 fullbright, 100 - transparencyPercent, tintRgb, debugChassisOverride
         ).withPlacement(distanceOffsetPixels, tiltDegrees);
+        if (menu.chassisProfile().supportsWallXyOffset()) {
+            built = built.withWallOffsets(horizontalOffsetPixels, verticalOffsetPixels);
+        }
+        return built;
+    }
+
+    private void previewWallSettings() {
+        if (menu.chassisProfile() == ProjectionChassisProfile.WALL) {
+            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), buildSettings()));
+        }
+    }
+
+    private void restoreFromBase() {
+        selectedSourceMode = base.sourceMode();
+        scalePixels = base.scalePixels();
+        liftPixels = base.liftPixels();
+        distanceOffsetPixels = base.distanceOffsetPixels();
+        horizontalOffsetPixels = base.horizontalOffsetPixels();
+        verticalOffsetPixels = base.verticalOffsetPixels();
+        tiltDegrees = Math.round(base.tiltDegrees());
+        rotationEnabled = base.rotationEnabled();
+        rotationPeriodTicks = base.rotationPeriodTicks();
+        clockwise = base.clockwise();
+        rotationOffsetDegrees = base.rotationOffsetDegrees();
+        floatingEnabled = base.floatingEnabled();
+        floatMode = base.floatMode();
+        floatAmplitudePixels = base.floatAmplitudePixels();
+        floatCycleTicks = base.floatCycleTicks();
+        floatIntervalDegrees = base.floatIntervalDegrees();
+        fullbright = base.fullbright();
+        transparencyPercent = base.transparencyPercent();
+        tintRgb = base.tintRgb();
+        debugChassisOverride = base.debugChassisOverride();
+        refreshLabels();
+        refreshFloatTimingSlider();
+        refreshPlacementControls();
+        refreshDynamicLimits(false);
+        refreshWallOffsetSliders();
+        refreshSettingsTabVisibility();
+    }
+
+    private void refreshWallOffsetSliders() {
+        if (horizontalOffsetSlider != null) {
+            horizontalOffsetSlider.reconfigure(
+                    -ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, horizontalOffsetPixels,
+                    value -> {
+                        horizontalOffsetPixels = value;
+                        updateClearance(true);
+                        previewWallSettings();
+                    },
+                    value -> Component.translatable("gui.mirage_projector.wall.offset_x", value).getString()
+            );
+        }
+        if (verticalOffsetSlider != null) {
+            verticalOffsetSlider.reconfigure(
+                    -ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, ProjectionSettings.MAX_PLACEMENT_OFFSET_PIXELS, verticalOffsetPixels,
+                    value -> {
+                        verticalOffsetPixels = value;
+                        updateClearance(true);
+                        previewWallSettings();
+                    },
+                    value -> Component.translatable("gui.mirage_projector.wall.offset_y", value).getString()
+            );
+        }
     }
 
     private void saveSettings() {
@@ -557,11 +696,11 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     }
 
     private boolean currentProjectionEnabled() {
-        return menu.projector() == null || menu.projector().projectionEnabled();
+        return projectionEnabled;
     }
 
     private ProjectionSettings.SourceMode currentSourceMode() {
-        return menu.projector() == null ? base.sourceMode() : menu.projector().settings().sourceMode();
+        return selectedSourceMode;
     }
 
     private void refreshProjectionStateButtons() {
@@ -569,10 +708,28 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
             return;
         }
         boolean enabled = currentProjectionEnabled();
+        setSourceButtonCompatibility(imageModeButton, ProjectionSettings.SourceMode.IMAGE);
+        setSourceButtonCompatibility(itemModeButton, ProjectionSettings.SourceMode.ITEM);
+        setSourceButtonCompatibility(entityModeButton, ProjectionSettings.SourceMode.ENTITY);
+        setSourceButtonCompatibility(bannerModeButton, ProjectionSettings.SourceMode.BANNER);
         turnOffButton.active = enabled;
         turnOffButton.setMessage(Component.translatable(enabled
                 ? "gui.mirage_projector.turn_off"
                 : "gui.mirage_projector.projector_off_button"));
+        if (unpairRemoteButton != null) {
+            boolean wall = menu.chassisProfile() == ProjectionChassisProfile.WALL;
+            boolean paired = wall && menu.projector() != null
+                    && (menu.projector().presentationLinkId() != null || menu.projector().hasDockedPresentationRemote());
+            unpairRemoteButton.visible = wall && paired;
+            unpairRemoteButton.active = paired;
+        }
+    }
+
+    private void setSourceButtonCompatibility(Button button, ProjectionSettings.SourceMode source) {
+        if (button == null) return;
+        boolean supported = ProjectionSourceRegistry.isCompatible(source, menu.chassisProfile());
+        button.visible = supported;
+        button.active = supported;
     }
 
     private void renderActiveModeOutline(GuiGraphics graphics) {
@@ -604,8 +761,8 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         int x = leftPos, y = topPos;
         graphics.fill(x, y, x + imageWidth, y + imageHeight, 0xF014171D);
         graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 2, 0xFF6B4A7E);
-        section(graphics, x + 8, y + 20, imageWidth - 16, 40);
-        section(graphics, x + 8, y + 62, imageWidth - 16, 116);
+        section(graphics, x + 8, y + 26, imageWidth - 16, 42);
+        section(graphics, x + 8, y + 70, imageWidth - 16, 108);
         section(graphics, x + 8, y + 184, imageWidth - 16, 88);
         renderActiveModeOutline(graphics);
         renderSettingsTabOutline(graphics);
@@ -649,19 +806,21 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 10, 8, 0xFFF4F4F4, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.section.sources"), 12, 20, 0xFFBFA5D1, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.section.sources"), 14, 29, 0xFFBFA5D1, false);
         Component projectionStateLabel = currentProjectionEnabled()
                 ? Component.translatable("gui.mirage_projector.current_source", sourceName(currentSourceMode()))
                 : Component.translatable("gui.mirage_projector.projector_off");
-        graphics.drawString(font, projectionStateLabel, 12, 52, 0xFF9FBED1, false);
+        graphics.drawString(font, projectionStateLabel, 14, 62, 0xFF9FBED1, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.core"), 12, 186, 0xFFBFA5D1, false);
 
         ProjectionCoreProfile core = menu.coreProfile();
         ProjectionChassisProfile chassis = menu.chassisProfile();
-        ProjectionPower.Status power = ProjectionPower.evaluate(
-                buildSettings(), core, chassis, menu.hasProjectedSourceContent(), menu.projectedSourceCount());
-        ProjectionPower.Dimensions dimensions = ProjectionPower.dimensions(
-                buildSettings(), menu.hasProjectedSourceContent(), chassis);
+        ProjectionPower.Status power = chassis == ProjectionChassisProfile.WALL && wallSurface.powerStatus() != null
+                ? wallSurface.powerStatus()
+                : ProjectionPower.evaluate(buildSettings(), core, chassis, menu.hasProjectedSourceContent(), menu.projectedSourceCount());
+        ProjectionPower.Dimensions dimensions = chassis == ProjectionChassisProfile.WALL && wallSurface.valid()
+                ? new ProjectionPower.Dimensions(wallSurface.widthPixels(), wallSurface.heightPixels())
+                : ProjectionPower.dimensions(buildSettings(), menu.hasProjectedSourceContent(), chassis);
 
         ProjectionPower.Breakdown breakdown = ProjectionPower.calculateBreakdown(
                 buildSettings(), menu.hasProjectedSourceContent(), chassis, menu.projectedSourceCount());
@@ -706,7 +865,10 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         graphics.drawString(font, "?", imageWidth - 22, 188, 0xFFD7C3E7, false);
 
         Component sizeMetric;
-        if (dimensions.empty()) {
+        if (chassis == ProjectionChassisProfile.WALL && wallSurface.valid()) {
+            sizeMetric = Component.translatable("gui.mirage_projector.wall.surface_size",
+                    wallSurface.widthPixels(), wallSurface.heightPixels(), wallSurface.distancePixels());
+        } else if (dimensions.empty()) {
             sizeMetric = Component.translatable("gui.mirage_projector.limit.scale", scalePixels, scaleLimit);
         } else if (chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM
                 && buildSettings().sourceMode() == ProjectionSettings.SourceMode.IMAGE) {
@@ -720,14 +882,19 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         graphics.drawString(font, fitText(sizeMetric.getString(), 210), 20, 240, 0xFFBFD8FF, false);
         graphics.drawString(font, fitText(Component.translatable("gui.mirage_projector.power.scale_effective",
                 scalePixels, scaleLimit).getString(), 170), 230, 240, 0xFFBFD8FF, false);
-        graphics.drawString(font, fitText(Component.translatable("gui.mirage_projector.power.motion_effective",
+        Component motionMetric = chassis == ProjectionChassisProfile.WALL
+                ? Component.translatable("gui.mirage_projector.wall.offset_status", horizontalOffsetPixels, verticalOffsetPixels)
+                : Component.translatable("gui.mirage_projector.power.motion_effective",
                 liftPixels, liftLimit, chassis.nominalLiftPixels(),
-                floatAmplitudePixels, floatLimit, chassis.nominalFloatPixels()).getString(), 376),
-                20, 251, 0xFFBFD8FF, false);
+                floatAmplitudePixels, floatLimit, chassis.nominalFloatPixels());
+        graphics.drawString(font, fitText(motionMetric.getString(), 376), 20, 251, 0xFFBFD8FF, false);
 
         Component validation;
         int validationColor;
-        if (!power.active()) {
+        if (chassis == ProjectionChassisProfile.WALL && !wallSurface.valid()) {
+            validation = Component.translatable("gui.mirage_projector.wall.failure." + wallSurface.failure().serializedName());
+            validationColor = 0xFFFF8A73;
+        } else if (!power.active()) {
             validation = Component.translatable("gui.mirage_projector.status.power_blocked", powerFailure(power.failure()));
             validationColor = 0xFFFF8A73;
         } else if (clearance.known() && !clearance.clear()) {
@@ -790,6 +957,10 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         lines.add(Component.translatable("tooltip.mirage_projector.power.lift", b.liftCost()));
         lines.add(Component.translatable("tooltip.mirage_projector.power.float", b.floatCost()));
         lines.add(Component.translatable("tooltip.mirage_projector.power.features", b.featureCost()));
+        if (chassis == ProjectionChassisProfile.WALL && wallSurface.distancePixels() > 0) {
+            lines.add(Component.translatable("tooltip.mirage_projector.power.wall_distance",
+                    ProjectionPower.wallDistanceCost(wallSurface.distancePixels()), wallSurface.distancePixels()));
+        }
         if (b.ghostSavings() > 0) {
             lines.add(Component.translatable("tooltip.mirage_projector.power.ghost", b.ghostSavings()));
         }
@@ -844,6 +1015,22 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
             return;
         }
         lastClearanceTick = tick;
+        if (menu.chassisProfile() == ProjectionChassisProfile.WALL) {
+            ProjectionSettings current = buildSettings();
+            ImageSourceBank.Asset image = menu.projector() != null
+                    ? menu.projector().activeWallImage()
+                    : (current.hasImage() ? new ImageSourceBank.Asset(current.imageId(), current.imageWidth(), current.imageHeight()) : ImageSourceBank.Asset.EMPTY);
+            var state = mc.level.getBlockState(menu.projectorPos());
+            Direction facing = state.hasProperty(MirageProjectorBlock.FACING)
+                    ? state.getValue(MirageProjectorBlock.FACING) : Direction.NORTH;
+            wallSurface = WallProjectionSurface.resolve(
+                    mc.level, menu.projectorPos(), facing, current, image, menu.coreProfile()
+            );
+            clearance = ProjectionClearance.Result.EMPTY;
+            ProjectionClearancePreviewRenderer.clear();
+            return;
+        }
+        wallSurface = WallProjectionSurface.Result.invalid(WallProjectionSurface.Failure.NO_WALL);
         clearance = ProjectionClearance.scan(
                 mc.level,
                 menu.projectorPos(),

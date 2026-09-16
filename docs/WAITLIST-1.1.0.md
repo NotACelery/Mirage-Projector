@@ -30,7 +30,7 @@
 - **delivered in 1.0.17 foundation:** Mirage Scan Codex persistent library, search/filters/favorites and exact capture selection; final recipe/art/QA remain;
 - **delivered in 1.0.18 stabilization:** device GUIs, packed Shoulder Strap inventory/migration, dynamic-light angle fix, Charging Station input/UI/render polish, Glow Dust full-charge normalization and non-pausing Codex UX;
 - **delivered in 1.0.19 QA follow-up:** corrected Lantern/Light Projector gestures, device/station hover tooltips, compact Lantern GUI, Creative Mirage Equipment visibility, Charging Station lane/Jade progress, explicit Codex no-blur override and the final packed-light visual bridge for DYNAMIC_VISUAL terrain rendering;
-- Duplicating Lectern / physical scan-copy workflow;
+- **delivered/corrected in 1.0.23:** physical scan-copy workflow through a vanilla Lectern hosting the Codex; no separate Mirage station remains;
 - horizontal/table projector and wall/data-show projector families;
 - final source/chassis capability enumeration and portable/wall/table anchor semantics;
 - Dragon Egg / End Resonance Field+Prism behavior;
@@ -130,37 +130,64 @@ The placed Mirage Light Projector exercises these four modes in 1.0.9 and the ha
 
 ## D. Mirage Scan Codex
 
-Foundation delivered in **1.0.17**:
+Foundation delivered in **1.0.17**, reworked in **1.0.24**:
 
 - `mirage_projector:scan_codex` is a physical, non-stackable Codex item. Shift + right-click scans a living entity/player; right-click in air opens the browser.
 - each scan reuses the canonical `EntityScanData` frozen snapshot and receives its own scan UUID, so multiple independent captures of the same species/type remain distinct.
 - the physical ItemStack stores only a stable Codex UUID and selected scan UUID; full snapshots live in Overworld `SavedData` so large libraries do not bloat ordinary inventory synchronization.
-- browser sync is metadata-only and includes name/type, Player-vs-mob/category, frozen nameplate, equipment count and favorite state.
-- browser supports text search, All/Favorites/Players/Humanoids/Horses/Other filters, paging, favorites and exact capture selection.
-- selected capture identity persists on the Codex and is the handoff point for the Duplicating Lectern.
+- browser sync is metadata-first and includes name/type, Player-vs-mob/category, frozen nameplate, equipment count and favorite state; the selected entry additionally receives its exact root for preview.
+- the browser is scrollable and combines global text search with All/Favorites/Hostile/Passive/Farm/Nether/End/Water/Players/Other category tabs.
+- opening an entry shows the frozen entity appearance/equipment/nameplate; Back preserves category, query and scroll position.
+- storage is capped at 25 distinct captures per entity type, not 25 globally; deleting an entry frees that type's capacity.
+- selected capture identity persists on the Codex and is the handoff point for vanilla-Lectern physical duplication.
+- Entity Scan Cards are passive transport/projector containers; scanning belongs to the Codex.
 - the library is not a binary "species unlocked" Pokédex.
 
 Still required before final 1.1.0:
 
 - final Survival recipe and dedicated Codex art/polish;
-- in-game scale/performance QA with large libraries;
-- Duplicating Lectern integration that consumes Paper while preserving the selected Codex entry.
+- in-game scale/performance QA with large libraries.
 
-## E. Duplicating Lectern / scan-copy station
+## E. Vanilla Lectern / Scan Codex physical-copy workflow
 
-Flow:
+Flow in 1.0.24:
 
 ```text
 Entity -> Scan Codex entry
-Codex entry + Paper -> Duplicating Lectern / copy station
-                     -> physical Entity Scan Copy/Card
-                     -> projector card/source workflow
+Codex -> vanilla Lectern
+Selected Codex entry + blank Entity Scan Card -> filled Entity Scan Card
+Filled Mirage/compatible card -> Import extension -> Codex entry (source card consumed on success)
 ```
 
-- selecting one stored capture chooses exactly which snapshot is printed;
-- Paper is consumed; Codex entry remains;
-- repeated copies do not require finding/scanning the original entity again;
-- keep the current physical Entity Scan Card/copy as the projector-facing interoperability format where practical.
+- selecting one stored capture chooses exactly which frozen snapshot is copied;
+- duplication requires one blank Mirage Entity Scan Card in the detail-page extension; a filled card blocks the action;
+- duplication fills that same card and preserves the Codex entry, so repeated copies still do not require finding/scanning the original entity again;
+- no Paper cost remains in the current workflow;
+- the permanent Import toggle appears in the Lectern library even without compatibility mods and accepts filled Mirage Entity Scan Cards shared by other players;
+- a successfully imported source card is consumed as the price of adding the capture to the library; failed validation/import never consumes it;
+- when Easy Mob Farm is installed, the same extension optionally accepts `easy_mob_farm:mob_capture_card` under the same consume-on-success rule;
+- a filled Mirage Entity Scan Card placed by itself in either crafting grid clears back into a blank card;
+- the existing physical Entity Scan Card remains the projector-facing interoperability format;
+- no separate Mirage copy-station block exists after the 1.0.23 runtime-QA correction;
+- the vanilla Lectern physically owns the mounted Codex ItemStack and retains vanilla occupied/drop behavior;
+- right-clicking a Lectern-mounted Codex opens the position-bound library/copy/import browser instead of vanilla LecternScreen;
+- Take Codex returns the same physical Codex with its library UUID and selected scan identity intact;
+- full frozen snapshot data remains server-authoritative in `ScanCodexSavedData`;
+- favorites remain Codex-library metadata and are not copied onto projector-facing cards.
+
+Possible later interoperability, deliberately **not** implemented in 1.0.24: export a Mirage Codex capture into an Easy Mob Farm blank capture card. If accepted later, cloning cost is paid in **experience levels**, never raw XP points, and should scale with entity/card rarity plus meaningful equipment/enchantments so rare farm cards cannot be duplicated freely.
+
+## F0. Physical anchor + presentation chassis foundation — delivered in 1.0.25 / presentation controls in 1.0.26
+
+- Mirage Table Projector: supported tabletop/floor anchor, horizontal Image/Banner plane, upright Item/Entity volume, packed Shift+empty-hand pickup.
+- Mirage Wall Projector is a low-profile **Data-show**, not a wall-mounted block: it stands on a complete flat support, faces N/E/S/W and projects Image content onto a real regular wall ahead.
+- Wall validates only the real aspect-correct image footprint after Scale + X/Y offsets. Irregular unused space outside that footprint does not matter; irregular/obstructed cells touched by the image cancel the projection.
+- Wall distance has a PU surcharge and Scale may resolve downward until both the wall footprint and Core budget are valid.
+- Wall Image Workspace owns an ordered nine-image presentation playlist with reorder/current/Previous/Next controls.
+- Wall supports Image only; Item/Entity/Banner remain hologram-oriented sources for other chassis.
+- anchor/capability/source metadata is shared by rendering, wall validation, Projection Power and settings UI.
+- **delivered in 1.0.26:** Table/Wall automatic slideshow timing, persistent manual current slide and Data-show Presentation Remote pairing/control; invalid wall slides remain traversable and show a prohibition marker.
+- still pending: final Survival recipes, Table/final Wall art polish, optional slideshow transition effects, optional Create Blueprint bridge and any later ceiling-specific family decision.
 
 ## F. Portable projector family
 

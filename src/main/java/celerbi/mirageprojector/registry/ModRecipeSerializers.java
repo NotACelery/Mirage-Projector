@@ -3,6 +3,8 @@ package celerbi.mirageprojector.registry;
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.recipe.ProjectorUpgradeRecipe;
 import celerbi.mirageprojector.recipe.ProjectorUpgradeRecipeSerializer;
+import celerbi.mirageprojector.recipe.ScanCardClearingRecipe;
+import celerbi.mirageprojector.recipe.ScanCardClearingRecipeSerializer;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.neoforged.bus.api.IEventBus;
@@ -15,6 +17,9 @@ public final class ModRecipeSerializers {
 
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<ProjectorUpgradeRecipe>> PROJECTOR_UPGRADE =
             RECIPE_SERIALIZERS.register("projector_upgrade", ProjectorUpgradeRecipeSerializer::new);
+
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<ScanCardClearingRecipe>> SCAN_CARD_CLEARING =
+            RECIPE_SERIALIZERS.register("scan_card_clearing", ScanCardClearingRecipeSerializer::new);
 
     private ModRecipeSerializers() {
     }

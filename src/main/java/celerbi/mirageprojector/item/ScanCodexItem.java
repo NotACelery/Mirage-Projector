@@ -2,6 +2,7 @@ package celerbi.mirageprojector.item;
 
 import celerbi.mirageprojector.entity.EntityScanData;
 import celerbi.mirageprojector.network.OpenScanCodexPayload;
+import celerbi.mirageprojector.menu.ScanCodexMenu;
 import celerbi.mirageprojector.registry.ModItems;
 import celerbi.mirageprojector.scan.ScanCodexSavedData;
 import java.util.List;
@@ -32,6 +33,11 @@ public final class ScanCodexItem extends Item {
 
     public ScanCodexItem(Properties properties) {
         super(properties.stacksTo(1));
+    }
+
+
+    public static boolean isCodex(ItemStack stack) {
+        return stack != null && !stack.isEmpty() && stack.is(ModItems.SCAN_CODEX.get());
     }
 
     public static UUID codexId(ItemStack codex) {
@@ -72,7 +78,8 @@ public final class ScanCodexItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
             ensureCodexId(stack);
-            sendSnapshot(serverPlayer, stack, true);
+            ScanCodexMenu.openHandheld(serverPlayer, stack);
+            sendSnapshot(serverPlayer, stack, false);
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }
@@ -117,7 +124,16 @@ public final class ScanCodexItem extends Item {
         }
 
         UUID codexId = ensureCodexId(stack);
-        UUID scanId = ScanCodexSavedData.get(serverPlayer.getServer()).addScan(codexId, scan);
+        ScanCodexSavedData savedData = ScanCodexSavedData.get(serverPlayer.getServer());
+        if (!savedData.canAddType(codexId, scan.entityType())) {
+            player.displayClientMessage(Component.translatable(
+                    "message.mirage_projector.scan_codex.type_limit",
+                    ScanCodexSavedData.MAX_SCANS_PER_ENTITY_TYPE,
+                    target.getType().getDescription()
+            ), true);
+            return InteractionResult.FAIL;
+        }
+        UUID scanId = savedData.addScan(codexId, scan);
         if (isZero(scanId)) {
             player.displayClientMessage(Component.translatable("message.mirage_projector.scan_codex.failed"), true);
             return InteractionResult.FAIL;
@@ -143,6 +159,8 @@ public final class ScanCodexItem extends Item {
                 .withStyle(ChatFormatting.AQUA));
         tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_codex.independent")
                 .withStyle(ChatFormatting.DARK_GRAY));
+        tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_codex.lectern")
+                .withStyle(ChatFormatting.DARK_PURPLE));
         UUID id = codexId(stack);
         if (!isZero(id)) {
             tooltipComponents.add(Component.literal("Codex " + shortId(id)).withStyle(ChatFormatting.DARK_GRAY));
@@ -172,11 +190,15 @@ public final class ScanCodexItem extends Item {
         if (isZero(selected)) {
             setSelectedScanId(codex, null);
         }
+        CompoundTag selectedRoot = isZero(selected)
+                ? new CompoundTag()
+                : data.copyScanRoot(id, selected).orElseGet(CompoundTag::new);
         PacketDistributor.sendToPlayer(player, new OpenScanCodexPayload(
                 id,
                 selected,
                 openScreen,
-                data.summaries(id)
+                data.summaries(id),
+                selectedRoot
         ));
     }
 

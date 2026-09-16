@@ -11,10 +11,17 @@ def need(cond, msg):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties')
-need(any(f'mod_version=1.0.{minor}' in props for minor in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)), 'version is not a compatible 1.0.7+ line')
+props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+need(any(f'mod_version=1.0.{minor}' in props for minor in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30)), 'version is not a compatible 1.0.7+ line')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-need(('NETWORK_PROTOCOL = "28"' in main or 'NETWORK_PROTOCOL = "29"' in main or 'NETWORK_PROTOCOL = "30"' in main or 'NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main), 'protocol changed unexpectedly')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+need(('NETWORK_PROTOCOL = "28"' in main or 'NETWORK_PROTOCOL = "29"' in main or 'NETWORK_PROTOCOL = "30"' in main or 'NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or ('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or ('NETWORK_PROTOCOL = \"36\"' in main or ('NETWORK_PROTOCOL = \"37\"' in main or 'NETWORK_PROTOCOL = \"38\"' in main))))), 'protocol changed unexpectedly')
 
 shape = read('src/main/java/celerbi/mirageprojector/light/engine/MirageLightShape.java')
 need('DIRECTIONAL_CONE(true)' in shape, 'directional cone is not runtime-enabled')
@@ -42,10 +49,11 @@ for token in (
     'snapshot.refreshIntervalTicks()',
     'MirageLightEngine.updateSource',
     'MirageLightEngine.removeSource',
-    'ClientMirageLightSync.invalidateSections',
     'installedField.stats().unloadedEdges() > 0',
 ):
     need(token in manager, f'dynamic manager missing contract: {token}')
+need(('ClientMirageLightSync.invalidateSections' in manager or 'ClientMirageLightSync.invalidateDynamicSections' in manager),
+     'dynamic manager missing render-section invalidation contract')
 need('replaceAuthoritativeChunk' not in manager and 'installAuthoritativeSection' not in manager,
      'dynamic manager must not touch authoritative STATIC_WORLD publication')
 

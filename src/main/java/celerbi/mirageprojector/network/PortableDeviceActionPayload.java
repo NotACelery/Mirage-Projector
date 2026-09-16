@@ -68,7 +68,8 @@ public record PortableDeviceActionPayload(PortableDeviceSource source, Action ac
                             && (!MirageHandProjectorItem.hasProjectionProfile(device)
                             || !MirageHandProjectorItem.hasProjectedContent(device)
                             || !MirageHandProjectorItem.hasEnergyCell(device)
-                            || MirageHandProjectorItem.energyPercent(device) <= 0)) {
+                            || MirageHandProjectorItem.energyPercent(device) <= 0
+                            || !MirageHandProjectorItem.portablePowerAvailable(device, player.registryAccess()))) {
                         return;
                     }
                     MirageHandProjectorItem.setProjectionEnabled(device, !MirageHandProjectorItem.projectionEnabled(device));
@@ -98,13 +99,28 @@ public record PortableDeviceActionPayload(PortableDeviceSource source, Action ac
                 case WAR_BANNER_SIZE_UP -> adjust(device, true, MirageHandProjectorItem.WAR_BANNER_SIZE_STEP_PERCENT);
                 case WAR_BANNER_HEIGHT_DOWN -> adjust(device, false, -MirageHandProjectorItem.WAR_BANNER_HEIGHT_STEP_PIXELS);
                 case WAR_BANNER_HEIGHT_UP -> adjust(device, false, MirageHandProjectorItem.WAR_BANNER_HEIGHT_STEP_PIXELS);
+                case SELECT_IMAGE -> selectSource(device, player, ProjectionSettings.SourceMode.IMAGE);
+                case SELECT_ITEM -> selectSource(device, player, ProjectionSettings.SourceMode.ITEM);
+                case SELECT_ENTITY -> selectSource(device, player, ProjectionSettings.SourceMode.ENTITY);
+                case SELECT_BANNER -> selectSource(device, player, ProjectionSettings.SourceMode.BANNER);
             }
 
             if (device.getItem() instanceof MirageHandProjectorItem) {
                 MirageHandProjectorItem.publishState(player, device);
             }
             payload.source().commit(player, device);
+            if (player.containerMenu instanceof PortableDeviceMenu menu) {
+                menu.refreshSourceSnapshot();
+                menu.broadcastChanges();
+            }
         });
+    }
+
+    private static void selectSource(ItemStack device, ServerPlayer player, ProjectionSettings.SourceMode sourceMode) {
+        if (!(device.getItem() instanceof MirageHandProjectorItem)) {
+            return;
+        }
+        MirageHandProjectorItem.selectSourceMode(device, sourceMode, player.level());
     }
 
     private static void adjust(ItemStack device, boolean size, int delta) {
@@ -124,6 +140,10 @@ public record PortableDeviceActionPayload(PortableDeviceSource source, Action ac
         WAR_BANNER_SIZE_DOWN,
         WAR_BANNER_SIZE_UP,
         WAR_BANNER_HEIGHT_DOWN,
-        WAR_BANNER_HEIGHT_UP
+        WAR_BANNER_HEIGHT_UP,
+        SELECT_IMAGE,
+        SELECT_ITEM,
+        SELECT_ENTITY,
+        SELECT_BANNER
     }
 }

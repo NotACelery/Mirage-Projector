@@ -1,6 +1,6 @@
-# Mirage Light Engine — 1.0.20
+# Mirage Light Engine — 1.0.21
 
-Network protocol: **34**
+Network protocol: **35**
 
 The static Mirage Light implementation remains server-authoritative and is currently used by energized Mature Crying Obsidian Clusters. Since 1.0.5, moving/portable emitters have a separate operational `DYNAMIC_VISUAL` client lifecycle. Mirage Lantern and Mirage Light Projector are current consumers; Shoulder-mounted Lanterns reuse the same client-local source manager.
 
@@ -119,6 +119,6 @@ For the static 1.0.x path:
 
 ## Packed-light visual bridge
 
-The solver/storage/query path and the baked world-vertex light path are separate concerns. Runtime QA in 1.0.18 proved that Simple Light Level could observe correct Mirage virtual values while terrain still appeared visually dark. 1.0.19 therefore introduced a merge of `MirageLightEngine.virtualBlockLight(...)` into both 1.21.1 `LevelRenderer.getLightColor(...)` packed-light overloads, preserving the existing sky channel with `LightTexture.pack(block, sky)`. 1.0.20 keeps that bridge but makes it Sodium-safe: the return hook queries the active `ClientLevel` rather than `BlockAndTintGetter#getLightEngine()`, because Sodium's chunk-meshing `LevelSlice` intentionally rejects that accessor. Section invalidation remains responsible for forcing affected compiled sections to rebuild.
+The solver/storage/query path and the baked world-vertex light path are separate concerns. Runtime QA in 1.0.18 proved that Simple Light Level could observe correct Mirage virtual values while terrain still appeared visually dark. 1.0.19 therefore introduced a merge of `MirageLightEngine.virtualBlockLight(...)` into both 1.21.1 `LevelRenderer.getLightColor(...)` packed-light overloads, preserving the existing sky channel with `LightTexture.pack(block, sky)`. 1.0.20 keeps that bridge but makes it Sodium-safe: the return hook queries the active `ClientLevel` rather than `BlockAndTintGetter#getLightEngine()`, because Sodium's chunk-meshing `LevelSlice` intentionally rejects that accessor. Section invalidation remains responsible for forcing affected compiled sections to rebuild. 1.0.21 corrects the mesh-dependency side of that contract: static/authoritative changes invalidate the full one-section halo, while DYNAMIC_VISUAL changes compare pre/post aggregate boundary bytes and invalidate only neighboring render sections that can sample a changed face/edge/corner. This prevents stale lit/dark walls from persisting until a block update without rebuilding a full 3x3x3 halo every two ticks for moving Lanterns.
 
-This bridge is client-visual only and does not publish `DYNAMIC_VISUAL` values into authoritative vanilla block-light propagation. Runtime confirmation of visible terrain illumination remains a mandatory 1.0.20 QA item.
+This bridge is client-visual only and does not publish `DYNAMIC_VISUAL` values into authoritative vanilla block-light propagation. Visible terrain illumination is runtime-confirmed as of the 1.0.20 QA pass; 1.0.21 runtime QA focuses on stale-mesh convergence while moving/turning emitters and across section boundaries.

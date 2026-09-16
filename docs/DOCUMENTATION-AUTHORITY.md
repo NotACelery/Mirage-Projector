@@ -1,10 +1,10 @@
-# Documentation Authority — Mirage Projector 1.0.20
+# Documentation Authority — Mirage Projector 1.0.31
 
 This file defines which documents describe the current stable product.
 
 ## Current authority
 
-Use these documents for current 1.0.20 behavior and 1.0.x maintenance:
+Use these documents for current 1.0.31 behavior and 1.0.x maintenance:
 
 1. `README.md` — public overview, requirements and feature summary.
 2. `docs/CURRENT-IMPLEMENTATION.md` — canonical runtime behavior.
@@ -42,6 +42,14 @@ Use these documents for current 1.0.20 behavior and 1.0.x maintenance:
 34. `docs/RELEASE-1.0.18-MASSIVE-STABILIZATION.md` — QA-driven portable/Shoulder/Charging/Codex stabilization and GUI contract.
 35. `docs/RELEASE-1.0.19-QA-FOLLOWUP.md` — runtime-QA interaction, GUI, Creative inventory, Charging Station, Codex background and initial visual-light renderer bridge corrections.
 36. `docs/RELEASE-1.0.20-SODIUM-LIGHT-BRIDGE-HOTFIX.md` — Sodium `LevelSlice` crash correction for the packed-light visual bridge.
+37. `docs/RELEASE-1.0.21-RUNTIME-QA-CORRECTIONS.md` — visual-light mesh invalidation, Shoulder Device transform and Hand Projector rendering corrections.
+38. `docs/RELEASE-1.0.22-DUPLICATING-LECTERN.md` — Scan Codex selected-capture to physical-card copy foundation.
+39. `docs/RELEASE-1.0.23-VANILLA-LECTERN-CODEX.md` — vanilla Lectern Codex workstation / two-page browser correction.
+40. `docs/RELEASE-1.0.24-CODEX-LIBRARY-CARD-REWORK.md` — current Codex/card/import/portable-UI contract.
+41. `docs/RELEASE-1.0.25-ANCHOR-CHASSIS-FOUNDATION.md` — Table/Wall anchor and capability foundation.
+42. `docs/RELEASE-1.0.26-PRESENTATION-CONTROL.md` — current automatic deck / paired Data-show remote control contract.
+43. `docs/RELEASE-1.0.30-UX-RUNTIME-WAVE.md` — portable-source, Shoulder interaction, live Wall placement, remote input, Entity workspace and Codex runtime-QA contract.
+44. `docs/RELEASE-1.0.31-TABLE-RUNTIME-REBUILD.md` — current canonical workspace routing, Table runtime/menu authority and Codex render correction contract.
 
 ## Historical material
 

@@ -1,5 +1,6 @@
 package celerbi.mirageprojector.menu;
 
+import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.entity.EntityProjectionState;
 import celerbi.mirageprojector.entity.EntityScanData;
@@ -34,6 +35,8 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
     public static final int FIRST_PLAYER_SLOT_INDEX = 9;
 
     private final BlockPos projectorPos;
+    private final ProjectionSettings initialSettings;
+    private final boolean initialProjectionEnabled;
     @Nullable
     private final MirageProjectorBlockEntity projector;
     private final EntityProjectionState fallbackState = new EntityProjectionState();
@@ -41,6 +44,8 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
     public EntityProjectorMenu(int containerId, Inventory inventory, RegistryFriendlyByteBuf buffer) {
         super(ModMenus.ENTITY_PROJECTOR.get(), containerId);
         projectorPos = buffer.readBlockPos();
+        initialSettings = ProjectionSettings.read(buffer);
+        initialProjectionEnabled = buffer.readBoolean();
         projector = inventory.player.level().getBlockEntity(projectorPos) instanceof MirageProjectorBlockEntity be ? be : null;
 
         ItemStackHandler card = projector == null ? new ItemStackHandler(1) : projector.entityScanCard();
@@ -60,6 +65,8 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
     public EntityProjectorMenu(int containerId, Inventory inventory, MirageProjectorBlockEntity projector) {
         super(ModMenus.ENTITY_PROJECTOR.get(), containerId);
         this.projectorPos = projector.getBlockPos();
+        this.initialSettings = projector.settings();
+        this.initialProjectionEnabled = projector.projectionEnabled();
         this.projector = projector;
         addCardSlot(projector.entityScanCard());
         addHumanoidStaging(projector.humanoidStagingItems());
@@ -163,6 +170,8 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
     public BlockPos projectorPos() {
         return projectorPos;
     }
+    public ProjectionSettings initialSettings() { return initialSettings; }
+    public boolean initialProjectionEnabled() { return initialProjectionEnabled; }
 
     @Nullable
     public MirageProjectorBlockEntity projector() {

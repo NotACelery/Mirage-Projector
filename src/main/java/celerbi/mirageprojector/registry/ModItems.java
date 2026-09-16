@@ -10,6 +10,7 @@ import celerbi.mirageprojector.item.GlowDustItem;
 import celerbi.mirageprojector.item.LightBatteryItem;
 import celerbi.mirageprojector.item.MirageDebugHandbookItem;
 import celerbi.mirageprojector.item.MirageLanternItem;
+import celerbi.mirageprojector.item.PresentationRemoteItem;
 import celerbi.mirageprojector.item.ScanCodexItem;
 import celerbi.mirageprojector.item.ShoulderUpgradePatchItem;
 import celerbi.mirageprojector.equipment.ShoulderUpgradeFamilies;
@@ -34,6 +35,10 @@ public final class ModItems {
             ITEMS.registerSimpleBlockItem("mirage_field_projector", ModBlocks.MIRAGE_FIELD_PROJECTOR);
     public static final DeferredItem<BlockItem> MIRAGE_PRISM =
             ITEMS.registerSimpleBlockItem("mirage_prism", ModBlocks.MIRAGE_PRISM);
+    public static final DeferredItem<BlockItem> MIRAGE_TABLE_PROJECTOR =
+            ITEMS.registerSimpleBlockItem("mirage_table_projector", ModBlocks.MIRAGE_TABLE_PROJECTOR);
+    public static final DeferredItem<BlockItem> MIRAGE_WALL_PROJECTOR =
+            ITEMS.registerSimpleBlockItem("mirage_wall_projector", ModBlocks.MIRAGE_WALL_PROJECTOR);
     public static final DeferredItem<BlockItem> MIRAGE_LIGHT_PROJECTOR =
             ITEMS.registerSimpleBlockItem("mirage_light_projector", ModBlocks.MIRAGE_LIGHT_PROJECTOR);
     public static final DeferredItem<CoreBoosterItem> CORE_BOOSTER =
@@ -78,6 +83,8 @@ public final class ModItems {
             ));
     public static final DeferredItem<MirageHandProjectorItem> MIRAGE_HAND_PROJECTOR =
             ITEMS.register("mirage_hand_projector", () -> new MirageHandProjectorItem(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<PresentationRemoteItem> PRESENTATION_REMOTE =
+            ITEMS.register("presentation_remote", () -> new PresentationRemoteItem(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<ScanCodexItem> SCAN_CODEX =
             ITEMS.register("scan_codex", () -> new ScanCodexItem(new Item.Properties()));
     public static final DeferredItem<EntityScanCardItem> ENTITY_SCAN_CARD =

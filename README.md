@@ -7,7 +7,7 @@
 - Minecraft **1.21.1**
 - NeoForge **21.1.244+**
 - Java **21**
-- Network protocol **34**
+- Network protocol **41**
 
 EMI and JEI are optional. When installed, Mirage Projector exposes its custom projector-upgrade recipes and Crying Obsidian guidance directly in the recipe viewer.
 
@@ -21,6 +21,8 @@ EMI and JEI are optional. When installed, Mirage Projector exposes its custom pr
 | Wide Mirage Projector | 80×32 | 64 | 12 | ×2.00 |
 | Tall Mirage Projector | 32×80 | 96 | 16 | ×2.00 |
 | Mirage Prism | 48×48 baseline | 96 | 12 | ×2.00 |
+| Mirage Table Projector | 48×48 | 64 | 12 | ×1.50 |
+| Mirage Wall Projector / Data-show | wall-targeted | — | — | ×1.50 |
 
 The nominal envelope is an efficiency target rather than a hard render cap. Sufficient Projection Power can push a projector into Overdrive.
 
@@ -70,7 +72,7 @@ The Mirage Hand Projector is the first portable hologram consumer. It stores one
 
 Since 1.0.13, **Mirage Equipment** adds a dedicated Shoulder Strap + Shoulder Slot without consuming armor or offhand space. In 1.0.18 the Strap becomes the real owner of its mounted device, battery pouch and upgrades: a packed Strap can be removed/stored/swapped while retaining its contents, and the right-side inventory panel exposes only the slots currently unlocked. The base Strap has six power-cell slots plus two upgrades; **Shoulder Strap Slot Expansion** raises that to nine cells plus a third upgrade. Auto Battery Swap remains shoulder-only. Since 1.0.15 the directional Charging Station provides four queued inputs, one active charger, four outputs and front-face logistics; 1.0.18 tightens it to incomplete normal rechargeable media, enlarges its GUI and visualizes queued/charging/output stacks in-world. Since 1.0.16 Banner-profile Hand Projectors can use the smaller pole-free overhead War Banner presentation with Directional or per-viewer billboard facing.
 
-Since 1.0.17, the **Mirage Scan Codex** stores multiple distinct frozen entity captures in a server-backed persistent library. Its browser synchronizes summary metadata only, with search, filters, favorites and exact scan selection. 1.0.19 makes the Codex explicitly inventory-like: it does not pause singleplayer and overrides the vanilla screen background pass so the live world remains sharp instead of blurred/dimmed. Physical Entity Scan Card duplication remains reserved for the later Duplicating Lectern workflow.
+Since 1.0.17, the **Mirage Scan Codex** stores multiple distinct frozen entity captures in a server-backed persistent library. 1.0.24 turns it into a scrollable categorized library with global search, Favorites, per-entry preview/equipment/nameplate detail and a 25-per-entity-type cap. Entity Scan Cards are transport containers rather than scanners. Mounting the Codex on a vanilla Lectern unlocks side-page duplication into a blank Entity Scan Card and a permanent destructive import panel for filled Mirage cards; optional Easy Mob Farm capture cards are accepted when that mod is present.
 
 ## Projection Power
 
@@ -145,4 +147,6 @@ The verification suite checks the current registry/resource surface, Mirage Ligh
 
 ## Version scope
 
-**1.0.20** is the current implementation snapshot. The 1.0.x expansion line now includes rechargeable Glow Dust/Light Batteries, GUI-configured placed/handheld Mirage lighting with 1.0.19 interaction/visual-light QA corrections plus the 1.0.20 Sodium packed-light hotfix, persistent portable hologram projectors, packed Shoulder Straps with Shoulder Device/Battery Pouch/upgrades, the directional Beacon Charging Station, War Banner presentation and the persistent **Mirage Scan Codex** library. The Codex stores full frozen scans server-side, exposes a metadata-only searchable/filterable/favoritable browser and persists exact scan selection for the future Duplicating Lectern. Final 1.1.0 work still includes scan-card duplication, remaining projector chassis/anchor semantics, End Resonance, recipes/balance and release polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.
+**1.0.31** is the current implementation snapshot. It rebuilds fixed-projector workspace routing around one server-authoritative flow shared by Mirage Projector, Mirage Display, Table and the other canonical chassis. Opening Image, Item, Entity or Banner now atomically selects that source on the server before the workspace opens, and every workspace receives an authoritative settings/ON-state snapshot instead of depending on a possibly stale client BlockEntity. The Table Projector therefore remains a normal canonical projector with only its horizontal anchor/geometry differences rather than maintaining a parallel UI. Main-screen Cancel now restores the opening settings and closes. The projector header/source area has additional padding, and the Scan Codex explicitly renders its book canvas once before its widgets while keeping vanilla blur/dimming disabled. Network protocol is **41** and `ProjectionSettings` format remains **4**. All 1.0.30 portable-source, Shoulder, Wall/Data-show, Presentation Remote, Scan Card and presentation-deck contracts remain intact.
+
+**1.0.24** established the current Scan Codex/Card and Hand Projector portable UI contracts. It keeps the vanilla Lectern as the physical Scan Codex workstation while replacing Paper-copy semantics with blank Entity Scan Cards, adding destructive successful imports from filled Mirage cards and optional Easy Mob Farm capture cards, expanding the Codex into a scrollable categorized detail browser, and compacting the Hand Projector into a lite portable UI whose Forward/War Banner, Directional/Billboard, size and height controls update from live device state. Reverse Mirage → Easy Mob Farm card export remains deferred; if added later its cost is measured in experience levels rather than raw XP. Final 1.1.0 work still includes the Wall presentation slide-deck architecture, optional Create Blueprint bridge, End Resonance, recipes/balance and release polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.

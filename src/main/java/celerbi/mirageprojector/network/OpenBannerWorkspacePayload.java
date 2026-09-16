@@ -1,6 +1,7 @@
 package celerbi.mirageprojector.network;
 
 import celerbi.mirageprojector.MirageProjector;
+import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.menu.BannerProjectorMenu;
 import net.minecraft.core.BlockPos;
@@ -43,11 +44,22 @@ public record OpenBannerWorkspacePayload(BlockPos pos) implements CustomPacketPa
             if (!(player.level().getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector)) {
                 return;
             }
+            // Workspace selection is authoritative on the server: opening a source workspace
+            // also selects that source. This avoids client-BE timing races (especially on the
+            // Table chassis) where the workspace opened but the projector remained on the old mode.
+            if (!projector.activateProjectionSource(ProjectionSettings.SourceMode.BANNER)) {
+                return;
+            }
             SimpleMenuProvider provider = new SimpleMenuProvider(
                     (containerId, inventory, ignored) -> new BannerProjectorMenu(containerId, inventory, projector),
                     Component.translatable("container.mirage_projector.banner_workspace")
             );
-            ((IPlayerExtension) player).openMenu(provider, buffer -> buffer.writeBlockPos(pos));
+            ((IPlayerExtension) player).openMenu(provider, buffer -> {
+                buffer.writeBlockPos(pos);
+                projector.settings().write(buffer);
+                buffer.writeBoolean(projector.projectionEnabled());
+                buffer.writeBoolean(projector.chassisProfile().geometry() == celerbi.mirageprojector.ProjectionChassisProfile.Geometry.PRISM);
+            });
         });
     }
 }

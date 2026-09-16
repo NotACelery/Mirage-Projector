@@ -3,6 +3,7 @@ package celerbi.mirageprojector.block;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.registry.ModBlocks;
+import celerbi.mirageprojector.registry.ModBlockEntities;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -21,6 +22,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -31,7 +34,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.neoforge.common.extensions.IPlayerExtension;
 import org.jetbrains.annotations.Nullable;
 
-public final class MirageProjectorBlock extends BaseEntityBlock {
+public class MirageProjectorBlock extends BaseEntityBlock {
     public static final net.minecraft.world.level.block.state.properties.DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final MapCodec<MirageProjectorBlock> CODEC = simpleCodec(MirageProjectorBlock::new);
 
@@ -140,6 +143,24 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
             box(1, 8, 14, 2, 12, 15),
             box(14, 8, 14, 15, 12, 15)
     );
+    private static final VoxelShape TABLE_SHAPE = Shapes.or(
+            box(2, 0, 2, 14, 2, 14),
+            box(4, 2, 4, 12, 3, 12),
+            box(3, 2, 7, 13, 4, 9),
+            box(7, 2, 3, 9, 4, 13),
+            box(5.25, 3.25, 5.25, 10.75, 5.75, 10.75)
+    );
+
+    // NORTH-facing data-show body. Maximum Y is 6 px: visibly smaller than a vanilla slab.
+    // Lens/front is on the NORTH edge and the whole appliance rotates with FACING.
+    private static final VoxelShape WALL_SHAPE = Shapes.or(
+            box(2, 0, 3, 14, 5, 13),
+            box(3, 5, 5, 13, 6, 12),
+            box(5, 1.5, 1, 11, 4.5, 3),
+            box(4, 1, 2, 12, 5, 4),
+            box(6, 6, 7, 10, 6.25, 10)
+    );
+
     public MirageProjectorBlock(BlockBehaviour.Properties properties) {
         super(properties);
 
@@ -168,9 +189,25 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
         return new MirageProjectorBlockEntity(pos, state);
     }
 
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
+            Level level, BlockState state, BlockEntityType<T> type
+    ) {
+        if (level.isClientSide) {
+            return null;
+        }
+        return createTickerHelper(type, ModBlockEntities.MIRAGE_PROJECTOR.get(), MirageProjectorBlockEntity::serverTick);
+    }
+
     @Override
     protected RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
+    }
+
+    @Override
+    protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return getShape(state, level, pos, context);
     }
 
     @Override
@@ -182,24 +219,48 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
             case TALL -> TALL_SHAPE;
             case FIELD -> FIELD_SHAPE;
             case PRISM -> PRISM_SHAPE;
+            case TABLE -> TABLE_SHAPE;
+            case WALL -> WALL_SHAPE;
             default -> COMPACT_SHAPE;
         };
         return orientShape(profile, state, shape);
     }
 
     private static VoxelShape orientShape(ProjectionChassisProfile profile, BlockState state, VoxelShape shape) {
-        if ((profile != ProjectionChassisProfile.WIDE && profile != ProjectionChassisProfile.TALL)
-                || !state.hasProperty(FACING)
-                || state.getValue(FACING).getAxis() != Direction.Axis.X) {
+        if (!state.hasProperty(FACING)) {
             return shape;
         }
-        VoxelShape[] rotated = {Shapes.empty()};
-        shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
-                rotated[0] = Shapes.or(rotated[0], Shapes.box(
-                        1.0D - maxZ, minY, minX,
-                        1.0D - minZ, maxY, maxX
-                )));
-        return rotated[0];
+        Direction facing = state.getValue(FACING);
+        if (profile == ProjectionChassisProfile.WALL) {
+            int turns = switch (facing) {
+                case EAST -> 1;
+                case SOUTH -> 2;
+                case WEST -> 3;
+                default -> 0;
+            };
+            return rotateShapeY(shape, turns);
+        }
+        if ((profile == ProjectionChassisProfile.WIDE || profile == ProjectionChassisProfile.TALL)
+                && facing.getAxis() == Direction.Axis.X) {
+            return rotateShapeY(shape, 1);
+        }
+        return shape;
+    }
+
+    private static VoxelShape rotateShapeY(VoxelShape shape, int quarterTurns) {
+        int turns = Math.floorMod(quarterTurns, 4);
+        VoxelShape result = shape;
+        for (int i = 0; i < turns; i++) {
+            VoxelShape source = result;
+            VoxelShape[] rotated = {Shapes.empty()};
+            source.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
+                    rotated[0] = Shapes.or(rotated[0], Shapes.box(
+                            1.0D - maxZ, minY, minX,
+                            1.0D - minZ, maxY, maxX
+                    )));
+            result = rotated[0];
+        }
+        return result;
     }
 
 
@@ -219,6 +280,12 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
             }
             if (state.is(ModBlocks.MIRAGE_PRISM.get())) {
                 return ProjectionChassisProfile.PRISM;
+            }
+            if (state.is(ModBlocks.MIRAGE_TABLE_PROJECTOR.get())) {
+                return ProjectionChassisProfile.TABLE;
+            }
+            if (state.is(ModBlocks.MIRAGE_WALL_PROJECTOR.get())) {
+                return ProjectionChassisProfile.WALL;
             }
         }
         return ProjectionChassisProfile.COMPACT;
@@ -286,6 +353,10 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
             if (!core.isEmpty()) {
                 Containers.dropItemStack(level, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, core);
             }
+            ItemStack remote = projector.presentationRemote().extractItem(0, 1, false);
+            if (!remote.isEmpty()) {
+                Containers.dropItemStack(level, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, remote);
+            }
         }
         super.onRemove(state, level, pos, newState, movedByPiston);
     }
@@ -301,6 +372,19 @@ public final class MirageProjectorBlock extends BaseEntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        if ((chassisProfile(state) == ProjectionChassisProfile.TABLE || chassisProfile(state) == ProjectionChassisProfile.WALL)
+                && player.isShiftKeyDown()) {
+            if (!level.isClientSide && level.getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) {
+                projector.preparePackedPlayerBreak(level.registryAccess());
+                ItemStack packed = projector.copyPendingPackedPlayerBreakDrop();
+                level.removeBlock(pos, false);
+                if (!packed.isEmpty() && !player.addItem(packed)) {
+                    player.drop(packed, false);
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
+
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) {
             ((IPlayerExtension) serverPlayer).openMenu(projector, projector::writeMenuData);

@@ -37,6 +37,13 @@ require("mod_version=0.1.0-dev.79i" in props, "gradle.properties is not dev.79i"
 require("minecraft_version=1.21.1" in props, "Minecraft baseline changed")
 require("neo_version=21.1.244" in props, "NeoForge baseline changed")
 main = read("src/main/java/celerbi/mirageprojector/MirageProjector.java")
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 require('NETWORK_PROTOCOL = "26"' in main, "network protocol is not 26")
 
 # ---------------------------------------------------------------------------

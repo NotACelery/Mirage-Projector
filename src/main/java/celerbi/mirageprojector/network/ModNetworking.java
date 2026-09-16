@@ -127,6 +127,11 @@ public final class ModNetworking {
                 ShoulderEquipmentInventoryPayload::handle
         );
         registrar.playToClient(
+                ShoulderEquipmentCursorPayload.TYPE,
+                ShoulderEquipmentCursorPayload.STREAM_CODEC,
+                ShoulderEquipmentCursorPayload::handle
+        );
+        registrar.playToClient(
                 OpenScanCodexPayload.TYPE,
                 OpenScanCodexPayload.STREAM_CODEC,
                 OpenScanCodexPayload::handle
@@ -135,6 +140,16 @@ public final class ModNetworking {
                 ScanCodexActionPayload.TYPE,
                 ScanCodexActionPayload.STREAM_CODEC,
                 ScanCodexActionPayload::handle
+        );
+        registrar.playToClient(
+                OpenLecternScanCodexPayload.TYPE,
+                OpenLecternScanCodexPayload.STREAM_CODEC,
+                OpenLecternScanCodexPayload::handle
+        );
+        registrar.playToServer(
+                LecternScanCodexActionPayload.TYPE,
+                LecternScanCodexActionPayload.STREAM_CODEC,
+                LecternScanCodexActionPayload::handle
         );
         registrar.playToServer(
                 OpenPortableDeviceMenuPayload.TYPE,
@@ -150,6 +165,21 @@ public final class ModNetworking {
                 LightProjectorActionPayload.TYPE,
                 LightProjectorActionPayload.STREAM_CODEC,
                 LightProjectorActionPayload::handle
+        );
+        registrar.playToClient(
+                OpenPresentationRemotePayload.TYPE,
+                OpenPresentationRemotePayload.STREAM_CODEC,
+                OpenPresentationRemotePayload::handle
+        );
+        registrar.playToServer(
+                PresentationRemoteActionPayload.TYPE,
+                PresentationRemoteActionPayload.STREAM_CODEC,
+                PresentationRemoteActionPayload::handle
+        );
+        registrar.playToServer(
+                UnpairPresentationRemotePayload.TYPE,
+                UnpairPresentationRemotePayload.STREAM_CODEC,
+                UnpairPresentationRemotePayload::handle
         );
     }
 }

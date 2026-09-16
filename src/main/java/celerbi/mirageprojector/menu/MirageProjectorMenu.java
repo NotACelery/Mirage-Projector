@@ -30,6 +30,7 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
 
     private final BlockPos projectorPos;
     private final ProjectionSettings initialSettings;
+    private final boolean initialProjectionEnabled;
     @Nullable
     private final MirageProjectorBlockEntity projector;
 
@@ -37,6 +38,7 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
         super(ModMenus.MIRAGE_PROJECTOR.get(), containerId);
         projectorPos = buffer.readBlockPos();
         initialSettings = ProjectionSettings.read(buffer);
+        initialProjectionEnabled = buffer.readBoolean();
         projector = inventory.player.level().getBlockEntity(projectorPos) instanceof MirageProjectorBlockEntity be ? be : null;
         ItemStackHandler coreHandler = projector == null ? new ItemStackHandler(1) : projector.coreItem();
         addCoreSlot(coreHandler);
@@ -47,6 +49,7 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
         super(ModMenus.MIRAGE_PROJECTOR.get(), containerId);
         this.projectorPos = projector.getBlockPos();
         this.initialSettings = projector.settings();
+        this.initialProjectionEnabled = projector.projectionEnabled();
         this.projector = projector;
         addCoreSlot(projector.coreItem());
         addPlayerInventory(inventory);
@@ -81,6 +84,9 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
     }
     public ProjectionSettings initialSettings() {
         return initialSettings;
+    }
+    public boolean initialProjectionEnabled() {
+        return initialProjectionEnabled;
     }
     @Nullable
     public MirageProjectorBlockEntity projector() {

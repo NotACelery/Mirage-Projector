@@ -168,7 +168,16 @@ public final class ClientShoulderEquipment {
                 look = new Vec3(0.0D, 0.0D, 1.0D);
             }
             look = look.normalize();
-            Vec3 sourcePos = player.getEyePosition().add(look.scale(0.78D)).add(0.0D, -0.22D, 0.0D);
+            Vec3 horizontalForward = new Vec3(look.x, 0.0D, look.z);
+            if (horizontalForward.lengthSqr() < 1.0E-6D) {
+                horizontalForward = new Vec3(0.0D, 0.0D, 1.0D);
+            }
+            horizontalForward = horizontalForward.normalize();
+            Vec3 right = new Vec3(-horizontalForward.z, 0.0D, horizontalForward.x);
+            Vec3 sourcePos = player.getEyePosition()
+                    .add(right.scale(0.30D))
+                    .add(horizontalForward.scale(0.18D))
+                    .add(0.0D, -0.34D, 0.0D);
             if (camera.distanceToSqr(sourcePos) > cullSq) {
                 ClientDynamicMirageLightManager.remove(sourceId);
                 continue;
@@ -203,7 +212,7 @@ public final class ClientShoulderEquipment {
         poseStack.pushPose();
         // Initial right-shoulder mount. This is intentionally a small generic item render;
         // later cosmetic skins may replace the visible device without changing equipment state.
-        poseStack.translate(-0.36D, -1.32D, 0.05D);
+        poseStack.translate(-0.36D, 1.32D, 0.05D);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
         poseStack.mulPose(Axis.ZP.rotationDegrees(-12.0F));
         poseStack.scale(0.52F, 0.52F, 0.52F);

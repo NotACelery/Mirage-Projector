@@ -8,6 +8,8 @@ import celerbi.mirageprojector.block.CryingObsidianLightNodeBlock;
 import celerbi.mirageprojector.block.LegacyImprovedCoreBlock;
 import celerbi.mirageprojector.block.MirageLightProjectorBlock;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
+import celerbi.mirageprojector.block.MirageTableProjectorBlock;
+import celerbi.mirageprojector.block.MirageWallProjectorBlock;
 import celerbi.mirageprojector.block.ObsidianSpikeBlock;
 import celerbi.mirageprojector.crying.CryingObsidianCrystalStage;
 import net.minecraft.world.level.block.SoundType;
@@ -25,6 +27,20 @@ public final class ModBlocks {
     public static final DeferredBlock<MirageProjectorBlock> TALL_MIRAGE_PROJECTOR = registerProjector("tall_mirage_projector");
     public static final DeferredBlock<MirageProjectorBlock> MIRAGE_FIELD_PROJECTOR = registerProjector("mirage_field_projector");
     public static final DeferredBlock<MirageProjectorBlock> MIRAGE_PRISM = registerProjector("mirage_prism");
+    public static final DeferredBlock<MirageTableProjectorBlock> MIRAGE_TABLE_PROJECTOR = BLOCKS.register(
+            "mirage_table_projector",
+            () -> new MirageTableProjectorBlock(BlockBehaviour.Properties.of()
+                    .strength(50.0F, 1200.0F)
+                    .sound(SoundType.STONE)
+                    .noOcclusion())
+    );
+    public static final DeferredBlock<MirageWallProjectorBlock> MIRAGE_WALL_PROJECTOR = BLOCKS.register(
+            "mirage_wall_projector",
+            () -> new MirageWallProjectorBlock(BlockBehaviour.Properties.of()
+                    .strength(50.0F, 1200.0F)
+                    .sound(SoundType.STONE)
+                    .noOcclusion())
+    );
     public static final DeferredBlock<MirageLightProjectorBlock> MIRAGE_LIGHT_PROJECTOR = BLOCKS.register(
             "mirage_light_projector",
             () -> new MirageLightProjectorBlock(BlockBehaviour.Properties.of()

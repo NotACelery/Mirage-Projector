@@ -50,6 +50,60 @@ public final class ImageSourceBank {
         Arrays.fill(slots, Asset.EMPTY);
     }
 
+    public void swap(int first, int second) {
+        if (!validSlot(first) || !validSlot(second) || first == second) {
+            return;
+        }
+        Asset tmp = slots[first];
+        slots[first] = slots[second];
+        slots[second] = tmp;
+    }
+
+    public void move(int from, int to) {
+        if (!validSlot(from) || !validSlot(to) || from == to) {
+            return;
+        }
+        Asset moving = slots[from];
+        if (from < to) {
+            System.arraycopy(slots, from + 1, slots, from, to - from);
+        } else {
+            System.arraycopy(slots, to, slots, to + 1, from - to);
+        }
+        slots[to] = moving;
+    }
+
+    public int firstPresentIndex() {
+        for (int i = 0; i < PERSISTED_COMPAT_SLOTS; i++) {
+            if (slots[i].present()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public int normalizePresentIndex(int preferred) {
+        if (validSlot(preferred) && slots[preferred].present()) {
+            return preferred;
+        }
+        return firstPresentIndex();
+    }
+
+    public int nextPresentIndex(int current, int direction) {
+        int first = firstPresentIndex();
+        if (first < 0) {
+            return -1;
+        }
+        int step = direction < 0 ? -1 : 1;
+        int start = validSlot(current) ? current : first;
+        for (int offset = 1; offset <= PERSISTED_COMPAT_SLOTS; offset++) {
+            int candidate = Math.floorMod(start + step * offset, PERSISTED_COMPAT_SLOTS);
+            if (slots[candidate].present()) {
+                return candidate;
+            }
+        }
+        return first;
+    }
+
     public boolean hasAny(int limit) {
         return countPresent(limit) > 0;
     }

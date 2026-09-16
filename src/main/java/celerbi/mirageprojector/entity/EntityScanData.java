@@ -212,7 +212,16 @@ public final class EntityScanData {
         if (!scan.success() || scan.root() == null) {
             return;
         }
-        CustomData.update(DataComponents.CUSTOM_DATA, card, custom -> custom.put(ROOT_KEY, scan.root().copy()));
+        writeRootToCard(card, scan.root());
+    }
+
+    /** Writes one already-frozen capture root without changing its ScanId or source provenance. */
+    public static boolean writeRootToCard(ItemStack card, CompoundTag root) {
+        if (card == null || card.isEmpty() || root == null || readRoot(root).isEmpty()) {
+            return false;
+        }
+        CustomData.update(DataComponents.CUSTOM_DATA, card, custom -> custom.put(ROOT_KEY, root.copy()));
+        return true;
     }
 
     public static Kind classify(LivingEntity entity) {

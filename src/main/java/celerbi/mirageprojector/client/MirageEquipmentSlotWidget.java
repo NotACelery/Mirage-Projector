@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -83,7 +84,14 @@ public final class MirageEquipmentSlotWidget extends AbstractWidget {
         if (button != 0 || !active) {
             return false;
         }
-        PacketDistributor.sendToServer(new ShoulderEquipmentActionPayload(target));
+        Minecraft minecraft = Minecraft.getInstance();
+        ItemStack carried = ItemStack.EMPTY;
+        if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen) {
+            carried = containerScreen.getMenu().getCarried().copy();
+        } else if (minecraft.player != null && minecraft.player.containerMenu != null) {
+            carried = minecraft.player.containerMenu.getCarried().copy();
+        }
+        PacketDistributor.sendToServer(new ShoulderEquipmentActionPayload(target, carried));
         return true;
     }
 

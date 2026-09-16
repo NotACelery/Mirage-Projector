@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:stone_button" },
+    { "item": "minecraft:iron_nugget" },
+    { "item": "mirage_projector:crying_obsidian_shard" }
+  ],
+  "result": {
+    "id": "mirage_projector:presentation_remote",
+    "count": 1
+  }
+}

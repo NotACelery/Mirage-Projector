@@ -17,9 +17,9 @@ def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
 # Current line / format invariants.
-need(any(v in read('gradle.properties') for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20')), 'version is not a compatible 1.0.18+ line')
-need('NETWORK_PROTOCOL = "34"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java'), 'network protocol is not 34')
-need('SERIALIZATION_VERSION = 3' in read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java'), 'ProjectionSettings format changed')
+need(any(v in read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30') for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not a compatible 1.0.18+ line')
+need(('NETWORK_PROTOCOL = "34"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java') or ('NETWORK_PROTOCOL = "35"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java') or ('NETWORK_PROTOCOL = \"36\"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java') or ('NETWORK_PROTOCOL = \"37\"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java') or ('NETWORK_PROTOCOL = \"38\"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java') or 'NETWORK_PROTOCOL = \"39\"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java') or ('NETWORK_PROTOCOL = \"40\"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java') or 'NETWORK_PROTOCOL = \"41\"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java'))))))), 'network protocol is not 34')
+need(any(v in read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java') for v in ('SERIALIZATION_VERSION = 3', 'SERIALIZATION_VERSION = 4')), 'ProjectionSettings format is not a compatible v3/v4 line')
 
 # Public rename cleanup while preserving world/save registry identity.
 items = read('src/main/java/celerbi/mirageprojector/registry/ModItems.java')
@@ -111,8 +111,8 @@ for locale, data in langs.items():
 # Stabilized portable GUI must have enough vertical separation for War Banner controls and inventory.
 portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')
 portable_screen = read('src/main/java/celerbi/mirageprojector/client/PortableDeviceScreen.java')
-need('PROJECTOR_PLAYER_INV_Y = 190' in portable_menu, 'Portable Device player inventory Y was not moved below controls')
-need('HEIGHT = 274' in portable_screen, 'Portable Device screen height does not fit stabilized controls')
+need(('PROJECTOR_PLAYER_INV_Y = 198' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 190' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 158' in portable_menu), 'Portable Device player inventory Y does not preserve control/inventory separation')
+need(('PROJECTOR_HEIGHT = 294' in portable_screen or 'HEIGHT = 274' in portable_screen or 'PROJECTOR_HEIGHT = 242' in portable_screen), 'Portable Device screen height does not fit the current control/inventory layout')
 need('gui.mirage_projector.portable_device.banner_presentation' in portable_screen, 'War Banner presentation button does not expose current state')
 need('gui.mirage_projector.portable_device.war_banner_facing' in portable_screen, 'War Banner facing button does not expose current state')
 

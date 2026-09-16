@@ -8,10 +8,12 @@ import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.ProjectionSourceRegistry;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
+import celerbi.mirageprojector.entity.EntityScanData;
 import celerbi.mirageprojector.network.PortableProjectorStatePayload;
 import celerbi.mirageprojector.menu.PortableDeviceMenu;
 import celerbi.mirageprojector.menu.PortableDeviceSource;
 import celerbi.mirageprojector.registry.ModBlocks;
+import celerbi.mirageprojector.registry.ModItems;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
@@ -28,6 +30,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -132,6 +135,113 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
 
     public static int projectedSourceCount(ItemStack projector) {
         return Math.max(0, customTag(projector).getInt(SOURCE_COUNT_TAG));
+    }
+
+    /**
+     * Switch the portable projector to one of the built-in source workspaces without erasing the
+     * other captured sources already stored in its compact profile. This lets the Hand Projector
+     * behave like a real multi-source portable device instead of only mirroring the source mode of
+     * the last fixed projector it copied.
+     */
+    public static boolean selectSourceMode(ItemStack projector, ProjectionSettings.SourceMode sourceMode, Level level) {
+        if (projector == null || projector.isEmpty() || sourceMode == null || level == null
+                || !ProjectionSourceRegistry.isCompatible(sourceMode, ProjectionChassisProfile.COMPACT)) {
+            return false;
+        }
+        MirageProjectorBlockEntity portable = loadOrCreatePortableProjector(projector, level);
+        if (portable == null || !portable.activateProjectionSource(sourceMode)) {
+            return false;
+        }
+        commitPortableProfile(projector, portable, sourceMode, level.registryAccess());
+        return true;
+    }
+
+    /** Snapshot shown in the Hand Projector's virtual source well. */
+    public static ItemStack sourceSnapshot(ItemStack projector, Level level) {
+        if (projector == null || projector.isEmpty() || level == null || !hasProjectionProfile(projector)) {
+            return ItemStack.EMPTY;
+        }
+        MirageProjectorBlockEntity portable = createPortableProjector(projector, level, BlockPos.ZERO, Direction.SOUTH);
+        if (portable == null) {
+            return ItemStack.EMPTY;
+        }
+        ProjectionSettings.SourceMode sourceMode = sourceMode(projector);
+        if (sourceMode == ProjectionSettings.SourceMode.ITEM) {
+            return portable.projectedStack().copy();
+        }
+        if (sourceMode == ProjectionSettings.SourceMode.ENTITY) {
+            return portable.stagedEntityCard().copy();
+        }
+        if (sourceMode == ProjectionSettings.SourceMode.BANNER) {
+            return portable.bannerSnapshot(0).copy();
+        }
+        return ItemStack.EMPTY;
+    }
+
+    /**
+     * Capture a source into the current portable workspace without consuming the player's item.
+     * The well intentionally mirrors the fixed-projector virtual snapshot contract.
+     */
+    public static boolean captureSourceSnapshot(ItemStack projector, ItemStack source, Level level) {
+        if (projector == null || projector.isEmpty() || source == null || source.isEmpty() || level == null) {
+            return false;
+        }
+        ProjectionSettings.SourceMode sourceMode = sourceMode(projector);
+        if (sourceMode == ProjectionSettings.SourceMode.IMAGE) {
+            return false;
+        }
+        MirageProjectorBlockEntity portable = loadOrCreatePortableProjector(projector, level);
+        if (portable == null) {
+            return false;
+        }
+
+        boolean accepted;
+        if (sourceMode == ProjectionSettings.SourceMode.ITEM) {
+            portable.captureProjectionSnapshot(source);
+            accepted = true;
+        } else if (sourceMode == ProjectionSettings.SourceMode.ENTITY) {
+            if (!source.is(ModItems.ENTITY_SCAN_CARD.get()) || !EntityScanData.hasScan(source)) {
+                return false;
+            }
+            portable.entityScanCard().setStackInSlot(0, source.copyWithCount(1));
+            accepted = portable.entityProjectionState().hasProjectedEntityContent();
+        } else if (sourceMode == ProjectionSettings.SourceMode.BANNER) {
+            if (!(source.getItem() instanceof BannerItem)) {
+                return false;
+            }
+            accepted = portable.captureBannerSnapshot(0, source);
+        } else {
+            accepted = false;
+        }
+
+        if (!accepted) {
+            return false;
+        }
+        portable.activateProjectionSource(sourceMode);
+        commitPortableProfile(projector, portable, sourceMode, level.registryAccess());
+        return true;
+    }
+
+    public static boolean clearSourceSnapshot(ItemStack projector, Level level) {
+        if (projector == null || projector.isEmpty() || level == null || !hasProjectionProfile(projector)) {
+            return false;
+        }
+        ProjectionSettings.SourceMode sourceMode = sourceMode(projector);
+        MirageProjectorBlockEntity portable = createPortableProjector(projector, level, BlockPos.ZERO, Direction.SOUTH);
+        if (portable == null) {
+            return false;
+        }
+        if (sourceMode == ProjectionSettings.SourceMode.ITEM) {
+            portable.clearProjectionSnapshot();
+        } else if (sourceMode == ProjectionSettings.SourceMode.ENTITY) {
+            portable.entityScanCard().setStackInSlot(0, ItemStack.EMPTY);
+        } else if (sourceMode == ProjectionSettings.SourceMode.BANNER) {
+            portable.clearAllBannerSnapshots();
+        } else {
+            return false;
+        }
+        commitPortableProfile(projector, portable, sourceMode, level.registryAccess());
+        return true;
     }
 
     public static boolean hasProjectedContent(ItemStack projector) {
@@ -316,6 +426,41 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
         );
     }
 
+    @Nullable
+    private static MirageProjectorBlockEntity loadOrCreatePortableProjector(ItemStack projector, Level level) {
+        MirageProjectorBlockEntity portable = createPortableProjector(projector, level, BlockPos.ZERO, Direction.SOUTH);
+        if (portable != null) {
+            return portable;
+        }
+        portable = new MirageProjectorBlockEntity(BlockPos.ZERO, portableBlockState(Direction.SOUTH));
+        portable.setLevel(level);
+        portable.applySettings(ProjectionSettings.DEFAULT.withSourceMode(sourceMode(projector)));
+        normalizePortableProjector(portable);
+        return portable;
+    }
+
+    private static void commitPortableProfile(
+            ItemStack handProjector,
+            MirageProjectorBlockEntity portable,
+            ProjectionSettings.SourceMode sourceMode,
+            HolderLookup.Provider registries
+    ) {
+        normalizePortableProjector(portable);
+        portable.applySettings(portable.settings().withSourceMode(sourceMode));
+        int sourceCount = portable.projectedSourceCount();
+        CompoundTag portableState = portable.saveCustomOnly(registries);
+        CustomData.update(DataComponents.CUSTOM_DATA, handProjector, tag -> {
+            tag.put(PROFILE_TAG, portableState);
+            tag.putBoolean(PROFILE_PRESENT_TAG, true);
+            tag.putString(SOURCE_MODE_TAG, sourceMode.serializedName());
+            tag.putInt(SOURCE_COUNT_TAG, sourceCount);
+            if (sourceCount <= 0) {
+                tag.remove(ACTIVE_TAG);
+            }
+        });
+        removeEmptyCustomData(handProjector);
+    }
+
     public static boolean copyPortableProfile(
             ItemStack handProjector,
             MirageProjectorBlockEntity source,
@@ -333,18 +478,9 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
         portable.loadCustomOnly(source.saveCustomOnly(registries).copy(), registries);
         normalizePortableProjector(portable);
 
-        int sourceCount = portable.projectedSourceCount();
-        ProjectionSettings.SourceMode sourceMode = portable.settings().sourceMode();
-        CompoundTag portableState = portable.saveCustomOnly(registries);
-
-        CustomData.update(DataComponents.CUSTOM_DATA, handProjector, tag -> {
-            tag.put(PROFILE_TAG, portableState);
-            tag.putBoolean(PROFILE_PRESENT_TAG, true);
-            tag.putString(SOURCE_MODE_TAG, sourceMode.serializedName());
-            tag.putInt(SOURCE_COUNT_TAG, sourceCount);
-            tag.remove(ACTIVE_TAG);
-        });
-        removeEmptyCustomData(handProjector);
+        ProjectionSettings.SourceMode copiedSourceMode = portable.settings().sourceMode();
+        commitPortableProfile(handProjector, portable, copiedSourceMode, registries);
+        setProjectionEnabled(handProjector, false);
         return true;
     }
 
@@ -586,7 +722,7 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
         removeEmptyCustomData(projector);
     }
 
-    private static boolean portablePowerAvailable(ItemStack projector, HolderLookup.Provider registries) {
+    public static boolean portablePowerAvailable(ItemStack projector, HolderLookup.Provider registries) {
         MirageProjectorBlockEntity portable = createPortableProjectorForEvaluation(projector, registries);
         if (portable == null) {
             return false;

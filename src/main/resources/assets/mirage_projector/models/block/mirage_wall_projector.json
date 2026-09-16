@@ -1,0 +1,272 @@
+{
+  "loader": "neoforge:composite",
+  "textures": {
+    "particle": "minecraft:block/obsidian"
+  },
+  "children": {
+    "casing": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:solid",
+      "textures": {
+        "casing": "minecraft:block/obsidian",
+        "particle": "minecraft:block/obsidian"
+      },
+      "elements": [
+        {
+          "from": [
+            2,
+            0,
+            3
+          ],
+          "to": [
+            14,
+            5,
+            13
+          ],
+          "faces": {
+            "north": {
+              "texture": "#casing"
+            },
+            "east": {
+              "texture": "#casing"
+            },
+            "south": {
+              "texture": "#casing"
+            },
+            "west": {
+              "texture": "#casing"
+            },
+            "up": {
+              "texture": "#casing"
+            },
+            "down": {
+              "texture": "#casing"
+            }
+          }
+        },
+        {
+          "from": [
+            4,
+            1,
+            2
+          ],
+          "to": [
+            12,
+            5,
+            4
+          ],
+          "faces": {
+            "north": {
+              "texture": "#casing"
+            },
+            "east": {
+              "texture": "#casing"
+            },
+            "south": {
+              "texture": "#casing"
+            },
+            "west": {
+              "texture": "#casing"
+            },
+            "up": {
+              "texture": "#casing"
+            },
+            "down": {
+              "texture": "#casing"
+            }
+          }
+        }
+      ]
+    },
+    "crying_accent": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:solid",
+      "textures": {
+        "accent": "minecraft:block/crying_obsidian",
+        "particle": "minecraft:block/crying_obsidian"
+      },
+      "elements": [
+        {
+          "from": [
+            3,
+            5,
+            5
+          ],
+          "to": [
+            13,
+            6,
+            12
+          ],
+          "faces": {
+            "north": {
+              "texture": "#accent"
+            },
+            "east": {
+              "texture": "#accent"
+            },
+            "south": {
+              "texture": "#accent"
+            },
+            "west": {
+              "texture": "#accent"
+            },
+            "up": {
+              "texture": "#accent"
+            },
+            "down": {
+              "texture": "#accent"
+            }
+          }
+        },
+        {
+          "from": [
+            2,
+            1,
+            5
+          ],
+          "to": [
+            2.5,
+            4,
+            11
+          ],
+          "faces": {
+            "north": {
+              "texture": "#accent"
+            },
+            "east": {
+              "texture": "#accent"
+            },
+            "south": {
+              "texture": "#accent"
+            },
+            "west": {
+              "texture": "#accent"
+            },
+            "up": {
+              "texture": "#accent"
+            },
+            "down": {
+              "texture": "#accent"
+            }
+          }
+        },
+        {
+          "from": [
+            13.5,
+            1,
+            5
+          ],
+          "to": [
+            14,
+            4,
+            11
+          ],
+          "faces": {
+            "north": {
+              "texture": "#accent"
+            },
+            "east": {
+              "texture": "#accent"
+            },
+            "south": {
+              "texture": "#accent"
+            },
+            "west": {
+              "texture": "#accent"
+            },
+            "up": {
+              "texture": "#accent"
+            },
+            "down": {
+              "texture": "#accent"
+            }
+          }
+        }
+      ]
+    },
+    "lens": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:translucent",
+      "textures": {
+        "lens": "mirage_projector:block/crying_obsidian_emitter",
+        "particle": "mirage_projector:block/crying_obsidian_emitter"
+      },
+      "elements": [
+        {
+          "from": [
+            5,
+            1.5,
+            1
+          ],
+          "to": [
+            11,
+            4.5,
+            3
+          ],
+          "faces": {
+            "north": {
+              "texture": "#lens"
+            },
+            "east": {
+              "texture": "#lens"
+            },
+            "south": {
+              "texture": "#lens"
+            },
+            "west": {
+              "texture": "#lens"
+            },
+            "up": {
+              "texture": "#lens"
+            },
+            "down": {
+              "texture": "#lens"
+            }
+          }
+        }
+      ]
+    },
+    "remote_dock": {
+      "parent": "minecraft:block/block",
+      "render_type": "minecraft:solid",
+      "textures": {
+        "dock": "minecraft:block/polished_blackstone",
+        "particle": "minecraft:block/obsidian"
+      },
+      "elements": [
+        {
+          "from": [
+            6,
+            6,
+            7
+          ],
+          "to": [
+            10,
+            6.25,
+            10
+          ],
+          "faces": {
+            "north": {
+              "texture": "#dock"
+            },
+            "east": {
+              "texture": "#dock"
+            },
+            "south": {
+              "texture": "#dock"
+            },
+            "west": {
+              "texture": "#dock"
+            },
+            "up": {
+              "texture": "#dock"
+            },
+            "down": {
+              "texture": "#dock"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -10,6 +10,7 @@ import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.PrismProjectionSpacing;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.ProjectionTransform;
+import celerbi.mirageprojector.WallProjectionSurface;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
@@ -41,6 +42,7 @@ import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -61,6 +63,9 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     private static final float ENTITY_NAMEPLATE_GAP = 4.0F * PIXEL;
     private static final float ENTITY_NAMEPLATE_BOUND_HEIGHT = 0.5F;
     private static final UUID BODYLESS_CACHE_ID = new UUID(0L, 1L);
+    private static final ResourceLocation PROJECTION_CANCELLATION_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            "mirage_projector", "textures/misc/projection_cancellation.png"
+    );
 
     private static final List<DeferredEntityProjection> DEFERRED_ENTITY_PROJECTIONS = new ArrayList<>();
     private static final MultiBufferSource.BufferSource DEFERRED_ENTITY_BUFFERS = createDeferredEntityBuffers();
@@ -138,32 +143,78 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         ProjectionCoreProfile core = blockEntity.coreProfile();
         double gameTime = blockEntity.getLevel() == null ? 0.0D : blockEntity.getLevel().getGameTime() + partialTick;
         renderCoreItem(blockEntity, poseStack, bufferSource, gameTime);
+        renderDockedPresentationRemote(blockEntity, poseStack, bufferSource, packedLight);
         if (!blockEntity.projectionEnabled()) {
             equippedItemCache.remove(blockEntity);
             return;
         }
 
-        float angle = projectionBaseAngle(blockEntity, settings) + rotationAngle(settings, gameTime);
-        float bob = bobOffset(settings, gameTime);
+        ProjectionChassisProfile chassis = blockEntity.chassisProfile();
+        float angle = projectionBaseAngle(blockEntity, settings)
+                + (chassis.supportsRotation() ? rotationAngle(settings, gameTime) : 0.0F);
+        float bob = chassis.supportsFloating() ? bobOffset(settings, gameTime) : 0.0F;
         int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
 
         boolean hasProjectedContent = blockEntity.hasProjectedSourceContent();
         if (!hasProjectedContent) {
             equippedItemCache.remove(blockEntity);
-            renderBook(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
+            if (chassis != ProjectionChassisProfile.WALL) {
+                renderBook(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight);
+            }
             return;
         }
 
-        ProjectionPower.Status power = ProjectionPower.evaluate(
-                settings,
-                core,
-                blockEntity.chassisProfile(),
-                true,
-                blockEntity.projectedSourceCount()
-        );
+        ProjectionPower.Status power = blockEntity.powerStatus();
         if (!power.active()) {
             return;
         }
+
+        ProjectionSourceRenderRegistry.renderer(settings.sourceMode()).ifPresent(renderer -> renderer.render(
+                new ProjectionSourceRenderRegistry.RenderContext(
+                        this,
+                        blockEntity,
+                        settings,
+                        partialTick,
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        angle,
+                        bob,
+                        projectionLight,
+                        gameTime
+                )
+        ));
+    }
+
+    /**
+     * Render only the hologram carried by a Mirage Hand Projector.
+     *
+     * <p>The normal block-entity render path evaluates a physical projector core before it
+     * emits content. Portable projectors intentionally have no core ItemStack: their power
+     * comes from the Hand Projector's embedded rechargeable cell and is validated by the item
+     * runtime. Reusing the fixed-projector power gate therefore made every non-War-Banner
+     * portable projection silently disappear. This path shares the exact source renderer but
+     * skips the fixed chassis/core gate and the physical core/book presentation.</p>
+     */
+    public void renderPortableProjection(
+            MirageProjectorBlockEntity blockEntity,
+            float partialTick,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay
+    ) {
+        if (blockEntity == null || !blockEntity.projectionEnabled() || !blockEntity.hasProjectedSourceContent()) {
+            return;
+        }
+
+        ProjectionSettings settings = blockEntity.settings();
+        double gameTime = blockEntity.getLevel() == null
+                ? 0.0D
+                : blockEntity.getLevel().getGameTime() + partialTick;
+        float angle = projectionBaseAngle(blockEntity, settings) + rotationAngle(settings, gameTime);
+        float bob = bobOffset(settings, gameTime);
+        int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
 
         ProjectionSourceRenderRegistry.renderer(settings.sourceMode()).ifPresent(renderer -> renderer.render(
                 new ProjectionSourceRenderRegistry.RenderContext(
@@ -268,6 +319,12 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     private void renderImageSource(ProjectionSourceRenderRegistry.RenderContext context) {
         MirageProjectorBlockEntity blockEntity = context.blockEntity();
         ProjectionSettings settings = context.settings();
+        if (blockEntity.chassisProfile() == ProjectionChassisProfile.WALL) {
+            renderWallDataShowImage(
+                    blockEntity, settings, context.poseStack(), context.bufferSource(), context.projectionLight()
+            );
+            return;
+        }
         if (blockEntity.chassisProfile().supportsMultiSourceImageLayout()
                 && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
             if (!blockEntity.imageSourceBank().hasAny(blockEntity.chassisProfile().imageLayoutSlots())) {
@@ -344,6 +401,122 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         );
     }
 
+    private static void renderWallDataShowImage(
+            MirageProjectorBlockEntity blockEntity,
+            ProjectionSettings settings,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int projectionLight
+    ) {
+        WallProjectionSurface.Result surface = blockEntity.wallProjectionSurface();
+        ImageSourceBank.Asset image = blockEntity.activeWallImage();
+        if (!image.present()) {
+            return;
+        }
+        if (!surface.valid()) {
+            // The deck index is still authoritative even when the selected slide cannot be
+            // projected. Show the transparent red prohibition marker for every actionable
+            // Data-show failure that has a wall/target context, so Previous/Next/automatic
+            // playback can continue through an invalid slide instead of appearing frozen.
+            if (surface.failure() == WallProjectionSurface.Failure.IRREGULAR_SURFACE
+                    || surface.failure() == WallProjectionSurface.Failure.NO_CORE
+                    || surface.failure() == WallProjectionSurface.Failure.POWER_EXCEEDED) {
+                renderWallCancellation(blockEntity, poseStack, bufferSource);
+            }
+            return;
+        }
+        var texture = ProjectionTextureCache.get(image.id(), System.nanoTime() / 1_000_000L);
+        if (texture.isEmpty()) {
+            return;
+        }
+
+        BlockPos origin = blockEntity.getBlockPos();
+        poseStack.pushPose();
+        poseStack.translate(
+                surface.centerX() - origin.getX(),
+                surface.centerY() - origin.getY() - surface.heightPixels() * PIXEL * 0.5D,
+                surface.centerZ() - origin.getZ()
+        );
+        poseStack.mulPose(Axis.YP.rotationDegrees(wallPlaneYaw(surface.facing())));
+        PoseStack.Pose pose = poseStack.last();
+        float topV = settings.flipVertical() ? 1.0F : 0.0F;
+        float bottomV = settings.flipVertical() ? 0.0F : 1.0F;
+        renderFrontFace(
+                texture.get(),
+                new FaceSize(surface.widthPixels() * PIXEL, surface.heightPixels() * PIXEL),
+                topV, bottomV, settings, projectionLight, pose.pose(), pose, bufferSource
+        );
+        poseStack.popPose();
+    }
+
+    private static void renderWallCancellation(
+            MirageProjectorBlockEntity blockEntity,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource
+    ) {
+        WallCancellationTarget target = wallCancellationTarget(blockEntity);
+        if (target == null) {
+            return;
+        }
+        BlockPos origin = blockEntity.getBlockPos();
+        float size = 12.0F * PIXEL;
+        poseStack.pushPose();
+        poseStack.translate(
+                target.centerX() - origin.getX(),
+                target.centerY() - origin.getY() - size * 0.5D,
+                target.centerZ() - origin.getZ()
+        );
+        poseStack.mulPose(Axis.YP.rotationDegrees(wallPlaneYaw(target.facing())));
+        PoseStack.Pose pose = poseStack.last();
+        renderFrontFace(
+                PROJECTION_CANCELLATION_TEXTURE, new FaceSize(size, size),
+                0.0F, 1.0F, ProjectionSettings.DEFAULT, LightTexture.FULL_BRIGHT,
+                pose.pose(), pose, bufferSource
+        );
+        poseStack.popPose();
+    }
+
+    private static WallCancellationTarget wallCancellationTarget(MirageProjectorBlockEntity blockEntity) {
+        if (blockEntity.getLevel() == null) {
+            return null;
+        }
+        Direction facing = blockEntity.getBlockState().hasProperty(MirageProjectorBlock.FACING)
+                ? blockEntity.getBlockState().getValue(MirageProjectorBlock.FACING)
+                : Direction.NORTH;
+        BlockPos origin = blockEntity.getBlockPos();
+        for (int step = 1; step <= WallProjectionSurface.MAX_SEARCH_BLOCKS; step++) {
+            BlockPos wall = origin.relative(facing, step);
+            var state = blockEntity.getLevel().getBlockState(wall);
+            if (state.isAir() || !state.isCollisionShapeFullBlock(blockEntity.getLevel(), wall)
+                    || !state.isFaceSturdy(blockEntity.getLevel(), wall, facing.getOpposite())) {
+                continue;
+            }
+            double x = wall.getX() + 0.5D;
+            double y = wall.getY() + 0.5D;
+            double z = wall.getZ() + 0.5D;
+            double epsilon = 0.002D;
+            switch (facing) {
+                case NORTH -> z = wall.getZ() + 1.0D + epsilon;
+                case SOUTH -> z = wall.getZ() - epsilon;
+                case EAST -> x = wall.getX() - epsilon;
+                case WEST -> x = wall.getX() + 1.0D + epsilon;
+                default -> { }
+            }
+            return new WallCancellationTarget(x, y, z, facing);
+        }
+        return null;
+    }
+
+    private static float wallPlaneYaw(Direction facing) {
+        return switch (facing) {
+            case NORTH -> 0.0F;
+            case EAST -> 270.0F;
+            case SOUTH -> 180.0F;
+            case WEST -> 90.0F;
+            default -> 0.0F;
+        };
+    }
+
     private void renderProjectedBanners(
             MirageProjectorBlockEntity blockEntity,
             ProjectionSettings settings,
@@ -378,7 +551,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             renderBannerFace(blockEntity.bannerSnapshot(3), -90.0F, radius, 3, gameTime,
                     poseStack, projectionBuffers, modelScale, projectionLight, faceTilt);
         } else {
-            applyProjectionPlacement(blockEntity, settings, poseStack, bottom + bannerHeight, angle);
+            applyPlaneProjectionPlacement(blockEntity, settings, poseStack, bottom + bannerHeight, angle);
             renderBannerFace(blockEntity.bannerSnapshot(0), 0.0F, 0.0F, 0, gameTime,
                     poseStack, projectionBuffers, modelScale, projectionLight, null);
         }
@@ -641,8 +814,10 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         double gameTime = blockEntity.getLevel() == null
                 ? 0.0D
                 : blockEntity.getLevel().getGameTime() + partialTick;
-        float angle = blockFacingAngle(blockEntity) + rotationAngle(settings, gameTime);
-        float bob = bobOffset(settings, gameTime);
+        ProjectionChassisProfile chassis = blockEntity.chassisProfile();
+        float angle = projectionBaseAngle(blockEntity, settings)
+                + (chassis.supportsRotation() ? rotationAngle(settings, gameTime) : 0.0F);
+        float bob = chassis.supportsFloating() ? bobOffset(settings, gameTime) : 0.0F;
         int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
 
         renderProjectedEntity(
@@ -690,7 +865,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         float bottom = physicalTop(blockEntity) + settings.liftPixels() * PIXEL + bob;
 
         poseStack.pushPose();
-        applyProjectionPlacement(blockEntity, settings, poseStack, bottom, angle);
+        applyVolumetricProjectionPlacement(blockEntity, settings, poseStack, bottom, angle);
         poseStack.scale(entityScale, entityScale, entityScale);
 
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
@@ -747,7 +922,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         Component label = Component.literal(text);
 
         poseStack.pushPose();
-        poseStack.translate(0.5D, labelY, 0.5D);
+        applyAnchorTranslation(blockEntity, poseStack, labelY);
         poseStack.mulPose(minecraft.getEntityRenderDispatcher().cameraOrientation());
         poseStack.scale(-0.025F, -0.025F, 0.025F);
         Matrix4f matrix = poseStack.last().pose();
@@ -766,6 +941,33 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         font.drawInBatch(
                 label, textX, 0.0F, textColor, false, matrix, bufferSource,
                 Font.DisplayMode.NORMAL, 0, projectionLight
+        );
+        poseStack.popPose();
+    }
+
+    private static void renderDockedPresentationRemote(
+            MirageProjectorBlockEntity blockEntity,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight
+    ) {
+        if (blockEntity.chassisProfile() != ProjectionChassisProfile.WALL
+                || !blockEntity.hasDockedPresentationRemote()) {
+            return;
+        }
+        ItemStack remote = blockEntity.presentationRemote().getStackInSlot(0);
+        if (remote.isEmpty()) {
+            return;
+        }
+        poseStack.pushPose();
+        // Physical pairing dock on the top shell of the low-profile data-show. The remote lies
+        // flat instead of floating as a hologram.
+        poseStack.translate(0.5D, 6.35D * PIXEL, 0.53D);
+        poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+        poseStack.scale(0.30F, 0.30F, 0.30F);
+        Minecraft.getInstance().getItemRenderer().renderStatic(
+                remote, ItemDisplayContext.FIXED, packedLight, OverlayTexture.NO_OVERLAY,
+                poseStack, bufferSource, blockEntity.getLevel(), (int) blockEntity.getBlockPos().asLong()
         );
         poseStack.popPose();
     }
@@ -796,7 +998,11 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         );
 
         poseStack.mulPose(Axis.YP.rotationDegrees(-rotation));
-        poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
+        // The Table chamber is only 2.5 px tall. Keep its real installed Core upright so the
+        // rotating/bobbing item stays inside the glass instead of clipping through base/lid.
+        if (blockEntity.chassisProfile() != ProjectionChassisProfile.TABLE) {
+            poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
+        }
         poseStack.scale(visual.coreRenderScale(), visual.coreRenderScale(), visual.coreRenderScale());
         Minecraft.getInstance().getItemRenderer().renderStatic(
                 coreStack,
@@ -854,7 +1060,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         float bottom = physicalTop(blockEntity) + settings.liftPixels() * PIXEL + bob;
 
         poseStack.pushPose();
-        applyProjectionPlacement(blockEntity, settings, poseStack, bottom + scale * 0.5F, angle);
+        applyVolumetricProjectionPlacement(blockEntity, settings, poseStack, bottom + scale * 0.5F, angle);
         poseStack.scale(scale, scale, scale);
         MultiBufferSource projectionBuffers = ProjectionRenderBuffers.wrap(bufferSource, settings);
         Minecraft.getInstance().getItemRenderer().renderStatic(
@@ -880,7 +1086,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             int projectionLight
     ) {
         poseStack.pushPose();
-        poseStack.translate(0.5D, idleBookCenter(blockEntity) + bob, 0.5D);
+        applyAnchorTranslation(blockEntity, poseStack, idleBookCenter(blockEntity) + bob);
         poseStack.mulPose(Axis.YP.rotationDegrees(angle));
         poseStack.scale(0.45F, 0.45F, 0.45F);
         Minecraft.getInstance().getItemRenderer().renderStatic(
@@ -905,7 +1111,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             int projectionLight
     ) {
         poseStack.pushPose();
-        poseStack.translate(0.5D, idleBookCenter(blockEntity) + bob, 0.5D);
+        applyAnchorTranslation(blockEntity, poseStack, idleBookCenter(blockEntity) + bob);
         poseStack.mulPose(Axis.YP.rotationDegrees(angle));
         poseStack.scale(0.35F, 0.35F, 0.35F);
         Minecraft.getInstance().getItemRenderer().renderStatic(
@@ -954,7 +1160,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         boolean readableBack = planeMode == ProjectionSettings.BackFaceMode.READABLE;
 
         poseStack.pushPose();
-        applyProjectionPlacement(blockEntity, settings, poseStack, bottom, angle);
+        applyPlaneProjectionPlacement(blockEntity, settings, poseStack, bottom, angle);
         long animationSampleMs = (System.nanoTime() / 1_000_000L);
 
         for (int slot = 0; slot < slots; slot++) {
@@ -1185,7 +1391,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         FaceSize size = faceSize(imageWidth, imageHeight, settings.scalePixels());
 
         poseStack.pushPose();
-        applyProjectionPlacement(blockEntity, settings, poseStack, bottom, angle);
+        applyPlaneProjectionPlacement(blockEntity, settings, poseStack, bottom, angle);
         PoseStack.Pose pose = poseStack.last();
         Matrix4f matrix = pose.pose();
 
@@ -1420,17 +1626,43 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         return blockFacingAngle(blockEntity);
     }
 
-    private static void applyProjectionPlacement(
+    private static void applyPlaneProjectionPlacement(
             MirageProjectorBlockEntity blockEntity,
             ProjectionSettings settings,
             PoseStack poseStack,
             double baseY,
             float finalYawDegrees
     ) {
-        poseStack.translate(0.5D, baseY, 0.5D);
+        applyAnchorTranslation(blockEntity, poseStack, baseY);
+        poseStack.mulPose(Axis.YP.rotationDegrees(finalYawDegrees));
+        if (blockEntity != null && blockEntity.chassisProfile().usesHorizontalPlaneFor(settings.sourceMode())) {
+            // Native Image/Banner planes are XY with +Z front. -90° around X makes +Z become +Y,
+            // producing a true table/map surface while keeping Lift on the world Y axis.
+            poseStack.mulPose(Axis.XP.rotationDegrees(-90.0F));
+        }
+        ProjectionTransform.Orientation orientation = settings.transform().orientation();
+        poseStack.mulPose(new Quaternionf(orientation.x(), orientation.y(), orientation.z(), orientation.w()));
+    }
+
+    private static void applyVolumetricProjectionPlacement(
+            MirageProjectorBlockEntity blockEntity,
+            ProjectionSettings settings,
+            PoseStack poseStack,
+            double baseY,
+            float finalYawDegrees
+    ) {
+        applyAnchorTranslation(blockEntity, poseStack, baseY);
         poseStack.mulPose(Axis.YP.rotationDegrees(finalYawDegrees));
         ProjectionTransform.Orientation orientation = settings.transform().orientation();
         poseStack.mulPose(new Quaternionf(orientation.x(), orientation.y(), orientation.z(), orientation.w()));
+    }
+
+    private static void applyAnchorTranslation(
+            MirageProjectorBlockEntity blockEntity,
+            PoseStack poseStack,
+            double baseY
+    ) {
+        poseStack.translate(0.5D, baseY, 0.5D);
     }
 
     private static void applyPrismCarouselPlacement(
@@ -1492,6 +1724,35 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         ProjectionSettings settings = blockEntity.settings();
         BlockPos pos = blockEntity.getBlockPos();
 
+        if (blockEntity.chassisProfile() == ProjectionChassisProfile.WALL) {
+            AABB machine = new AABB(pos).inflate(0.25D);
+            WallProjectionSurface.Result wallSurface = blockEntity.wallProjectionSurface();
+            if (!blockEntity.projectionEnabled()) {
+                return machine;
+            }
+            if (!wallSurface.valid() || !wallSurface.hasEnvelope()) {
+                if (wallSurface.failure() == WallProjectionSurface.Failure.IRREGULAR_SURFACE) {
+                    WallCancellationTarget cancellation = wallCancellationTarget(blockEntity);
+                    if (cancellation != null) {
+                        AABB marker = new AABB(
+                                cancellation.centerX() - 0.5D, cancellation.centerY() - 0.5D, cancellation.centerZ() - 0.5D,
+                                cancellation.centerX() + 0.5D, cancellation.centerY() + 0.5D, cancellation.centerZ() + 0.5D
+                        );
+                        return new AABB(
+                                Math.min(machine.minX, marker.minX), Math.min(machine.minY, marker.minY), Math.min(machine.minZ, marker.minZ),
+                                Math.max(machine.maxX, marker.maxX), Math.max(machine.maxY, marker.maxY), Math.max(machine.maxZ, marker.maxZ)
+                        );
+                    }
+                }
+                return machine;
+            }
+            AABB projection = wallSurface.envelope().inflate(0.05D);
+            return new AABB(
+                    Math.min(machine.minX, projection.minX), Math.min(machine.minY, projection.minY), Math.min(machine.minZ, projection.minZ),
+                    Math.max(machine.maxX, projection.maxX), Math.max(machine.maxY, projection.maxY), Math.max(machine.maxZ, projection.maxZ)
+            );
+        }
+
         ProjectionPower.Status power = ProjectionPower.evaluate(
                 settings,
                 blockEntity.coreProfile(),
@@ -1536,9 +1797,11 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             height = Math.max(PIXEL, entityBounds.heightPixels() * PIXEL);
         }
 
-        boolean prismFaces = blockEntity.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM
+        ProjectionChassisProfile chassis = blockEntity.chassisProfile();
+        boolean prismFaces = chassis.geometry() == ProjectionChassisProfile.Geometry.PRISM
                 && (settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE
                 || settings.sourceMode() == ProjectionSettings.SourceMode.BANNER);
+        boolean horizontalPlane = chassis.usesHorizontalPlaneFor(settings.sourceMode());
         double tiltReach = height * Math.abs(Math.sin(Math.toRadians(settings.tiltDegrees())));
         double prismOutwardTiltReach = settings.tiltDegrees() > 0.0F
                 ? height * Math.sin(Math.toRadians(settings.tiltDegrees()))
@@ -1546,15 +1809,23 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         double radius = prismFaces
                 ? Math.max(0.75D, PrismProjectionSpacing.effectiveDistancePixels(settings) * PIXEL
                 + width * 0.5D + prismOutwardTiltReach + 0.25D)
+                : horizontalPlane
+                ? Math.max(0.75D, Math.hypot(width, height) * 0.5D + 0.25D)
                 : Math.max(0.75D, width * 0.5D + tiltReach + 0.25D);
-        double projectionMinY = pos.getY() + physicalTop(blockEntity)
-                + settings.liftPixels() * PIXEL
-                - settings.floatAmplitudePixels() * PIXEL - 0.25D;
-        double projectionVerticalReach = height * Math.max(0.0D,
-                Math.cos(Math.toRadians(Math.abs(settings.tiltDegrees()))));
-        double projectionMaxY = pos.getY() + physicalTop(blockEntity)
-                + settings.liftPixels() * PIXEL
-                + projectionVerticalReach + 0.25D;
+        double floatReach = chassis.supportsFloating()
+                ? settings.floatAmplitudePixels() * PIXEL
+                : 0.0D;
+        double projectionBaseY = pos.getY() + physicalTop(blockEntity) + settings.liftPixels() * PIXEL;
+        double horizontalPlaneVerticalReach = horizontalPlane
+                ? Math.max(width, height) * Math.abs(Math.sin(Math.toRadians(settings.tiltDegrees()))) * 0.5D + 0.25D
+                : 0.0D;
+        double projectionMinY = horizontalPlane
+                ? projectionBaseY - horizontalPlaneVerticalReach - floatReach
+                : projectionBaseY - floatReach - 0.25D;
+        double projectionVerticalReach = horizontalPlane
+                ? horizontalPlaneVerticalReach
+                : height * Math.max(0.0D, Math.cos(Math.toRadians(Math.abs(settings.tiltDegrees()))));
+        double projectionMaxY = projectionBaseY + projectionVerticalReach + 0.25D;
 
         if (entityProjection) {
             String nameplate = blockEntity.entityProjectionState().projectionNameplate();
@@ -1616,4 +1887,6 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
 
     private record FaceSize(float width, float height) {
     }
+    private record WallCancellationTarget(double centerX, double centerY, double centerZ, Direction facing) { }
+
 }

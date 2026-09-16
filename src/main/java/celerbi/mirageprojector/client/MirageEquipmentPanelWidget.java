@@ -50,9 +50,6 @@ public final class MirageEquipmentPanelWidget extends AbstractWidget {
         }
         graphics.drawString(font, Component.translatable("gui.mirage_projector.equipment.upgrades"), getX() + 6, getY() + 48, 0xFFE2C39F, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.equipment.power_cells"), getX() + 6, getY() + 80, 0xFFE2C39F, false);
-        if (expanded) {
-            graphics.drawString(font, "+3", getX() + 74, getY() + 80, 0xFFBFA27F, false);
-        }
     }
 
     @Override

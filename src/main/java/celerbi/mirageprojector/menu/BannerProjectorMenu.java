@@ -1,6 +1,7 @@
 package celerbi.mirageprojector.menu;
 
 import celerbi.mirageprojector.ProjectionChassisProfile;
+import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.registry.ModMenus;
 import net.minecraft.core.BlockPos;
@@ -26,6 +27,8 @@ public final class BannerProjectorMenu extends AbstractContainerMenu {
     public static final int FIRST_PLAYER_SLOT_INDEX = FACE_COUNT;
 
     private final BlockPos projectorPos;
+    private final ProjectionSettings initialSettings;
+    private final boolean initialProjectionEnabled;
     @Nullable
     private final MirageProjectorBlockEntity projector;
     private final boolean prism;
@@ -33,8 +36,10 @@ public final class BannerProjectorMenu extends AbstractContainerMenu {
     public BannerProjectorMenu(int containerId, Inventory inventory, RegistryFriendlyByteBuf buffer) {
         super(ModMenus.BANNER_PROJECTOR.get(), containerId);
         projectorPos = buffer.readBlockPos();
+        initialSettings = ProjectionSettings.read(buffer);
+        initialProjectionEnabled = buffer.readBoolean();
+        prism = buffer.readBoolean();
         projector = inventory.player.level().getBlockEntity(projectorPos) instanceof MirageProjectorBlockEntity be ? be : null;
-        prism = projector != null && projector.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM;
         addBannerSlots(projector == null ? new ItemStackHandler(FACE_COUNT) : projector.bannerSnapshots());
         addPlayerInventory(inventory);
     }
@@ -42,6 +47,8 @@ public final class BannerProjectorMenu extends AbstractContainerMenu {
     public BannerProjectorMenu(int containerId, Inventory inventory, MirageProjectorBlockEntity projector) {
         super(ModMenus.BANNER_PROJECTOR.get(), containerId);
         projectorPos = projector.getBlockPos();
+        this.initialSettings = projector.settings();
+        this.initialProjectionEnabled = projector.projectionEnabled();
         this.projector = projector;
         prism = projector.chassisProfile().geometry() == ProjectionChassisProfile.Geometry.PRISM;
         addBannerSlots(projector.bannerSnapshots());
@@ -92,6 +99,8 @@ public final class BannerProjectorMenu extends AbstractContainerMenu {
     public BlockPos projectorPos() {
         return projectorPos;
     }
+    public ProjectionSettings initialSettings() { return initialSettings; }
+    public boolean initialProjectionEnabled() { return initialProjectionEnabled; }
     @Nullable
     public MirageProjectorBlockEntity projector() {
         return projector;

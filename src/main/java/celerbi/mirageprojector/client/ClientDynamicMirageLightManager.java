@@ -113,13 +113,18 @@ public final class ClientDynamicMirageLightManager {
                 continue;
             }
 
+            Map<Long, byte[]> beforeAggregate = snapshotAggregate(level, installedField);
             MirageLightWorld.UpdateResult result = MirageLightEngine.updateSource(
                     level,
                     candidate,
                     incomplete && !changed
             );
             if (result.rebuilt()) {
-                ClientMirageLightSync.invalidateSections(minecraft, result.changedSections());
+                ClientMirageLightSync.invalidateDynamicSections(
+                        minecraft,
+                        result.changedSections(),
+                        beforeAggregate
+                );
                 entry.installedSource = candidate;
                 entry.lastSolveTick = now;
             } else if (firstInstall) {
@@ -177,13 +182,29 @@ public final class ClientDynamicMirageLightManager {
         }
         Set<Long> dirty = new HashSet<>();
         MirageLightField previous = MirageLightEngine.field(level, sourceId);
+        Map<Long, byte[]> beforeAggregate = snapshotAggregate(level, previous);
         if (previous != null) {
             dirty.addAll(previous.sections().keySet());
         }
         MirageLightEngine.removeSource(level, sourceId);
-        ClientMirageLightSync.invalidateSections(minecraft, dirty);
+        ClientMirageLightSync.invalidateDynamicSections(minecraft, dirty, beforeAggregate);
         entry.installedSource = null;
         entry.lastSolveTick = Long.MIN_VALUE;
+    }
+
+
+    private static Map<Long, byte[]> snapshotAggregate(ClientLevel level, MirageLightField field) {
+        Map<Long, byte[]> snapshot = new HashMap<>();
+        if (level == null || field == null) {
+            return snapshot;
+        }
+        for (long sectionKey : field.sections().keySet()) {
+            byte[] levels = MirageLightEngine.copyAggregateSectionLevels(level, sectionKey);
+            if (levels != null) {
+                snapshot.put(sectionKey, levels);
+            }
+        }
+        return snapshot;
     }
 
     private static final class Entry {

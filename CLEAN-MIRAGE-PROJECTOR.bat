@@ -9,7 +9,7 @@ set /a REMOVED=0
 set /a SKIPPED=0
 set /a FAILED=0
 
->"%LOG%" echo Mirage Projector cumulative pre-build cleanup - dev.79a
+>"%LOG%" echo Mirage Projector cumulative pre-build cleanup - 1.0.28
 >>"%LOG%" echo Started: %DATE% %TIME%
 
 if not exist "gradle.properties" goto :wrong_folder
@@ -18,7 +18,7 @@ if errorlevel 1 goto :wrong_folder
 
 if "%FROM_BUILD%"=="0" (
     echo ============================================================
-    echo      MIRAGE PROJECTOR - LIMPIEZA ACUMULATIVA dev.79a
+    echo      MIRAGE PROJECTOR - LIMPIEZA ACUMULATIVA 1.0.28
     echo ============================================================
     echo Proyecto: %CD%
     echo.
@@ -26,6 +26,7 @@ if "%FROM_BUILD%"=="0" (
 
 rem Runtime/source leftovers that can survive when a newer snapshot is copied
 rem over an older Windows project directory.
+call :delete_file "src\main\java\celerbi\mirageprojector\block\DuplicatingLecternBlock.java"
 call :delete_file "src\main\java\celerbi\mirageprojector\block\ImprovedCoreBlock.java"
 call :delete_file "src\main\java\celerbi\mirageprojector\blockentity\ImprovedCoreBlockEntity.java"
 call :delete_file "src\main\java\celerbi\mirageprojector\client\ImprovedCoreRenderer.java"

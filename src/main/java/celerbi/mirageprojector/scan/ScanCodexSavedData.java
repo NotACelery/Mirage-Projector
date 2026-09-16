@@ -12,6 +12,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.saveddata.SavedData;
 
 /**
@@ -23,6 +24,7 @@ import net.minecraft.world.level.saveddata.SavedData;
  */
 public final class ScanCodexSavedData extends SavedData {
     public static final int DATA_VERSION = 1;
+    public static final int MAX_SCANS_PER_ENTITY_TYPE = 25;
     private static final String DATA_NAME = "mirage_projector_scan_codices";
     private static final SavedData.Factory<ScanCodexSavedData> FACTORY =
             new SavedData.Factory<>(ScanCodexSavedData::new, ScanCodexSavedData::load);
@@ -34,17 +36,37 @@ public final class ScanCodexSavedData extends SavedData {
     }
 
     public UUID addScan(UUID codexId, EntityScanData.Scan scan) {
-        if (codexId == null || scan == null || !scan.success() || scan.root() == null) {
+        if (scan == null || !scan.success() || scan.root() == null) {
             return new UUID(0L, 0L);
         }
-        CompoundTag root = scan.root().copy();
+        return addScanRoot(codexId, scan.root());
+    }
+
+    /**
+     * Imports one already-frozen Mirage scan root into a Codex.
+     *
+     * <p>This is used by physical Entity Scan Cards handed between players. The snapshot is copied;
+     * if its ScanId already exists in the destination Codex a fresh id is assigned without changing
+     * the source card.</p>
+     */
+    public UUID addScanRoot(UUID codexId, CompoundTag sourceRoot) {
+        if (codexId == null || sourceRoot == null || sourceRoot.isEmpty()
+                || sourceRoot.sizeInBytes() > EntityScanData.MAX_ENTITY_NBT_BYTES) {
+            return new UUID(0L, 0L);
+        }
+        CompoundTag root = sourceRoot.copy();
         Optional<EntityScanData.View> parsed = EntityScanData.readRoot(root);
         if (parsed.isEmpty()) {
             return new UUID(0L, 0L);
         }
 
         CodexLibrary library = codices.computeIfAbsent(codexId, ignored -> new CodexLibrary());
+        ResourceLocation entityType = parsed.get().entityType();
+        if (countForType(library, entityType) >= MAX_SCANS_PER_ENTITY_TYPE) {
+            return new UUID(0L, 0L);
+        }
         UUID scanId = parsed.get().scanId();
+        root.putUUID("ScanId", scanId);
         while (library.entries.containsKey(scanId)) {
             scanId = UUID.randomUUID();
             root.putUUID("ScanId", scanId);
@@ -52,6 +74,34 @@ public final class ScanCodexSavedData extends SavedData {
         library.entries.put(scanId, new StoredScan(root, false));
         setDirty();
         return scanId;
+    }
+
+    public boolean canAddType(UUID codexId, ResourceLocation entityType) {
+        if (codexId == null || entityType == null) {
+            return false;
+        }
+        CodexLibrary library = codices.get(codexId);
+        return library == null || countForType(library, entityType) < MAX_SCANS_PER_ENTITY_TYPE;
+    }
+
+    public int countForType(UUID codexId, ResourceLocation entityType) {
+        CodexLibrary library = codices.get(codexId);
+        return library == null || entityType == null ? 0 : countForType(library, entityType);
+    }
+
+    public boolean delete(UUID codexId, UUID scanId) {
+        if (codexId == null || scanId == null) {
+            return false;
+        }
+        CodexLibrary library = codices.get(codexId);
+        if (library == null || library.entries.remove(scanId) == null) {
+            return false;
+        }
+        if (library.entries.isEmpty()) {
+            codices.remove(codexId);
+        }
+        setDirty();
+        return true;
     }
 
     public boolean toggleFavorite(UUID codexId, UUID scanId) {
@@ -95,6 +145,17 @@ public final class ScanCodexSavedData extends SavedData {
             )));
         }
         return List.copyOf(result);
+    }
+
+    private static int countForType(CodexLibrary library, ResourceLocation entityType) {
+        int count = 0;
+        for (StoredScan stored : library.entries.values()) {
+            Optional<EntityScanData.View> view = EntityScanData.readRoot(stored.root);
+            if (view.isPresent() && entityType.equals(view.get().entityType())) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private StoredScan stored(UUID codexId, UUID scanId) {

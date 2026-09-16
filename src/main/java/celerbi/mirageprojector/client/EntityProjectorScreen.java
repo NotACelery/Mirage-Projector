@@ -9,7 +9,7 @@ import celerbi.mirageprojector.entity.VirtualEquipmentSnapshots;
 import celerbi.mirageprojector.menu.EntityProjectorMenu;
 import celerbi.mirageprojector.network.EntityWorkspaceActionPayload;
 import celerbi.mirageprojector.network.OpenProjectorWorkspacePayload;
-import celerbi.mirageprojector.network.SetProjectionSourcePayload;
+import celerbi.mirageprojector.network.OpenEntityWorkspacePayload;
 import java.util.EnumMap;
 import java.util.Map;
 import net.minecraft.client.gui.GuiGraphics;
@@ -26,8 +26,8 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
 
     private static final int APPLY_X = 52;
     private static final int CHANNEL_X = 86;
-    private static final int PROJECTED_X = 326;
-    private static final int VISIBILITY_X = 347;
+    private static final int PROJECTED_X = 302;
+    private static final int VISIBILITY_X = 334;
 
     private static final int PREVIEW_X = 380;
     private static final int PREVIEW_Y = 58;
@@ -69,10 +69,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
         createVisibilityButtons();
 
         modeButton = addRenderableWidget(Button.builder(Component.empty(), button ->
-                PacketDistributor.sendToServer(new SetProjectionSourcePayload(
-                        menu.projectorPos(),
-                        ProjectionSettings.SourceMode.ENTITY
-                ))
+                PacketDistributor.sendToServer(new OpenEntityWorkspacePayload(menu.projectorPos()))
         ).bounds(leftPos + 286, topPos + 34, 130, 18).build());
 
         backButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button ->
@@ -332,14 +329,11 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
     }
 
     private boolean currentProjectionEnabled() {
-        return menu.projector() == null || menu.projector().projectionEnabled();
+        return menu.initialProjectionEnabled();
     }
 
     private ProjectionSettings.SourceMode currentSourceMode() {
-        if (menu.projector() != null) {
-            return menu.projector().settings().sourceMode();
-        }
-        return ProjectionSettings.SourceMode.ENTITY;
+        return menu.initialSettings().sourceMode();
     }
 
     private void refreshPoseButton() {
@@ -524,8 +518,8 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
 
         graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 18, 134, 0xFFAFD8EE, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.channel"), CHANNEL_X, 134, 0xFFC9CED7, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.projected"), 286, 134, 0xFFB9E4C0, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.visibility"), 347, 134, 0xFFC9CED7, false);
+        graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.projected").getString(), 62), 282, 134, 0xFFB9E4C0, false);
+        graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.visibility").getString(), 34), 333, 134, 0xFFC9CED7, false);
 
         EntityScanData.Kind kind = menu.effectiveKind();
         if (kind == EntityScanData.Kind.HUMANOID) {

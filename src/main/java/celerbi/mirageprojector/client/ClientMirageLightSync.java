@@ -132,19 +132,99 @@ public final class ClientMirageLightSync {
         if (minecraft == null || sectionKeys == null || sectionKeys.isEmpty()) {
             return;
         }
-        ClientLevel level = minecraft.level;
+
+        /*
+         * Static/authoritative updates are comparatively rare, so invalidate the complete
+         * one-section halo. Chunk meshes can sample light from the one-block neighborhood
+         * outside their own section (faces, AO edges/corners). Dirtifying only the section
+         * that owns the changed light leaves adjacent wall/floor meshes baked with stale
+         * packed light until an unrelated block update happens.
+         */
         java.util.HashSet<Long> refreshKeys = new java.util.HashSet<>();
         for (long sectionKey : sectionKeys) {
             SectionPos section = SectionPos.of(sectionKey);
-            refreshKeys.add(sectionKey);
-            /*
-             * A light value in section Y can illuminate the top faces / spawn-label
-             * samples whose floor block lives in section Y-1. Vanilla block-change
-             * invalidation handles this boundary explicitly; virtual Mirage light must
-             * do the same. This is especially visible on test floors at Y=79/80.
-             */
-            refreshKeys.add(section.offset(0, -1, 0).asLong());
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        refreshKeys.add(section.offset(dx, dy, dz).asLong());
+                    }
+                }
+            }
         }
+        invalidateExact(minecraft, refreshKeys);
+    }
+
+    /**
+     * Optimized invalidation for moving DYNAMIC_VISUAL emitters.
+     *
+     * <p>A moving Lantern may rebuild every two ticks, so the full 3x3x3 halo above would be
+     * needlessly expensive. Instead, always rebuild sections whose Mirage bytes changed and
+     * rebuild a neighboring render section only when a changed voxel lies on the matching
+     * section face/edge/corner that the neighbor can sample.</p>
+     */
+    static void invalidateDynamicSections(
+            Minecraft minecraft,
+            Set<Long> changedSections,
+            Map<Long, byte[]> beforeLevels
+    ) {
+        if (minecraft == null || changedSections == null || changedSections.isEmpty()) {
+            return;
+        }
+        ClientLevel level = minecraft.level;
+        java.util.HashSet<Long> refreshKeys = new java.util.HashSet<>(changedSections);
+        Map<Long, byte[]> safeBefore = beforeLevels == null ? Map.of() : beforeLevels;
+
+        for (long sectionKey : changedSections) {
+            SectionPos section = SectionPos.of(sectionKey);
+            byte[] before = safeBefore.get(sectionKey);
+            byte[] after = level == null ? null : MirageLightEngine.copyAggregateSectionLevels(level, sectionKey);
+
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        if (dx == 0 && dy == 0 && dz == 0) {
+                            continue;
+                        }
+                        if (boundaryChanged(before, after, dx, dy, dz)) {
+                            refreshKeys.add(section.offset(dx, dy, dz).asLong());
+                        }
+                    }
+                }
+            }
+        }
+        invalidateExact(minecraft, refreshKeys);
+    }
+
+    private static boolean boundaryChanged(
+            byte[] before,
+            byte[] after,
+            int sectionDx,
+            int sectionDy,
+            int sectionDz
+    ) {
+        for (int y = 0; y < 16; y++) {
+            if (sectionDy < 0 && y != 0) continue;
+            if (sectionDy > 0 && y != 15) continue;
+            for (int z = 0; z < 16; z++) {
+                if (sectionDz < 0 && z != 0) continue;
+                if (sectionDz > 0 && z != 15) continue;
+                for (int x = 0; x < 16; x++) {
+                    if (sectionDx < 0 && x != 0) continue;
+                    if (sectionDx > 0 && x != 15) continue;
+                    int index = (y << 8) | (z << 4) | x;
+                    int oldValue = before == null ? 0 : Byte.toUnsignedInt(before[index]);
+                    int newValue = after == null ? 0 : Byte.toUnsignedInt(after[index]);
+                    if (oldValue != newValue) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static void invalidateExact(Minecraft minecraft, Set<Long> refreshKeys) {
+        ClientLevel level = minecraft.level;
         for (long refreshKey : refreshKeys) {
             SectionPos section = SectionPos.of(refreshKey);
             if (level != null) {

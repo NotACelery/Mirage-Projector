@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** Server-authoritative mutations from the Codex browser. */
+/** Server-authoritative mutations from the handheld Codex browser. */
 public record ScanCodexActionPayload(
         UUID codexId,
         UUID scanId,
@@ -62,6 +62,12 @@ public record ScanCodexActionPayload(
             switch (payload.action()) {
                 case SELECT -> ScanCodexItem.setSelectedScanId(codex, payload.scanId());
                 case TOGGLE_FAVORITE -> data.toggleFavorite(payload.codexId(), payload.scanId());
+                case DELETE -> {
+                    data.delete(payload.codexId(), payload.scanId());
+                    if (payload.scanId().equals(ScanCodexItem.selectedScanId(codex).orElse(null))) {
+                        ScanCodexItem.setSelectedScanId(codex, null);
+                    }
+                }
             }
             ScanCodexItem.sendSnapshot(player, codex, false);
         });
@@ -69,6 +75,7 @@ public record ScanCodexActionPayload(
 
     public enum Action {
         SELECT,
-        TOGGLE_FAVORITE
+        TOGGLE_FAVORITE,
+        DELETE
     }
 }

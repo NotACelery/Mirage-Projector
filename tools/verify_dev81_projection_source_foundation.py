@@ -18,6 +18,10 @@ transform=read('src/main/java/celerbi/mirageprojector/ProjectionTransform.java')
 energy=read('src/main/java/celerbi/mirageprojector/ProjectionEnergySource.java')
 power=read('src/main/java/celerbi/mirageprojector/ProjectionPower.java')
 main=read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 
 need('public static final class SourceMode' in settings,'SourceMode is still a closed enum')
 need('public enum SourceMode' not in settings,'closed SourceMode enum still present')

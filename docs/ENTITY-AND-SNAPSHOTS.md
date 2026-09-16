@@ -70,6 +70,6 @@ Clearing a virtual snapshot must not delete or duplicate a real inventory stack.
 
 ## Scan Codex library layer
 
-Starting in 1.0.17, the Mirage Scan Codex stores multiple independent canonical scan roots in server Overworld SavedData. The physical Codex ItemStack stores only a stable library UUID and selected scan UUID. Search/favorites/category UI works from lightweight metadata summaries; full frozen entity data stays server-authoritative until a later system such as the Duplicating Lectern explicitly requests one exact scan root.
+Starting in 1.0.17, the Mirage Scan Codex stores multiple independent canonical scan roots in server Overworld SavedData. The physical Codex ItemStack stores only a stable library UUID and selected scan UUID. Search/favorites/category UI works from lightweight metadata summaries; full frozen entity data stays server-authoritative until a physical-copy consumer explicitly requests one exact scan root. Since 1.0.23 that consumer is the vanilla-Lectern Codex copy mode.
 
 Repeated scans of the same entity type are intentionally separate. The scan UUID, not the entity registry ID, is the library identity.

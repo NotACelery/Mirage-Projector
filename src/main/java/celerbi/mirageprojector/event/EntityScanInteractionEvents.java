@@ -1,7 +1,6 @@
 package celerbi.mirageprojector.event;
 
 import celerbi.mirageprojector.MirageProjector;
-import celerbi.mirageprojector.item.EntityScanCardItem;
 import celerbi.mirageprojector.item.ScanCodexItem;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
@@ -11,6 +10,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
+/** High-priority capture gesture reserved for the Scan Codex. Entity Scan Cards are containers only. */
 @EventBusSubscriber(modid = MirageProjector.MOD_ID)
 public final class EntityScanInteractionEvents {
     private EntityScanInteractionEvents() {
@@ -23,14 +23,11 @@ public final class EntityScanInteractionEvents {
         }
 
         ItemStack stack = event.getItemStack();
-        InteractionResult result;
-        if (stack.getItem() instanceof EntityScanCardItem scanCard) {
-            result = scanCard.scanTarget(stack, event.getEntity(), target);
-        } else if (stack.getItem() instanceof ScanCodexItem codex) {
-            result = codex.scanTarget(stack, event.getEntity(), target);
-        } else {
+        if (!(stack.getItem() instanceof ScanCodexItem codex)) {
             return;
         }
+
+        InteractionResult result = codex.scanTarget(stack, event.getEntity(), target);
         event.setCancellationResult(result);
         event.setCanceled(true);
     }

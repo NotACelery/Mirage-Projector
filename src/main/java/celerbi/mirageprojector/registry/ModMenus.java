@@ -9,6 +9,7 @@ import celerbi.mirageprojector.menu.ItemProjectorMenu;
 import celerbi.mirageprojector.menu.MirageProjectorMenu;
 import celerbi.mirageprojector.menu.PortableDeviceMenu;
 import celerbi.mirageprojector.menu.MirageLightProjectorMenu;
+import celerbi.mirageprojector.menu.ScanCodexMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
@@ -43,6 +44,9 @@ public final class ModMenus {
 
     public static final DeferredHolder<MenuType<?>, MenuType<MirageLightProjectorMenu>> MIRAGE_LIGHT_PROJECTOR =
             MENUS.register("mirage_light_projector", () -> IMenuTypeExtension.create(MirageLightProjectorMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<ScanCodexMenu>> SCAN_CODEX =
+            MENUS.register("scan_codex", () -> IMenuTypeExtension.create(ScanCodexMenu::new));
 
     private ModMenus() {
     }

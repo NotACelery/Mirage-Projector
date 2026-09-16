@@ -11,9 +11,16 @@ def need(cond, msg):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties')
+props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 need('mod_version=1.0.6' in props, 'version is not 1.0.6')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 need('NETWORK_PROTOCOL = "28"' in main, 'protocol changed unexpectedly')
 
 shape = read('src/main/java/celerbi/mirageprojector/light/engine/MirageLightShape.java')

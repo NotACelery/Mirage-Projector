@@ -139,6 +139,10 @@ public final class ClientHeldProjectors {
                     minecraft, poseStack, bufferSource, cameraPosition, partialTick, player, stack, ordinal
             );
         }
+        if (!MirageHandProjectorItem.portablePowerAvailable(stack, minecraft.level.registryAccess())) {
+            return false;
+        }
+
         Placement placement = placement(player, ordinal);
         MirageProjectorBlockEntity portable = MirageHandProjectorItem.createPortableProjector(
                 stack,
@@ -162,7 +166,7 @@ public final class ClientHeldProjectors {
                 placement.blockPos().getY() - cameraPosition.y,
                 placement.blockPos().getZ() - cameraPosition.z
         );
-        renderer.render(portable, partialTick, poseStack, bufferSource, packedLight, 0);
+        renderer.renderPortableProjection(portable, partialTick, poseStack, bufferSource, packedLight, 0);
         poseStack.popPose();
         return true;
     }

@@ -1,4 +1,4 @@
-# QA Regression Matrix — Mirage Projector 1.0.20
+# QA Regression Matrix — Mirage Projector 1.0.23
 
 Use this matrix after any 1.0.x patch/compatibility change, and as the baseline before integrating the 1.1.0 feature expansion.
 
@@ -166,7 +166,7 @@ No current gameplay path may create `mirage_projector:crying_light_node`; that b
 - Crying Obsidian above the chargers responds to the attenuated transmission;
 - breaking a Core Booster in Survival returns the inserted Glow Dust and preserves its charge state.
 
-## Mirage Light Projector / DYNAMIC_VISUAL consumer (current 1.0.20 contract)
+## Mirage Light Projector / DYNAMIC_VISUAL consumer (current 1.0.21 contract)
 
 - Place the projector facing each horizontal direction and confirm the physical lens and dynamic source follow block facing.
 - Normal right-click cycles exactly Focus -> Flood -> Ambient -> Off -> Focus; it must not insert/extract a battery.
@@ -183,7 +183,7 @@ No current gameplay path may create `mirage_projector:crying_light_node`; that b
 - Jade should show current mode and battery state, or the explicit empty state.
 - Verify multiple nearby light projectors keep separate stable source IDs and stale/off/depleted contributions are removed.
 
-## Mirage Lantern / player-following DYNAMIC_VISUAL consumer (current 1.0.20 contract)
+## Mirage Lantern / player-following DYNAMIC_VISUAL consumer (current 1.0.21 contract)
 
 - A fresh Mirage Lantern starts in Off.
 - Normal right-click cycles exactly Off -> Focus -> Flood -> Ambient -> Off. It must never insert/extract the cell directly.
@@ -260,3 +260,68 @@ python tools/verify_current_line.py
 - Jade must add the currently charging cell name + live percent when a Charging Station has an active cell.
 - Scan Codex must keep the live world sharp: no pause and no vanilla blurred/dim `renderBackground` pass.
 - Existing floor Mirage Light Projector remains a supported device. Its later visible yaw/pitch aiming, a separate wall projector and handheld Lantern ground placement are future 1.1.0 work, not regressions of this wave.
+
+
+## 1.0.21 runtime QA corrections
+
+- Move a Focus/Flood/Ambient Lantern across chunk-section boundaries in darkness. Previously lit terrain must darken again without breaking blocks, and newly reached terrain/walls must illuminate without walking close enough to trigger an unrelated rebuild.
+- Repeat with Sodium enabled and watch broad/tall walls plus floor/ceiling boundaries; no stale rectangular mesh patches should persist.
+- Equip Mirage Lantern in Shoulder Device and inspect third person from multiple angles. The physical item must sit near the right shoulder rather than below the feet; its light origin should follow the shoulder while Focus/Flood direction follows the player look vector.
+- Copy a valid fixed-projector profile into Mirage Hand Projector, insert a charged cell and enable projection from both RMB and GUI. Non-War-Banner Image/Item/Entity/Banner content must render even though the portable projector has no physical fixed-projector Core.
+- Disable/re-enable and move the active Hand Projector between hand, inventory and Shoulder Device; persistent-state rendering/drain must remain intact.
+
+
+## 1.0.23 Scan Codex + vanilla Lectern duplication
+
+1. Put a Mirage Scan Codex on an empty vanilla Lectern; verify the vanilla Lectern visibly enters its occupied/book-present state and the Codex leaves the player's hand.
+2. Right-click the occupied Lectern; verify the custom Mirage Scan Codex browser opens instead of vanilla LecternScreen.
+3. Verify the browser remains non-pausing and does not blur/dim the world, and that its presentation reads as a two-page book rather than a flat dark utility panel.
+4. Select one stored capture, keep one Paper in Survival inventory and press Duplicate Scan; verify exactly one Paper is consumed and exactly one physical Entity Scan Card is created.
+5. Project that card and confirm it reproduces the selected frozen capture, including player skin/name/equipment/nameplate where applicable.
+6. Duplicate the same selected capture twice; verify both outputs represent the same `ScanId` while the Codex entry remains intact.
+7. Select a different capture of the same entity type and duplicate again; verify the output follows that exact snapshot rather than species/type alone.
+8. Remove all Paper; verify no card is created. In Creative, verify duplication succeeds without consuming Paper.
+9. Fill the player inventory and duplicate; verify the completed card drops once at the player rather than disappearing.
+10. Press Take Codex; verify the exact same physical Codex returns with its library UUID and selected capture intact.
+11. Break a Lectern while the Codex is mounted and verify vanilla book-drop behavior returns the Codex.
+12. Place normal vanilla books/book-and-quill on Lecterns and verify their vanilla interaction/UI remains unchanged.
+13. Open a held Codex normally and verify duplication/Take Codex controls are absent.
+14. Verify no standalone Mirage Duplicating Lectern exists in Creative or the registry/resource inventory.
+
+## 1.0.25 Table / Wall Data-show QA
+
+- [ ] Table places only with support below and survives normal floor/table support.
+- [ ] Table Image and Banner sources lie horizontally; Item and Entity projections remain upright.
+- [ ] Sneak + empty-hand RMB picks up Table as one stateful item with Core/source/settings preserved and no duplicate drops.
+- [ ] Removing Table support drops exactly one packed stateful projector.
+- [ ] Wall/Data-show can be placed on full flat blocks facing N/E/S/W; top slabs, stairs and partial collision supports are rejected.
+- [ ] Wall physical collision/model stays below slab height and its lens faces the block `FACING` direction.
+- [ ] Wall is Image-only; Item/Entity/Banner source buttons/workspaces are unavailable.
+- [ ] With a clean wall ahead, square/tall/16:9 images preserve aspect ratio and project directly on the wall plane.
+- [ ] Build an irregular area outside a tall image's narrow footprint; projection remains valid. Repeat with unused space above/below a 16:9 footprint.
+- [ ] Put a stair/slab/recess/protrusion inside the actual image footprint; projection cancels or scales down until no image-covered cell is irregular.
+- [ ] X and Y offsets move the real validated image footprint independently and can move it from an invalid patch to a valid patch (and vice versa).
+- [ ] Increase requested Scale beyond available clean wall area; resolved Scale reduces without cropping/stretching.
+- [ ] Increase projector-to-wall distance and verify used PU increases; sufficiently distant/large projections stop when the Core budget cannot satisfy even the minimum valid scale.
+- [ ] Place an obstruction between projector and any image-covered wall cell; projection cancels. Obstructions outside the image footprint do not matter.
+- [ ] Load several images in the Wall playlist, reorder them, set current, use Previous/Next, close/reopen/reload and verify order/current slide persist.
+- [ ] Removing Wall floor/table support drops exactly one packed stateful projector preserving playlist/current slide/Core/settings.
+- [ ] Compact/Display/Wide/Tall/Field/Prism placement/render/power behavior shows no regression.
+
+## 1.0.26 Presentation Deck / Data-show Remote QA
+
+1. Load 2–9 images into both Table and Wall/Data-show Presentation Decks; reorder and reload the world; order/current slide must persist.
+2. Enable Automatic Presentation at several values including 1 s, 10 s and 120 s. With two or more slides, advance must happen at the configured interval; with zero/one image it must remain stable.
+3. Disable Automatic Presentation. Wait longer than the configured interval; the current slide must not change.
+4. While automatic mode is active, select another slide from the GUI. The already-running countdown must continue rather than restarting.
+5. Insert a Presentation Remote into the physical Data-show top dock. It must bind and be visibly rendered on top of the projector.
+6. Sneak + empty-hand RMB retrieves the remote. A second sneak + empty-hand RMB may then pack the projector normally.
+7. Hold RMB with a bound remote: lightweight overlay appears without pausing/dimming/blur, begins on `-`, tracks left/right mouse movement and commits exactly one `<--` or `-->` step on RMB release.
+8. Manual remote navigation while auto mode is active must keep automatic mode ON and preserve the existing elapsed timer/cadence.
+9. A remote in another dimension must fail cleanly. An unloaded target chunk must not be force-loaded.
+10. Replace a paired Data-show at the same coordinates with a different projector. The old remote must reject it because the persistent link UUID differs.
+11. Create a Wall slide whose actual image footprint intersects irregular/obstructed wall terrain. Selecting it must advance the deck index, suppress the image and show the transparent red circle/slash cancellation marker.
+12. From the invalid slide, Previous/Next and automatic playback must remain able to reach neighboring valid slides.
+13. Confirm the invalidity test ignores irregular terrain outside the actual aspect-correct image rectangle, including tall and 16:9 images.
+14. Pack/move/re-place a Data-show with automatic state and a docked remote. Deck and automation state must survive; extracting the remote must refresh its location binding.
+15. Multiplayer: a bound remote action is server-authoritative and changes the same active slide for all tracking clients.

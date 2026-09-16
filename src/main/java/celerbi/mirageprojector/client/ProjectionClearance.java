@@ -56,6 +56,11 @@ public final class ProjectionClearance {
 
         ProjectionSettings s = settings.sanitized();
         ProjectionChassisProfile safeChassis = chassis == null ? ProjectionChassisProfile.COMPACT : chassis;
+        if (safeChassis == ProjectionChassisProfile.WALL) {
+            // The data-show validates only the real aspect-correct image rectangle against its
+            // target wall. Generic hologram clearance would incorrectly inspect unused envelope.
+            return Result.EMPTY;
+        }
         ProjectionPower.Dimensions dimensions = ProjectionPower.dimensions(s, hasProjectedItem, safeChassis);
         if (dimensions.empty()) {
             return Result.EMPTY;
@@ -77,9 +82,15 @@ public final class ProjectionClearance {
         double bottom = projectorPos.getY()
                 + safeChassis.physicalTopPixels() * PIXEL
                 + s.liftPixels() * PIXEL;
-        double minY = bottom - (s.floatingEnabled() ? s.floatAmplitudePixels() * PIXEL : 0.0D);
+        double minY = bottom - (safeChassis.supportsFloating() && s.floatingEnabled() ? s.floatAmplitudePixels() * PIXEL : 0.0D);
         double tiltRadians = Math.toRadians(Math.abs(s.tiltDegrees()));
-        double verticalReach = height * Math.max(0.0D, Math.cos(tiltRadians));
+        boolean horizontalPlane = safeChassis.usesHorizontalPlaneFor(s.sourceMode());
+        double verticalReach = horizontalPlane
+                ? Math.max(width, height) * Math.abs(Math.sin(tiltRadians)) * 0.5D + 0.05D
+                : height * Math.max(0.0D, Math.cos(tiltRadians));
+        if (horizontalPlane) {
+            minY -= verticalReach;
+        }
         double maxY = bottom + verticalReach;
 
         double halfX;
@@ -104,7 +115,13 @@ public final class ProjectionClearance {
             // is intentionally conservative and remains correct for every rotation angle.
             halfX = Math.max(0.05D, outerRadius);
             halfZ = Math.max(0.05D, outerRadius);
-        } else if (s.rotationEnabled()) {
+        } else if (horizontalPlane) {
+            // A table plane occupies both horizontal axes. Rotation simply spins that rectangle on
+            // the table, so a circular envelope is conservative and independent of yaw.
+            double radius = Math.max(0.05D, Math.hypot(width, height) * 0.5D);
+            halfX = radius;
+            halfZ = radius;
+        } else if (safeChassis.supportsRotation() && s.rotationEnabled()) {
 
             double radius = Math.max(0.05D, width * 0.5D);
             halfX = radius;
@@ -120,7 +137,7 @@ public final class ProjectionClearance {
                     Math.abs(Math.sin(radians)) * halfWidth + Math.abs(Math.cos(radians)) * thickness);
         }
 
-        if (!prism) {
+        if (!prism && !horizontalPlane) {
             double tiltReach = height * Math.abs(Math.sin(Math.toRadians(s.tiltDegrees())));
             halfX += tiltReach;
             halfZ += tiltReach;

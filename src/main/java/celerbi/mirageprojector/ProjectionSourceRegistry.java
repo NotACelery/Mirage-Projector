@@ -32,6 +32,9 @@ public final class ProjectionSourceRegistry {
                 new ContentProvider() {
                     @Override
                     public boolean hasContent(MirageProjectorBlockEntity projector, ProjectionSettings settings) {
+                        if (projector.chassisProfile() == ProjectionChassisProfile.WALL) {
+                            return projector.imageSourceBank().hasAny(ImageSourceBank.PERSISTED_COMPAT_SLOTS) || settings.hasImage();
+                        }
                         if (projector.chassisProfile().supportsMultiSourceImageLayout()
                                 && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
                             return projector.imageSourceBank().hasAny(projector.chassisProfile().imageLayoutSlots());
@@ -44,6 +47,9 @@ public final class ProjectionSourceRegistry {
 
                     @Override
                     public int contentCount(MirageProjectorBlockEntity projector, ProjectionSettings settings) {
+                        if (projector.chassisProfile() == ProjectionChassisProfile.WALL) {
+                            return hasContent(projector, settings) ? 1 : 0;
+                        }
                         if (projector.chassisProfile().supportsMultiSourceImageLayout()
                                 && settings.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
                             return projector.imageSourceBank().countPresent(projector.chassisProfile().imageLayoutSlots());
@@ -66,7 +72,8 @@ public final class ProjectionSourceRegistry {
                 provider(
                         (projector, settings) -> !projector.projectedStack().isEmpty(),
                         (projector, settings) -> projector.projectedStack().isEmpty() ? 0 : 1
-                )
+                ),
+                chassis -> chassis != ProjectionChassisProfile.WALL
         );
         registerBuiltin(
                 ProjectionSettings.SourceMode.ENTITY,
@@ -74,7 +81,8 @@ public final class ProjectionSourceRegistry {
                 provider(
                         (projector, settings) -> projector.entityProjectionState().hasProjectedEntityContent(),
                         (projector, settings) -> projector.entityProjectionState().hasProjectedEntityContent() ? 1 : 0
-                )
+                ),
+                chassis -> chassis != ProjectionChassisProfile.WALL
         );
         registerBuiltin(
                 ProjectionSettings.SourceMode.BANNER,
@@ -96,7 +104,8 @@ public final class ProjectionSourceRegistry {
                         }
                         return count;
                     }
-                }
+                },
+                chassis -> chassis != ProjectionChassisProfile.WALL
         );
     }
 
@@ -157,7 +166,17 @@ public final class ProjectionSourceRegistry {
             String translationKey,
             ContentProvider provider
     ) {
-        Definition definition = new Definition(source, translationKey, provider, SourceCompatibility.ALL, true);
+        return registerBuiltin(source, translationKey, provider, SourceCompatibility.ALL);
+    }
+
+    private static synchronized Definition registerBuiltin(
+            ProjectionSettings.SourceMode source,
+            String translationKey,
+            ContentProvider provider,
+            SourceCompatibility compatibility
+    ) {
+        Definition definition = new Definition(source, translationKey, provider,
+                compatibility == null ? SourceCompatibility.ALL : compatibility, true);
         Definition existing = DEFINITIONS.putIfAbsent(source.id(), definition);
         if (existing != null) {
             throw new IllegalStateException("Builtin projection source already registered: " + source.serializedName());

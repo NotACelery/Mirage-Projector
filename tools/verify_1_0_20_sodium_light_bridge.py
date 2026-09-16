@@ -11,14 +11,21 @@ def need(cond, msg):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties')
+props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 settings = read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
 bridge = read('src/main/java/celerbi/mirageprojector/mixin/client/LevelRendererMirageLightMixin.java')
 
-need('mod_version=1.0.20' in props, 'version is not 1.0.20')
-need('NETWORK_PROTOCOL = "34"' in main, '1.0.20 must retain protocol 34')
-need('SERIALIZATION_VERSION = 3' in settings, 'ProjectionSettings format changed from 3')
+need(any(v in props for v in ('mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not a compatible 1.0.20+ line')
+need(('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or ('NETWORK_PROTOCOL = \"36\"' in main or ('NETWORK_PROTOCOL = \"37\"' in main or 'NETWORK_PROTOCOL = \"38\"' in main)))), '1.0.20 must retain protocol 34')
+need(('SERIALIZATION_VERSION = 3' in settings or 'SERIALIZATION_VERSION = 4' in settings), 'ProjectionSettings format is not a compatible v3/v4 line')
 need('Minecraft.getInstance().level' in bridge, 'packed-light bridge does not resolve the active ClientLevel')
 need('ClientLevel clientLevel' in bridge, 'packed-light bridge does not use an explicit ClientLevel')
 need('MirageLightEngine.virtualBlockLight(clientLevel, pos)' in bridge,

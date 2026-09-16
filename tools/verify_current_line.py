@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Mirage Projector 1.0.20 regression, Sodium hotfix and release suite."""
+"""Run the Mirage Projector 1.0.31 cumulative regression/runtime rebuild suite."""
 
 from pathlib import Path
 import subprocess
@@ -54,6 +54,23 @@ SUITE = [
     'verify_release_1_0_18.py',
     'verify_1_0_20_sodium_light_bridge.py',
     'verify_release_1_0_20.py',
+    'verify_1_0_21_runtime_qa.py',
+    'verify_1_0_23_vanilla_lectern_codex.py',
+    'verify_1_0_24_codex_library_card_rework.py',
+    'verify_1_0_25_anchor_chassis_foundation.py',
+    'verify_release_1_0_25.py',
+    'verify_1_0_26_presentation_control.py',
+    'verify_release_1_0_26.py',
+    'verify_1_0_27_build_stability.py',
+    'verify_release_1_0_27.py',
+    'verify_1_0_28_recipe_sync.py',
+    'verify_release_1_0_28.py',
+    'verify_1_0_29_runtime_qa_interactions.py',
+    'verify_release_1_0_29.py',
+    'verify_1_0_30_ux_runtime_wave.py',
+    'verify_release_1_0_30.py',
+    'verify_1_0_31_table_runtime_rebuild.py',
+    'verify_release_1_0_31.py',
 ]
 
 for name in SUITE:
@@ -62,4 +79,4 @@ for name in SUITE:
     if code:
         raise SystemExit(code)
 
-print(f'\nMIRAGE PROJECTOR 1.0.20 VERIFICATION PASS ({len(SUITE)} gates)')
+print(f'\nMIRAGE PROJECTOR 1.0.31 VERIFICATION PASS ({len(SUITE)} gates)')

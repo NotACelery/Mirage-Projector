@@ -24,6 +24,7 @@ public final class ClientEvents {
         event.register(ModMenus.CHARGING_STATION.get(), ChargingStationScreen::new);
         event.register(ModMenus.PORTABLE_DEVICE.get(), PortableDeviceScreen::new);
         event.register(ModMenus.MIRAGE_LIGHT_PROJECTOR.get(), MirageLightProjectorScreen::new);
+        event.register(ModMenus.SCAN_CODEX.get(), ScanCodexScreen::new);
     }
 
 

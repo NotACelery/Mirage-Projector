@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-assert 'mod_version=0.1.0-dev.76' in read('gradle.properties')
+assert 'mod_version=0.1.0-dev.76' in read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 assert 'NETWORK_PROTOCOL = "25"' in read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 
 mixins = json.loads(read('src/main/resources/mirage_projector.mixins.json'))

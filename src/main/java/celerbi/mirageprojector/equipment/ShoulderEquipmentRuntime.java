@@ -6,6 +6,7 @@ import celerbi.mirageprojector.item.ShoulderRechargeableDevice;
 import celerbi.mirageprojector.item.ShoulderUpgrade;
 import celerbi.mirageprojector.network.ShoulderEquipmentActionPayload;
 import celerbi.mirageprojector.network.ShoulderEquipmentInventoryPayload;
+import celerbi.mirageprojector.network.ShoulderEquipmentCursorPayload;
 import celerbi.mirageprojector.network.ShoulderEquipmentStatePayload;
 import celerbi.mirageprojector.registry.ModAttachments;
 import celerbi.mirageprojector.registry.ModItems;
@@ -45,12 +46,25 @@ public final class ShoulderEquipmentRuntime {
         }
     }
 
-    public static void handleInventoryClick(ServerPlayer player, ShoulderEquipmentActionPayload.Target target) {
+    public static void handleInventoryClick(
+            ServerPlayer player,
+            ShoulderEquipmentActionPayload.Target target,
+            ItemStack clientCarried
+    ) {
         if (player.containerMenu == null || target == null) {
             return;
         }
         ShoulderEquipment equipment = get(player);
-        ItemStack carried = player.containerMenu.getCarried();
+        // CreativeModeInventoryScreen owns a client-side picker menu, so its cursor stack is not
+        // guaranteed to exist in the server container. Creative players are already allowed to
+        // create arbitrary stacks; use the visible client cursor snapshot there. Survival keeps
+        // using the authoritative server cursor and ignores the packet snapshot.
+        ItemStack carried = player.isCreative()
+                ? (clientCarried == null ? ItemStack.EMPTY : clientCarried.copy())
+                : player.containerMenu.getCarried();
+        if (player.isCreative()) {
+            player.containerMenu.setCarried(carried.copy());
+        }
         boolean changed;
         if (target == ShoulderEquipmentActionPayload.Target.STRAP) {
             changed = interactStrap(player, equipment, carried);
@@ -69,6 +83,12 @@ public final class ShoulderEquipmentRuntime {
             broadcast(player, equipment);
             syncOwnerInventory(player, equipment);
         }
+        // The Mirage Equipment panel sits outside the vanilla container bounds. Always correct
+        // the client cursor explicitly so Creative inventory interaction behaves like a real slot
+        // rather than dropping the carried item outside the GUI.
+        PacketDistributor.sendToPlayer(player, new ShoulderEquipmentCursorPayload(
+                player.containerMenu.getCarried().copy()
+        ));
     }
 
     public static void broadcast(ServerPlayer owner, ShoulderEquipment equipment) {

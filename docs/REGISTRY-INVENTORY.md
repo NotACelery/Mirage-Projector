@@ -1,4 +1,4 @@
-# Registry Inventory — Mirage Projector 1.0.20
+# Registry Inventory — Mirage Projector 1.0.26
 
 This file distinguishes active gameplay IDs from compatibility-only IDs.
 
@@ -10,8 +10,10 @@ This file distinguishes active gameplay IDs from compatibility-only IDs.
 - `mirage_projector:wide_mirage_projector`
 - `mirage_projector:tall_mirage_projector`
 - `mirage_projector:mirage_prism`
+- `mirage_projector:mirage_table_projector`
+- `mirage_projector:mirage_wall_projector`
 
-These are the only runtime projector chassis IDs. No temporary/comparison projector IDs are registered.
+These are the current runtime projector chassis IDs. No temporary/comparison projector IDs are registered.
 
 ## Active ecosystem blocks/items
 
@@ -132,3 +134,22 @@ War Banner adds no registry IDs. It is additional state/render behavior of the e
 ## 1.0.18 registry note
 
 1.0.18 adds no new gameplay registry IDs. The historical IDs `mirage_projector:arm_strap` and `mirage_projector:battery_pouch_expansion_patch` are intentionally retained for save compatibility while their user-facing names are **Shoulder Strap** and **Shoulder Strap Slot Expansion**. Portable-device and Light Projector GUIs add menus/payload behavior without renaming existing device IDs.
+
+
+## 1.0.21 registry note
+
+1.0.21 adds no gameplay registry IDs and keeps network protocol 34. The runtime-QA corrections are client rendering/invalidation and portable-render path changes only.
+
+
+## 1.0.22 / 1.0.23 scan-copy registry note
+
+1.0.22 temporarily introduced block/item `mirage_projector:duplicating_lectern` as a foundation snapshot. Runtime QA rejected the separate station. 1.0.23 removes that block/item/resource identity entirely and uses vanilla `minecraft:lectern` as the physical Codex host instead. No Mirage block entity or menu registry is required; position-aware Codex payloads advance the network protocol to 35.
+
+## 1.0.25 registry note
+
+1.0.25 adds block/item IDs `mirage_projector:mirage_table_projector` and `mirage_projector:mirage_wall_projector`. Both reuse the canonical `mirage_projector:mirage_projector` BlockEntity type/state serialization path; no second projector BlockEntity registry identity is introduced. The two new `ProjectionChassisProfile` values are appended after the historical six and advance network protocol to 37.
+
+
+## 1.0.26 registry note
+
+1.0.26 adds the item ID `mirage_projector:presentation_remote`. No new block or BlockEntity registry identity is introduced. The remote is a stack-size-one controller whose Mirage-owned custom data stores its paired projector link UUID, dimension and position. Network protocol advances to 38 because the Image Workspace now carries automatic-presentation state and two presentation-remote payloads are registered.

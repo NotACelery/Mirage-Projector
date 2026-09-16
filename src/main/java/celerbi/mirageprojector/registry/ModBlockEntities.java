@@ -25,7 +25,9 @@ public final class ModBlockEntities {
                             ModBlocks.WIDE_MIRAGE_PROJECTOR.get(),
                             ModBlocks.TALL_MIRAGE_PROJECTOR.get(),
                             ModBlocks.MIRAGE_FIELD_PROJECTOR.get(),
-                            ModBlocks.MIRAGE_PRISM.get()
+                            ModBlocks.MIRAGE_PRISM.get(),
+                            ModBlocks.MIRAGE_TABLE_PROJECTOR.get(),
+                            ModBlocks.MIRAGE_WALL_PROJECTOR.get()
                     ).build(null));
 
 

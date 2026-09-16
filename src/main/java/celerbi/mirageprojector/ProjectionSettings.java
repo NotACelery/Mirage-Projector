@@ -46,11 +46,11 @@ public record ProjectionSettings(
         int tintRgb,
         boolean scanlines,
         boolean debugChassisOverride,
-        int horizontalOffsetPixels, // legacy v3 wire/NBT slot; always sanitized to zero
-        int verticalOffsetPixels,   // legacy v3 wire/NBT slot; positive values migrate into Lift, then zero
+        int horizontalOffsetPixels, // signed X offset used by wall/data-show placement
+        int verticalOffsetPixels,   // signed Y offset used by wall/data-show placement
         int distanceOffsetPixels
 ) {
-    public static final int SERIALIZATION_VERSION = 3;
+    public static final int SERIALIZATION_VERSION = 4;
 
     public static final int DEBUG_MIN_SCALE_PIXELS = 2;
 
@@ -119,7 +119,7 @@ public record ProjectionSettings(
                 sourceMode == null ? SourceMode.IMAGE : sourceMode,
                 imageLayoutMode == null ? ImageLayoutMode.SINGLE : imageLayoutMode,
                 Mth.clamp(scalePixels, DEBUG_MIN_SCALE_PIXELS, DEBUG_MAX_SCALE_PIXELS),
-                Mth.clamp(liftPixels + Math.max(0, verticalOffsetPixels), 0, DEBUG_MAX_LIFT_PIXELS),
+                Mth.clamp(liftPixels, 0, DEBUG_MAX_LIFT_PIXELS),
                 rotationEnabled,
                 Mth.clamp(rotationPeriodTicks, 5, 20 * 60),
                 clockwise,
@@ -140,8 +140,8 @@ public record ProjectionSettings(
                 tintRgb & 0xFFFFFF,
                 scanlines,
                 debugChassisOverride,
-                0,
-                0,
+                Mth.clamp(horizontalOffsetPixels, -MAX_PLACEMENT_OFFSET_PIXELS, MAX_PLACEMENT_OFFSET_PIXELS),
+                Mth.clamp(verticalOffsetPixels, -MAX_PLACEMENT_OFFSET_PIXELS, MAX_PLACEMENT_OFFSET_PIXELS),
                 Mth.clamp(distanceOffsetPixels, 0, PrismProjectionSpacing.MAX_DISTANCE_PIXELS)
         );
     }
@@ -211,7 +211,7 @@ public record ProjectionSettings(
                 safe.orientationX(), safe.orientationY(), safe.orientationZ(), safe.orientationW(),
                 safe.floatingEnabled(), safe.floatMode(), safe.floatAmplitudePixels(), safe.floatCycleTicks(),
                 safe.floatIntervalDegrees(), backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb,
-                scanlines, debugChassisOverride, 0, 0, safe.distanceOffsetPixels());
+                scanlines, debugChassisOverride, horizontalOffsetPixels, verticalOffsetPixels, safe.distanceOffsetPixels());
     }
 
     public ProjectionSettings withPlacement(int prismDistancePixels, float tiltDegrees) {
@@ -222,7 +222,16 @@ public record ProjectionSettings(
                 rotationOffsetDegrees, orientation.x(), orientation.y(), orientation.z(), orientation.w(),
                 floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees,
                 backFaceMode, flipVertical, fullbright, opacityPercent, tintRgb, scanlines, debugChassisOverride,
-                0, 0, prismDistancePixels);
+                horizontalOffsetPixels, verticalOffsetPixels, prismDistancePixels);
+    }
+
+    public ProjectionSettings withWallOffsets(int xPixels, int yPixels) {
+        return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
+                eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
+                sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode,
+                floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees, backFaceMode, flipVertical, fullbright,
+                opacityPercent, tintRgb, scanlines, debugChassisOverride, xPixels, yPixels, distanceOffsetPixels);
     }
 
     public float tiltDegrees() {
@@ -278,6 +287,16 @@ public record ProjectionSettings(
                 rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode, floatAmplitudePixels, floatCycleTicks,
                 floatIntervalDegrees, newBackFaceMode, newFlipVertical, fullbright, opacityPercent, tintRgb,
                 newScanlines, debugChassisOverride, horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels);
+    }
+
+    public ProjectionSettings withBackFaceMode(BackFaceMode mode) {
+        return copy(imageId, imageWidth, imageHeight, backImageId, backImageWidth, backImageHeight,
+                eastImageId, eastImageWidth, eastImageHeight, westImageId, westImageWidth, westImageHeight,
+                sourceMode, imageLayoutMode, scalePixels, liftPixels, rotationEnabled, rotationPeriodTicks, clockwise,
+                rotationOffsetDegrees, orientationX, orientationY, orientationZ, orientationW, floatingEnabled, floatMode,
+                floatAmplitudePixels, floatCycleTicks, floatIntervalDegrees,
+                mode == null ? BackFaceMode.FRONT : mode, flipVertical, fullbright, opacityPercent, tintRgb,
+                scanlines, debugChassisOverride, horizontalOffsetPixels, verticalOffsetPixels, distanceOffsetPixels);
     }
 
     public ProjectionSettings withImageLayoutMode(ImageLayoutMode mode) {
@@ -434,10 +453,15 @@ public record ProjectionSettings(
                 buffer.readInt(),
                 buffer.readBoolean(),
                 buffer.readBoolean(),
-                serializationVersion >= 3 ? buffer.readVarInt() : 0,
-                serializationVersion >= 3 ? buffer.readVarInt() : 0,
+                serializationVersion >= 4 ? buffer.readVarInt() : (serializationVersion >= 3 ? readLegacyAndDiscard(buffer) : 0),
+                serializationVersion >= 4 ? buffer.readVarInt() : (serializationVersion >= 3 ? readLegacyAndDiscard(buffer) : 0),
                 serializationVersion >= 3 ? buffer.readVarInt() : 0
         ).sanitized();
+    }
+
+    private static int readLegacyAndDiscard(RegistryFriendlyByteBuf buffer) {
+        buffer.readVarInt();
+        return 0;
     }
 
     public void save(CompoundTag tag) {
@@ -490,6 +514,8 @@ public record ProjectionSettings(
 
     public static ProjectionSettings load(CompoundTag tag) {
         ProjectionSettings d = DEFAULT;
+        int storedVersion = tag.contains("ProjectionSettingsVersion") ? tag.getInt("ProjectionSettingsVersion") : 2;
+        int legacyVertical = storedVersion < 4 && tag.contains("VerticalOffsetPixels") ? Math.max(0, tag.getInt("VerticalOffsetPixels")) : 0;
         return new ProjectionSettings(
                 tag.contains("ImageId") ? tag.getString("ImageId") : d.imageId(),
                 tag.contains("ImageWidth") ? tag.getInt("ImageWidth") : d.imageWidth(),
@@ -506,7 +532,7 @@ public record ProjectionSettings(
                 loadSourceMode(tag, d.sourceMode()),
                 ImageLayoutMode.fromOrdinal(tag.contains("ImageLayoutMode") ? tag.getInt("ImageLayoutMode") : d.imageLayoutMode().ordinal()),
                 tag.contains("ScalePixels") ? tag.getInt("ScalePixels") : d.scalePixels(),
-                tag.contains("LiftPixels") ? tag.getInt("LiftPixels") : d.liftPixels(),
+                (tag.contains("LiftPixels") ? tag.getInt("LiftPixels") : d.liftPixels()) + legacyVertical,
                 tag.contains("RotationEnabled") ? tag.getBoolean("RotationEnabled") : d.rotationEnabled(),
                 tag.contains("RotationPeriodTicks") ? tag.getInt("RotationPeriodTicks") : d.rotationPeriodTicks(),
                 tag.contains("Clockwise") ? tag.getBoolean("Clockwise") : d.clockwise(),
@@ -527,8 +553,8 @@ public record ProjectionSettings(
                 tag.contains("TintRgb") ? tag.getInt("TintRgb") : d.tintRgb(),
                 tag.contains("Scanlines") ? tag.getBoolean("Scanlines") : d.scanlines(),
                 tag.contains("DebugChassisOverride") ? tag.getBoolean("DebugChassisOverride") : d.debugChassisOverride(),
-                tag.contains("HorizontalOffsetPixels") ? tag.getInt("HorizontalOffsetPixels") : d.horizontalOffsetPixels(),
-                tag.contains("VerticalOffsetPixels") ? tag.getInt("VerticalOffsetPixels") : d.verticalOffsetPixels(),
+                storedVersion >= 4 && tag.contains("HorizontalOffsetPixels") ? tag.getInt("HorizontalOffsetPixels") : 0,
+                storedVersion >= 4 && tag.contains("VerticalOffsetPixels") ? tag.getInt("VerticalOffsetPixels") : 0,
                 tag.contains("DistanceOffsetPixels") ? tag.getInt("DistanceOffsetPixels") : d.distanceOffsetPixels()
         ).sanitized();
     }

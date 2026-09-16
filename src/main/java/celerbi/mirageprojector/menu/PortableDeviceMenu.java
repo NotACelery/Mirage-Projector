@@ -12,6 +12,7 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.extensions.IPlayerExtension;
@@ -20,15 +21,28 @@ import net.neoforged.neoforge.common.extensions.IPlayerExtension;
 public final class PortableDeviceMenu extends AbstractContainerMenu {
     public static final int BATTERY_X = 31;
     public static final int BATTERY_Y = 48;
+    public static final int PROJECTOR_BATTERY_X = 30;
+    public static final int PROJECTOR_BATTERY_Y = 72;
+    public static final int PROJECTOR_SOURCE_X = 58;
+    public static final int PROJECTOR_SOURCE_Y = 72;
     public static final int PLAYER_INV_X = 17;
+    public static final int PROJECTOR_PLAYER_INV_X = 44;
     public static final int COMPACT_PLAYER_INV_Y = 100;
-    public static final int PROJECTOR_PLAYER_INV_Y = 190;
-    public static final int MACHINE_SLOT_COUNT = 1;
+    public static final int PROJECTOR_PLAYER_INV_Y = 198;
+    public static final int BATTERY_SLOT_INDEX = 0;
+    public static final int SOURCE_SLOT_INDEX = 1;
+    public static final int MACHINE_SLOT_COUNT = 2;
 
     private final Inventory playerInventory;
     private final PortableDeviceSource source;
     private final DeviceBatteryContainer battery;
+    private final SimpleContainer sourcePreview = new SimpleContainer(1);
+    private final int playerInvX;
     private final int playerInvY;
+    private final int batteryX;
+    private final int batteryY;
+    private final int sourceX;
+    private final int sourceY;
 
     public PortableDeviceMenu(int containerId, Inventory inventory, RegistryFriendlyByteBuf buffer) {
         this(containerId, inventory, PortableDeviceSource.byOrdinal(buffer.readVarInt()));
@@ -39,11 +53,15 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
         this.playerInventory = inventory;
         this.source = source == null ? PortableDeviceSource.MAIN_HAND : source;
         ItemStack device = this.source.resolve(inventory.player);
-        this.playerInvY = device.getItem() instanceof MirageHandProjectorItem
-                ? PROJECTOR_PLAYER_INV_Y
-                : COMPACT_PLAYER_INV_Y;
+        boolean projector = device.getItem() instanceof MirageHandProjectorItem;
+        this.playerInvX = projector ? PROJECTOR_PLAYER_INV_X : PLAYER_INV_X;
+        this.playerInvY = projector ? PROJECTOR_PLAYER_INV_Y : COMPACT_PLAYER_INV_Y;
+        this.batteryX = projector ? PROJECTOR_BATTERY_X : BATTERY_X;
+        this.batteryY = projector ? PROJECTOR_BATTERY_Y : BATTERY_Y;
+        this.sourceX = PROJECTOR_SOURCE_X;
+        this.sourceY = PROJECTOR_SOURCE_Y;
         this.battery = new DeviceBatteryContainer(inventory.player, this.source);
-        addSlot(new Slot(battery, 0, BATTERY_X, BATTERY_Y) {
+        addSlot(new Slot(battery, 0, batteryX, batteryY) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return RechargeableEnergyItem.isRechargeable(stack);
@@ -54,6 +72,30 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
                 return 1;
             }
         });
+        addSlot(new Slot(sourcePreview, 0, sourceX, sourceY) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return false;
+            }
+
+            @Override
+            public boolean mayPickup(Player player) {
+                return false;
+            }
+
+            @Override
+            public boolean isFake() {
+                return true;
+            }
+
+            @Override
+            public boolean isActive() {
+                ItemStack current = PortableDeviceMenu.this.source.resolve(playerInventory.player);
+                return current.getItem() instanceof MirageHandProjectorItem
+                        && MirageHandProjectorItem.sourceMode(current) != celerbi.mirageprojector.ProjectionSettings.SourceMode.IMAGE;
+            }
+        });
+        refreshSourceSnapshot();
         addPlayerInventory(inventory);
     }
 
@@ -61,8 +103,41 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
         return source;
     }
 
+    public int playerInvX() {
+        return playerInvX;
+    }
+
     public int playerInvY() {
         return playerInvY;
+    }
+
+    public int batteryX() {
+        return batteryX;
+    }
+
+    public int batteryY() {
+        return batteryY;
+    }
+
+    public int sourceX() {
+        return sourceX;
+    }
+
+    public int sourceY() {
+        return sourceY;
+    }
+
+    public void refreshSourceSnapshot() {
+        ItemStack device = source.resolve(playerInventory.player);
+        if (device.getItem() instanceof MirageHandProjectorItem) {
+            sourcePreview.setItem(0, MirageHandProjectorItem.sourceSnapshot(device, playerInventory.player.level()));
+        } else {
+            sourcePreview.setItem(0, ItemStack.EMPTY);
+        }
+    }
+
+    public ItemStack sourceSnapshotStack() {
+        return sourcePreview.getItem(0);
     }
 
     public boolean projectorLayout() {
@@ -94,12 +169,57 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(inventory, col + row * 9 + 9,
-                        PLAYER_INV_X + col * 18, playerInvY + row * 18));
+                        playerInvX + col * 18, playerInvY + row * 18));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(inventory, col, PLAYER_INV_X + col * 18, playerInvY + 58));
+            addSlot(new Slot(inventory, col, playerInvX + col * 18, playerInvY + 58));
         }
+    }
+
+    @Override
+    public void clicked(int slotId, int button, ClickType clickType, Player player) {
+        if (slotId == SOURCE_SLOT_INDEX) {
+            if (player.level().isClientSide) {
+                return;
+            }
+            ItemStack device = source.resolve(player);
+            if (!(device.getItem() instanceof MirageHandProjectorItem)) {
+                return;
+            }
+            boolean changed = false;
+            if (clickType == ClickType.PICKUP) {
+                ItemStack carried = getCarried();
+                changed = carried.isEmpty()
+                        ? MirageHandProjectorItem.clearSourceSnapshot(device, player.level())
+                        : MirageHandProjectorItem.captureSourceSnapshot(device, carried, player.level());
+            } else if (clickType == ClickType.SWAP) {
+                ItemStack candidate = ItemStack.EMPTY;
+                if (button >= 0 && button < 9) {
+                    candidate = player.getInventory().getItem(button);
+                } else if (button == 40) {
+                    candidate = player.getOffhandItem();
+                }
+                if (!candidate.isEmpty()) {
+                    changed = MirageHandProjectorItem.captureSourceSnapshot(device, candidate, player.level());
+                }
+            } else if (clickType == ClickType.QUICK_MOVE || clickType == ClickType.THROW) {
+                changed = MirageHandProjectorItem.clearSourceSnapshot(device, player.level());
+            }
+            if (changed && player instanceof ServerPlayer serverPlayer) {
+                MirageHandProjectorItem.publishState(player, device);
+                source.commit(serverPlayer, device);
+                refreshSourceSnapshot();
+                broadcastChanges();
+            }
+            return;
+        }
+        super.clicked(slotId, button, clickType, player);
+    }
+
+    @Override
+    public boolean canDragTo(Slot slot) {
+        return slot.index != SOURCE_SLOT_INDEX && super.canDragTo(slot);
     }
 
     @Override
@@ -113,15 +233,40 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
         }
         ItemStack current = slot.getItem();
         ItemStack original = current.copy();
-        if (index < MACHINE_SLOT_COUNT) {
+
+        if (index == BATTERY_SLOT_INDEX) {
             if (!moveItemStackTo(current, MACHINE_SLOT_COUNT, slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
+        } else if (index == SOURCE_SLOT_INDEX) {
+            if (!player.level().isClientSide) {
+                ItemStack device = source.resolve(player);
+                if (device.getItem() instanceof MirageHandProjectorItem
+                        && MirageHandProjectorItem.clearSourceSnapshot(device, player.level())
+                        && player instanceof ServerPlayer serverPlayer) {
+                    MirageHandProjectorItem.publishState(player, device);
+                    source.commit(serverPlayer, device);
+                    refreshSourceSnapshot();
+                    broadcastChanges();
+                }
+            }
+            return ItemStack.EMPTY;
         } else if (RechargeableEnergyItem.isRechargeable(current)) {
-            if (!moveItemStackTo(current, 0, 1, false)) {
+            if (!moveItemStackTo(current, BATTERY_SLOT_INDEX, BATTERY_SLOT_INDEX + 1, false)) {
                 return ItemStack.EMPTY;
             }
         } else {
+            if (!player.level().isClientSide) {
+                ItemStack device = source.resolve(player);
+                if (device.getItem() instanceof MirageHandProjectorItem
+                        && MirageHandProjectorItem.captureSourceSnapshot(device, current, player.level())
+                        && player instanceof ServerPlayer serverPlayer) {
+                    MirageHandProjectorItem.publishState(player, device);
+                    source.commit(serverPlayer, device);
+                    refreshSourceSnapshot();
+                    broadcastChanges();
+                }
+            }
             return ItemStack.EMPTY;
         }
         if (current.isEmpty()) {

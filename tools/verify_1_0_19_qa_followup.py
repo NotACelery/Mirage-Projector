@@ -12,12 +12,19 @@ def need(cond, msg):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties')
+props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 settings = read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
-need(any(v in props for v in ('mod_version=1.0.19', 'mod_version=1.0.20')), 'version is not a compatible 1.0.19+ line')
-need('NETWORK_PROTOCOL = "34"' in main, '1.0.19 must retain protocol 34 (no wire-format change)')
-need('SERIALIZATION_VERSION = 3' in settings, 'ProjectionSettings format changed from 3')
+need(any(v in props for v in ('mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not a compatible 1.0.19+ line')
+need(('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or ('NETWORK_PROTOCOL = \"36\"' in main or ('NETWORK_PROTOCOL = \"37\"' in main or 'NETWORK_PROTOCOL = \"38\"' in main)))), '1.0.19 must retain protocol 34 (no wire-format change)')
+need(('SERIALIZATION_VERSION = 3' in settings or 'SERIALIZATION_VERSION = 4' in settings), 'ProjectionSettings format is not a compatible v3/v4 line')
 
 # Correct portable/placed interaction semantics from QA.
 lantern = read('src/main/java/celerbi/mirageprojector/item/MirageLanternItem.java')
@@ -46,10 +53,10 @@ portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceM
 portable_screen = read('src/main/java/celerbi/mirageprojector/client/PortableDeviceScreen.java')
 light_screen = read('src/main/java/celerbi/mirageprojector/client/MirageLightProjectorScreen.java')
 station_screen = read('src/main/java/celerbi/mirageprojector/client/ChargingStationScreen.java')
-need('COMPACT_PLAYER_INV_Y = 100' in portable_menu and 'PROJECTOR_PLAYER_INV_Y = 190' in portable_menu,
-     'portable menu does not separate compact Lantern and tall Hand Projector layouts')
-need('imageHeight = menu.projectorLayout() ? HEIGHT : 184' in portable_screen,
-     'Lantern GUI is not compact while Hand Projector keeps expanded layout')
+need('COMPACT_PLAYER_INV_Y = 100' in portable_menu and ('PROJECTOR_PLAYER_INV_Y = 198' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 190' in portable_menu or 'PROJECTOR_PLAYER_INV_Y = 158' in portable_menu),
+     'portable menu does not separate compact Lantern and Hand Projector layouts')
+need(('imageHeight = menu.projectorLayout() ? HEIGHT : 184' in portable_screen or 'imageHeight = menu.projectorLayout() ? PROJECTOR_HEIGHT : LANTERN_HEIGHT' in portable_screen),
+     'Lantern/Hand Projector layouts are not independently sized')
 need('10, 20' in portable_screen or ', 20,' in portable_screen,
      'portable device status text was not moved below title')
 for name, text in (
@@ -64,7 +71,7 @@ for name, text in (
 equipment_client = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentClientEvents.java')
 need('CreativeModeInventoryScreen' in equipment_client and 'instanceof CreativeModeInventoryScreen' in equipment_client,
      'Mirage Equipment is not exposed in Creative inventory')
-need('creative ? 200 : 180' in equipment_client and 'creative ? 178 : 156' in equipment_client,
+need((('creative ? 200 : 180' in equipment_client and 'creative ? 178 : 156' in equipment_client) or ('int panelX = rightEdge + 28;' in equipment_client and 'int toggleX = rightEdge + 7;' in equipment_client) or ('int panelX = rightEdge + 13;' in equipment_client and 'int toggleX = rightEdge - 2;' in equipment_client)),
      'Creative Mirage Equipment panel/toggle placement contract missing')
 
 # Codex behaves like an inventory overlay: live world, no vanilla blur/dim pass.

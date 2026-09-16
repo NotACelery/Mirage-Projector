@@ -7,6 +7,7 @@ import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.ProjectionSourceRegistry;
 import celerbi.mirageprojector.ProjectorStateTransfer;
+import celerbi.mirageprojector.WallProjectionSurface;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.entity.EntityProjectionState;
 import celerbi.mirageprojector.entity.EntityScanData;
@@ -18,13 +19,17 @@ import celerbi.mirageprojector.entity.VirtualEquipmentSnapshots;
 import celerbi.mirageprojector.item.EntityScanCardItem;
 import celerbi.mirageprojector.menu.MirageProjectorMenu;
 import celerbi.mirageprojector.registry.ModBlockEntities;
+import celerbi.mirageprojector.registry.ModItems;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Inventory;
@@ -33,6 +38,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -43,6 +49,16 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     private ProjectionSettings settings = ProjectionSettings.DEFAULT;
     private boolean projectionEnabled = true;
     private final ImageSourceBank imageSourceBank = new ImageSourceBank();
+    // Historical name kept in network/helper aliases, but since 1.0.26 this is the active slide
+    // index for every presentation-capable chassis (Table + Wall/Data-show).
+    private int wallSlideIndex;
+    private boolean automaticPresentationEnabled;
+    private int automaticPresentationIntervalTicks = 10 * 20;
+    private int automaticPresentationElapsedTicks;
+    @Nullable
+    private UUID presentationLinkId;
+    private transient WallProjectionSurface.Result cachedWallProjection = WallProjectionSurface.Result.invalid(WallProjectionSurface.Failure.NO_IMAGE);
+    private transient long cachedWallProjectionTick = Long.MIN_VALUE;
 
     /**
      * Opaque per-source extension payloads. Built-in 1.0 sources continue using their
@@ -172,6 +188,24 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         }
     };
 
+    private final ItemStackHandler presentationRemote = new ItemStackHandler(1) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            setChangedAndSync();
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return 1;
+        }
+
+        @Override
+        public boolean isItemValid(int slot, ItemStack stack) {
+            return chassisProfile() == ProjectionChassisProfile.WALL
+                    && stack != null && !stack.isEmpty() && stack.is(ModItems.PRESENTATION_REMOTE.get());
+        }
+    };
+
     @Nullable
     private ItemStack pendingPackedPlayerBreakDrop;
 
@@ -243,24 +277,276 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void replaceImageSourceBank(ImageSourceBank bank) {
-        applyImageWorkspace(settings, bank);
+        applyImageWorkspace(settings, bank, wallSlideIndex);
     }
 
     public void applyImageWorkspace(ProjectionSettings newSettings, ImageSourceBank bank) {
+        applyImageWorkspace(newSettings, bank, wallSlideIndex);
+    }
+
+    public void applyImageWorkspace(ProjectionSettings newSettings, ImageSourceBank bank, int requestedWallSlideIndex) {
+        applyImageWorkspace(newSettings, bank, requestedWallSlideIndex, automaticPresentationEnabled, automaticPresentationIntervalSeconds());
+    }
+
+    public void applyImageWorkspace(
+            ProjectionSettings newSettings, ImageSourceBank bank, int requestedWallSlideIndex,
+            boolean automaticPresentation, int automaticIntervalSeconds
+    ) {
         ProjectionSettings next = newSettings.sanitized();
         if (!chassisProfile().supportsMultiSourceImageLayout()
                 && next.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
             next = next.withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
         }
-        settings = next;
         imageSourceBank.clearAll();
         if (bank != null) {
-
             for (int i = 0; i < ImageSourceBank.PERSISTED_COMPAT_SLOTS; i++) {
                 imageSourceBank.set(i, bank.get(i));
             }
         }
+
+        if (supportsPresentationDeck()) {
+            // Presentation-capable chassis own all nine compatibility slots. Legacy single-image worlds
+            // are promoted into slot 0 so upgrading into the Wall chassis never loses the source.
+            if (!imageSourceBank.hasAny(ImageSourceBank.PERSISTED_COMPAT_SLOTS) && next.hasImage()) {
+                imageSourceBank.set(0, next.imageId(), next.imageWidth(), next.imageHeight());
+            }
+            wallSlideIndex = imageSourceBank.normalizePresentIndex(requestedWallSlideIndex);
+            ImageSourceBank.Asset active = activeWallImageFromBank(next);
+            next = next.withSourceMode(ProjectionSettings.SourceMode.IMAGE)
+                    .withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
+            if (chassisProfile() == ProjectionChassisProfile.WALL) {
+                next = next.withBackFaceMode(ProjectionSettings.BackFaceMode.FRONT);
+            }
+            if (active.present()) {
+                next = next.withImage(active.id(), active.width(), active.height());
+            }
+        }
+        boolean previousAutomatic = automaticPresentationEnabled;
+        int previousIntervalTicks = automaticPresentationIntervalTicks();
+        automaticPresentationEnabled = supportsPresentationDeck() && automaticPresentation;
+        automaticPresentationIntervalTicks = Math.max(20, Math.min(2400, automaticIntervalSeconds * 20));
+        // Slide selection/reordering/import is independent from the playback clock.  Preserve
+        // elapsed time when the automatic configuration itself did not change; only toggling
+        // automatic playback or changing its interval starts a fresh countdown.
+        if (previousAutomatic != automaticPresentationEnabled
+                || previousIntervalTicks != automaticPresentationIntervalTicks()) {
+            automaticPresentationElapsedTicks = 0;
+        }
+        settings = next;
+        invalidateWallProjectionCache();
         setChangedAndSync();
+    }
+
+    public int wallSlideIndex() {
+        return imageSourceBank.normalizePresentIndex(wallSlideIndex);
+    }
+
+    public ImageSourceBank.Asset activeWallImage() {
+        return activeWallImageFromBank(settings);
+    }
+
+    private ImageSourceBank.Asset activeWallImageFromBank(ProjectionSettings fallbackSettings) {
+        int normalized = imageSourceBank.normalizePresentIndex(wallSlideIndex);
+        if (normalized >= 0) {
+            return imageSourceBank.get(normalized);
+        }
+        ProjectionSettings safe = fallbackSettings == null ? ProjectionSettings.DEFAULT : fallbackSettings;
+        return safe.hasImage()
+                ? new ImageSourceBank.Asset(safe.imageId(), safe.imageWidth(), safe.imageHeight())
+                : ImageSourceBank.Asset.EMPTY;
+    }
+
+    public void setWallSlideIndex(int requestedIndex) {
+        // Manual selection must not disturb the automatic-presentation cadence.
+        setPresentationSlideIndex(requestedIndex, false);
+    }
+
+    public boolean supportsPresentationDeck() {
+        return chassisProfile().supportsPresentationDeck();
+    }
+
+    public boolean automaticPresentationEnabled() {
+        return supportsPresentationDeck() && automaticPresentationEnabled;
+    }
+
+    public int automaticPresentationIntervalTicks() {
+        return Math.max(20, Math.min(2400, automaticPresentationIntervalTicks));
+    }
+
+    public int automaticPresentationIntervalSeconds() {
+        return Math.max(1, automaticPresentationIntervalTicks() / 20);
+    }
+
+    public int automaticPresentationElapsedTicks() {
+        return Math.max(0, automaticPresentationElapsedTicks);
+    }
+
+    public void configureAutomaticPresentation(boolean enabled, int intervalSeconds) {
+        automaticPresentationEnabled = supportsPresentationDeck() && enabled;
+        automaticPresentationIntervalTicks = Math.max(20, Math.min(2400, intervalSeconds * 20));
+        automaticPresentationElapsedTicks = 0;
+        setChangedAndSync();
+    }
+
+    public boolean stepPresentationSlide(int direction, boolean resetTimer) {
+        if (!supportsPresentationDeck()) {
+            return false;
+        }
+        int next = imageSourceBank.nextPresentIndex(wallSlideIndex, direction);
+        if (next < 0) {
+            return false;
+        }
+        setPresentationSlideIndex(next, resetTimer);
+        return true;
+    }
+
+    public void setPresentationSlideIndex(int requestedIndex, boolean resetTimer) {
+        int normalized = imageSourceBank.normalizePresentIndex(requestedIndex);
+        if (normalized < 0) {
+            wallSlideIndex = 0;
+            if (resetTimer) automaticPresentationElapsedTicks = 0;
+            invalidateWallProjectionCache();
+            setChangedAndSync();
+            return;
+        }
+        wallSlideIndex = normalized;
+        ImageSourceBank.Asset active = imageSourceBank.get(normalized);
+        if (active.present()) {
+            settings = settings.withSourceMode(ProjectionSettings.SourceMode.IMAGE)
+                    .withImage(active.id(), active.width(), active.height())
+                    .withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
+            if (chassisProfile() == ProjectionChassisProfile.WALL) {
+                settings = settings.withBackFaceMode(ProjectionSettings.BackFaceMode.FRONT);
+            }
+        }
+        if (resetTimer) automaticPresentationElapsedTicks = 0;
+        invalidateWallProjectionCache();
+        setChangedAndSync();
+    }
+
+    public UUID ensurePresentationLinkId() {
+        if (presentationLinkId == null) {
+            presentationLinkId = UUID.randomUUID();
+            setChangedAndSync();
+        }
+        return presentationLinkId;
+    }
+
+    @Nullable
+    public UUID presentationLinkId() {
+        return presentationLinkId;
+    }
+
+    public ItemStackHandler presentationRemote() {
+        return presentationRemote;
+    }
+
+    public boolean hasDockedPresentationRemote() {
+        return !presentationRemote.getStackInSlot(0).isEmpty();
+    }
+
+    public boolean insertPresentationRemote(ItemStack source, ServerLevel level) {
+        if (chassisProfile() != ProjectionChassisProfile.WALL || source == null || source.isEmpty()
+                || !source.is(ModItems.PRESENTATION_REMOTE.get()) || hasDockedPresentationRemote()) {
+            return false;
+        }
+        UUID linkId = ensurePresentationLinkId();
+        // Bind the actual source stack before copying it into the dock. This matters in Creative:
+        // the held stack is not consumed there, so binding only the docked copy made the projector
+        // say "paired" while the controller in the player's hand still said "unbound".
+        celerbi.mirageprojector.item.PresentationRemoteItem.bind(
+                source, level.dimension(), worldPosition, linkId
+        );
+        ItemStack docked = source.copyWithCount(1);
+        presentationRemote.setStackInSlot(0, docked);
+        return true;
+    }
+
+    public ItemStack extractPresentationRemote(ServerLevel level) {
+        ItemStack result = presentationRemote.extractItem(0, 1, false);
+        if (!result.isEmpty()) {
+            celerbi.mirageprojector.item.PresentationRemoteItem.bind(
+                    result, level.dimension(), worldPosition, ensurePresentationLinkId()
+            );
+        }
+        return result;
+    }
+
+    public boolean unpairPresentationRemote(ServerPlayer player) {
+        if (chassisProfile() != ProjectionChassisProfile.WALL || presentationLinkId == null) {
+            return false;
+        }
+        UUID oldLink = presentationLinkId;
+        boolean playerAlreadyHasLinkedCopy = false;
+
+        // In Creative the held source remote remains with the player. In Survival this also
+        // invalidates any second copy someone obtained legitimately before an unpair.
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack candidate = player.getInventory().getItem(i);
+            if (!candidate.is(ModItems.PRESENTATION_REMOTE.get())) {
+                continue;
+            }
+            var binding = celerbi.mirageprojector.item.PresentationRemoteItem.binding(candidate);
+            if (binding.isPresent() && oldLink.equals(binding.get().linkId())) {
+                playerAlreadyHasLinkedCopy = true;
+                celerbi.mirageprojector.item.PresentationRemoteItem.unbind(candidate);
+            }
+        }
+
+        ItemStack docked = presentationRemote.extractItem(0, 1, false);
+        if (!docked.isEmpty()) {
+            celerbi.mirageprojector.item.PresentationRemoteItem.unbind(docked);
+            // Avoid handing Creative players an extra duplicate when the original bound remote
+            // is already in their hotbar/inventory. Survival always gets the physical docked item.
+            if (!player.isCreative() || !playerAlreadyHasLinkedCopy) {
+                if (!player.addItem(docked)) {
+                    player.drop(docked, false);
+                }
+            }
+        }
+
+        // Invalidates any other old copy immediately. A newly docked remote receives a fresh ID.
+        presentationLinkId = null;
+        setChangedAndSync();
+        return true;
+    }
+
+    public static void serverTick(Level level, BlockPos pos, BlockState state, MirageProjectorBlockEntity projector) {
+        if (!projector.supportsPresentationDeck() || !projector.automaticPresentationEnabled
+                || !projector.projectionEnabled()
+                || projector.imageSourceBank.countPresent(ImageSourceBank.PERSISTED_COMPAT_SLOTS) < 2) {
+            return;
+        }
+        projector.automaticPresentationElapsedTicks++;
+        if (projector.automaticPresentationElapsedTicks < projector.automaticPresentationIntervalTicks()) {
+            return;
+        }
+        projector.automaticPresentationElapsedTicks = 0;
+        projector.stepPresentationSlide(1, false);
+    }
+
+    public WallProjectionSurface.Result wallProjectionSurface() {
+        if (chassisProfile() != ProjectionChassisProfile.WALL || level == null) {
+            return WallProjectionSurface.Result.invalid(WallProjectionSurface.Failure.NO_WALL);
+        }
+        long tick = level.getGameTime();
+        if (cachedWallProjectionTick != Long.MIN_VALUE && tick - cachedWallProjectionTick >= 0L
+                && tick - cachedWallProjectionTick <= 4L) {
+            return cachedWallProjection;
+        }
+        Direction facing = getBlockState().hasProperty(MirageProjectorBlock.FACING)
+                ? getBlockState().getValue(MirageProjectorBlock.FACING)
+                : Direction.NORTH;
+        cachedWallProjection = WallProjectionSurface.resolve(
+                level, worldPosition, facing, settings, activeWallImage(), coreProfile()
+        );
+        cachedWallProjectionTick = tick;
+        return cachedWallProjection;
+    }
+
+    private void invalidateWallProjectionCache() {
+        cachedWallProjectionTick = Long.MIN_VALUE;
+        cachedWallProjection = WallProjectionSurface.Result.invalid(WallProjectionSurface.Failure.NO_IMAGE);
     }
 
     public ProjectionChassisProfile chassisProfile() {
@@ -410,6 +696,12 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public ProjectionPower.Status powerStatus() {
+        if (chassisProfile() == ProjectionChassisProfile.WALL) {
+            WallProjectionSurface.Result surface = wallProjectionSurface();
+            if (surface.powerStatus() != null) {
+                return surface.powerStatus();
+            }
+        }
         return ProjectionPower.evaluate(settings, coreProfile(), chassisProfile(), hasProjectedSourceContent(), projectedSourceCount());
     }
 
@@ -612,6 +904,10 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         return pendingPackedPlayerBreakDrop != null && !pendingPackedPlayerBreakDrop.isEmpty();
     }
 
+    public ItemStack copyPendingPackedPlayerBreakDrop() {
+        return hasPendingPackedPlayerBreakDrop() ? pendingPackedPlayerBreakDrop.copy() : ItemStack.EMPTY;
+    }
+
     public ItemStack takePendingPackedPlayerBreakDrop() {
         if (!hasPendingPackedPlayerBreakDrop()) {
             pendingPackedPlayerBreakDrop = null;
@@ -623,6 +919,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     private void setChangedAndSync() {
+        invalidateWallProjectionCache();
         setChanged();
         if (level != null && !level.isClientSide) {
             BlockState state = getBlockState();
@@ -633,6 +930,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     public void writeMenuData(RegistryFriendlyByteBuf buffer) {
         buffer.writeBlockPos(worldPosition);
         settings.write(buffer);
+        buffer.writeBoolean(projectionEnabled);
     }
 
     @Override
@@ -644,6 +942,18 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             tag.put("ProjectionSourcePayloads", projectionSourcePayloads.copy());
         }
         tag.put("ImageSourceBank", imageSourceBank.save());
+        if (supportsPresentationDeck()) {
+            tag.putInt("PresentationSlideIndex", Math.max(0, wallSlideIndex()));
+            tag.putBoolean("AutomaticPresentation", automaticPresentationEnabled);
+            tag.putInt("AutomaticPresentationIntervalTicks", automaticPresentationIntervalTicks());
+            tag.putInt("AutomaticPresentationElapsedTicks", Math.max(0, automaticPresentationElapsedTicks));
+        }
+        if (presentationLinkId != null) {
+            tag.putUUID("PresentationLinkId", presentationLinkId);
+        }
+        if (hasDockedPresentationRemote()) {
+            tag.put("PresentationRemote", presentationRemote.serializeNBT(registries));
+        }
         tag.put("ProjectionSnapshot", projectionSnapshot.serializeNBT(registries));
         tag.put("BannerSnapshots", bannerSnapshots.serializeNBT(registries));
         if (projectionSnapshotId != null) {
@@ -688,6 +998,43 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
                         .withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
             }
         }
+        if (supportsPresentationDeck()) {
+            if (!imageSourceBank.hasAny(ImageSourceBank.PERSISTED_COMPAT_SLOTS) && settings.hasImage()) {
+                imageSourceBank.set(0, settings.imageId(), settings.imageWidth(), settings.imageHeight());
+            }
+            int savedSlideIndex = tag.contains("PresentationSlideIndex")
+                    ? tag.getInt("PresentationSlideIndex")
+                    : (tag.contains("WallSlideIndex") ? tag.getInt("WallSlideIndex") : 0);
+            wallSlideIndex = imageSourceBank.normalizePresentIndex(savedSlideIndex);
+            ImageSourceBank.Asset active = activeWallImageFromBank(settings);
+            settings = settings.withSourceMode(ProjectionSettings.SourceMode.IMAGE)
+                    .withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
+            if (chassisProfile() == ProjectionChassisProfile.WALL) {
+                settings = settings.withBackFaceMode(ProjectionSettings.BackFaceMode.FRONT);
+            }
+            if (active.present()) {
+                settings = settings.withImage(active.id(), active.width(), active.height());
+            }
+            automaticPresentationEnabled = tag.getBoolean("AutomaticPresentation");
+            automaticPresentationIntervalTicks = Math.max(20, Math.min(2400,
+                    tag.contains("AutomaticPresentationIntervalTicks") ? tag.getInt("AutomaticPresentationIntervalTicks") : 200));
+            automaticPresentationElapsedTicks = Math.max(0, Math.min(automaticPresentationIntervalTicks,
+                    tag.contains("AutomaticPresentationElapsedTicks") ? tag.getInt("AutomaticPresentationElapsedTicks") : 0));
+        } else {
+            wallSlideIndex = 0;
+            automaticPresentationEnabled = false;
+            automaticPresentationElapsedTicks = 0;
+        }
+        presentationLinkId = tag.hasUUID("PresentationLinkId") ? tag.getUUID("PresentationLinkId") : null;
+        presentationRemote.setStackInSlot(0, ItemStack.EMPTY);
+        if (tag.contains("PresentationRemote")) {
+            presentationRemote.deserializeNBT(registries, tag.getCompound("PresentationRemote"));
+            ItemStack remote = presentationRemote.getStackInSlot(0);
+            if (!remote.isEmpty() && !remote.is(ModItems.PRESENTATION_REMOTE.get())) {
+                presentationRemote.setStackInSlot(0, ItemStack.EMPTY);
+            }
+        }
+        invalidateWallProjectionCache();
         projectionSnapshotId = null;
         projectionSnapshot.setStackInSlot(0, ItemStack.EMPTY);
         for (int face = 0; face < bannerSnapshots.getSlots(); face++) {
@@ -775,6 +1122,8 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             case TALL -> "container.mirage_projector.tall";
             case FIELD -> "container.mirage_projector.field";
             case PRISM -> "container.mirage_projector.prism";
+            case TABLE -> "container.mirage_projector.table";
+            case WALL -> "container.mirage_projector.wall";
             default -> "container.mirage_projector.projector";
         };
         return Component.translatable(key);

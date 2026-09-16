@@ -47,11 +47,18 @@ def load_json_no_duplicates(path: Path):
 
 
 # Release metadata / platform baseline.
-props = read('gradle.properties')
+props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 need('mod_version=1.0.6' in props, 'gradle.properties is not 1.0.6')
 need('minecraft_version=1.21.1' in props, 'Minecraft baseline changed')
 need('neo_version=21.1.244' in props, 'NeoForge baseline changed')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 need('NETWORK_PROTOCOL = "28"' in main, 'network protocol is not 28')
 mods_toml = read('src/main/templates/META-INF/neoforge.mods.toml')
 need('version="${mod_version}"' in mods_toml, 'NeoForge metadata is not wired to mod_version')

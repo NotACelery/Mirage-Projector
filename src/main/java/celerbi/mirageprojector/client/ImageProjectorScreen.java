@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
@@ -35,10 +36,13 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
     private int westHeight;
     private final ImageSourceBank sourceBank;
     private int selectedBankSlot;
+    private int wallSlideIndex;
     private ProjectionSettings.ImageLayoutMode imageLayoutMode;
     private ProjectionSettings.BackFaceMode backFaceMode;
     private boolean flipVertical;
     private boolean scanlines;
+    private boolean automaticPresentationEnabled;
+    private int automaticPresentationIntervalSeconds;
     private Component status = Component.translatable("gui.mirage_projector.status.ready");
 
     private Button workspaceModeButton;
@@ -55,6 +59,13 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
     private Button bankImportButton;
     private Button bankClearButton;
     private Button bankCopyButton;
+    private Button wallMoveUpButton;
+    private Button wallMoveDownButton;
+    private Button wallSetCurrentButton;
+    private Button wallPreviousButton;
+    private Button wallNextButton;
+    private Button automaticPresentationButton;
+    private SecondsSlider automaticPresentationSlider;
 
     private int mapX;
     private int mapY;
@@ -64,7 +75,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
 
     public ImageProjectorScreen(ImageProjectorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        if (menu.supportsMultiSourceLayout()) {
+        if (menu.supportsMultiSourceLayout() || menu.isPresentationDeck()) {
             imageWidth = 520;
             imageHeight = 438;
         } else {
@@ -85,6 +96,11 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         westWidth = s.westImageWidth();
         westHeight = s.westImageHeight();
         sourceBank = menu.initialImageBank();
+        wallSlideIndex = sourceBank.normalizePresentIndex(menu.initialWallSlideIndex());
+        if (wallSlideIndex < 0) {
+            wallSlideIndex = 0;
+        }
+        selectedBankSlot = wallSlideIndex;
         imageLayoutMode = menu.supportsMultiSourceLayout() ? s.imageLayoutMode() : ProjectionSettings.ImageLayoutMode.SINGLE;
         backFaceMode = s.backFaceMode();
         if (imageLayoutMode == ProjectionSettings.ImageLayoutMode.MULTI
@@ -96,6 +112,8 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         }
         flipVertical = s.flipVertical();
         scanlines = s.scanlines();
+        automaticPresentationEnabled = menu.initialAutomaticPresentationEnabled();
+        automaticPresentationIntervalSeconds = menu.initialAutomaticPresentationIntervalSeconds();
     }
 
     @Override
@@ -103,7 +121,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         super.init();
         workspaceModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             apply(false);
-            PacketDistributor.sendToServer(new celerbi.mirageprojector.network.SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.IMAGE));
+            PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
         }).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
 
         workspaceBackButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button -> {
@@ -111,7 +129,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
             PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()));
         }).bounds(leftPos + imageWidth - 138, topPos + 34, 126, 18).build());
 
-        if (menu.supportsMultiSourceLayout()) {
+        if (!menu.isPresentationDeck() && menu.supportsMultiSourceLayout()) {
             layoutModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
                 ProjectionSettings.ImageLayoutMode next = imageLayoutMode == ProjectionSettings.ImageLayoutMode.SINGLE
                         ? ProjectionSettings.ImageLayoutMode.MULTI
@@ -144,13 +162,134 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
             layoutModeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.image.layout_mode")));
         }
 
-        if (isMultiSource()) {
+        if (menu.isPresentationDeck()) {
+            initWallPresentation();
+        } else if (isMultiSource()) {
             initMultiSource();
         } else {
             initFaceWorkspace();
         }
         refreshLabels();
         refreshModeButton();
+    }
+
+    private void initWallPresentation() {
+        mapCell = 50;
+        mapWidth = mapCell * 3;
+        mapHeight = mapCell * 3;
+        mapX = leftPos + 24;
+        mapY = topPos + 104;
+
+        bankImportButton = addRenderableWidget(Button.builder(Component.empty(), button -> openBankFilePicker(selectedBankSlot))
+                .bounds(leftPos + 216, topPos + 258, 164, 20).build());
+        bankClearButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.image.bank.clear"), button -> {
+            boolean clearingCurrent = selectedBankSlot == wallSlideIndex;
+            sourceBank.clear(selectedBankSlot);
+            if (clearingCurrent) {
+                int normalized = sourceBank.normalizePresentIndex(wallSlideIndex);
+                wallSlideIndex = normalized < 0 ? 0 : normalized;
+            }
+            syncWallFrontAsset();
+            status = Component.translatable("gui.mirage_projector.image.bank.cleared", selectedBankSlot + 1);
+            refreshLabels();
+        }).bounds(leftPos + 388, topPos + 258, 104, 20).build());
+
+        wallMoveUpButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.wall.move_up"), button -> moveSelectedWallSlide(-1))
+                .bounds(leftPos + 24, topPos + 274, 78, 20).build());
+        wallMoveDownButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.wall.move_down"), button -> moveSelectedWallSlide(1))
+                .bounds(leftPos + 108, topPos + 274, 78, 20).build());
+        wallSetCurrentButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.wall.set_current"), button -> {
+            if (sourceBank.get(selectedBankSlot).present()) {
+                wallSlideIndex = selectedBankSlot;
+                syncWallFrontAsset();
+                apply(false);
+                status = Component.translatable("gui.mirage_projector.wall.current_slide", wallSlideIndex + 1);
+                refreshLabels();
+            }
+        }).bounds(leftPos + 216, topPos + 286, 164, 20).build());
+
+        wallPreviousButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.wall.previous"), button -> stepWallSlide(-1))
+                .bounds(leftPos + 216, topPos + 314, 80, 20).build());
+        wallNextButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.wall.next"), button -> stepWallSlide(1))
+                .bounds(leftPos + 300, topPos + 314, 80, 20).build());
+
+        flipButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            flipVertical = !flipVertical;
+            refreshLabels();
+        }).bounds(leftPos + 388, topPos + 286, 104, 20).build());
+        scanlinesButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            scanlines = !scanlines;
+            refreshLabels();
+        }).bounds(leftPos + 388, topPos + 314, 104, 20).build());
+
+        automaticPresentationButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            automaticPresentationEnabled = !automaticPresentationEnabled;
+            refreshLabels();
+        }).bounds(leftPos + 216, topPos + 342, 164, 20).build());
+        automaticPresentationSlider = addRenderableWidget(new SecondsSlider(
+                leftPos + 388, topPos + 342, 104, 20,
+                automaticPresentationIntervalSeconds, seconds -> automaticPresentationIntervalSeconds = seconds
+        ));
+        automaticPresentationSlider.setTooltip(Tooltip.create(Component.translatable(
+                "tooltip.mirage_projector.presentation.interval"
+        )));
+
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> apply(true))
+                .bounds(leftPos + 24, topPos + 382, 226, 22).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button ->
+                PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
+        ).bounds(leftPos + 270, topPos + 382, 222, 22).build());
+    }
+
+    private void moveSelectedWallSlide(int delta) {
+        int target = selectedBankSlot + delta;
+        if (target < 0 || target >= ImageSourceBank.PERSISTED_COMPAT_SLOTS) {
+            return;
+        }
+        sourceBank.swap(selectedBankSlot, target);
+        if (wallSlideIndex == selectedBankSlot) {
+            wallSlideIndex = target;
+        } else if (wallSlideIndex == target) {
+            wallSlideIndex = selectedBankSlot;
+        }
+        selectedBankSlot = target;
+        syncWallFrontAsset();
+        status = Component.translatable("gui.mirage_projector.wall.reordered", selectedBankSlot + 1);
+        refreshLabels();
+    }
+
+    private void stepWallSlide(int direction) {
+        int next = sourceBank.nextPresentIndex(wallSlideIndex, direction);
+        if (next < 0) {
+            status = Component.translatable("gui.mirage_projector.wall.no_slides");
+            return;
+        }
+        wallSlideIndex = next;
+        selectedBankSlot = next;
+        syncWallFrontAsset();
+        apply(false);
+        status = Component.translatable("gui.mirage_projector.wall.current_slide", wallSlideIndex + 1);
+        refreshLabels();
+    }
+
+    private void syncWallFrontAsset() {
+        int normalized = sourceBank.normalizePresentIndex(wallSlideIndex);
+        if (normalized >= 0) {
+            wallSlideIndex = normalized;
+            ImageSourceBank.Asset active = sourceBank.get(normalized);
+            frontId = active.id();
+            frontWidth = active.width();
+            frontHeight = active.height();
+        } else {
+            frontId = "";
+            frontWidth = 0;
+            frontHeight = 0;
+        }
+        backId = ""; backWidth = 0; backHeight = 0;
+        eastId = ""; eastWidth = 0; eastHeight = 0;
+        westId = ""; westWidth = 0; westHeight = 0;
+        imageLayoutMode = ProjectionSettings.ImageLayoutMode.SINGLE;
+        backFaceMode = ProjectionSettings.BackFaceMode.FRONT;
     }
 
     private void initFaceWorkspace() {
@@ -334,6 +473,27 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         if (bankCopyButton != null) {
             bankCopyButton.active = sourceBank.get(selectedBankSlot).present();
         }
+        if (wallMoveUpButton != null) {
+            wallMoveUpButton.active = selectedBankSlot > 0;
+        }
+        if (wallMoveDownButton != null) {
+            wallMoveDownButton.active = selectedBankSlot < ImageSourceBank.PERSISTED_COMPAT_SLOTS - 1;
+        }
+        if (wallSetCurrentButton != null) {
+            wallSetCurrentButton.active = sourceBank.get(selectedBankSlot).present() && selectedBankSlot != wallSlideIndex;
+        }
+        boolean hasWallSlides = sourceBank.hasAny(ImageSourceBank.PERSISTED_COMPAT_SLOTS);
+        if (wallPreviousButton != null) wallPreviousButton.active = hasWallSlides;
+        if (wallNextButton != null) wallNextButton.active = hasWallSlides;
+        if (automaticPresentationButton != null) {
+            automaticPresentationButton.setMessage(Component.translatable(
+                    "gui.mirage_projector.presentation.automatic", onOff(automaticPresentationEnabled)
+            ));
+            automaticPresentationButton.active = hasWallSlides;
+        }
+        if (automaticPresentationSlider != null) {
+            automaticPresentationSlider.active = hasWallSlides && automaticPresentationEnabled;
+        }
     }
 
     private Component frontImportLabel() {
@@ -430,13 +590,10 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
     }
 
     private boolean currentProjectionEnabled() {
-        return menu.projector() == null || menu.projector().projectionEnabled();
+        return menu.initialProjectionEnabled();
     }
 
     private ProjectionSettings.SourceMode currentSourceMode() {
-        if (menu.projector() != null) {
-            return menu.projector().settings().sourceMode();
-        }
         return menu.initialSettings().sourceMode();
     }
 
@@ -445,7 +602,12 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         uploadIfPresent(backId);
         uploadIfPresent(eastId);
         uploadIfPresent(westId);
-        if (menu.supportsMultiSourceLayout()) {
+        if (menu.isPresentationDeck()) {
+            syncWallFrontAsset();
+            for (int slot = 0; slot < ImageSourceBank.PERSISTED_COMPAT_SLOTS; slot++) {
+                uploadIfPresent(sourceBank.get(slot).id());
+            }
+        } else if (menu.supportsMultiSourceLayout()) {
             for (int slot = 0; slot < menu.imageLayoutSlots(); slot++) {
                 uploadIfPresent(sourceBank.get(slot).id());
             }
@@ -457,7 +619,8 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
                 eastId, eastWidth, eastHeight,
                 westId, westWidth, westHeight,
                 sourceBank.copy(),
-                imageLayoutMode, backFaceMode, flipVertical, scanlines
+                imageLayoutMode, backFaceMode, flipVertical, scanlines, wallSlideIndex,
+                automaticPresentationEnabled, automaticPresentationIntervalSeconds
         ));
         if (returnToMain) {
             PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()));
@@ -476,7 +639,9 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         int y = topPos;
         graphics.fill(x, y, x + imageWidth, y + imageHeight, 0xF014171D);
         graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 2, 0xFF6B4A7E);
-        if (isMultiSource()) {
+        if (menu.isPresentationDeck()) {
+            renderWallPresentationWorkspace(graphics);
+        } else if (isMultiSource()) {
             renderMultiSourceWorkspace(graphics);
         } else if (isPrism()) {
             int ox = faceOffsetX();
@@ -493,6 +658,42 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
                     backFaceMode == ProjectionSettings.BackFaceMode.MIRRORED,
                     false);
         }
+    }
+
+    private void renderWallPresentationWorkspace(GuiGraphics graphics) {
+        int x = leftPos;
+        int y = topPos;
+        graphics.fill(x + 18, y + 82, x + 196, y + 262, 0xFF0B0F14);
+        graphics.fill(x + 208, y + 82, x + 502, y + 250, 0xFF0B0F14);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.wall.playlist"), x + 24, y + 86, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.wall.preview"), x + 216, y + 86, 0xFFD7B8F5, false);
+
+        for (int slot = 0; slot < ImageSourceBank.PERSISTED_COMPAT_SLOTS; slot++) {
+            int column = slot % 3;
+            int row = slot / 3;
+            int sx = mapX + column * mapCell;
+            int sy = mapY + row * mapCell;
+            boolean selected = slot == selectedBankSlot;
+            boolean current = slot == wallSlideIndex && sourceBank.get(slot).present();
+            int border = current ? 0xFFB47CFF : selected ? 0xFFF0E2FF : 0xFF5C5168;
+            graphics.fill(sx, sy, sx + mapCell - 3, sy + mapCell - 3, border);
+            graphics.fill(sx + 2, sy + 2, sx + mapCell - 5, sy + mapCell - 5, 0xFF10151C);
+            ImageSourceBank.Asset asset = sourceBank.get(slot);
+            if (asset.present()) {
+                renderThumbnail(graphics, asset, sx + 4, sy + 4, mapCell - 12, mapCell - 12);
+            } else {
+                graphics.drawCenteredString(font, Component.literal("+"), sx + (mapCell - 3) / 2, sy + 19, 0xFF716A79);
+            }
+            graphics.drawString(font, Component.literal(Integer.toString(slot + 1)), sx + 4, sy + 4, 0xFFFFFFFF, true);
+            if (current) {
+                graphics.drawString(font, Component.literal("▶"), sx + mapCell - 16, sy + 4, 0xFFD8B7FF, true);
+            }
+        }
+
+        ImageSourceBank.Asset active = sourceBank.get(sourceBank.normalizePresentIndex(wallSlideIndex));
+        renderFaceCard(graphics, x + 216, y + 102, 278, 140,
+                Component.translatable("gui.mirage_projector.wall.current_slide", wallSlideIndex + 1),
+                active.id(), active.width(), active.height(), false, false);
     }
 
     private void renderMultiSourceWorkspace(GuiGraphics graphics) {
@@ -597,7 +798,12 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, fit(title.getString(), 220), 10, 9, 0xFFF4F4F4, false);
-        if (isMultiSource()) {
+        if (menu.isPresentationDeck()) {
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.wall.summary",
+                    sourceBank.countPresent(ImageSourceBank.PERSISTED_COMPAT_SLOTS), ImageSourceBank.PERSISTED_COMPAT_SLOTS),
+                    216, 62, 0xFF9FBED1, false);
+            graphics.drawString(font, fit(status.getString(), imageWidth - 44), 22, 367, 0xFFE3D7FF, false);
+        } else if (isMultiSource()) {
             graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.summary",
                     menu.chassisProfile().displayName(), menu.imageLayoutColumns(), menu.imageLayoutRows(), menu.imageLayoutSlots()),
                     244, 62, 0xFF9FBED1, false);
@@ -612,6 +818,18 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (menu.isPresentationDeck() && button == 0 && mouseX >= mapX && mouseY >= mapY
+                && mouseX < mapX + mapWidth && mouseY < mapY + mapHeight) {
+            int column = (int) ((mouseX - mapX) / mapCell);
+            int row = (int) ((mouseY - mapY) / mapCell);
+            int slot = row * 3 + column;
+            if (slot >= 0 && slot < ImageSourceBank.PERSISTED_COMPAT_SLOTS) {
+                selectedBankSlot = slot;
+                status = Component.translatable("gui.mirage_projector.image.bank.selected_status", slot + 1);
+                refreshLabels();
+                return true;
+            }
+        }
         if (isMultiSource() && button == 0 && mouseX >= mapX && mouseY >= mapY
                 && mouseX < mapX + mapWidth && mouseY < mapY + mapHeight) {
             int column = (int) ((mouseX - mapX) / mapCell);
@@ -695,6 +913,12 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         Path selected = chooseImageFile(Component.translatable("gui.mirage_projector.image.picker.slot", slot + 1).getString());
         importSelectedFile(selected, imported -> {
             sourceBank.set(slot, imported.hash(), imported.width(), imported.height());
+            if (menu.isPresentationDeck() && !sourceBank.get(wallSlideIndex).present()) {
+                wallSlideIndex = slot;
+            }
+            if (menu.isPresentationDeck()) {
+                syncWallFrontAsset();
+            }
             status = Component.translatable("gui.mirage_projector.image.bank.imported", slot + 1, imported.width(), imported.height());
             refreshLabels();
         });
@@ -786,6 +1010,40 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
     @Override
     protected void onContentScrolled(int deltaY) {
         mapY += deltaY;
+    }
+
+    private static final class SecondsSlider extends AbstractSliderButton {
+        private static final int MIN_SECONDS = 1;
+        private static final int MAX_SECONDS = 120;
+        private final java.util.function.IntConsumer setter;
+        private int seconds;
+
+        private SecondsSlider(int x, int y, int width, int height, int seconds, java.util.function.IntConsumer setter) {
+            super(x, y, width, height, Component.empty(), normalize(seconds));
+            this.setter = setter;
+            this.seconds = clamp(seconds);
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(Component.translatable("gui.mirage_projector.presentation.interval", seconds));
+        }
+
+        @Override
+        protected void applyValue() {
+            seconds = clamp(MIN_SECONDS + (int) Math.round(value * (MAX_SECONDS - MIN_SECONDS)));
+            setter.accept(seconds);
+            updateMessage();
+        }
+
+        private static double normalize(int seconds) {
+            return (clamp(seconds) - MIN_SECONDS) / (double) (MAX_SECONDS - MIN_SECONDS);
+        }
+
+        private static int clamp(int seconds) {
+            return Math.max(MIN_SECONDS, Math.min(MAX_SECONDS, seconds));
+        }
     }
 
     private enum Face {

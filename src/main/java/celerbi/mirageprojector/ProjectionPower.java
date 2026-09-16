@@ -70,6 +70,30 @@ public final class ProjectionPower {
         return new Status(true, breakdown.totalPower(), available, Failure.NONE);
     }
 
+    /** Wall/data-show distance surcharge: one PU per full block beyond the first block. */
+    public static int wallDistanceCost(int distancePixels) {
+        int beyondFirstBlock = Math.max(0, distancePixels - 16);
+        return Mth.ceil(beyondFirstBlock / 16.0D);
+    }
+
+    public static Status evaluateWallProjection(
+            ProjectionSettings settings,
+            ProjectionCoreProfile core,
+            boolean hasProjectedItem,
+            int projectedSourceCount,
+            int distancePixels
+    ) {
+        Status base = evaluate(settings, core, ProjectionChassisProfile.WALL, hasProjectedItem, projectedSourceCount);
+        if (base.failure() == Failure.NO_CORE || base.failure() == Failure.PHYSICAL_FLOAT_LIMIT) {
+            return base;
+        }
+        int total = base.usedPower() + wallDistanceCost(distancePixels);
+        if (total > base.availablePower()) {
+            return new Status(false, total, base.availablePower(), Failure.POWER_EXCEEDED);
+        }
+        return new Status(true, total, base.availablePower(), Failure.NONE);
+    }
+
     public static int effectiveCapacity(ProjectionCoreProfile core, ProjectionChassisProfile chassis) {
         return effectiveCapacity(ProjectionEnergySource.fromCore(core), chassis);
     }
@@ -102,6 +126,9 @@ public final class ProjectionPower {
     ) {
         ProjectionChassisProfile safeChassis = chassis == null ? ProjectionChassisProfile.COMPACT : chassis;
         ProjectionCoreProfile safeCore = core == null ? ProjectionCoreProfile.NONE : core;
+        if (!safeChassis.supportsLift()) {
+            return 0;
+        }
         if (!safeCore.present()) {
             return Math.min(ProjectionSettings.DEBUG_MAX_LIFT_PIXELS, safeChassis.nominalLiftPixels());
         }
@@ -116,6 +143,9 @@ public final class ProjectionPower {
         ProjectionSettings safe = settings.sanitized();
         ProjectionChassisProfile safeChassis = chassis == null ? ProjectionChassisProfile.COMPACT : chassis;
         ProjectionCoreProfile safeCore = core == null ? ProjectionCoreProfile.NONE : core;
+        if (!safeChassis.supportsFloating()) {
+            return 0;
+        }
         int max = !safeCore.present()
                 ? Math.min(ProjectionSettings.DEBUG_MAX_FLOAT_PIXELS, safeChassis.nominalFloatPixels())
                 : ProjectionSettings.DEBUG_MAX_FLOAT_PIXELS;
@@ -158,6 +188,9 @@ public final class ProjectionPower {
         ProjectionSettings safe = settings.sanitized();
         ProjectionCoreProfile safeCore = core == null ? ProjectionCoreProfile.NONE : core;
         ProjectionChassisProfile safeChassis = chassis == null ? ProjectionChassisProfile.COMPACT : chassis;
+        if (!safeChassis.supportsLift()) {
+            return 0;
+        }
         if (!safeCore.present() || !hasProjectedItem) {
             return Math.min(ProjectionSettings.DEBUG_MAX_LIFT_PIXELS, safeChassis.nominalLiftPixels());
         }
@@ -180,6 +213,9 @@ public final class ProjectionPower {
         ProjectionSettings safe = settings.sanitized();
         ProjectionCoreProfile safeCore = core == null ? ProjectionCoreProfile.NONE : core;
         ProjectionChassisProfile safeChassis = chassis == null ? ProjectionChassisProfile.COMPACT : chassis;
+        if (!safeChassis.supportsFloating()) {
+            return 0;
+        }
         int technical = safe.floatingEnabled()
                 ? Math.min(ProjectionSettings.DEBUG_MAX_FLOAT_PIXELS, safe.liftPixels())
                 : ProjectionSettings.DEBUG_MAX_FLOAT_PIXELS;
@@ -323,18 +359,20 @@ public final class ProjectionPower {
                 ? prismGeometryCost(safe)
                 : applyOverdrive(rawGeometryCost,
                 geometryOverdriveRatio(safe, dims, safeChassis, safe.debugChassisOverride()));
-        int liftCost = axisCost(safe.liftPixels(), safeChassis.nominalLiftPixels(),
-                LIFT_PIXELS_PER_PU, safe.debugChassisOverride());
-        int floatCost = safe.floatingEnabled()
+        int liftCost = safeChassis.supportsLift()
+                ? axisCost(safe.liftPixels(), safeChassis.nominalLiftPixels(),
+                LIFT_PIXELS_PER_PU, safe.debugChassisOverride())
+                : 0;
+        int floatCost = safeChassis.supportsFloating() && safe.floatingEnabled()
                 ? axisCost(safe.floatAmplitudePixels(), safeChassis.nominalFloatPixels(),
                 FLOAT_PIXELS_PER_PU, safe.debugChassisOverride())
                 : 0;
 
         int featureCost = 0;
-        if (safe.rotationEnabled()) {
+        if (safeChassis.supportsRotation() && safe.rotationEnabled()) {
             featureCost += 1;
         }
-        if (safe.floatingEnabled()
+        if (safeChassis.supportsFloating() && safe.floatingEnabled()
                 && safe.floatAmplitudePixels() > 0
                 && safe.floatMode() == ProjectionSettings.FloatMode.ROTATION_SYNCED) {
             featureCost += 1;

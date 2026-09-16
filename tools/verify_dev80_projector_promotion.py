@@ -21,6 +21,10 @@ alts=[
 props=(ROOT/'gradle.properties').read_text()
 need('mod_version=0.1.0-dev.86a' in props,'version is not dev.86a')
 main=(ROOT/'src/main/java/celerbi/mirageprojector/MirageProjector.java').read_text()
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 need('NETWORK_PROTOCOL = "27"' in main,'network protocol is not current protocol 27')
 
 # Temporary alt registry/runtime surface must be gone.

@@ -4,14 +4,11 @@ import celerbi.mirageprojector.entity.EntityScanData;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 
+/** Passive container for one frozen entity snapshot copied from a Scan Codex. */
 public final class EntityScanCardItem extends Item {
     public EntityScanCardItem(Properties properties) {
         super(properties.stacksTo(1));
@@ -24,59 +21,7 @@ public final class EntityScanCardItem extends Item {
                         "item.mirage_projector.entity_scan_card.scanned",
                         scan.displayName()
                 ))
-                .orElseGet(() -> Component.translatable("item.mirage_projector.empty_scan_template"));
-    }
-
-    @Override
-    public InteractionResult interactLivingEntity(
-            ItemStack stack,
-            Player player,
-            LivingEntity target,
-            InteractionHand hand
-    ) {
-
-        if (!player.isShiftKeyDown()) {
-            return InteractionResult.PASS;
-        }
-        return scanTarget(stack, player, target);
-    }
-
-    public InteractionResult scanTarget(ItemStack stack, Player player, LivingEntity target) {
-        if (target.isPassenger() || target.isVehicle()) {
-            if (!player.level().isClientSide) {
-                player.displayClientMessage(
-                        Component.translatable("message.mirage_projector.scan.composite_rejected"),
-                        true
-                );
-            }
-            return InteractionResult.sidedSuccess(player.level().isClientSide);
-        }
-
-        if (player.level().isClientSide) {
-            return InteractionResult.SUCCESS;
-        }
-
-        EntityScanData.Scan scan = EntityScanData.create(target);
-        if (!scan.success()) {
-            player.displayClientMessage(
-                    Component.translatable("message.mirage_projector.scan.too_large", scan.sizeBytes() / 1024),
-                    true
-            );
-            return InteractionResult.FAIL;
-        }
-
-        boolean replaced = EntityScanData.hasScan(stack);
-        EntityScanData.writeToCard(stack, scan);
-        player.displayClientMessage(
-                Component.translatable(
-                        replaced
-                                ? "message.mirage_projector.scan.replaced"
-                                : "message.mirage_projector.scan.success",
-                        scan.displayName()
-                ),
-                true
-        );
-        return InteractionResult.SUCCESS;
+                .orElseGet(() -> Component.translatable("item.mirage_projector.entity_scan_card.empty"));
     }
 
     @Override
@@ -89,11 +34,6 @@ public final class EntityScanCardItem extends Item {
         EntityScanData.read(stack).ifPresentOrElse(scan -> {
             tooltipComponents.add(Component.literal(scan.displayName()).withStyle(ChatFormatting.AQUA));
             tooltipComponents.add(Component.literal(scan.entityType().toString()).withStyle(ChatFormatting.GRAY));
-            tooltipComponents.add(Component.literal("Mode: " + switch (scan.kind()) {
-                case HUMANOID -> "Humanoid Entity";
-                case HORSE -> "Horse Entity";
-                case GENERIC -> "Entity";
-            }).withStyle(ChatFormatting.DARK_GRAY));
             if (scan.hasProjectionNameplate()) {
                 tooltipComponents.add(Component.translatable(
                         "tooltip.mirage_projector.scan_card.nameplate",
@@ -101,12 +41,17 @@ public final class EntityScanCardItem extends Item {
                 ).withStyle(ChatFormatting.GRAY));
             }
             String id = scan.scanId().toString();
-            tooltipComponents.add(Component.literal("Snapshot " + id.substring(0, 8) + "…").withStyle(ChatFormatting.DARK_GRAY));
-            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.frozen").withStyle(ChatFormatting.GREEN));
-            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.overwrite").withStyle(ChatFormatting.GRAY));
+            tooltipComponents.add(Component.literal("Snapshot " + id.substring(0, 8) + "…")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.frozen")
+                    .withStyle(ChatFormatting.GREEN));
+            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.clear_recipe")
+                    .withStyle(ChatFormatting.GRAY));
         }, () -> {
-            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.empty").withStyle(ChatFormatting.GRAY));
-            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.use").withStyle(ChatFormatting.DARK_GRAY));
+            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.empty")
+                    .withStyle(ChatFormatting.GRAY));
+            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.duplicate_only")
+                    .withStyle(ChatFormatting.DARK_GRAY));
         });
     }
 }

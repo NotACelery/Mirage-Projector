@@ -1,4 +1,49 @@
+## 1.0.31
+
+Canonical fixed-projector workspace/runtime rebuild. Image/Item/Entity/Banner workspace opening now atomically selects the corresponding source server-side, and main/workspace menus carry authoritative settings plus projection-enabled snapshots instead of relying on client BlockEntity timing. Table remains on the same base projector menu/screen path as Mirage Display. Main Cancel restores the opening baseline and exits; projector header/source spacing is padded; Scan Codex book canvas is explicitly rendered once before widgets while blur/dimming stays disabled. Network protocol 41; ProjectionSettings format 4.
+
+## 1.0.30
+
+Runtime UX/wiring correction wave. Hand Projector exposes Image/Item/Entity/Banner source modes with virtual non-consuming source capture; Shoulder pseudo-slots capture press+release; Wall Scale/X/Y preview live and Apply/Cancel remain open; Presentation Remote starts centered with a neutral dead-zone; Entity workspace source activation/layout is refreshed; Codex two-page layout and Lectern extension copy are compacted; Entity Scan Card receives dedicated 16×16 art. Network protocol 40; ProjectionSettings format 4.
+
+## 1.0.29
+
+Runtime QA interaction correction pass over 1.0.28. Network protocol **39**; `ProjectionSettings` format remains **4**. Fixes Mirage Equipment Creative-tab visibility and real cursor/slot interaction, restores the Codex book canvas in handheld/lectern modes, makes Table source selection authoritative before opening workspaces, reduces/recenters the Table Core render, repairs Presentation Remote binding in Creative and adds GUI-driven unpairing, and synchronizes Wall/Data-show collision/selection geometry with the low-profile physical model.
+
+## 1.0.28
+
+Runtime recipe-sync hotfix. The filled Entity Scan Card clearing recipe now uses one canonical stateless recipe instance for both JSON decoding and vanilla recipe stream synchronization. This prevents the `clientbound/minecraft:update_recipes` encoder disconnect on world/server join. Protocol remains 38 and `ProjectionSettings` format remains 4; no new gameplay scope.
+
+## 1.0.26 — Presentation Deck automation + Data-show remote control
+
+## 1.0.27
+
+Build/source compatibility hotfix for the 1.0.26 presentation-control line. Protocol remains 38 and `ProjectionSettings` format remains 4. No new gameplay scope.
+
+
+1.0.26 advances network protocol to **38** while keeping `ProjectionSettings` format **4**. Table and Wall/Data-show share the persistent ordered nine-image Presentation Deck. Automatic Presentation is optional with a user-controlled **1–120 second** interval; manual GUI/remote slide changes preserve the current elapsed interval without disabling automatic playback. Wall/Data-show adds one physical top Presentation Remote dock. A paired remote is bound to a persistent projector UUID plus location, opens a lightweight hold-RMB `<-- / - / -->` overlay and commits one previous/next action on release. Remote actions never force-load chunks and reject a projector that does not match the stored link identity. An unprojectable Wall slide remains selected, renders a transparent red circle/slash cancellation marker and remains traversable by Previous/Next/automatic playback. The remote Survival recipe is provisional balance content.
+
 # Version Scope
+
+## 1.0.25 — Table + Wall/Data-show presentation foundation
+
+1.0.25 advances network protocol to 37 and `ProjectionSettings` format **3 → 4**. TABLE and WALL stay appended after the historical six chassis ordinals. Table keeps horizontal Image/Banner with upright Item/Entity plus packed pickup/support-loss behavior. Wall is redefined as a sub-slab-height **freestanding Data-show**, not a wall-mounted block: it requires a complete flat support, faces N/E/S/W, supports Image only, searches for a real wall ahead and validates only the actual aspect-correct image rectangle after Scale + signed X/Y offsets. Terrain outside that image footprint does not matter. Distance adds PU and the requested Scale may resolve downward to fit wall/power. The Wall Image Workspace provides a persistent ordered nine-image presentation playlist with reorder/current/Previous/Next controls. Survival recipes and final art/balance remain provisional.
+
+## 1.0.24 — Scan Codex library/card rework + portable UI lite
+
+1.0.24 advances network protocol to 36 while keeping `ProjectionSettings` format 3. The Scan Codex gains scrollable category/search/detail navigation, a 25-per-entity-type storage limit, passive Entity Scan Card containers, blank-card Lectern duplication, a filled-card clearing recipe, and a permanent Lectern import extension. Successful Mirage-card imports consume the source; optional Easy Mob Farm Mob Capture Cards use the same destructive-success rule. The Hand Projector GUI is compacted and its Forward/War Banner plus Directional/Billboard controls update dynamically from the live device state. Reverse Easy Mob Farm export remains deferred and, if later implemented, is balanced in experience levels rather than raw XP.
+
+## 1.0.23 — vanilla Lectern Scan Codex workflow
+
+1.0.23 advances network protocol to 35 while keeping `ProjectionSettings` format 3. It removes the temporary `mirage_projector:duplicating_lectern` block/item from 1.0.22. A Mirage Scan Codex can instead be mounted directly on a vanilla `minecraft:lectern`; interacting with that occupied Lectern opens the Codex browser in a position-bound copy mode. The server validates that exact mounted Codex before selection/favorite/copy/take actions. One Paper still produces one physical Entity Scan Card containing the unchanged frozen scan root. The browser presentation is also changed from a flat dark panel to a two-page book-like layout while retaining the explicit no-blur/no-pause behavior.
+
+## 1.0.22 — Duplicating Lectern foundation
+
+1.0.22 keeps network protocol 34 and `ProjectionSettings` format 3. It adds the first physical Scan Codex copy workflow: `mirage_projector:duplicating_lectern` resolves the exact selected capture from server-side Codex SavedData, consumes one Paper and produces a physical Entity Scan Card containing the unchanged frozen scan root. The station is stateless; no block entity, menu payload or new wire format is introduced. First-pass art inherits vanilla Lectern presentation and no Survival recipe is frozen yet.
+
+## 1.0.21 — Runtime QA render/invalidation corrections
+
+1.0.21 keeps network protocol 34 and `ProjectionSettings` format 3. It follows the successful 1.0.20 Sodium startup/visible-light correction and fixes three runtime QA regressions: neighboring terrain meshes now receive the render-section invalidation required by baked light sampling, the Shoulder Device vertical transform is corrected to shoulder height, and Mirage Hand Projector uses its embedded-cell/compact-chassis power validation with a dedicated portable hologram render path instead of being rejected by the fixed-projector Core gate. No registry identities or wire formats change.
 
 ## 1.0.20 — Sodium packed-light bridge hotfix
 

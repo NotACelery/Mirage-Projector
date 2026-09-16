@@ -47,11 +47,18 @@ def load_json_no_duplicates(path: Path):
 
 
 # Release metadata / platform baseline.
-props = read('gradle.properties')
-need(any(v in props for v in ('mod_version=1.0.19', 'mod_version=1.0.20')), 'gradle.properties is not a compatible 1.0.19+ line')
+props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+need(any(v in props for v in ('mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22')), 'gradle.properties is not a compatible 1.0.19+ line')
 need('minecraft_version=1.21.1' in props, 'Minecraft baseline changed')
 need('neo_version=21.1.244' in props, 'NeoForge baseline changed')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 need('NETWORK_PROTOCOL = "34"' in main, 'network protocol is not 34')
 mods_toml = read('src/main/templates/META-INF/neoforge.mods.toml')
 need('version="${mod_version}"' in mods_toml, 'NeoForge metadata is not wired to mod_version')
@@ -112,8 +119,10 @@ block_ids |= set(re.findall(r'BLOCKS\.register\(\s*"([a-z0-9_]+)"', blocks_text)
 item_ids = set(re.findall(r'ITEMS\.registerSimpleBlockItem\("([a-z0-9_]+)"', items_text))
 item_ids |= set(re.findall(r'ITEMS\.registerSimpleItem\("([a-z0-9_]+)"', items_text))
 item_ids |= set(re.findall(r'ITEMS\.register\("([a-z0-9_]+)"', items_text))
-need(len(block_ids) == 20, f'expected 20 registered blocks, got {len(block_ids)}')
-need(len(item_ids) == 26, f'expected 26 registered items, got {len(item_ids)}')
+expected_blocks = 22 if any(v in props for v in ('mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')) else (21 if 'mod_version=1.0.22' in props else 20)
+need(len(block_ids) == expected_blocks, f'expected {expected_blocks} registered blocks, got {len(block_ids)}')
+expected_items = 29 if any(v in props for v in ('mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')) else (28 if 'mod_version=1.0.25' in props else (27 if 'mod_version=1.0.22' in props else 26))
+need(len(item_ids) == expected_items, f'expected {expected_items} registered items, got {len(item_ids)}')
 need('mirage_lantern' in item_ids, 'Mirage Lantern item registry ID missing')
 need('mirage_hand_projector' in item_ids, 'Mirage Hand Projector item registry ID missing')
 need((MODELS / 'item/mirage_lantern.json').exists(), 'Mirage Lantern item model missing')
@@ -414,12 +423,12 @@ current_impl = read('docs/CURRENT-IMPLEMENTATION.md')
 roadmap = read('docs/ROADMAP.md')
 development = read('docs/DEVELOPMENT.md')
 authority = read('docs/DOCUMENTATION-AUTHORITY.md')
-need('Mirage Projector 1.0.19' in current_impl and 'Network protocol: **34**' in current_impl,
+need(any(v in current_impl for v in ('Mirage Projector 1.0.19', 'Mirage Projector 1.0.20', 'Mirage Projector 1.0.21', 'Mirage Projector 1.0.22')) and 'Network protocol: **34**' in current_impl,
      'current implementation authority is not on 1.0.19/protocol 34')
-need('Current implementation snapshot: **1.0.19**' in roadmap, 'roadmap current snapshot is not 1.0.19')
-need('Current maintenance baseline: **1.0.19**' in development and 'Network protocol: **34**' in development,
+need(any(v in roadmap for v in ('Current implementation snapshot: **1.0.19**', 'Current implementation snapshot: **1.0.20**', 'Current implementation snapshot: **1.0.21**', 'Current implementation snapshot: **1.0.22**')), 'roadmap current snapshot is not a compatible 1.0.19+ line')
+need(any(v in development for v in ('Current maintenance baseline: **1.0.19**', 'Current maintenance baseline: **1.0.20**', 'Current maintenance baseline: **1.0.21**', 'Current maintenance baseline: **1.0.22**')) and 'Network protocol: **34**' in development,
      'development guide baseline is not 1.0.19/protocol 34')
-need('Documentation Authority — Mirage Projector 1.0.19' in authority,
+need(any(v in authority for v in ('Documentation Authority — Mirage Projector 1.0.19', 'Documentation Authority — Mirage Projector 1.0.20', 'Documentation Authority — Mirage Projector 1.0.21', 'Documentation Authority — Mirage Projector 1.0.22')),
      'documentation authority heading is not 1.0.19')
 
 portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')

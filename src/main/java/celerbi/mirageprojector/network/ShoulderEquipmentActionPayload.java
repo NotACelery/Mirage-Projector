@@ -7,10 +7,17 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** Client request to interact with one Mirage Equipment slot using the vanilla carried stack. */
-public record ShoulderEquipmentActionPayload(Target target) implements CustomPacketPayload {
+/**
+ * Client request to interact with one Mirage Equipment slot.
+ *
+ * <p>Creative inventory screens keep their cursor stack largely client-side, so the packet also
+ * carries the visible cursor snapshot. The server only trusts that snapshot for creative players;
+ * survival continues to use the authoritative server container cursor.</p>
+ */
+public record ShoulderEquipmentActionPayload(Target target, ItemStack clientCarried) implements CustomPacketPayload {
     public static final Type<ShoulderEquipmentActionPayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "shoulder_equipment_action")
     );
@@ -21,16 +28,23 @@ public record ShoulderEquipmentActionPayload(Target target) implements CustomPac
                 public ShoulderEquipmentActionPayload decode(RegistryFriendlyByteBuf buffer) {
                     int ordinal = buffer.readVarInt();
                     Target[] values = Target.values();
-                    return new ShoulderEquipmentActionPayload(
-                            ordinal >= 0 && ordinal < values.length ? values[ordinal] : Target.STRAP
-                    );
+                    Target target = ordinal >= 0 && ordinal < values.length ? values[ordinal] : Target.STRAP;
+                    return new ShoulderEquipmentActionPayload(target, ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
                 }
 
                 @Override
                 public void encode(RegistryFriendlyByteBuf buffer, ShoulderEquipmentActionPayload payload) {
                     buffer.writeVarInt(payload.target().ordinal());
+                    ItemStack.OPTIONAL_STREAM_CODEC.encode(
+                            buffer,
+                            payload.clientCarried() == null ? ItemStack.EMPTY : payload.clientCarried()
+                    );
                 }
             };
+
+    public ShoulderEquipmentActionPayload {
+        clientCarried = clientCarried == null ? ItemStack.EMPTY : clientCarried.copy();
+    }
 
     @Override
     public Type<ShoulderEquipmentActionPayload> type() {
@@ -40,7 +54,7 @@ public record ShoulderEquipmentActionPayload(Target target) implements CustomPac
     public static void handle(ShoulderEquipmentActionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                ShoulderEquipmentRuntime.handleInventoryClick(player, payload.target());
+                ShoulderEquipmentRuntime.handleInventoryClick(player, payload.target(), payload.clientCarried());
             }
         });
     }

@@ -1,4 +1,4 @@
-# Projection Power and Chassis — 1.0.4
+# Projection Power and Chassis — 1.0.26
 
 ## Chassis profiles
 
@@ -10,8 +10,14 @@
 | Tall Mirage Projector | Plane | 32×80 | 96 | 16 | ×2.00 |
 | Mirage Field Projector | Plane | 128×128 | 144 | 24 | ×4.00 |
 | Mirage Prism | Prism | 48×48 baseline | 96 | 12 | ×2.00 |
+| Mirage Table Projector | Plane / tabletop anchor | 48×48 | 64 | 12 | ×1.50 |
+| Mirage Wall Projector | Plane / forward Data-show target | 64×36 | 0 | 0 | ×1.50 |
 
 Nominal dimensions are efficiency targets, not hard render caps. The feasible UI range expands when sufficient Projection Power is available.
+
+Since 1.0.25 each chassis also declares placement capabilities. Table supports Lift/Tilt/Rotation/Floating; its Image/Banner plane is horizontal while volumetric Item/Entity content remains upright. Wall is an Image-only Data-show and does not use hologram Lift/Tilt/Rotation/Floating placement: it exposes Scale plus independent signed X/Y offsets on the real target wall. Prism Distance remains Prism-only.
+
+Wall/Data-show adds a distance surcharge after ordinary image/chassis PU: **+1 PU per full block beyond the first block**. The resolver tests the requested aspect-correct image footprint at each candidate distance and may lower Scale until both the real wall rectangle and PU budget are valid. Geometry outside the image rectangle is never charged or treated as a collision envelope.
 
 ## Core profiles
 
@@ -41,6 +47,8 @@ Fixed projectors use `ProjectionEnergySource` backed by the installed `Projectio
 - Tall: optional 4-row image layout.
 - Field: one continuous plane.
 - Prism: independent cardinal faces where supported by the source family.
+- Table: one source; Image/Banner use the horizontal table plane, Item/Entity use an upright volume.
+- Wall: one outward-facing presentation source; ordered slide-deck support is still pending.
 
 ## Mirage Prism radial spacing
 

@@ -3,7 +3,7 @@ package celerbi.mirageprojector.client;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.menu.ItemProjectorMenu;
 import celerbi.mirageprojector.network.OpenProjectorWorkspacePayload;
-import celerbi.mirageprojector.network.SetProjectionSourcePayload;
+import celerbi.mirageprojector.network.OpenItemWorkspacePayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -36,7 +36,7 @@ public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemPro
     protected void init() {
         super.init();
         modeButton = addRenderableWidget(Button.builder(Component.empty(), button ->
-                PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.ITEM))
+                PacketDistributor.sendToServer(new OpenItemWorkspacePayload(menu.projectorPos()))
         ).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
         modeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.item.activate")));
 
@@ -76,14 +76,11 @@ public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemPro
     }
 
     private boolean currentProjectionEnabled() {
-        return menu.projector() == null || menu.projector().projectionEnabled();
+        return menu.initialProjectionEnabled();
     }
 
     private ProjectionSettings.SourceMode currentSourceMode() {
-        if (menu.projector() != null) {
-            return menu.projector().settings().sourceMode();
-        }
-        return ProjectionSettings.SourceMode.ITEM;
+        return menu.initialSettings().sourceMode();
     }
 
     @Override

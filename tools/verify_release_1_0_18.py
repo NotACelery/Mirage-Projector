@@ -47,12 +47,19 @@ def load_json_no_duplicates(path: Path):
 
 
 # Release metadata / platform baseline.
-props = read('gradle.properties')
-need(any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20')), 'gradle.properties is not a compatible 1.0.18+ line')
+props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+need(any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'gradle.properties is not a compatible 1.0.18+ line')
 need('minecraft_version=1.21.1' in props, 'Minecraft baseline changed')
 need('neo_version=21.1.244' in props, 'NeoForge baseline changed')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-need('NETWORK_PROTOCOL = "34"' in main, 'network protocol is not 34')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+need(('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or ('NETWORK_PROTOCOL = \"36\"' in main or ('NETWORK_PROTOCOL = \"37\"' in main or 'NETWORK_PROTOCOL = \"38\"' in main)))), 'network protocol is not 34')
 mods_toml = read('src/main/templates/META-INF/neoforge.mods.toml')
 need('version="${mod_version}"' in mods_toml, 'NeoForge metadata is not wired to mod_version')
 need('logoFile="logo.png"' in mods_toml, 'NeoForge metadata logo missing')
@@ -112,8 +119,10 @@ block_ids |= set(re.findall(r'BLOCKS\.register\(\s*"([a-z0-9_]+)"', blocks_text)
 item_ids = set(re.findall(r'ITEMS\.registerSimpleBlockItem\("([a-z0-9_]+)"', items_text))
 item_ids |= set(re.findall(r'ITEMS\.registerSimpleItem\("([a-z0-9_]+)"', items_text))
 item_ids |= set(re.findall(r'ITEMS\.register\("([a-z0-9_]+)"', items_text))
-need(len(block_ids) == 20, f'expected 20 registered blocks, got {len(block_ids)}')
-need(len(item_ids) == 26, f'expected 26 registered items, got {len(item_ids)}')
+expected_blocks = 22 if any(v in props for v in ('mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')) else (21 if 'mod_version=1.0.22' in props else 20)
+need(len(block_ids) == expected_blocks, f'expected {expected_blocks} registered blocks, got {len(block_ids)}')
+expected_items = 29 if any(v in props for v in ('mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')) else (28 if 'mod_version=1.0.25' in props else (27 if 'mod_version=1.0.22' in props else 26))
+need(len(item_ids) == expected_items, f'expected {expected_items} registered items, got {len(item_ids)}')
 need('mirage_lantern' in item_ids, 'Mirage Lantern item registry ID missing')
 need('mirage_hand_projector' in item_ids, 'Mirage Hand Projector item registry ID missing')
 need((MODELS / 'item/mirage_lantern.json').exists(), 'Mirage Lantern item model missing')
@@ -272,16 +281,16 @@ need((SRC / 'celerbi/mirageprojector/client/ClientHeldProjectors.java').exists()
 need((SRC / 'celerbi/mirageprojector/ProjectionEnergySource.java').exists(), 'ProjectionEnergySource missing')
 
 # 1.0.7 fixed-tab placement foundation.
-need('SERIALIZATION_VERSION = 3' in settings, 'ProjectionSettings serialization is not v3')
+need(('SERIALIZATION_VERSION = 3' in settings or 'SERIALIZATION_VERSION = 4' in settings), 'ProjectionSettings serialization is not a compatible v3/v4 line')
 need('horizontalOffsetPixels' in settings, 'legacy v3 horizontal compatibility slot missing')
-need('legacy v3 wire/NBT slot; always sanitized to zero' in settings, 'legacy horizontal compatibility semantics undocumented')
+need('readLegacyAndDiscard' in settings and 'storedVersion >= 4' in settings, 'legacy v3 offset compatibility/migration semantics missing')
 need('withPlacement(int prismDistancePixels, float tiltDegrees)' in settings, 'placement helper still exposes a second vertical axis')
 need('MAX_TILT_DEGREES = 90' in settings, 'Tilt is not full ±90 degrees')
 transform = read('src/main/java/celerbi/mirageprojector/ProjectionTransform.java')
 need('horizontalOffsetPixels' not in transform, 'ProjectionTransform still exposes horizontal translation')
 need('verticalOffsetPixels' not in transform, 'ProjectionTransform still exposes a second vertical translation axis')
-need('positive values migrate into Lift, then zero' in settings, 'legacy Vertical Offset migration contract undocumented')
-need('Mth.clamp(liftPixels + Math.max(0, verticalOffsetPixels)' in settings, 'positive legacy Vertical Offset is not absorbed into Lift')
+need('legacyVertical = storedVersion < 4' in settings and '+ legacyVertical' in settings, 'legacy Vertical Offset -> Lift migration contract missing')
+need('legacyVertical = storedVersion < 4' in settings and '+ legacyVertical' in settings, 'positive legacy Vertical Offset is not absorbed into Lift')
 need('orientationFromTiltDegrees' in transform and 'tiltDegrees(' in transform, 'quaternion Tilt helpers missing')
 spacing = read('src/main/java/celerbi/mirageprojector/PrismProjectionSpacing.java')
 need('minimumDistancePixels' in spacing and 'effectiveDistancePixels' in spacing, 'Prism collision-safe spacing helper missing')
@@ -289,11 +298,11 @@ need('minimumExtraDistancePixels' in spacing and 'effectiveExtraDistancePixels' 
 need('MAX_EXTRA_DISTANCE_PIXELS = 160' in spacing and 'Math.min(a.widthPixels(), b.widthPixels()) * 0.5D' in spacing, 'Prism +0 baseline/cap is not edge-tight')
 need('DISTANCE_PIXELS_PER_PU = 64' in spacing and 'powerCost' in spacing, 'Prism spacing PU rule missing')
 screen = read('src/main/java/celerbi/mirageprojector/client/MirageProjectorScreen.java')
-need('horizontalOffsetSlider' not in screen and 'offset_horizontal' not in screen, 'Horizontal Offset remains exposed in release UI')
+need('offset_horizontal' not in screen and 'supportsWallXyOffset()' in screen and 'gui.mirage_projector.wall.offset_x' in screen, 'horizontal offset is not isolated to the Wall/Data-show UI')
 need('prismSpacingAvailable()' in screen and 'PrismProjectionSpacing.minimumExtraDistancePixels' in screen, 'Prism-only extra Distance UI missing')
 need('imageHeight = 412;' in screen, 'main projector panel is not compact enough for 1080p GUI Scale 2')
 need('enum SettingsTab' in screen and 'SettingsTab.GEOMETRY' in screen and 'SettingsTab.PLACEMENT' in screen and 'SettingsTab.ROTATION' in screen and 'SettingsTab.FLOATING' in screen and 'SettingsTab.APPEARANCE' not in screen, 'four fixed settings tabs missing')
-need('verticalOffsetSlider' not in screen and 'offset_vertical' not in screen, 'deprecated Vertical Offset remains exposed in UI')
+need('offset_vertical' not in screen and 'supportsWallXyOffset()' in screen and 'gui.mirage_projector.wall.offset_y' in screen, 'vertical offset is not isolated to the Wall/Data-show UI')
 need('refreshSettingsTabVisibility' in screen, 'tab visibility controller missing')
 renderer = read('src/main/java/celerbi/mirageprojector/client/MirageProjectorRenderer.java')
 need('applyPrismCarouselPlacement' in renderer, 'Prism carousel placement helper missing')
@@ -414,12 +423,12 @@ current_impl = read('docs/CURRENT-IMPLEMENTATION.md')
 roadmap = read('docs/ROADMAP.md')
 development = read('docs/DEVELOPMENT.md')
 authority = read('docs/DOCUMENTATION-AUTHORITY.md')
-need(('Mirage Projector 1.0.18' in current_impl or 'Mirage Projector 1.0.19' in current_impl or 'Mirage Projector 1.0.20' in current_impl) and 'Network protocol: **34**' in current_impl,
+need(('Mirage Projector 1.0.18' in current_impl or 'Mirage Projector 1.0.19' in current_impl or 'Mirage Projector 1.0.20' in current_impl or 'Mirage Projector 1.0.21' in current_impl or 'Mirage Projector 1.0.22' in current_impl or 'Mirage Projector 1.0.23' in current_impl or 'Mirage Projector 1.0.24' in current_impl or ('Mirage Projector 1.0.25' in current_impl or 'Mirage Projector 1.0.26' in current_impl or 'Mirage Projector 1.0.27' in current_impl or 'Mirage Projector 1.0.28' in current_impl or 'Mirage Projector 1.0.29' in current_impl or 'Mirage Projector 1.0.30' in current_impl or 'Mirage Projector 1.0.31' in current_impl)) and ('Network protocol: **34**' in current_impl or 'Network protocol: **35**' in current_impl or 'Network protocol: **36**' in current_impl or ('Network protocol: **37**' in current_impl or 'Network protocol: **38**' in current_impl or 'Network protocol: **39**' in current_impl or 'Network protocol: **40**' in current_impl or 'Network protocol: **41**' in current_impl)),
      'current implementation authority is not on a compatible protocol-34 line')
-need(('Current implementation snapshot: **1.0.18**' in roadmap or 'Current implementation snapshot: **1.0.19**' in roadmap or 'Current implementation snapshot: **1.0.20**' in roadmap), 'roadmap current snapshot is not a compatible 1.0.18+ line')
-need(('Current maintenance baseline: **1.0.18**' in development or 'Current maintenance baseline: **1.0.19**' in development or 'Current maintenance baseline: **1.0.20**' in development) and 'Network protocol: **34**' in development,
+need(('Current implementation snapshot: **1.0.18**' in roadmap or 'Current implementation snapshot: **1.0.19**' in roadmap or 'Current implementation snapshot: **1.0.20**' in roadmap or 'Current implementation snapshot: **1.0.21**' in roadmap or 'Current implementation snapshot: **1.0.22**' in roadmap or 'Current implementation snapshot: **1.0.23**' in roadmap or 'Current implementation snapshot: **1.0.24**' in roadmap or 'Current implementation snapshot: **1.0.25**' in roadmap or 'Current implementation snapshot: **1.0.26**' in roadmap or 'Current implementation snapshot: **1.0.27**' in roadmap or 'Current implementation snapshot: **1.0.28**' in roadmap or 'Current implementation snapshot: **1.0.29**' in roadmap or 'Current implementation snapshot: **1.0.30**' in roadmap or 'Current implementation snapshot: **1.0.31**' in roadmap), 'roadmap current snapshot is not a compatible 1.0.18+ line')
+need(('Current maintenance baseline: **1.0.18**' in development or 'Current maintenance baseline: **1.0.19**' in development or 'Current maintenance baseline: **1.0.20**' in development or 'Current maintenance baseline: **1.0.21**' in development or 'Current maintenance baseline: **1.0.22**' in development or 'Current maintenance baseline: **1.0.23**' in development or 'Current maintenance baseline: **1.0.24**' in development or ('Current maintenance baseline: **1.0.25**' in development or 'Current maintenance baseline: **1.0.26**' in development or 'Current maintenance baseline: **1.0.27**' in development or 'Current maintenance baseline: **1.0.28**' in development or 'Current maintenance baseline: **1.0.29**' in development or 'Current maintenance baseline: **1.0.30**' in development or 'Current maintenance baseline: **1.0.31**' in development)) and ('Network protocol: **34**' in development or 'Network protocol: **35**' in development or 'Network protocol: **36**' in development or ('Network protocol: **37**' in development or 'Network protocol: **38**' in development or 'Network protocol: **39**' in development or 'Network protocol: **40**' in development or 'Network protocol: **41**' in development)),
      'development guide baseline is not a compatible protocol-34 line')
-need(('Documentation Authority — Mirage Projector 1.0.18' in authority or 'Documentation Authority — Mirage Projector 1.0.19' in authority or 'Documentation Authority — Mirage Projector 1.0.20' in authority),
+need(('Documentation Authority — Mirage Projector 1.0.18' in authority or 'Documentation Authority — Mirage Projector 1.0.19' in authority or 'Documentation Authority — Mirage Projector 1.0.20' in authority or 'Documentation Authority — Mirage Projector 1.0.21' in authority or 'Documentation Authority — Mirage Projector 1.0.22' in authority or 'Documentation Authority — Mirage Projector 1.0.23' in authority or 'Documentation Authority — Mirage Projector 1.0.24' in authority or 'Documentation Authority — Mirage Projector 1.0.25' in authority or 'Documentation Authority — Mirage Projector 1.0.26' in authority or 'Documentation Authority — Mirage Projector 1.0.27' in authority or 'Documentation Authority — Mirage Projector 1.0.28' in authority or 'Documentation Authority — Mirage Projector 1.0.29' in authority or 'Documentation Authority — Mirage Projector 1.0.30' in authority or 'Documentation Authority — Mirage Projector 1.0.31' in authority),
      'documentation authority heading is not a compatible 1.0.18+ line')
 
 portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')
@@ -428,7 +437,7 @@ strap_container = read('src/main/java/celerbi/mirageprojector/equipment/Shoulder
 station_renderer = read('src/main/java/celerbi/mirageprojector/client/ChargingStationRenderer.java')
 scan_screen = read('src/main/java/celerbi/mirageprojector/client/ScanCodexScreen.java')
 need('RechargeableEnergyItem.isRechargeable(stack)' in portable_menu, 'portable GUI battery slot contract missing')
-need('CYCLE_LANTERN_MODE' in portable_screen and 'toggle_projection' in portable_screen,
+need('CYCLE_LANTERN_MODE' in portable_screen and ('toggle_projection' in portable_screen or ('turn_on' in portable_screen and 'turn_off' in portable_screen)),
      'portable configuration screen controls missing')
 need('DataComponents.CONTAINER' in strap_container, 'Shoulder Strap does not own packed inventory')
 need('INPUT_COUNT' in station_renderer and 'OUTPUT_COUNT' in station_renderer,

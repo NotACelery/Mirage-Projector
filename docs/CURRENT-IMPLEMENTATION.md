@@ -1,15 +1,38 @@
-# Current Implementation — Mirage Projector 1.0.20
+# Current Implementation — Mirage Projector 1.0.31
 
-Version: **1.0.20**
+Version: **1.0.31**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
-Network protocol: **34**
+Network protocol: **41**
 
-This document describes the current implementation behavior of Mirage Projector 1.0.20. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.31. Historical development notes are archived under `docs/history/` and are not current authority.
+
+
+
+
+## 1.0.31 canonical workspace/runtime rebuild
+
+1.0.31 advances network protocol to **41** while retaining `ProjectionSettings` format **4**. Fixed-projector source navigation is now atomic and server-authoritative: opening Image, Item, Entity or Banner first activates that source on the server and then opens the matching workspace. The main menu and all four source workspaces receive authoritative settings and projection-enabled snapshots in their opening data, so UI state no longer depends on a client BlockEntity update arriving before screen construction. This is especially important for the Table chassis, which continues to use the same `MirageProjectorMenu` / `MirageProjectorScreen` path as Mirage Display and the original projectors; Table-specific behavior remains limited to horizontal placement/render/capability semantics. Main-screen Cancel restores the opening baseline and closes the UI. Header/source-workspace spacing is padded so Wall controls do not collide with the source region. Scan Codex keeps vanilla blur/dimming disabled but draws its parchment/book canvas exactly once from the explicit screen render path before widgets, preventing both the transparent-book regression and historical double rendering.
+
+## 1.0.30 UX/runtime interaction wave
+
+1.0.30 advances network protocol to **40** while retaining `ProjectionSettings` format **4**. The Mirage Hand Projector becomes a compact multi-source device with Image/Item/Entity/Banner mode selection and a non-consuming virtual source well for Item, filled Entity Scan Card and Banner captures. Mirage Equipment captures both press and release for external pseudo-slots, removes the redundant expansion `+3`, and docks its toggle to the inventory frame. Wall/Data-show Scale/X/Y controls publish live preview state; Apply commits a baseline without closing and Cancel restores it without closing. Presentation Remote native cursor centering uses raw window pixels with a neutral dead-zone. Entity workspace refreshes after source activation and keeps Projected/Visibility controls within bounds. The Codex canvas renders once from `renderBg`, library filters/search and result list are page-separated, lectern extensions use compact text/padded slot frames, and Entity Scan Card owns a dedicated 16×16 texture.
+
+## 1.0.29 runtime QA interaction corrections
+
+1.0.29 fixes the first broad in-game QA of the 1.0.24–1.0.28 UI/anchor work. In Creative, Mirage Equipment is visible only on the player's inventory tab and its slots intercept clicks outside vanilla's GUI rectangle; Creative cursor contents are sent as an explicit snapshot and corrected back from the server after the action. The Scan Codex renders its book canvas explicitly before container widgets while preserving the live-world/no-blur contract. Table projector source buttons set the active source before opening a workspace, and its installed Core is rendered smaller/centered inside the real chamber. Presentation Remote docking binds the source stack before copying it into the Wall/Data-show dock, explicit Unpair invalidates the old link ID and ejects the physical controller, and Wall/Data-show selection/collision geometry includes the low body, front lens and top dock. Network protocol is **39**; ProjectionSettings remains format **4**.
+
+## 1.0.28 recipe-sync hotfix
+
+1.0.28 fixes a login-time `clientbound/minecraft:update_recipes` encoder failure introduced by the filled Entity Scan Card clearing recipe. Minecraft 1.21.1 `StreamCodec.unit(value)` refuses to encode any object that is not `.equals(value)`. The JSON codec previously constructed a fresh `ScanCardClearingRecipe`, while the stream codec expected a separate instance, so vanilla recipe synchronization disconnected the client while joining a world. The recipe is now stateless and canonical: both `MapCodec` and `StreamCodec` resolve the same `ScanCardClearingRecipe.INSTANCE`. Gameplay, network protocol **38**, and `ProjectionSettings` format **4** are unchanged.
+
+## 1.0.27 build-stability note
+
+1.0.27 does not change the 1.0.26 presentation gameplay contract. It repairs Java 1.21.1 source compatibility for the Presentation Remote/Wall renderer, restores the canonical `ProjectionSettings.withBackFaceMode(...)` copy helper used by chassis normalization, and extends cumulative cleanup so the removed Mirage-specific `DuplicatingLecternBlock.java` cannot survive when a newer snapshot is copied over an older Windows project folder. Network protocol remains 38 and `ProjectionSettings` remains format 4.
 
 ## Canonical projector family
 
-The runtime exposes six projector chassis:
+The runtime exposes eight projector chassis:
 
 1. Mirage Projector
 2. Mirage Display
@@ -17,10 +40,34 @@ The runtime exposes six projector chassis:
 4. Wide Mirage Projector
 5. Tall Mirage Projector
 6. Mirage Prism
+7. Mirage Table Projector
+8. Mirage Wall Projector
 
 The project no longer registers alternate/comparison projector IDs. Each chassis has one canonical block/item identity, model, VoxelShape and renderer layout.
 
-Crafting upgrades preserve stored projector state. Mirage Projector upgrades into Mirage Display, which branches into Wide, Tall, Prism and Field variants.
+Crafting upgrades preserve stored projector state. Mirage Projector upgrades into Mirage Display, which branches into Wide, Tall, Prism and Field variants. Table and Wall are 1.1 anchor-family foundations and do not yet have frozen Survival recipes.
+
+### Table / Horizontal anchor
+
+`mirage_projector:mirage_table_projector` must stand on a sturdy top surface. Image and Banner plane sources use a horizontal tabletop anchor; Item and Entity sources remain upright above the same chassis so it can act as a holographic display plinth. The normal Lift/Tilt/Rotation/Floating contracts remain available. Sneak + empty-hand right-click packs the complete BlockEntity state back into one Table Projector item. Removing its support uses the same packed-state drop path instead of spilling the Core/card/staging inventories separately.
+
+### Wall / Data-show anchor
+
+`mirage_projector:mirage_wall_projector` is a low-profile video/Data-show projector, **not a wall-mounted emitter**. It sits on a complete full-block top surface, rejects slab/stair/partial supports, faces N/E/S/W and searches forward for a real planar wall. Its physical model/VoxelShape stays below slab height and uses an Obsidian body with Crying Obsidian optical accents. Shift + empty-hand right-click packs the complete state; losing the floor/table support uses the same packed drop path.
+
+Wall is Image-only. Target validation belongs to `WallProjectionSurface`, not generic hologram clearance. The validator measures the actual aspect-correct image rectangle after Scale and signed X/Y offsets. Every block cell touched by that rectangle must lie on one regular full wall plane with an unobstructed line from the projector; unused space around a tall, wide or 16:9 image is irrelevant even when that unused area contains irregular terrain. Requested Scale can resolve downward until the image fits both the wall and installed Core. Wall distance adds PU, currently +1 PU per full block beyond the first.
+
+### Presentation Deck / automatic playback
+
+Table and Wall/Data-show own the same ordered nine-image Presentation Deck. The Image Workspace can import/replace, clear, reorder, select the current slide and move Previous/Next. Automatic Presentation is optional and uses a **1–120 second** user interval. Server-side ticking advances only when projection is enabled and at least two deck images exist. Manual current-slide changes from either the workspace or Presentation Remote do not reset the elapsed automatic clock. Automatic mode stays enabled and the next timed advance occurs on the same cadence it already had; only toggling Automatic Presentation or changing its interval starts a fresh countdown. With automatic mode disabled, the selected slide is stable until the user explicitly changes it.
+
+Wall/Data-show may contain one physical `Presentation Remote` in its top pairing dock. Inserting a remote binds it to a persistent projector link UUID plus current dimension/position. Sneak + empty-hand RMB retrieves it before the normal packed-projector pickup gesture. A bound handheld remote opens a non-pausing, no-background controller while RMB is held: `<--`, `-`, `-->`. The cursor starts neutral; releasing RMB on left/right sends one previous/next action. Server validation requires the same dimension, a currently loaded target chunk, the Wall chassis and the exact persistent link UUID, so a replacement projector at the same coordinates cannot inherit the old control. The remote does not force-load chunks.
+
+Selecting a Wall slide that cannot resolve onto a valid regular target surface **does not skip or replace the deck entry**. That slide remains current and displays the Mirage red prohibition/cancellation symbol in place of the image. Previous/Next and automatic playback can still move away from it normally.
+
+The Image Workspace exposes a persistent ordered nine-slot presentation playlist. Images can be imported/replaced, cleared and reordered; one slot is current and Previous/Next changes the live projected slide without leaving the GUI. Automatic slide timing/transitions remain later polish rather than being silently invented.
+
+`ProjectionChassisProfile` carries explicit anchor, placement-capability and source-compatibility metadata. Table uses `TABLE_HORIZONTAL`; Wall uses `WALL_TARGET` + `WALL_XY_OFFSET`. Renderer placement, target-wall validation, power costs and workspace/widget visibility consume the same contract so unsupported controls cannot silently affect only one subsystem.
 
 
 ## Physical Mirage Light Projector
@@ -31,7 +78,7 @@ Since 1.0.19, **normal right-click cycles Focus / Flood / Ambient / Off** and **
 
 Mode and energy-cell state persist in the block entity and synchronize to clients. Nearby clients submit a stable block-position light source into `ClientDynamicMirageLightManager`. Focus and Flood use directional-cone solving; Ambient is omnidirectional; Off submits no source. Server drain remains 4/2/1/0 units per second as the current QA balance values.
 
-1.0.18 removed the old physical renderer that showed the battery floating below the projector and seeded the dynamic source outside the chassis. 1.0.19 adds the missing packed-light renderer bridge: Mirage virtual block-light is merged into both `LevelRenderer.getLightColor(...)` overloads while preserving vanilla sky light. 1.0.20 hardens that bridge for Sodium by resolving the Mirage field from the active `ClientLevel` instead of calling `getLightEngine()` on Sodium's temporary `LevelSlice`. This is the source-side correction for the QA state where light-level overlays detected the field but world vertices remained visually dark; final confirmation remains an in-game QA gate. Jade continues to report mode and battery state.
+1.0.18 removed the old physical renderer that showed the battery floating below the projector and seeded the dynamic source outside the chassis. 1.0.19 adds the missing packed-light renderer bridge: Mirage virtual block-light is merged into both `LevelRenderer.getLightColor(...)` overloads while preserving vanilla sky light. 1.0.20 hardens that bridge for Sodium by resolving the Mirage field from the active `ClientLevel` instead of calling `getLightEngine()` on Sodium's temporary `LevelSlice`. 1.0.21 keeps that bridge and fixes its runtime invalidation contract: authoritative updates refresh a complete one-section render halo, while moving emitters refresh only the neighboring render sections whose shared face/edge/corner light bytes actually changed. This addresses terrain/wall meshes that otherwise remained stale until an unrelated block update. Jade continues to report mode and battery state.
 
 ## Handheld Mirage Lantern
 
@@ -43,15 +90,27 @@ Server-side drain occurs once per second only while the Lantern is held or mount
 
 Clients derive stable per-player light sources from vanilla tracked player position/look state. 1.0.18 moves the light origin forward from the player and changes the directional solver to test cone/voxel-volume intersection rather than voxel-center-only intersection, addressing the QA failure where Focus/Flood disappeared for most view angles. Battery percentage mutations no longer trigger a held-item re-equip animation, and the old continuously refreshed local actionbar status was removed; feedback is action/depletion driven instead.
 
+## Mirage Scan Codex / vanilla Lectern library workflow
+
+`mirage_projector:scan_codex` is the physical UUID key to a persistent server-side library of exact frozen entity captures. Browser selection persists the exact scan UUID on the Codex ItemStack while full capture roots remain in Overworld `ScanCodexSavedData`. 1.0.24 caps storage at **25 captures per entity type** and exposes one scrollable/searchable browser in both handheld and vanilla-Lectern modes. Search combines with All/Favorites/Hostile/Passive/Farm/Nether/End/Water/Players/Other tabs. Opening an entry shows the frozen appearance, equipment and player/custom Name Tag; Back preserves the active tab, search and list scroll.
+
+Entity scanning belongs only to the Codex. `mirage_projector:entity_scan_card` is now a passive one-snapshot transport container. A filled card alone in either crafting grid returns a blank card by intentionally deleting its snapshot.
+
+Mounting the Codex on a vanilla `minecraft:lectern` adds physical side-page controls. In entry detail, the duplication page accepts only a Mirage Entity Scan Card and enables **Duplicate** only when that card is blank; the selected canonical scan root is written into that same card. Paper is no longer a duplication ingredient. In the library view, the Import toggle is always available. Importing a filled Mirage Entity Scan Card copies its exact frozen root into the Codex and consumes the source card only after success. Failed imports never consume it.
+
+If Easy Mob Farm is installed, that same import extension also accepts `easy_mob_farm:mob_capture_card`. The optional reflection bridge converts its captured entity state into Mirage's own frozen scan format and consumes the Easy Mob Farm card only on successful insertion. Reverse export into Easy Mob Farm blank cards remains deferred; if implemented later, its balance cost is defined in **experience levels**, not raw XP points.
+
+Favorite state remains Codex-library metadata and is not written onto projector-facing cards. The Codex UI remains non-pausing and intentionally does not invoke vanilla background blur/dimming. Breaking the Lectern continues to use vanilla book-drop behavior, normal vanilla Lectern books remain untouched, and **Take Codex** returns the same mounted Codex.
+
 ## Handheld Mirage Projector
 
 `mirage_projector:mirage_hand_projector` is the portable hologram consumer. It stores one exact rechargeable cell and one compact normalized copy of a configured placed Mirage Projector profile. Portable profiles preserve Image/Item/Entity/Banner source identity while clamping the moving presentation to portable limits.
 
 **Normal right-click** is the explicit projection ON/OFF action. **Sneak + right-click** opens the Hand Projector GUI. Battery service, target-profile copying and portable presentation controls now live in that GUI; the old opposite-hand battery service and direct sneak-use profile copy are retired. The item tooltip is intentionally minimal because configuration belongs to the screen.
 
-Since 1.0.12 an enabled Hand Projector remains active when stored anywhere in normal player inventory. Stable ItemStack UUID identity plus `PortableProjectorStatePayload` lets remote clients see active hidden-inventory projections without receiving arbitrary inventory contents. Vanilla entity tracking still supplies movement/orientation. Battery drain continues server-side while ON and content-valid.
+Since 1.0.12 an enabled Hand Projector remains active when stored anywhere in normal player inventory. 1.0.21 gives the portable hologram a dedicated render entry point that reuses the source renderer without requiring a physical fixed-projector Core; handheld power remains validated from the embedded rechargeable cell before rendering. Stable ItemStack UUID identity plus `PortableProjectorStatePayload` lets remote clients see active hidden-inventory projections without receiving arbitrary inventory contents. Vanilla entity tracking still supplies movement/orientation. Battery drain continues server-side while ON and content-valid.
 
-Banner profiles retain the 1.0.16 Forward/War Banner presentation. War Banner is a smaller pole-free hologram above the owner, either Directional to body yaw or horizontally billboarded per viewer, with bounded size/height stored on the device. 1.0.18 keeps those controls in the real device GUI and suppresses battery-percentage re-equip animation.
+Banner profiles retain the 1.0.16 Forward/War Banner presentation. War Banner is a smaller pole-free hologram above the owner, either Directional to body yaw or horizontally billboarded per viewer, with bounded size/height stored on the device. 1.0.24 compacts the Hand Projector into a lite portable screen: its player inventory no longer sits beneath an oversized control stack, Banner/War Banner widgets react to the live synchronized device state, and presentation/facing/size/height can appear or update without reopening the GUI.
 
 `mirage_projector:creative_battery` remains an infinite Creative/debug rechargeable medium with no Survival recipe/loot path.
 
@@ -63,7 +122,7 @@ Since 1.0.18 the player attachment itself stores only the currently equipped Sho
 
 The inventory extension opens on the **right** side of both the normal Survival inventory and the Creative inventory. With no Strap installed, the expanded Mirage panel exposes only one Shoulder Strap socket. Installing a Strap dynamically reveals the Shoulder Device, six base power-cell slots and two base upgrade sockets. Expansion reveals the final three battery slots and third upgrade socket; inactive positions do not exist visually as X/locked slots. The toggle remains inside the vanilla inventory region below the crafting-result area.
 
-The Shoulder Slot accepts `ShoulderMountableDevice` implementations, currently Mirage Lantern and Mirage Hand Projector. Right-clicking the occupied Shoulder Device slot opens the same real portable-device GUI used by handheld devices. Device replacement follows normal cursor swap semantics: the previous device stays on the cursor instead of being dropped into the world. The Strap cannot be removed while a device is mounted, but batteries/upgrades travel safely inside it. Shift-hovering a packed Strap in normal inventory exposes a compact contents preview.
+The Shoulder Slot accepts `ShoulderMountableDevice` implementations, currently Mirage Lantern and Mirage Hand Projector. In 1.0.21 the mounted-item transform uses the corrected positive shoulder-height translation rather than mirroring the device down toward the player feet, and the shoulder Lantern light anchor follows the right-shoulder position while retaining the player look vector for Focus/Flood direction. Right-clicking the occupied Shoulder Device slot opens the same real portable-device GUI used by handheld devices. Device replacement follows normal cursor swap semantics: the previous device stays on the cursor instead of being dropped into the world. The Strap cannot be removed while a device is mounted, but batteries/upgrades travel safely inside it. Shift-hovering a packed Strap in normal inventory exposes a compact contents preview.
 
 Mounted devices retain their normal runtime. The right shoulder remains reserved against vanilla shoulder riders while occupied; the left shoulder remains available. Normal armor/offhand slots and vanilla F swap-hands behavior remain untouched.
 
@@ -112,7 +171,7 @@ Tilt supports the full **-90° to +90°** range. Mirage Prism applies Tilt indep
 
 Mirage Prism Image/Banner projection additionally uses **Prism Distance**. The UI value is extra radial separation above the no-tilt collision-safe radius: **+0 px** packs adjacent face boundaries as tightly as possible without overlap. `PrismProjectionSpacing` derives the internal absolute radius from each adjacent pair of active faces. At +0 px, equal square faces meet at their lower corners without crossing. Positive/outward Tilt keeps that compact lower-edge baseline; negative/inward Tilt raises the minimum only by the inward reach required to avoid overlap. User-controlled extra distance is capped at **+160 px (10 blocks)**. If an inward angle would need more room than that budget, the UI refuses that angle. Additional or Tilt-required radial separation consumes a small amount of PU.
 
-`ProjectionSettings` network format remains version 3. Network protocol remains **34** in 1.0.20; this QA follow-up adds no wire-format change. The compatibility token includes the portable-device menu/action surface introduced by the stabilization wave plus the earlier War Banner, Shoulder Equipment and portable-projector payloads. Legacy horizontal/vertical offset slots remain only for wire/NBT compatibility: horizontal sanitizes to zero, while positive legacy Vertical Offset is absorbed into Lift and then sanitized to zero. Worlds from 1.0.0 remain compatible.
+`ProjectionSettings` network format remains **4** in 1.0.26 and network protocol is **38**. Format 4 activates the historical horizontal/vertical placement slots as signed Wall/Data-show X/Y offsets; when loading pre-4 saves, the old compatibility behavior is retained so legacy positive Vertical Offset is migrated into Lift and old horizontal offset is discarded. Historical chassis ordinals remain unchanged because TABLE and WALL are appended after the original six.
 
 ## Image / GIF
 
@@ -278,7 +337,6 @@ The Scan Codex remains a physical UUID key to server-side `ScanCodexSavedData`, 
 1.0.17 does not include:
 
 - handheld projector self-configuration UI (the 1.0.11 device currently copies from placed projectors rather than opening its own source workspace);
-- Duplicating Lectern / physical Codex-to-Entity-Scan-Card copying;
 - Dragon Egg / End Resonance gameplay;
 - direct grab/free-rotate hologram manipulation;
 - UV Shoulder Light / Auto UV / UV Marks ecosystem (reserved for 1.2.0);

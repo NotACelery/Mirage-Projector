@@ -1,5 +1,6 @@
 package celerbi.mirageprojector.menu;
 
+import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.registry.ModMenus;
 import java.util.UUID;
@@ -24,12 +25,16 @@ public final class ItemProjectorMenu extends AbstractContainerMenu {
     public static final int FIRST_PLAYER_SLOT_INDEX = 1;
 
     private final BlockPos projectorPos;
+    private final ProjectionSettings initialSettings;
+    private final boolean initialProjectionEnabled;
     @Nullable
     private final MirageProjectorBlockEntity projector;
 
     public ItemProjectorMenu(int containerId, Inventory inventory, RegistryFriendlyByteBuf buffer) {
         super(ModMenus.ITEM_PROJECTOR.get(), containerId);
         projectorPos = buffer.readBlockPos();
+        initialSettings = ProjectionSettings.read(buffer);
+        initialProjectionEnabled = buffer.readBoolean();
         projector = inventory.player.level().getBlockEntity(projectorPos) instanceof MirageProjectorBlockEntity be ? be : null;
         addSnapshotSlot(projector == null ? new ItemStackHandler(1) : projector.projectionSnapshot());
         addPlayerInventory(inventory);
@@ -38,6 +43,8 @@ public final class ItemProjectorMenu extends AbstractContainerMenu {
     public ItemProjectorMenu(int containerId, Inventory inventory, MirageProjectorBlockEntity projector) {
         super(ModMenus.ITEM_PROJECTOR.get(), containerId);
         this.projectorPos = projector.getBlockPos();
+        this.initialSettings = projector.settings();
+        this.initialProjectionEnabled = projector.projectionEnabled();
         this.projector = projector;
         addSnapshotSlot(projector.projectionSnapshot());
         addPlayerInventory(inventory);
@@ -74,6 +81,8 @@ public final class ItemProjectorMenu extends AbstractContainerMenu {
     public BlockPos projectorPos() {
         return projectorPos;
     }
+    public ProjectionSettings initialSettings() { return initialSettings; }
+    public boolean initialProjectionEnabled() { return initialProjectionEnabled; }
     @Nullable
     public MirageProjectorBlockEntity projector() {
         return projector;

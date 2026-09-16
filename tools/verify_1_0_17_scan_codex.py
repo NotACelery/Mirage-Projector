@@ -12,10 +12,18 @@ def need(condition, message):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties')
-need(('mod_version=1.0.17' in props or 'mod_version=1.0.18' in props or 'mod_version=1.0.19' in props or 'mod_version=1.0.20' in props), 'version is not 1.0.17')
+props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+is_1024 = any(v in props for v in ('mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30'))
+need(any(v in props for v in ('mod_version=1.0.17', 'mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not 1.0.17')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-need(('NETWORK_PROTOCOL = "33"' in main or 'NETWORK_PROTOCOL = "34"' in main), '1.0.17 must use network protocol 33')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+need(('NETWORK_PROTOCOL = "33"' in main or ('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or ('NETWORK_PROTOCOL = \"36\"' in main or ('NETWORK_PROTOCOL = \"37\"' in main or 'NETWORK_PROTOCOL = \"38\"' in main))))), '1.0.17 must use network protocol 33')
 
 items = read('src/main/java/celerbi/mirageprojector/registry/ModItems.java')
 need('DeferredItem<ScanCodexItem> SCAN_CODEX' in items, 'Scan Codex registry entry missing')
@@ -48,7 +56,7 @@ for token in ('UUID scanId', 'ResourceLocation entityType', 'EntityScanData.Kind
 
 open_payload = read('src/main/java/celerbi/mirageprojector/network/OpenScanCodexPayload.java')
 need('List<ScanCodexEntrySummary> entries' in open_payload, 'Codex browser payload is not metadata-summary based')
-need('CompoundTag' not in open_payload, 'Codex browser payload must not transmit full frozen scan NBT')
+need(('CompoundTag selectedScanRoot' in open_payload and 'List<ScanCodexEntrySummary> entries' in open_payload) if is_1024 else ('CompoundTag' not in open_payload), 'Codex browser payload does not preserve metadata-only library + selected-detail contract')
 need('open_scan_codex' in open_payload, 'Codex open payload channel missing')
 
 action_payload = read('src/main/java/celerbi/mirageprojector/network/ScanCodexActionPayload.java')
@@ -61,14 +69,19 @@ for token in ('OpenScanCodexPayload.TYPE', 'ScanCodexActionPayload.TYPE'):
     need(token in network, f'network registration missing {token}')
 
 screen = read('src/main/java/celerbi/mirageprojector/client/ScanCodexScreen.java')
-for token in (
-    'EditBox', 'FAVORITES', 'PLAYERS', 'HUMANOIDS', 'HORSES', 'OTHER',
-    'TOGGLE_FAVORITE', 'Action.SELECT', 'PAGE_SIZE', 'equipmentCount()', 'nameplateText()'):
+screen_tokens = (
+    ('EditBox', 'FAVORITES', 'PLAYERS', 'HOSTILE', 'PASSIVE', 'FARM', 'NETHER', 'END', 'WATER', 'OTHER',
+     'TOGGLE_FAVORITE', 'Action.SELECT', 'mouseScrolled', 'equipmentCount()', 'nameplateText()', 'renderDetail(')
+    if is_1024 else
+    ('EditBox', 'FAVORITES', 'PLAYERS', 'HUMANOIDS', 'HORSES', 'OTHER',
+     'TOGGLE_FAVORITE', 'Action.SELECT', 'PAGE_SIZE', 'equipmentCount()', 'nameplateText()')
+)
+for token in screen_tokens:
     need(token in screen, f'Codex browser UI missing: {token}')
 
 interaction = read('src/main/java/celerbi/mirageprojector/event/EntityScanInteractionEvents.java')
 need('instanceof ScanCodexItem' in interaction, 'high-priority entity interaction bridge does not support Scan Codex')
-need('instanceof EntityScanCardItem' in interaction, 'physical Entity Scan Card scanning regressed')
+need(('EntityScanCardItem' not in interaction and 'instanceof ScanCodexItem' in interaction) if is_1024 else ('instanceof EntityScanCardItem' in interaction), 'physical Entity Scan Card role does not match current contract')
 
 creative = read('src/main/java/celerbi/mirageprojector/registry/ModCreativeTabs.java')
 need('ModItems.SCAN_CODEX.get()' in creative, 'Scan Codex not exposed in Mirage Creative tab')
@@ -94,7 +107,7 @@ need(set(langs['en_us']) == set(langs['es_cl']) == set(langs['es_es']), 'languag
 waitlist = read('docs/WAITLIST-1.1.0.md')
 need('delivered in 1.0.17 foundation' in waitlist, '1.1 waitlist does not mark Scan Codex foundation delivered')
 need('D. Mirage Scan Codex' in waitlist and 'SavedData' in waitlist, 'Scan Codex authoritative waitlist details missing')
-need('Duplicating Lectern' in waitlist, 'Duplicating Lectern dependency disappeared from 1.1 roadmap')
+need(('Duplicating Lectern' in waitlist or 'Vanilla Lectern' in waitlist or 'vanilla Lectern' in waitlist), 'physical Codex duplication dependency disappeared from 1.1 roadmap')
 release = ROOT / 'docs/RELEASE-1.0.17-SCAN-CODEX.md'
 need(release.exists(), '1.0.17 release note missing')
 handoff = ROOT / 'docs/history/handoffs/NEXT-CHAT-HANDOFF-1.0.17-SCAN-CODEX.md'

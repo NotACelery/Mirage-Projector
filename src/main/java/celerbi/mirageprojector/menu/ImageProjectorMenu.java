@@ -17,6 +17,10 @@ public final class ImageProjectorMenu extends AbstractContainerMenu {
     private final ProjectionSettings initialSettings;
     private final ProjectionChassisProfile chassisProfile;
     private final ImageSourceBank initialImageBank;
+    private final int initialWallSlideIndex;
+    private final boolean initialAutomaticPresentationEnabled;
+    private final int initialAutomaticPresentationIntervalSeconds;
+    private final boolean initialProjectionEnabled;
     @Nullable
     private final MirageProjectorBlockEntity projector;
 
@@ -26,6 +30,10 @@ public final class ImageProjectorMenu extends AbstractContainerMenu {
         initialSettings = ProjectionSettings.read(buffer);
         chassisProfile = readChassis(buffer.readVarInt());
         initialImageBank = ImageSourceBank.read(buffer);
+        initialWallSlideIndex = buffer.readVarInt();
+        initialAutomaticPresentationEnabled = buffer.readBoolean();
+        initialAutomaticPresentationIntervalSeconds = buffer.readVarInt();
+        initialProjectionEnabled = buffer.readBoolean();
         projector = inventory.player.level().getBlockEntity(projectorPos) instanceof MirageProjectorBlockEntity be ? be : null;
     }
 
@@ -35,6 +43,10 @@ public final class ImageProjectorMenu extends AbstractContainerMenu {
         this.initialSettings = projector.settings();
         this.chassisProfile = projector.chassisProfile();
         this.initialImageBank = projector.imageSourceBank().copy();
+        this.initialWallSlideIndex = Math.max(0, projector.wallSlideIndex());
+        this.initialAutomaticPresentationEnabled = projector.automaticPresentationEnabled();
+        this.initialAutomaticPresentationIntervalSeconds = projector.automaticPresentationIntervalSeconds();
+        this.initialProjectionEnabled = projector.projectionEnabled();
         this.projector = projector;
     }
 
@@ -57,6 +69,28 @@ public final class ImageProjectorMenu extends AbstractContainerMenu {
 
     public ImageSourceBank initialImageBank() {
         return initialImageBank.copy();
+    }
+
+    public int initialWallSlideIndex() {
+        return initialWallSlideIndex;
+    }
+
+    public boolean initialAutomaticPresentationEnabled() {
+        return initialAutomaticPresentationEnabled;
+    }
+
+    public int initialAutomaticPresentationIntervalSeconds() {
+        return Math.max(1, Math.min(120, initialAutomaticPresentationIntervalSeconds));
+    }
+
+    public boolean initialProjectionEnabled() { return initialProjectionEnabled; }
+
+    public boolean isPresentationDeck() {
+        return chassisProfile.supportsPresentationDeck();
+    }
+
+    public boolean isWallPresentation() {
+        return chassisProfile == ProjectionChassisProfile.WALL;
     }
 
     public boolean supportsMultiSourceLayout() {

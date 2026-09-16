@@ -22,7 +22,10 @@ public record UpdateImageWorkspacePayload(
         ProjectionSettings.ImageLayoutMode imageLayoutMode,
         ProjectionSettings.BackFaceMode backFaceMode,
         boolean flipVertical,
-        boolean scanlines
+        boolean scanlines,
+        int wallSlideIndex,
+        boolean automaticPresentationEnabled,
+        int automaticPresentationIntervalSeconds
 ) implements CustomPacketPayload {
     public static final Type<UpdateImageWorkspacePayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "update_image_workspace"));
     public static final StreamCodec<RegistryFriendlyByteBuf, UpdateImageWorkspacePayload> STREAM_CODEC = new StreamCodec<>() {
@@ -36,7 +39,8 @@ public record UpdateImageWorkspacePayload(
                     b.readUtf(128), b.readVarInt(), b.readVarInt(),
                     ImageSourceBank.read(b),
                     ProjectionSettings.ImageLayoutMode.fromOrdinal(b.readVarInt()),
-                    ProjectionSettings.BackFaceMode.fromOrdinal(b.readVarInt()), b.readBoolean(), b.readBoolean()
+                    ProjectionSettings.BackFaceMode.fromOrdinal(b.readVarInt()), b.readBoolean(), b.readBoolean(), b.readVarInt(),
+                    b.readBoolean(), b.readVarInt()
             );
         }
 
@@ -52,6 +56,9 @@ public record UpdateImageWorkspacePayload(
             b.writeVarInt(p.backFaceMode().ordinal());
             b.writeBoolean(p.flipVertical());
             b.writeBoolean(p.scanlines());
+            b.writeVarInt(Math.max(0, p.wallSlideIndex()));
+            b.writeBoolean(p.automaticPresentationEnabled());
+            b.writeVarInt(Math.max(1, Math.min(120, p.automaticPresentationIntervalSeconds())));
         }
     };
 
@@ -82,7 +89,10 @@ public record UpdateImageWorkspacePayload(
                         payload.westId(), payload.westWidth(), payload.westHeight(),
                         payload.imageLayoutMode(), payload.backFaceMode(), payload.flipVertical(), payload.scanlines()
                 );
-                projector.applyImageWorkspace(merged, payload.sourceBank());
+                projector.applyImageWorkspace(
+                        merged, payload.sourceBank(), payload.wallSlideIndex(),
+                        payload.automaticPresentationEnabled(), payload.automaticPresentationIntervalSeconds()
+                );
             }
         });
     }

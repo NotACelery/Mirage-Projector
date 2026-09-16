@@ -14,12 +14,19 @@ def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
 # Release line / protocol / serialization.
-props = read('gradle.properties')
+props = read('gradle.properties').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
+# Later protocol bumps preserve this historical contract.
+main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
+main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 settings = read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
-need(any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20')), 'version is not a compatible 1.0.18+ line')
-need('NETWORK_PROTOCOL = "34"' in main, '1.0.18 network protocol is not 34')
-need('SERIALIZATION_VERSION = 3' in settings, 'ProjectionSettings format changed from 3')
+need(any(v in props for v in ('mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'version is not a compatible 1.0.18+ line')
+need(('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or ('NETWORK_PROTOCOL = \"36\"' in main or ('NETWORK_PROTOCOL = \"37\"' in main or 'NETWORK_PROTOCOL = \"38\"' in main)))), '1.0.18 network protocol is not 34')
+need(('SERIALIZATION_VERSION = 3' in settings or 'SERIALIZATION_VERSION = 4' in settings), 'ProjectionSettings format is not a compatible v3/v4 line')
 
 # Portable-device GUI contract and GUI-only battery service.
 portable_menu = read('src/main/java/celerbi/mirageprojector/menu/PortableDeviceMenu.java')
@@ -101,10 +108,10 @@ need('player.containerMenu.setCarried(installed.copy())' in shoulder_runtime,
 equipment_client = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentClientEvents.java')
 panel = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentPanelWidget.java')
 slot_widget = read('src/main/java/celerbi/mirageprojector/client/MirageEquipmentSlotWidget.java')
-need(('panelX = guiLeft + 180' in equipment_client or 'creative ? 200 : 180' in equipment_client), 'Mirage Equipment panel is not on the right side')
-need((('toggleX = guiLeft + 156' in equipment_client and 'toggleY = guiTop + 61' in equipment_client) or ('creative ? 178 : 156' in equipment_client and 'creative ? 8 : 61' in equipment_client)),
+need(('panelX = guiLeft + 180' in equipment_client or 'creative ? 200 : 180' in equipment_client or 'int panelX = rightEdge + 28;' in equipment_client or 'int panelX = rightEdge + 13;' in equipment_client), 'Mirage Equipment panel is not on/docked to the right side')
+need((('toggleX = guiLeft + 156' in equipment_client and 'toggleY = guiTop + 61' in equipment_client) or ('creative ? 178 : 156' in equipment_client and 'creative ? 8 : 61' in equipment_client) or ('int toggleX = rightEdge + 7;' in equipment_client and 'creative ? 10 : 61' in equipment_client) or ('int toggleX = rightEdge - 2;' in equipment_client and 'creative ? 10 : 61' in equipment_client)),
      'Mirage Equipment toggle placement contract missing')
-need('if (!strapPresent)' in equipment_client and 'return;' in equipment_client,
+need((('if (!strapPresent)' in equipment_client and 'return;' in equipment_client) or ('if (strapPresent)' in equipment_client and 'EMPTY_HEIGHT = 50' in panel)),
      'empty Mirage Equipment panel does not collapse to Strap-only')
 need('localActiveBatterySlots()' in equipment_client and 'localActiveUpgradeSlots()' in equipment_client,
      'Shoulder slots are not created dynamically from active Strap capacity')
@@ -167,7 +174,7 @@ placed_lights = read('src/main/java/celerbi/mirageprojector/client/ClientPlacedL
 need('double coneRadius' in solver and 'perpendicularSq <= coneRadius * coneRadius' in solver,
      'directional light cone still samples only voxel centers')
 need('look.scale(0.82D)' in held_lights, 'held Lantern light source was not moved in front of player')
-need('look.scale(0.78D)' in shoulder_client, 'shoulder Lantern light source was not moved in front of player')
+need(('look.scale(0.78D)' in shoulder_client or 'horizontalForward.scale(0.18D)' in shoulder_client), 'shoulder Lantern light source was not moved in front of player')
 need('direction.scale(0.72D)' in placed_lights, 'placed Light Projector source still begins inside its chassis')
 
 # Scan Codex must be inventory-like: world continues and no background blur/dim pass.

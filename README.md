@@ -149,7 +149,7 @@ The verification suite checks the current registry/resource surface, Mirage Ligh
 
 ## Version scope
 
-**1.0.39** is the current implementation snapshot. It is the post-QA hotfix line over the 1.0.34 roadmap/UX cleanup checkpoint. Network protocol remains **43** and `ProjectionSettings` format remains **4**.
+**1.0.41** is the current implementation snapshot. It is the post-QA hotfix line over the 1.0.34 roadmap/UX cleanup checkpoint. Network protocol remains **43** and `ProjectionSettings` format remains **4**.
 
 **1.0.24** established the current Scan Codex/Card and Hand Projector portable UI contracts. It keeps the vanilla Lectern as the physical Scan Codex workstation while replacing Paper-copy semantics with blank Entity Scan Cards, adding destructive successful imports from filled Mirage cards and optional Easy Mob Farm capture cards, expanding the Codex into a scrollable categorized detail browser, and compacting the Hand Projector into a lite portable UI whose Forward/War Banner, Directional/Billboard, size and height controls update from live device state. Reverse Mirage → Easy Mob Farm card export remains deferred; if added later its cost is measured in experience levels rather than raw XP. Final 1.1.0 work still includes the Wall presentation slide-deck architecture, optional Create Blueprint bridge, End Resonance, recipes/balance and release polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.
 

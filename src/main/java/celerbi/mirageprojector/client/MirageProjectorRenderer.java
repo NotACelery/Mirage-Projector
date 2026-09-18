@@ -67,9 +67,6 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     private static final ResourceLocation PROJECTION_CANCELLATION_TEXTURE = ResourceLocation.fromNamespaceAndPath(
             "mirage_projector", "textures/misc/projection_cancellation.png"
     );
-    private static final ResourceLocation END_RESONANCE_TEXTURE = ResourceLocation.withDefaultNamespace(
-            "textures/environment/end_portal.png"
-    );
 
     private static final List<DeferredEntityProjection> DEFERRED_ENTITY_PROJECTIONS = new ArrayList<>();
     private static final MultiBufferSource.BufferSource DEFERRED_ENTITY_BUFFERS = createDeferredEntityBuffers();
@@ -260,6 +257,8 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         poseStack.mulPose(Axis.YP.rotationDegrees(blockFacingAngle(blockEntity)));
         if (blockEntity.chassisProfile() == ProjectionChassisProfile.PRISM) {
             renderEndResonancePrism(poseStack, bufferSource, gameTime);
+        } else if (blockEntity.chassisProfile() == ProjectionChassisProfile.TABLE) {
+            renderEndResonanceTable(poseStack, bufferSource, gameTime);
         } else {
             renderEndResonanceField(poseStack, bufferSource, gameTime);
         }
@@ -271,10 +270,21 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     ) {
         PoseStack.Pose pose = poseStack.last();
         Matrix4f matrix = pose.pose();
-        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(END_RESONANCE_TEXTURE));
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.endPortal());
         float uShift = (float) ((gameTime * 0.003D) % 1.0D);
-        emitResonanceQuad(consumer, matrix, pose, -1.0F, 1.0F, 0.0F, 3.0F, 0.0F, uShift, false);
-        emitResonanceQuad(consumer, matrix, pose, -1.0F, 1.0F, 0.0F, 3.0F, 0.0F, uShift, true);
+        emitResonanceQuad(consumer, matrix, pose, -1.0F, 1.0F, 0.0F, 3.0F, 0.002F, uShift, false);
+        emitResonanceQuad(consumer, matrix, pose, -1.0F, 1.0F, 0.0F, 3.0F, -0.002F, uShift, true);
+    }
+
+    private static void renderEndResonanceTable(
+            PoseStack poseStack, MultiBufferSource bufferSource, double gameTime
+    ) {
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.endPortal());
+        float shift = (float) ((gameTime * 0.003D) % 1.0D);
+        // Separate the top and bottom sheets by a few microunits so a close camera never makes
+        // the two translucent faces contend for the same depth value.
+        emitHorizontalResonanceFace(poseStack, consumer, 0.002F, 1.5F, shift, true);
+        emitHorizontalResonanceFace(poseStack, consumer, -0.002F, 1.5F, shift, false);
     }
 
     private static void renderEndResonancePrism(
@@ -283,7 +293,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         float half = 1.0F;
         float height = 3.0F;
         float shift = (float) ((gameTime * 0.003D) % 1.0D);
-        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(END_RESONANCE_TEXTURE));
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.endPortal());
 
         poseStack.pushPose();
         poseStack.translate(0.0F, 0.0F, half);

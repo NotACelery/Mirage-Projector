@@ -210,10 +210,12 @@ public final class ClientHeldProjectors {
         Vec3 bodyForward = horizontalForward(player, partialTick);
         Vec3 bodyRight = new Vec3(-bodyForward.z, 0.0D, bodyForward.x);
         double stackSeparation = Math.max(0, ordinal) * 0.18D;
+        // Use the body rather than the view vector: a War banner rides just behind the nape,
+        // like a raid captain's banner on a pack, instead of floating in front of the player.
         Vec3 anchor = placement.playerPosition()
-                .add(bodyForward.scale(0.34D))
-                .add(bodyRight.scale(0.20D + stackSeparation))
-                .add(0.0D, player.getBbHeight() + gap + bannerHeight, 0.0D);
+                .add(bodyForward.scale(-0.55D))
+                .add(bodyRight.scale(stackSeparation))
+                .add(0.0D, player.getBbHeight() + gap + bannerHeight - 0.10D, 0.0D);
 
         float yawDegrees;
         if (MirageHandProjectorItem.warBannerFacing(stack)
@@ -279,9 +281,8 @@ public final class ClientHeldProjectors {
     }
 
     private static Vec3 horizontalForward(Player player, float partialTick) {
-        Vec3 look = player.getViewVector(partialTick);
-        Vec3 flat = new Vec3(look.x, 0.0D, look.z);
-        return flat.lengthSqr() < 1.0E-6D ? new Vec3(0.0D, 0.0D, 1.0D) : flat.normalize();
+        float bodyYaw = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot) * ((float) Math.PI / 180.0F);
+        return new Vec3(-Mth.sin(bodyYaw), 0.0D, Mth.cos(bodyYaw));
     }
 
     private static Direction horizontalFacing(Player player) {

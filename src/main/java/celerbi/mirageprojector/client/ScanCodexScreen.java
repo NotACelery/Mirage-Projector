@@ -478,7 +478,10 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
                     x, y, INK, false);
             y += 14;
         }
-        if (!entry.playerSource()) {
+        boolean showEquipment = EntityScanData.readRoot(snapshot.selectedScanRoot())
+                .map(EntityScanData.View::equipmentCapable)
+                .orElse(false);
+        if (showEquipment) {
             graphics.drawString(font,
                     Component.translatable("gui.mirage_projector.scan_codex.equipment", entry.equipmentCount()),
                     x, y, INK, false);

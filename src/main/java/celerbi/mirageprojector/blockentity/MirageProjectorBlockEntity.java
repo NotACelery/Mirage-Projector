@@ -1,6 +1,7 @@
 package celerbi.mirageprojector.blockentity;
 
 import celerbi.mirageprojector.ImageSourceBank;
+import celerbi.mirageprojector.EndResonanceGeometry;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
 import celerbi.mirageprojector.ProjectionPower;
@@ -22,6 +23,8 @@ import celerbi.mirageprojector.menu.MirageProjectorMenu;
 import celerbi.mirageprojector.registry.ModBlockEntities;
 import celerbi.mirageprojector.registry.ModItems;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Direction;
@@ -33,12 +36,17 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.portal.DimensionTransition;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -46,6 +54,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
 public final class MirageProjectorBlockEntity extends BlockEntity implements MenuProvider {
+    private static final Map<UUID, Long> END_RESONANCE_COOLDOWNS = new HashMap<>();
     private ProjectionSettings settings = ProjectionSettings.DEFAULT;
     private boolean projectionEnabled = true;
     private final ImageSourceBank imageSourceBank = new ImageSourceBank();
@@ -565,6 +574,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, MirageProjectorBlockEntity projector) {
+        if (level instanceof ServerLevel serverLevel && projector.endResonanceActive()) {
+            tickEndResonanceTransfer(serverLevel, projector);
+        }
         if (!projector.supportsPresentationDeck() || !projector.automaticPresentationEnabled
                 || !projector.projectionEnabled()
                 || projector.imageSourceBank.countPresent(ImageSourceBank.PERSISTED_COMPAT_SLOTS) < 2) {
@@ -576,6 +588,43 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         }
         projector.automaticPresentationElapsedTicks = 0;
         projector.stepPresentationSlide(1, false);
+    }
+
+    private static void tickEndResonanceTransfer(ServerLevel origin, MirageProjectorBlockEntity projector) {
+        long now = origin.getGameTime();
+        for (ServerPlayer player : origin.getEntitiesOfClass(ServerPlayer.class, EndResonanceGeometry.resonanceBounds(projector))) {
+            if (END_RESONANCE_COOLDOWNS.getOrDefault(player.getUUID(), Long.MIN_VALUE) > now) continue;
+            ResourceKey<Level> targetKey = origin.dimension() == Level.END ? Level.OVERWORLD : Level.END;
+            ServerLevel target = origin.getServer().getLevel(targetKey);
+            if (target == null) continue;
+            Vec3 destination = resonanceDestination(target, targetKey);
+            END_RESONANCE_COOLDOWNS.put(player.getUUID(), now + 80L);
+            player.teleportTo(target, destination.x, destination.y, destination.z,
+                    player.getYRot(), player.getXRot());
+        }
+        for (Entity entity : origin.getEntitiesOfClass(Entity.class, EndResonanceGeometry.resonanceBounds(projector),
+                entity -> !(entity instanceof Player) && entity.canChangeDimensions(origin, origin.getServer().getLevel(
+                        origin.dimension() == Level.END ? Level.OVERWORLD : Level.END)))) {
+            if (END_RESONANCE_COOLDOWNS.getOrDefault(entity.getUUID(), Long.MIN_VALUE) > now) continue;
+            ResourceKey<Level> targetKey = origin.dimension() == Level.END ? Level.OVERWORLD : Level.END;
+            ServerLevel target = origin.getServer().getLevel(targetKey);
+            if (target == null) continue;
+            END_RESONANCE_COOLDOWNS.put(entity.getUUID(), now + 80L);
+            Vec3 destination = resonanceDestination(target, targetKey);
+            entity.changeDimension(new DimensionTransition(target, destination, entity.getDeltaMovement(),
+                    entity.getYRot(), entity.getXRot(), DimensionTransition.PLAY_PORTAL_SOUND));
+        }
+        END_RESONANCE_COOLDOWNS.entrySet().removeIf(entry -> entry.getValue() <= now - 20L);
+    }
+
+    private static Vec3 resonanceDestination(ServerLevel target, ResourceKey<Level> targetKey) {
+        BlockPos spawn = targetKey == Level.END
+                ? new BlockPos(100, 50, 0)
+                : target.getSharedSpawnPos();
+        int safeY = targetKey == Level.END
+                ? spawn.getY()
+                : target.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, spawn.getX(), spawn.getZ());
+        return new Vec3(spawn.getX() + 0.5D, safeY, spawn.getZ() + 0.5D);
     }
 
     public WallProjectionSurface.Result wallProjectionSurface() {

@@ -20,7 +20,7 @@ public enum ProjectionChassisProfile {
     // 1.0.25 1.1-foundation chassis. Appended after the original six so historical ordinal
     // values sent through workspace menus remain stable. Final Survival recipes/balance are still
     // intentionally provisional; these entries freeze the runtime anchor semantics first.
-    TABLE("Table", Geometry.PLANE, 48, 48, 64, 12, 1.50F, 6, 4.0F, Anchor.TABLE_HORIZONTAL, false,
+    TABLE("Table", Geometry.PLANE, 48, 48, 64, 12, 1.50F, 6, 4.0F, Anchor.TABLE_HORIZONTAL, true,
             PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING,
             PlacementCapability.TABLE_XZ_OFFSET),
     WALL("Wall", Geometry.PLANE, 64, 36, 0, 0, 1.50F, 6, 3.0F, Anchor.WALL_TARGET, false,

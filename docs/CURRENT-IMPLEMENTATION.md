@@ -1,11 +1,11 @@
-# Current Implementation — Mirage Projector 1.0.39
+# Current Implementation — Mirage Projector 1.0.41
 
-Version: **1.0.39**
+Version: **1.0.41**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
 Network protocol: **43**
 
-This document describes the current implementation behavior of Mirage Projector 1.0.39. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.41. Historical development notes are archived under `docs/history/` and are not current authority.
 
 
 ## 1.0.34 Roadmap & UX cleanup

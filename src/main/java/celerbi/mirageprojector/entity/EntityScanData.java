@@ -17,6 +17,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.Fox;
 import net.minecraft.world.entity.animal.horse.Horse;
 import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.monster.Zombie;
@@ -28,7 +29,7 @@ import net.minecraft.world.item.component.CustomData;
 
 public final class EntityScanData {
     public static final String ROOT_KEY = "MirageEntityScan";
-    public static final int DATA_VERSION = 5;
+    public static final int DATA_VERSION = 6;
     public static final int MAX_ENTITY_NBT_BYTES = 256 * 1024;
 
     public static final EquipmentSlot[] HUMANOID_SLOTS = {
@@ -95,6 +96,9 @@ public final class EntityScanData {
         boolean playerSource = root.contains("PlayerSource")
                 ? root.getBoolean("PlayerSource")
                 : type.equals(ResourceLocation.withDefaultNamespace("player"));
+        boolean equipmentCapable = !playerSource && (root.contains("EquipmentCapable")
+                ? root.getBoolean("EquipmentCapable")
+                : supportsFrozenEquipment(type, kind));
         CompoundTag playerProfile = root.contains("PlayerProfile")
                 ? root.getCompound("PlayerProfile").copy()
                 : new CompoundTag();
@@ -145,6 +149,7 @@ public final class EntityScanData {
                 hadCustomName,
                 customNameText,
                 playerSource,
+                equipmentCapable,
                 playerProfileName,
                 playerTextureValue,
                 playerTextureSignature,
@@ -169,6 +174,7 @@ public final class EntityScanData {
         sanitizeCommon(entityData);
 
         CompoundTag equipment = new CompoundTag();
+        boolean equipmentCapable = supportsFrozenEquipment(target);
         if (kind == Kind.HUMANOID) {
             // Player scans intentionally preserve only the frozen player identity/skin state.
             // Armor and held items belong to the equipment workspace for non-player humanoids and
@@ -182,6 +188,11 @@ public final class EntityScanData {
         } else if (kind == Kind.HORSE) {
             saveHorseEquipment(equipment, target, entityData, registries);
             stripHorseEquipment(entityData);
+        } else if (equipmentCapable) {
+            // Foxes visibly carry their mouth item in the main-hand slot. Freeze it in the
+            // equipment workspace rather than leaving a second, uncontrolled copy in entity NBT.
+            saveEquipmentSlot(equipment, EquipmentSlot.MAINHAND, target.getItemBySlot(EquipmentSlot.MAINHAND), registries);
+            stripHumanoidEquipment(entityData);
         }
 
         CompoundTag root = new CompoundTag();
@@ -196,6 +207,7 @@ public final class EntityScanData {
             root.putString("CustomNameText", customNameText);
         }
         root.putBoolean("PlayerSource", target instanceof Player);
+        root.putBoolean("EquipmentCapable", equipmentCapable);
         if (target instanceof Player player) {
             CompoundTag playerProfile = capturePlayerProfile(player);
             if (!playerProfile.isEmpty()) {
@@ -242,6 +254,20 @@ public final class EntityScanData {
             return Kind.HORSE;
         }
         return Kind.GENERIC;
+    }
+
+    private static boolean supportsFrozenEquipment(LivingEntity entity) {
+        if (entity instanceof Player) {
+            return false;
+        }
+        Kind kind = classify(entity);
+        return kind == Kind.HUMANOID || kind == Kind.HORSE || entity instanceof Fox;
+    }
+
+    private static boolean supportsFrozenEquipment(ResourceLocation entityType, Kind kind) {
+        return kind == Kind.HUMANOID
+                || kind == Kind.HORSE
+                || ResourceLocation.withDefaultNamespace("fox").equals(entityType);
     }
 
     public static boolean supportsSittingPose(ResourceLocation entityType) {
@@ -446,6 +472,7 @@ public final class EntityScanData {
             boolean hadCustomName,
             String customNameText,
             boolean playerSource,
+            boolean equipmentCapable,
             String playerProfileName,
             String playerTextureValue,
             String playerTextureSignature,

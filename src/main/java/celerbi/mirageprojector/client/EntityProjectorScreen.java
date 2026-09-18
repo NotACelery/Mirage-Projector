@@ -26,7 +26,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
     private static final int PANEL_HEIGHT = 466;
 
     private static final int APPLY_X = 52;
-    private static final int CHANNEL_X = 86;
+    private static final int CHANNEL_X = 94;
     private static final int PROJECTED_X = 302;
     private static final int VISIBILITY_X = 334;
 
@@ -561,10 +561,12 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
                 : card.getHoverName().getString();
         graphics.drawString(font, fit(source, 292), 58, 92, 0xFFD8C5EB, false);
 
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 18, 134, 0xFFAFD8EE, false);
+        // These are deliberately complete column names. The old abbreviated labels ran into
+        // each other and made the equipment workflow look like an unfinished debug panel.
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 10, 134, 0xFFAFD8EE, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.channel"), CHANNEL_X, 134, 0xFFC9CED7, false);
-        graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.projected").getString(), 62), 282, 134, 0xFFB9E4C0, false);
-        graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.visibility").getString(), 34), 333, 134, 0xFFC9CED7, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.projected"), 270, 134, 0xFFB9E4C0, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.visibility"), 326, 134, 0xFFC9CED7, false);
 
         EntityScanData.Kind kind = menu.effectiveKind();
         boolean playerSource = menu.state().activeEntityIsPlayer();
@@ -579,9 +581,6 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
         } else if (playerSource) {
             graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.player_skin_only").getString(), 330), 18, 164, 0xFFC4C9D3, false);
             graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.player_skin_only_hint").getString(), 330), 18, 179, 0xFF8F98A8, false);
-        } else {
-            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_1").getString(), 330), 18, 164, 0xFFC4C9D3, false);
-            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.generic_2").getString(), 330), 18, 179, 0xFF8F98A8, false);
         }
 
         graphics.drawString(font, fit(status.getString(), 532), 18, STATUS_Y, pendingConflict == null ? 0xFFE7DCF5 : 0xFFFFB98E, false);

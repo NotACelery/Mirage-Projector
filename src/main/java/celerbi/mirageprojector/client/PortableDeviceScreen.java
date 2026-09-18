@@ -29,7 +29,7 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
     private static final int PROJECTOR_WIDTH = 360;
     private static final int PROJECTOR_HEIGHT = 332;
     private static final int FLASHLIGHT_WIDTH = 196;
-    private static final int FLASHLIGHT_HEIGHT = 184;
+    private static final int FLASHLIGHT_HEIGHT = 202;
 
     private static final int MODE_X = 14;
     private static final int MODE_Y = 42;
@@ -72,7 +72,7 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
             addRenderableWidget(Button.builder(
                     Component.translatable("gui.mirage_projector.portable_device.cycle_mode"),
                     button -> send(PortableDeviceActionPayload.Action.CYCLE_FLASHLIGHT_MODE)
-            ).bounds(leftPos + 58, topPos + 39, 126, 20).build());
+            ).bounds(leftPos + 35, topPos + 70, 126, 20).build());
             return;
         }
         if (!device.is(ModItems.MIRAGE_HAND_PROJECTOR.get())) {
@@ -168,8 +168,10 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         ));
 
         if (scaleSlider != null) {
-            scaleSlider.visible = projector;
-            scaleSlider.active = projector;
+            // War Banner owns a single, meaningful scale control (Size %). The generic pixel
+            // scale belongs to planar projections and never affected the banner model.
+            scaleSlider.visible = projector && !warBanner;
+            scaleSlider.active = projector && !warBanner;
             scaleSlider.syncExternal(currentScale(device));
         }
 
@@ -223,14 +225,15 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 3, 0xFF72528D);
 
         if (menu.projectorLayout()) {
-            graphics.fill(x + 12, y + 68, x + 88, y + 124, 0xA20B0E13);
-            graphics.fill(x + 12, y + 162, x + 94, y + 220, 0xA20B0E13);
+            graphics.fill(x + 12, y + 68, x + 88, y + 112, 0xA20B0E13);
+            graphics.fill(x + 12, y + 128, x + 88, y + 172, 0xA20B0E13);
+            graphics.fill(x + 12, y + 188, x + 88, y + 232, 0xA20B0E13);
             slotFrame(graphics, x + menu.sourceX() - 1, y + menu.sourceY() - 1, 0xFF7954A0);
             slotFrame(graphics, x + menu.batteryX() - 1, y + menu.batteryY() - 1, 0xFF7954A0);
             slotFrame(graphics, x + menu.coreX() - 1, y + menu.coreY() - 1, 0xFF7954A0);
             renderModeOutline(graphics);
         } else {
-            graphics.fill(x + 10, y + 27, x + 54, y + 83, 0xA20B0E13);
+            graphics.fill(x + 72, y + 22, x + 124, y + 64, 0xA20B0E13);
             slotFrame(graphics, x + menu.batteryX() - 1, y + menu.batteryY() - 1, 0xFF7954A0);
         }
 
@@ -282,7 +285,7 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
             graphics.drawString(font,
                     Component.translatable("gui.mirage_projector.portable_device.mode", Component.translatable(MirageFlashlightItem.mode(device).displayTranslationKey())),
                     10, 20, 0xFFD7B8F5, false);
-            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.portable_device.battery"), 39, 32, 0xFFD7B8F5);
+            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.portable_device.battery"), menu.batteryX() + 8, 27, 0xFFD7B8F5);
             return;
         }
         if (!(device.getItem() instanceof MirageHandProjectorItem)) {
@@ -292,20 +295,12 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         Component state = Component.translatable(MirageHandProjectorItem.projectionEnabled(device)
                 ? "gui.mirage_projector.portable_device.on"
                 : "gui.mirage_projector.portable_device.off");
-        graphics.drawString(font, state, imageWidth - 52, 9, 0xFFD7B8F5, false);
+        graphics.drawString(font, state, imageWidth - 10 - font.width(state), 9, 0xFFD7B8F5, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.source_workspaces"), 14, 29, 0xFFD7B8F5, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.source"), 14, 69, 0xFFD7B8F5, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.geometry"), CONTROL_X, 69, 0xFFD7B8F5, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.core_energy"), 14, 151, 0xFFD7B8F5, false);
-        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.portable_device.battery"), menu.batteryX() + 8, 198, 0xFFBEB8C8);
-        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.portable_device.core"), menu.coreX() + 8, 198, 0xFFBEB8C8);
-
-        ProjectionSettings.SourceMode mode = MirageHandProjectorItem.sourceMode(device);
-        Component sourceHint = mode == ProjectionSettings.SourceMode.IMAGE
-                ? Component.translatable("gui.mirage_projector.portable_device.source_image_direct_hint")
-                : Component.translatable("gui.mirage_projector.portable_device.source_snapshot_hint");
-        graphics.drawString(font, fit(sourceHint.getString(), 78), 14, 108, 0xFF9CA3AF, false);
-        graphics.drawString(font, fit(status.getString(), 332), 14, 213, 0xFF9CA3AF, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.battery"), 14, 129, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.core"), 14, 189, 0xFFD7B8F5, false);
 
         if (MirageHandProjectorItem.warBannerActive(device)) {
             int labelCenter = CONTROL_X + CONTROL_WIDTH / 2;

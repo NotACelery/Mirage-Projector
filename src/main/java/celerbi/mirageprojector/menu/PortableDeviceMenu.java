@@ -20,17 +20,17 @@ import net.neoforged.neoforge.common.extensions.IPlayerExtension;
 
 /** One-cell configuration container shared by the Flashlight and Hand Projector. */
 public final class PortableDeviceMenu extends AbstractContainerMenu {
-    public static final int BATTERY_X = 31;
-    public static final int BATTERY_Y = 48;
-    public static final int PROJECTOR_BATTERY_X = 20;
-    public static final int PROJECTOR_BATTERY_Y = 176;
-    public static final int PROJECTOR_CORE_X = 60;
-    public static final int PROJECTOR_CORE_Y = 176;
-    public static final int PROJECTOR_SOURCE_X = 20;
+    public static final int BATTERY_X = 89;
+    public static final int BATTERY_Y = 42;
+    public static final int PROJECTOR_BATTERY_X = 42;
+    public static final int PROJECTOR_BATTERY_Y = 141;
+    public static final int PROJECTOR_CORE_X = 42;
+    public static final int PROJECTOR_CORE_Y = 201;
+    public static final int PROJECTOR_SOURCE_X = 42;
     public static final int PROJECTOR_SOURCE_Y = 82;
     public static final int PLAYER_INV_X = 17;
     public static final int PROJECTOR_PLAYER_INV_X = 99;
-    public static final int COMPACT_PLAYER_INV_Y = 100;
+    public static final int COMPACT_PLAYER_INV_Y = 112;
     public static final int PROJECTOR_PLAYER_INV_Y = 238;
     public static final int BATTERY_SLOT_INDEX = 0;
     public static final int CORE_SLOT_INDEX = 1;

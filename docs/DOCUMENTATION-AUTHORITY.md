@@ -1,4 +1,4 @@
-# Documentation Authority — Mirage Projector 1.0.39
+# Documentation Authority — Mirage Projector 1.0.40
 
 This file defines which documents describe the current stable product.
 

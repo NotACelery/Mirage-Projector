@@ -137,10 +137,10 @@ public final class BannerProjectorScreen extends ResponsiveContainerScreen<Banne
             String[] labels = {"north", "east", "south", "west"};
             for (int face = 0; face < labels.length; face++) {
                 Component label = Component.translatable("gui.mirage_projector.face." + labels[face]);
-                graphics.drawCenteredString(font, label, BannerProjectorMenu.FACE_X[face] + 8, 112, 0xFFC9CED7);
+                graphics.drawCenteredString(font, label, BannerProjectorMenu.FACE_X[face] + 8, 90, 0xFFC9CED7);
             }
         } else {
-            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.front"), BannerProjectorMenu.PLANE_FACE_X + 8, 112, 0xFFC9CED7);
+            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.front"), BannerProjectorMenu.PLANE_FACE_X + 8, 90, 0xFFC9CED7);
         }
 
         graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.banner.preview"), 344, 76, 0xFFD7B8F5);

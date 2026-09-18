@@ -1,10 +1,10 @@
-# Current development line — 1.0.39
+# Current development line — 1.0.40
 
 The current public/code name `Mirage Wall Projector` belongs to the historical presentation/Data-show registry `mirage_projector:mirage_wall_projector`. Do not reintroduce `Mirage Wall Display`, `MIRAGE_WALL_DISPLAY`, `MirageWallDisplayBlock`, `mirage_wall_illuminator` or a second wall illumination chassis without an explicit new design decision. Table workspace-opening payloads are navigation only; only `SetProjectionSourcePayload` may commit a source-mode change.
 
 # Development Guide — Mirage Projector
 
-Current maintenance baseline: **1.0.39** (initial stable baseline: **1.0.0**)
+Current maintenance baseline: **1.0.40** (initial stable baseline: **1.0.0**)
 
 
 ## 1.0.32 Survival progression / illumination identity

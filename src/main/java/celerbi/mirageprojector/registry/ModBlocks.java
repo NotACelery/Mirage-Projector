@@ -10,7 +10,6 @@ import celerbi.mirageprojector.block.MirageLightProjectorBlock;
 import celerbi.mirageprojector.block.MirageFlashlightBeaconBlock;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.block.MirageTableProjectorBlock;
-import celerbi.mirageprojector.block.MirageWallDisplayBlock;
 import celerbi.mirageprojector.block.MirageWallProjectorBlock;
 import celerbi.mirageprojector.block.ObsidianSpikeBlock;
 import celerbi.mirageprojector.crying.CryingObsidianCrystalStage;
@@ -36,10 +35,9 @@ public final class ModBlocks {
                     .sound(SoundType.STONE)
                     .noOcclusion())
     );
-    // Legacy registry ID remains `mirage_wall_projector`; this chassis is the presentation/Data-show Wall Display.
-    public static final DeferredBlock<MirageWallDisplayBlock> MIRAGE_WALL_DISPLAY = BLOCKS.register(
+    public static final DeferredBlock<MirageWallProjectorBlock> MIRAGE_WALL_PROJECTOR = BLOCKS.register(
             "mirage_wall_projector",
-            () -> new MirageWallDisplayBlock(BlockBehaviour.Properties.of()
+            () -> new MirageWallProjectorBlock(BlockBehaviour.Properties.of()
                     .strength(50.0F, 1200.0F)
                     .sound(SoundType.STONE)
                     .noOcclusion())
@@ -47,13 +45,6 @@ public final class ModBlocks {
     public static final DeferredBlock<MirageLightProjectorBlock> MIRAGE_LIGHT_PROJECTOR = BLOCKS.register(
             "mirage_light_projector",
             () -> new MirageLightProjectorBlock(BlockBehaviour.Properties.of()
-                    .strength(3.5F, 9.0F)
-                    .sound(SoundType.METAL)
-                    .noOcclusion())
-    );
-    public static final DeferredBlock<MirageWallProjectorBlock> MIRAGE_WALL_PROJECTOR = BLOCKS.register(
-            "mirage_wall_illuminator",
-            () -> new MirageWallProjectorBlock(BlockBehaviour.Properties.of()
                     .strength(3.5F, 9.0F)
                     .sound(SoundType.METAL)
                     .noOcclusion())

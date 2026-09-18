@@ -141,7 +141,7 @@ public final class ClientShoulderEquipment {
         return state == null ? ItemStack.EMPTY : state.device().copy();
     }
 
-    public static void submitShoulderFlashlights(Minecraft minecraft, Vec3 cameraPosition) {
+    public static void submitShoulderFlashlights(Minecraft minecraft, Vec3 cameraPosition, float partialTick) {
         if (minecraft == null || minecraft.level == null) {
             return;
         }
@@ -163,7 +163,7 @@ public final class ClientShoulderEquipment {
                 continue;
             }
 
-            Vec3 look = player.getLookAngle();
+            Vec3 look = player.getViewVector(partialTick);
             if (look.lengthSqr() < 1.0E-6D) {
                 look = new Vec3(0.0D, 0.0D, 1.0D);
             }
@@ -174,7 +174,13 @@ public final class ClientShoulderEquipment {
             }
             horizontalForward = horizontalForward.normalize();
             Vec3 right = new Vec3(-horizontalForward.z, 0.0D, horizontalForward.x);
-            Vec3 sourcePos = player.getEyePosition()
+            Vec3 interpolatedPosition = new Vec3(
+                    net.minecraft.util.Mth.lerp(partialTick, player.xo, player.getX()),
+                    net.minecraft.util.Mth.lerp(partialTick, player.yo, player.getY()),
+                    net.minecraft.util.Mth.lerp(partialTick, player.zo, player.getZ())
+            );
+            Vec3 eye = interpolatedPosition.add(0.0D, player.getEyeHeight(), 0.0D);
+            Vec3 sourcePos = eye
                     .add(right.scale(0.30D))
                     .add(horizontalForward.scale(0.18D))
                     .add(0.0D, -0.34D, 0.0D);
@@ -184,10 +190,14 @@ public final class ClientShoulderEquipment {
             }
 
             PortableLightMode mode = MirageFlashlightItem.mode(stack);
+            Vec3 emissionDirection = mode == PortableLightMode.AMBIENT ? new Vec3(0.0D, 1.0D, 0.0D) : look;
+            if (mode == PortableLightMode.AMBIENT) {
+                sourcePos = eye.add(right.scale(0.30D)).add(0.0D, 0.18D, 0.0D);
+            }
             ClientDynamicMirageLightManager.submit(new MirageDynamicLightSnapshot(
                     sourceId,
                     sourcePos,
-                    mode.profile(look),
+                    mode.profile(emissionDirection),
                     LIGHT_REFRESH_TICKS,
                     LIGHT_CULL_DISTANCE,
                     LIGHT_STALE_TICKS
@@ -210,12 +220,15 @@ public final class ClientShoulderEquipment {
         }
 
         poseStack.pushPose();
-        // Initial right-shoulder mount. This is intentionally a small generic item render;
-        // later cosmetic skins may replace the visible device without changing equipment state.
-        poseStack.translate(-0.36D, 1.32D, 0.05D);
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        // RenderPlayerEvent.Post retains the player translation but not the body-local yaw.
+        // Rotate before translating so the shoulder offset follows the torso instead of staying
+        // on a world cardinal axis while the player turns.
+        poseStack.mulPose(Axis.YP.rotationDegrees(-player.yBodyRot));
+        // The item's centre must sit above the shoulder seam, not inside the torso. Keeping a
+        // small forward offset also makes the mounting bracket read clearly from behind.
+        poseStack.translate(-0.40D, 1.55D, 0.12D);
         poseStack.mulPose(Axis.ZP.rotationDegrees(-12.0F));
-        poseStack.scale(0.52F, 0.52F, 0.52F);
+        poseStack.scale(0.42F, 0.42F, 0.42F);
         Minecraft.getInstance().getItemRenderer().renderStatic(
                 stack,
                 ItemDisplayContext.FIXED,

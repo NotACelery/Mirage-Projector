@@ -1,4 +1,4 @@
-# Documentation Authority — Mirage Projector 1.0.32
+# Documentation Authority — Mirage Projector 1.0.39
 
 This file defines which documents describe the current stable product.
 
@@ -66,4 +66,3 @@ If active documents disagree:
 2. `CURRENT-IMPLEMENTATION.md` is the primary written authority;
 3. specialized active documents override older/general wording in their own domain;
 4. `ROADMAP.md` describes future intent and must never be read as current functionality.
-

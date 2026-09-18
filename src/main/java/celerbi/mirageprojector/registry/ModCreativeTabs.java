@@ -28,9 +28,8 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.TALL_MIRAGE_PROJECTOR.get());
                         output.accept(ModItems.MIRAGE_PRISM.get());
                         output.accept(ModItems.MIRAGE_TABLE_PROJECTOR.get());
-                        output.accept(ModItems.MIRAGE_WALL_DISPLAY.get());
-                        output.accept(ModItems.MIRAGE_LIGHT_PROJECTOR.get());
                         output.accept(ModItems.MIRAGE_WALL_PROJECTOR.get());
+                        output.accept(ModItems.MIRAGE_LIGHT_PROJECTOR.get());
                         output.accept(ModItems.MIRAGE_FLASHLIGHT.get());
                         output.accept(ModItems.SHOULDER_STRAP.get());
                         output.accept(ModItems.AUTO_BATTERY_SWAP_PATCH.get());

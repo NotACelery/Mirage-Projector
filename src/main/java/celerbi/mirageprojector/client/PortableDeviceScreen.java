@@ -27,7 +27,7 @@ import org.lwjgl.util.tinyfd.TinyFileDialogs;
 /** Source-aware configuration screen shared by the Mirage Flashlight and Hand Projector. */
 public final class PortableDeviceScreen extends AbstractContainerScreen<PortableDeviceMenu> {
     private static final int PROJECTOR_WIDTH = 360;
-    private static final int PROJECTOR_HEIGHT = 326;
+    private static final int PROJECTOR_HEIGHT = 332;
     private static final int FLASHLIGHT_WIDTH = 196;
     private static final int FLASHLIGHT_HEIGHT = 184;
 
@@ -224,7 +224,7 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
 
         if (menu.projectorLayout()) {
             graphics.fill(x + 12, y + 68, x + 88, y + 124, 0xA20B0E13);
-            graphics.fill(x + 12, y + 162, x + 88, y + 208, 0xA20B0E13);
+            graphics.fill(x + 12, y + 162, x + 94, y + 220, 0xA20B0E13);
             slotFrame(graphics, x + menu.sourceX() - 1, y + menu.sourceY() - 1, 0xFF7954A0);
             slotFrame(graphics, x + menu.batteryX() - 1, y + menu.batteryY() - 1, 0xFF7954A0);
             slotFrame(graphics, x + menu.coreX() - 1, y + menu.coreY() - 1, 0xFF7954A0);
@@ -305,7 +305,7 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
                 ? Component.translatable("gui.mirage_projector.portable_device.source_image_direct_hint")
                 : Component.translatable("gui.mirage_projector.portable_device.source_snapshot_hint");
         graphics.drawString(font, fit(sourceHint.getString(), 78), 14, 108, 0xFF9CA3AF, false);
-        graphics.drawString(font, fit(status.getString(), 332), 14, 209, 0xFF9CA3AF, false);
+        graphics.drawString(font, fit(status.getString(), 332), 14, 213, 0xFF9CA3AF, false);
 
         if (MirageHandProjectorItem.warBannerActive(device)) {
             int labelCenter = CONTROL_X + CONTROL_WIDTH / 2;

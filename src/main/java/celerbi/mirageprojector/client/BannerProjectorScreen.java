@@ -5,6 +5,7 @@ import celerbi.mirageprojector.menu.BannerProjectorMenu;
 import celerbi.mirageprojector.network.BannerWorkspaceActionPayload;
 import celerbi.mirageprojector.network.OpenProjectorWorkspacePayload;
 import celerbi.mirageprojector.network.OpenBannerWorkspacePayload;
+import celerbi.mirageprojector.network.SetProjectionSourcePayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -19,6 +20,7 @@ public final class BannerProjectorScreen extends ResponsiveContainerScreen<Banne
 
     private Button modeButton;
     private Button backButton;
+    private boolean modeActivated;
 
     public BannerProjectorScreen(BannerProjectorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -31,9 +33,12 @@ public final class BannerProjectorScreen extends ResponsiveContainerScreen<Banne
     @Override
     protected void init() {
         super.init();
-        modeButton = addRenderableWidget(Button.builder(Component.empty(), button ->
-                PacketDistributor.sendToServer(new OpenBannerWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
+        modeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.BANNER));
+            modeActivated = true;
+            button.active = false;
+            button.setMessage(Component.translatable("gui.mirage_projector.workspace.mode_active"));
+        }).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
         modeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.banner.activate")));
 
         backButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button ->
@@ -65,7 +70,7 @@ public final class BannerProjectorScreen extends ResponsiveContainerScreen<Banne
         if (modeButton == null) {
             return;
         }
-        boolean activeMode = currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.BANNER;
+        boolean activeMode = modeActivated || (currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.BANNER);
         modeButton.active = !activeMode;
         modeButton.setMessage(activeMode
                 ? Component.translatable("gui.mirage_projector.workspace.mode_active")

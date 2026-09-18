@@ -7,6 +7,7 @@ import celerbi.mirageprojector.menu.ImageProjectorMenu;
 import celerbi.mirageprojector.network.OpenImageWorkspacePayload;
 import celerbi.mirageprojector.network.OpenProjectorWorkspacePayload;
 import celerbi.mirageprojector.network.UpdateImageWorkspacePayload;
+import celerbi.mirageprojector.network.SetProjectionSourcePayload;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import net.minecraft.client.Minecraft;
@@ -66,6 +67,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
     private Button wallNextButton;
     private Button automaticPresentationButton;
     private SecondsSlider automaticPresentationSlider;
+    private boolean modeActivated;
 
     private int mapX;
     private int mapY;
@@ -121,7 +123,12 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         super.init();
         workspaceModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             apply(false);
-            PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
+            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.IMAGE));
+            // Reopening this same container recenters Minecraft's cursor. Activating the mode
+            // only needs a server state update; keep the player in the current workspace.
+            modeActivated = true;
+            button.active = false;
+            button.setMessage(Component.translatable("gui.mirage_projector.workspace.mode_active"));
         }).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
 
         workspaceBackButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button -> {
@@ -578,7 +585,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         if (workspaceModeButton == null) {
             return;
         }
-        boolean activeMode = currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.IMAGE;
+        boolean activeMode = modeActivated || (currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.IMAGE);
         workspaceModeButton.active = !activeMode;
         workspaceModeButton.setMessage(activeMode
                 ? Component.translatable("gui.mirage_projector.workspace.mode_active")

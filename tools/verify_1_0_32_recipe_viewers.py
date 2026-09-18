@@ -21,17 +21,16 @@ def read(rel):
 # custom ProjectorUpgradeRecipe serializer and the two EMI Crying Obsidian overrides.
 recipes = {
     'light_battery': 'mirage_projector:light_battery',
-    'mirage_flashlight': 'mirage_projector:mirage_lantern',  # stable legacy registry ID
+    'mirage_flashlight': 'mirage_projector:mirage_lantern',
     'mirage_light_projector': 'mirage_projector:mirage_light_projector',
-    'mirage_wall_projector': 'mirage_projector:mirage_wall_illuminator',
-    'shoulder_strap': 'mirage_projector:arm_strap',  # stable legacy registry ID
+    'shoulder_strap': 'mirage_projector:arm_strap',
     'auto_battery_swap_patch': 'mirage_projector:auto_battery_swap_patch',
     'shoulder_strap_slot_expansion': 'mirage_projector:battery_pouch_expansion_patch',
     'charging_station': 'mirage_projector:charging_station',
     'mirage_hand_projector': 'mirage_projector:mirage_hand_projector',
     'scan_codex': 'mirage_projector:scan_codex',
     'mirage_table_projector': 'mirage_projector:mirage_table_projector',
-    'mirage_wall_display': 'mirage_projector:mirage_wall_projector',  # stable legacy registry ID
+    'mirage_wall_projector': 'mirage_projector:mirage_wall_projector',
 }
 
 for recipe_id, expected_output in recipes.items():
@@ -79,8 +78,7 @@ for recipe_id in recipes:
 # Legacy output IDs must render the current public names in viewers.
 expected_public_names = {
     'item.mirage_projector.mirage_flashlight': 'Mirage Flashlight',
-    'block.mirage_projector.mirage_wall_projector': 'Mirage Wall Display',
-    'block.mirage_projector.mirage_wall_illuminator': 'Mirage Wall Projector',
+    'block.mirage_projector.mirage_wall_projector': 'Mirage Wall Projector',
 }
 for locale in ('en_us', 'es_cl', 'es_es'):
     lang = json.loads(read(f'src/main/resources/assets/mirage_projector/lang/{locale}.json'))

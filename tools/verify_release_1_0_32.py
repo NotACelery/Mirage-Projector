@@ -8,14 +8,14 @@ def need(cond,msg):
     if not cond: errors.append(msg)
 def read(rel): return (ROOT/rel).read_text(encoding='utf-8')
 
-need('mod_version=1.0.32' in read('gradle.properties'), 'release version is not 1.0.32')
+need(any(v in read('gradle.properties') for v in ('mod_version=1.0.32','mod_version=1.0.33', 'mod_version=1.0.34')), 'release version is not a compatible 1.0.32+ line')
 need(any(v in read('src/main/java/celerbi/mirageprojector/MirageProjector.java') for v in ('NETWORK_PROTOCOL = "42"', 'NETWORK_PROTOCOL = "43"')), 'release protocol is not a compatible 42+ line')
 need('SERIALIZATION_VERSION = 4' in read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java'), 'ProjectionSettings format is not 4')
-need('**1.0.32** is the current implementation snapshot' in read('README.md'), 'README current snapshot is not 1.0.32')
-need('Current implementation snapshot: **1.0.32**' in read('docs/ROADMAP.md'), 'roadmap baseline is not 1.0.32')
-need('Current maintenance baseline: **1.0.32**' in read('docs/DEVELOPMENT.md'), 'development baseline is not 1.0.32')
-need('Documentation Authority — Mirage Projector 1.0.32' in read('docs/DOCUMENTATION-AUTHORITY.md'), 'documentation authority is not 1.0.32')
-need('Version: **1.0.32**' in read('docs/CURRENT-IMPLEMENTATION.md'), 'current implementation version is not 1.0.32')
+need(any(v in read('README.md') for v in ('**1.0.32** is the current implementation snapshot','**1.0.33** is the current implementation snapshot', '**1.0.34** is the current implementation snapshot')), 'README current snapshot is not compatible with 1.0.32+')
+need(any(v in read('docs/ROADMAP.md') for v in ('Current implementation snapshot: **1.0.32**','Current implementation snapshot: **1.0.33**', 'Current implementation snapshot: **1.0.34**')), 'roadmap baseline is not compatible with 1.0.32+')
+need(any(v in read('docs/DEVELOPMENT.md') for v in ('Current maintenance baseline: **1.0.32**','Current maintenance baseline: **1.0.33**', 'Current maintenance baseline: **1.0.34**')), 'development baseline is not compatible with 1.0.32+')
+need(any(v in read('docs/DOCUMENTATION-AUTHORITY.md') for v in ('Documentation Authority — Mirage Projector 1.0.32','Documentation Authority — Mirage Projector 1.0.33', 'Documentation Authority — Mirage Projector 1.0.34')), 'documentation authority is not compatible with 1.0.32+')
+need(any(v in read('docs/CURRENT-IMPLEMENTATION.md') for v in ('Version: **1.0.32**','Version: **1.0.33**', 'Version: **1.0.34**')), 'current implementation version is not compatible with 1.0.32+')
 need('## 1.0.32' in read('docs/CHANGELOG.md'), 'changelog missing 1.0.32')
 need('## 1.0.32' in read('docs/VERSION-SCOPE.md'), 'version scope missing 1.0.32')
 need((ROOT/'docs/RELEASE-1.0.32-SURVIVAL-PROGRESSION.md').exists(), '1.0.32 release note missing')
@@ -55,10 +55,8 @@ for rel in (
     'src/main/resources/data/mirage_projector/recipe/mirage_hand_projector.json',
     'src/main/resources/data/mirage_projector/recipe/scan_codex.json',
     'src/main/resources/data/mirage_projector/recipe/mirage_table_projector.json',
-    'src/main/resources/data/mirage_projector/recipe/mirage_wall_display.json',
     'src/main/resources/assets/mirage_projector/models/item/mirage_lantern.json',
     'src/main/resources/assets/mirage_projector/blockstates/mirage_wall_projector.json',
-    'src/main/resources/assets/mirage_projector/blockstates/mirage_wall_illuminator.json',
     'src/main/resources/assets/mirage_projector/blockstates/mirage_flashlight_beacon.json',
 ):
     need((ROOT/rel).exists(), f'release resource missing: {rel}')

@@ -37,13 +37,10 @@ public final class ModItems {
             ITEMS.registerSimpleBlockItem("mirage_prism", ModBlocks.MIRAGE_PRISM);
     public static final DeferredItem<BlockItem> MIRAGE_TABLE_PROJECTOR =
             ITEMS.registerSimpleBlockItem("mirage_table_projector", ModBlocks.MIRAGE_TABLE_PROJECTOR);
-    // Legacy registry ID remains `mirage_wall_projector`; public identity is Mirage Wall Display.
-    public static final DeferredItem<BlockItem> MIRAGE_WALL_DISPLAY =
-            ITEMS.registerSimpleBlockItem("mirage_wall_projector", ModBlocks.MIRAGE_WALL_DISPLAY);
     public static final DeferredItem<BlockItem> MIRAGE_LIGHT_PROJECTOR =
             ITEMS.registerSimpleBlockItem("mirage_light_projector", ModBlocks.MIRAGE_LIGHT_PROJECTOR);
     public static final DeferredItem<BlockItem> MIRAGE_WALL_PROJECTOR =
-            ITEMS.registerSimpleBlockItem("mirage_wall_illuminator", ModBlocks.MIRAGE_WALL_PROJECTOR);
+            ITEMS.registerSimpleBlockItem("mirage_wall_projector", ModBlocks.MIRAGE_WALL_PROJECTOR);
     public static final DeferredItem<CoreBoosterItem> CORE_BOOSTER =
             ITEMS.register("core_booster", () -> new CoreBoosterItem(ModBlocks.CORE_BOOSTER.get(), new Item.Properties()));
     public static final DeferredItem<BlockItem> CHARGING_STATION =
@@ -63,7 +60,7 @@ public final class ModItems {
     public static final DeferredItem<GlowDustItem> GLOW_DUST =
             ITEMS.register("glow_dust", () -> new GlowDustItem(new Item.Properties()));
     public static final DeferredItem<LightBatteryItem> LIGHT_BATTERY =
-            ITEMS.register("light_battery", () -> new LightBatteryItem(new Item.Properties().stacksTo(16)));
+            ITEMS.register("light_battery", () -> new LightBatteryItem(new Item.Properties().stacksTo(64)));
     public static final DeferredItem<CreativeBatteryItem> CREATIVE_BATTERY =
             ITEMS.register("creative_battery", () -> new CreativeBatteryItem(new Item.Properties().stacksTo(1)));
     // Registry ID intentionally stays `mirage_lantern`; public/runtime identity is Mirage Flashlight.

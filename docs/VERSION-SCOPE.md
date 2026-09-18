@@ -1,6 +1,26 @@
+# Version Scope
+
+## 1.0.34 — Roadmap & UX/visual cleanup
+
+Network protocol remains **43** and `ProjectionSettings` remains format **4**. This wave restores the original presentation/Data-show identity **Mirage Wall Projector** and removes the short-lived `mirage_wall_illuminator` experiment; fixes Table workspace navigation so opening a tab does not activate that projection mode; replaces obsolete portable “profile” wording; rebuilds Mirage Flashlight held/placed presentation around one coherent Crying-Obsidian/magenta-glass work-flashlight design with upward Ambient emission; and gives Mirage Light Projector a Crying-Obsidian exterior, Iron interior, larger one-pixel-margin front reflector and explicit four-side Ambient lens state. The 1.1 roadmap is frozen in `NEXT-WAVES-1.1.0.md`; floor-projector yaw/pitch aiming remains deliberately last.
+
+## 1.0.33 — End Resonance foundation
+
+Dragon Egg special resonance is accepted only by Field/Prism, suspends/restores normal projection state, locks incompatible controls and renders fixed 2×3 / 2×3×2 End Resonance geometry. Dimensional transfer, cooldown/safe-destination and edge-entity handling remain subsequent waves. Protocol **43**, ProjectionSettings format **4**.
+
+## 1.0.33 — Hidden special-resonance foundation
+
+- Generalized special-resonance provider path remains separate from normal PU Cores.
+- Field and Prism explicitly accept the supported special catalyst; all other chassis reject it.
+- Persistent suspend/restore snapshot and read-only normal-control contract.
+- Fixed Field 2×3 planar and Prism 2×3×2 volumetric Mirage-rendered geometry.
+- Anti-dup protections for Creative clone and chassis state-transfer/crafting.
+- Functional dimensional transfer/cooldown/safe destination remains pending.
+- Protocol 43; ProjectionSettings format 4.
+
 ## 1.0.32 — Survival progression / Flashlight / wall illumination
 
-1.0.32 now uses network protocol 43 and keeps `ProjectionSettings` format 4. It commits the first Survival-progression recipe wave, publicly/runtime-renames Mirage Lantern to Mirage Flashlight while preserving legacy registry/NBT compatibility, disambiguates the presentation chassis as Mirage Wall Display, adds a separate true wall-mounted Mirage Wall Projector illumination device, and lets the Flashlight be placed temporarily without losing its battery or mode. The floor Light Projector receives the iron/Crying-Obsidian/magenta visual pass. Visible floor-projector yaw/pitch aiming remains pending.
+1.0.32 now uses network protocol 43 and keeps `ProjectionSettings` format 4. It commits the first Survival-progression recipe wave, publicly/runtime-renames Mirage Lantern to Mirage Flashlight while preserving legacy registry/NBT compatibility, temporarily experimented with a separate wall illumination chassis (removed in 1.0.34), and lets the Flashlight be placed temporarily without losing its battery or mode. The floor Light Projector receives the iron/Crying-Obsidian/magenta visual pass. Visible floor-projector yaw/pitch aiming remains pending.
 - Survival crafting remains vanilla `crafting_shaped`, with all twelve new progression rows natively discoverable in JEI/EMI and protected by a dedicated viewer regression gate.
 
 

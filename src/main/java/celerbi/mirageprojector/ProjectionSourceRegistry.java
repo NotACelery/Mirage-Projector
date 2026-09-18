@@ -73,7 +73,7 @@ public final class ProjectionSourceRegistry {
                         (projector, settings) -> !projector.projectedStack().isEmpty(),
                         (projector, settings) -> projector.projectedStack().isEmpty() ? 0 : 1
                 ),
-                chassis -> chassis != ProjectionChassisProfile.WALL
+                chassis -> chassis != ProjectionChassisProfile.WALL && chassis != ProjectionChassisProfile.TABLE
         );
         registerBuiltin(
                 ProjectionSettings.SourceMode.ENTITY,
@@ -228,6 +228,7 @@ public final class ProjectionSourceRegistry {
             ProjectionSettings settings
     ) {
         return definition(source)
+                .filter(definition -> projector != null && definition.compatibility().supports(projector.chassisProfile()))
                 .map(definition -> definition.provider().hasContent(projector, settings))
                 .orElse(false);
     }
@@ -238,6 +239,7 @@ public final class ProjectionSourceRegistry {
             ProjectionSettings settings
     ) {
         return definition(source)
+                .filter(definition -> projector != null && definition.compatibility().supports(projector.chassisProfile()))
                 .map(definition -> Math.max(0, definition.provider().contentCount(projector, settings)))
                 .orElse(0);
     }

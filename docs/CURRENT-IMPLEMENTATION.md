@@ -1,11 +1,28 @@
-# Current Implementation — Mirage Projector 1.0.32
+# Current Implementation — Mirage Projector 1.0.39
 
-Version: **1.0.32**
+Version: **1.0.39**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
 Network protocol: **43**
 
-This document describes the current implementation behavior of Mirage Projector 1.0.32. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.39. Historical development notes are archived under `docs/history/` and are not current authority.
+
+
+## 1.0.34 Roadmap & UX cleanup
+
+- Restores the original presentation/Data-show **Mirage Wall Projector** as the only wall-projector identity; the separate `mirage_wall_illuminator` experiment is retired.
+- Table workspace navigation and active SourceMode are separate again: opening a tab is non-mutating and only the explicit Use Mode action changes projection mode.
+- Portable projector empty-state text now says no projection has been configured instead of referring to removed copied profiles.
+- Mirage Flashlight uses one coherent work-flashlight material/shape language for held and placed forms; held orientation is horizontal/forward and Ambient emission/placed presentation point upward.
+- Mirage Light Projector uses a Crying-Obsidian exterior with Iron internal structure, a larger front reflector with one-pixel housing margin, and a four-side upper Ambient lens state.
+- `docs/NEXT-WAVES-1.1.0.md` is the authoritative implementation order for remaining 1.1 work; visible Light Projector yaw/pitch is deliberately last.
+
+
+## 1.0.33 hidden special-resonance foundation
+
+1.0.33 introduces a dedicated non-PU special-resonance provider contract without folding special catalysts into `ProjectionCoreProfile`. Only Field and Prism explicitly expose the End-resonance capability. Inserting the supported catalyst into either physical Core slot captures the complete projector-facing state into a persistent restore snapshot, suspends ordinary source/settings mutation, overrides normal shutdown and replaces normal projection rendering with fixed chassis-owned geometry. Field uses a facing-authoritative planar 2 × 3 aperture; Prism uses a 2 × 3 × 2 volumetric anomaly. Removing the catalyst restores the suspended projector state exactly.
+
+The main GUI switches to a read-only `END RESONANCE` status panel while keeping `TURN OFF` attemptable for the established `This doesn't seem to work...` feedback. Creative pick-block sanitizes the unique catalyst, and chassis-upgrade recipes reject packed projectors that still contain a special resonance catalyst so state copying cannot duplicate or destroy it. The restore snapshot persists across world/chunk reload. Functional cross-dimension transfer, entity cooldown and destination safety remain intentionally pending for the next wave. Network protocol remains **43** and `ProjectionSettings` remains format **4**.
 
 
 
@@ -14,9 +31,9 @@ This document describes the current implementation behavior of Mirage Projector 
 
 1.0.32 keeps network protocol **42** and `ProjectionSettings` format **4**. The former Mirage Lantern is now the public/runtime **Mirage Flashlight**; Java symbols, UI text and active documentation use Flashlight while the registry ID `mirage_projector:mirage_lantern` and existing `MirageLantern...` ItemStack NBT keys remain intentionally stable so old worlds retain configured devices. The Flashlight uses a compact 3D Crying-Obsidian / magenta-glass model and may be placed temporarily on a sturdy block top; placement transfers its exact rechargeable cell and mode into the world form, and breaking/support loss returns one Flashlight with that same state.
 
-The illumination family now contains two fixed chassis. **Mirage Light Projector** remains the floor-standing emitter and receives the iron-block body / Crying-Obsidian band / magenta-lens art pass. **Mirage Wall Projector** (`mirage_projector:mirage_wall_illuminator`) is a new true wall-mounted Focus/Flood/Ambient/Off emitter using the same synchronized battery/menu/runtime contract. The historical presentation/Data-show registry `mirage_projector:mirage_wall_projector` remains stable but is now publicly/code-named **Mirage Wall Display**.
+The illumination family currently has one fixed floor chassis: **Mirage Light Projector**. The temporary 1.0.32 wall-mounted illumination experiment (`mirage_wall_illuminator`) was removed in 1.0.34 because it duplicated the role/name of the established presentation chassis without a useful gameplay niche. **Mirage Wall Projector** is again the original presentation/Data-show chassis registered as `mirage_projector:mirage_wall_projector`.
 
-Survival progression is now committed for Light Battery, Mirage Flashlight, Mirage Light Projector, Mirage Wall Projector, Shoulder Strap, Auto Battery Swap Patch, Shoulder Strap Slot Expansion, Charging Station, Mirage Hand Projector, Scan Codex, Mirage Table Projector and Mirage Wall Display. Light Battery consumes exactly five Glow Dust media in an X, with Copper above, Redstone below and Iron on the sides; the recipe accepts full vanilla Glowstone Dust or the rechargeable custom Glow Dust so existing charge-preservation logic remains meaningful. Glow Dust itself intentionally has no crafting recipe. The remaining illumination blocker is visible yaw/pitch aiming for the floor Light Projector.
+Survival progression is committed for Light Battery, Mirage Flashlight, Mirage Light Projector, Shoulder Strap, Auto Battery Swap Patch, Shoulder Strap Slot Expansion, Charging Station, Mirage Hand Projector, Scan Codex, Mirage Table Projector and the presentation-oriented Mirage Wall Projector. The removed `mirage_wall_illuminator` experiment has no recipe or registry entry. Light Battery consumes exactly five Glow Dust media in an X, with Copper above, Redstone below and Iron on the sides; the recipe accepts full vanilla Glowstone Dust or the rechargeable custom Glow Dust so existing charge-preservation logic remains meaningful. Glow Dust itself intentionally has no crafting recipe. The remaining illumination blocker is visible yaw/pitch aiming for the floor Light Projector.
 
 ## 1.0.31 canonical workspace/runtime rebuild
 
@@ -49,11 +66,11 @@ The runtime exposes eight projector chassis:
 5. Tall Mirage Projector
 6. Mirage Prism
 7. Mirage Table Projector
-8. Mirage Wall Display
+8. Mirage Wall Projector
 
 The project no longer registers alternate/comparison projector IDs. Each chassis has one canonical block/item identity, model, VoxelShape and renderer layout.
 
-Crafting upgrades preserve stored projector state. Mirage Projector upgrades into Mirage Display, which branches into Wide, Tall, Prism and Field variants. Table and the presentation-oriented Wall chassis are 1.1 anchor-family foundations; their Survival recipes are now frozen in 1.0.32. The presentation chassis is publicly named Mirage Wall Display to distinguish it from the new wall-mounted illumination projector.
+Crafting upgrades preserve stored projector state. Mirage Projector upgrades into Mirage Display, which branches into Wide, Tall, Prism and Field variants. Table and the presentation-oriented Wall chassis are 1.1 anchor-family foundations; their Survival recipes are now frozen in 1.0.32. The presentation chassis keeps its original public/code identity **Mirage Wall Projector**; there is no separate wall-mounted illumination projector in the current scope.
 
 ### Table / Horizontal anchor
 
@@ -313,7 +330,7 @@ JEI integration exposes custom projector upgrade recipes through the vanilla Cra
 
 Both integrations are optional. Mirage Projector loads normally when either or both recipe viewers are absent.
 
-The 1.0.32 Survival-progression set is intentionally data-driven with vanilla `minecraft:crafting_shaped` recipes. JEI and EMI both read those rows directly from the vanilla RecipeManager, so Light Battery, Mirage Flashlight, Mirage Light Projector, Mirage Wall Projector, Shoulder Strap, both Strap patches, Charging Station, Mirage Hand Projector, Mirage Scan Codex, Mirage Table Projector and Mirage Wall Display appear in the ordinary Crafting category without duplicate custom viewer recipes. The Light Battery row uses the shared `mirage_projector:glow_dust_media` tag, allowing the viewer ingredient slot to cycle between vanilla Glowstone Dust and rechargeable Mirage Glow Dust.
+The 1.0.32 Survival-progression set is intentionally data-driven with vanilla `minecraft:crafting_shaped` recipes. JEI and EMI both read those rows directly from the vanilla RecipeManager, so Light Battery, Mirage Flashlight, Mirage Light Projector, Shoulder Strap, both Strap patches, Charging Station, Mirage Hand Projector, Mirage Scan Codex, Mirage Table Projector and Mirage Wall Projector appear in the ordinary Crafting category without duplicate custom viewer recipes. The retired `mirage_wall_illuminator` recipe is intentionally absent. The Light Battery row uses the shared `mirage_projector:glow_dust_media` tag, allowing the viewer ingredient slot to cycle between vanilla Glowstone Dust and rechargeable Mirage Glow Dust.
 
 ## Public handbook
 

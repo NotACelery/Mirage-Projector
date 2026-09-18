@@ -143,7 +143,7 @@ public final class ClientHeldProjectors {
             return false;
         }
 
-        Placement placement = placement(player, ordinal);
+        Placement placement = placement(player, partialTick, ordinal);
         MirageProjectorBlockEntity portable = MirageHandProjectorItem.createPortableProjector(
                 stack,
                 minecraft.level,
@@ -161,11 +161,15 @@ public final class ClientHeldProjectors {
 
         int packedLight = LevelRenderer.getLightColor(minecraft.level, placement.blockPos());
         poseStack.pushPose();
+        // The temporary block entity supplies source state only. Its block position must never
+        // become the visual anchor: that quantizes a held projection to whole blocks.
         poseStack.translate(
-                placement.blockPos().getX() - cameraPosition.x,
-                placement.blockPos().getY() - cameraPosition.y,
-                placement.blockPos().getZ() - cameraPosition.z
+                placement.anchor().x - cameraPosition.x,
+                placement.anchor().y - cameraPosition.y,
+                placement.anchor().z - cameraPosition.z
         );
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(placement.yawDegrees() - 180.0F));
+        poseStack.translate(-0.5D, 0.0D, -0.5D);
         renderer.renderPortableProjection(portable, partialTick, poseStack, bufferSource, packedLight, 0);
         poseStack.popPose();
         return true;
@@ -181,7 +185,8 @@ public final class ClientHeldProjectors {
             ItemStack stack,
             int ordinal
     ) {
-        BlockPos projectorPos = player.blockPosition();
+        Placement placement = placement(player, partialTick, ordinal);
+        BlockPos projectorPos = placement.blockPos();
         MirageProjectorBlockEntity portable = MirageHandProjectorItem.createPortableProjector(
                 stack,
                 minecraft.level,
@@ -197,22 +202,18 @@ public final class ClientHeldProjectors {
             return false;
         }
 
-        Vec3 playerPosition = new Vec3(
-                Mth.lerp(partialTick, player.xo, player.getX()),
-                Mth.lerp(partialTick, player.yo, player.getY()),
-                Mth.lerp(partialTick, player.zo, player.getZ())
-        );
         ProjectionSettings settings = portable.settings();
-        float forwardModelScale = Math.max(1.0F / 16.0F, settings.scalePixels() / 40.0F);
-        float modelScale = forwardModelScale * MirageHandProjectorItem.warBannerSizePercent(stack) / 100.0F;
+        // Banner size is explicitly measured against Minecraft's ordinary banner model.
+        float modelScale = MirageHandProjectorItem.warBannerSizePercent(stack) / 100.0F;
         double bannerHeight = modelScale * 2.5D;
         double gap = 0.12D + MirageHandProjectorItem.warBannerHeightPixels(stack) / 16.0D;
-        double stackSeparation = Math.max(0, ordinal) * 0.12D;
-        Vec3 anchor = new Vec3(
-                playerPosition.x,
-                playerPosition.y + player.getBbHeight() + gap + bannerHeight + stackSeparation,
-                playerPosition.z
-        );
+        Vec3 bodyForward = horizontalForward(player, partialTick);
+        Vec3 bodyRight = new Vec3(-bodyForward.z, 0.0D, bodyForward.x);
+        double stackSeparation = Math.max(0, ordinal) * 0.18D;
+        Vec3 anchor = placement.playerPosition()
+                .add(bodyForward.scale(0.34D))
+                .add(bodyRight.scale(0.20D + stackSeparation))
+                .add(0.0D, player.getBbHeight() + gap + bannerHeight, 0.0D);
 
         float yawDegrees;
         if (MirageHandProjectorItem.warBannerFacing(stack)
@@ -221,7 +222,7 @@ public final class ClientHeldProjectors {
             double dz = cameraPosition.z - anchor.z;
             yawDegrees = (float) Math.toDegrees(Math.atan2(dx, dz));
         } else {
-            yawDegrees = -Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
+            yawDegrees = placement.yawDegrees();
         }
 
         int packedLight = settings.fullbright()
@@ -249,8 +250,8 @@ public final class ClientHeldProjectors {
         return true;
     }
 
-    private static Placement placement(Player player, int ordinal) {
-        Vec3 look = player.getLookAngle();
+    private static Placement placement(Player player, float partialTick, int ordinal) {
+        Vec3 look = player.getViewVector(partialTick);
         if (look.lengthSqr() < 1.0E-6D) {
             look = new Vec3(0.0D, 0.0D, 1.0D);
         }
@@ -263,12 +264,24 @@ public final class ClientHeldProjectors {
         right = right.normalize();
 
         double spread = ordinal <= 0 ? 0.0D : Math.min(0.45D, ordinal * 0.18D);
-        Vec3 origin = player.getEyePosition()
+        Vec3 playerPosition = new Vec3(
+                Mth.lerp(partialTick, player.xo, player.getX()),
+                Mth.lerp(partialTick, player.yo, player.getY()),
+                Mth.lerp(partialTick, player.zo, player.getZ())
+        );
+        Vec3 origin = playerPosition.add(0.0D, player.getEyeHeight(), 0.0D)
                 .add(look.scale(1.10D))
                 .add(right.scale(spread))
                 .add(0.0D, -1.05D, 0.0D);
-        BlockPos pos = BlockPos.containing(origin.x - 0.5D, origin.y, origin.z - 0.5D);
-        return new Placement(pos, horizontalFacing(player));
+        BlockPos pos = BlockPos.containing(origin);
+        float yaw = -Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
+        return new Placement(origin, playerPosition, pos, Direction.SOUTH, yaw);
+    }
+
+    private static Vec3 horizontalForward(Player player, float partialTick) {
+        Vec3 look = player.getViewVector(partialTick);
+        Vec3 flat = new Vec3(look.x, 0.0D, look.z);
+        return flat.lengthSqr() < 1.0E-6D ? new Vec3(0.0D, 0.0D, 1.0D) : flat.normalize();
     }
 
     private static Direction horizontalFacing(Player player) {
@@ -301,7 +314,7 @@ public final class ClientHeldProjectors {
         }
     }
 
-    private record Placement(BlockPos blockPos, Direction facing) {
+    private record Placement(Vec3 anchor, Vec3 playerPosition, BlockPos blockPos, Direction facing, float yawDegrees) {
     }
 
     private record SyncedState(ItemStack stack, long lastSeenTick) {

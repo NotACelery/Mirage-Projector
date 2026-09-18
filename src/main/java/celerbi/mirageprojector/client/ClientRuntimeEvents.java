@@ -29,13 +29,14 @@ public final class ClientRuntimeEvents {
 
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
+        float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(false);
 
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_TRIPWIRE_BLOCKS) {
             ClientHeldProjectors.renderVisiblePlayers(
                     Minecraft.getInstance(),
                     event.getPoseStack(),
                     event.getCamera().getPosition(),
-                    0.0F
+                    partialTick
             );
             MirageProjectorRenderer.flushDeferredEntityProjections(
                     event.getPoseStack(),
@@ -47,11 +48,13 @@ public final class ClientRuntimeEvents {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_LEVEL) {
             ClientHeldFlashlights.submitVisiblePlayers(
                     Minecraft.getInstance(),
-                    event.getCamera().getPosition()
+                    event.getCamera().getPosition(),
+                    partialTick
             );
             ClientShoulderEquipment.submitShoulderFlashlights(
                     Minecraft.getInstance(),
-                    event.getCamera().getPosition()
+                    event.getCamera().getPosition(),
+                    partialTick
             );
             ClientPlacedLightProjectors.submitNearby(
                     Minecraft.getInstance(),

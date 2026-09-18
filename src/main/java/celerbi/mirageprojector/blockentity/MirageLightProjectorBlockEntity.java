@@ -1,6 +1,8 @@
 package celerbi.mirageprojector.blockentity;
 
 import celerbi.mirageprojector.item.RechargeableEnergyItem;
+import celerbi.mirageprojector.block.MirageFlashlightBeaconBlock;
+import celerbi.mirageprojector.block.MirageLightProjectorBlock;
 import celerbi.mirageprojector.light.device.PortableLightMode;
 import celerbi.mirageprojector.registry.ModBlockEntities;
 import celerbi.mirageprojector.registry.ModBlocks;
@@ -35,6 +37,7 @@ public final class MirageLightProjectorBlockEntity extends BlockEntity implement
 
     private ItemStack energyCell = ItemStack.EMPTY;
     private PortableLightMode mode = PortableLightMode.FOCUS;
+    private boolean suppressFlashlightDrop;
 
     public MirageLightProjectorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MIRAGE_LIGHT_PROJECTOR.get(), pos, state);
@@ -95,18 +98,45 @@ public final class MirageLightProjectorBlockEntity extends BlockEntity implement
         return result;
     }
 
+    /** Marks this temporary flashlight form as collected directly into a player's hand. */
+    public void suppressFlashlightDrop() {
+        suppressFlashlightDrop = true;
+    }
+
+    public boolean shouldSuppressFlashlightDrop() {
+        return suppressFlashlightDrop;
+    }
+
     public void setMode(PortableLightMode mode) {
         this.mode = mode == null ? PortableLightMode.OFF : mode;
+        syncVisualModeState();
         setChangedAndSync();
     }
 
     public PortableLightMode cycleMode() {
         mode = mode.next();
+        syncVisualModeState();
         setChangedAndSync();
         return mode;
     }
 
+    private void syncVisualModeState() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        BlockState state = getBlockState();
+        boolean ambient = mode == PortableLightMode.AMBIENT;
+        if (state.hasProperty(MirageFlashlightBeaconBlock.AMBIENT)
+                && state.getValue(MirageFlashlightBeaconBlock.AMBIENT) != ambient) {
+            level.setBlock(worldPosition, state.setValue(MirageFlashlightBeaconBlock.AMBIENT, ambient), Block.UPDATE_CLIENTS);
+        } else if (state.hasProperty(MirageLightProjectorBlock.AMBIENT)
+                && state.getValue(MirageLightProjectorBlock.AMBIENT) != ambient) {
+            level.setBlock(worldPosition, state.setValue(MirageLightProjectorBlock.AMBIENT, ambient), Block.UPDATE_CLIENTS);
+        }
+    }
+
     public static void serverTick(Level level, BlockPos pos, BlockState state, MirageLightProjectorBlockEntity projector) {
+        projector.syncVisualModeState();
         if (!(level instanceof ServerLevel serverLevel)
                 || projector == null
                 || serverLevel.getGameTime() % 20L != 0L
@@ -133,9 +163,6 @@ public final class MirageLightProjectorBlockEntity extends BlockEntity implement
 
     @Override
     public Component getDisplayName() {
-        if (getBlockState().is(ModBlocks.MIRAGE_WALL_PROJECTOR)) {
-            return Component.translatable("container.mirage_projector.wall_projector");
-        }
         if (getBlockState().is(ModBlocks.MIRAGE_FLASHLIGHT_BEACON)) {
             return Component.translatable("container.mirage_projector.flashlight");
         }

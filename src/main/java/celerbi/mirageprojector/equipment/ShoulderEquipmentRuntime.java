@@ -129,7 +129,7 @@ public final class ShoulderEquipmentRuntime {
             if (installed.isEmpty()) {
                 return false;
             }
-            if (!equipment.canRemoveStrap()) {
+            if (installed.is(ModItems.SHOULDER_STRAP.get()) && !equipment.canRemoveStrap()) {
                 player.displayClientMessage(Component.translatable(
                         "message.mirage_projector.shoulder.strap_device_blocked"
                 ), true);
@@ -140,7 +140,9 @@ public final class ShoulderEquipmentRuntime {
             return !removed.isEmpty();
         }
 
-        if (!carried.is(ModItems.SHOULDER_STRAP.get()) || !installed.isEmpty()) {
+        boolean validBaseSlotItem = carried.is(ModItems.SHOULDER_STRAP.get())
+                || carried.getItem() instanceof ShoulderMountableDevice;
+        if (!validBaseSlotItem || !installed.isEmpty() || carried.getCount() != 1) {
             return false;
         }
         ItemStack inserted = carried.copyWithCount(1);

@@ -13,9 +13,14 @@ import net.minecraft.world.phys.Vec3;
  * changing the device or light-engine architecture.</p>
  */
 public enum PortableLightMode {
-    FOCUS(15, 2, 24, 2, 22.0F, 4),
-    FLOOD(15, 2, 16, 1, 72.0F, 2),
-    AMBIENT(14, 2, 12, 0, 360.0F, 1),
+    // Sixteen source-to-end samples: 15x4, 14x4, 13x4, 12x4.
+    FOCUS(15, 4, 15, 2, 22.0F, 4),
+    // Flood trades peak brightness for coverage.  It must never reach Focus' level-15
+    // core, otherwise it is simply a wider Focus beam with no meaningful trade-off.
+    // Ten samples: 13,13 / 12,12 / 11,11 / 10,10 / 9,9.
+    FLOOD(13, 2, 9, 1, 72.0F, 2),
+    // Twenty samples from the source: 15,15 through 6,6.
+    AMBIENT(15, 2, 19, 0, 360.0F, 8),
     OFF(0, 1, 0, 0, 360.0F, 0);
 
     private static final int RGB = 0xCBB7FF;
@@ -77,25 +82,59 @@ public enum PortableLightMode {
             return MirageDynamicLightProfiles.ambient(0, 1, 0, 0, RGB);
         }
         if (this == AMBIENT) {
-            return MirageDynamicLightProfiles.ambient(
+            return MirageDynamicLightProfiles.ambientExactPlateaus(
                     conceptualLight,
                     substepsPerLightLevel,
                     maxRadius,
                     detourExtraCostUnits,
-                    RGB
+                    RGB,
+                    conceptualLight * substepsPerLightLevel
             );
         }
         Vec3 safeDirection = direction == null || direction.lengthSqr() < 1.0E-6D
                 ? new Vec3(0.0D, 0.0D, 1.0D)
                 : direction.normalize();
-        return MirageDynamicLightProfiles.directionalCone(
+        return MirageDynamicLightProfiles.directionalConeExactPlateaus(
                 conceptualLight,
                 substepsPerLightLevel,
                 maxRadius,
                 detourExtraCostUnits,
                 safeDirection,
                 coneAngleDegrees,
-                RGB
+                RGB,
+                conceptualLight * substepsPerLightLevel
+        );
+    }
+
+    /**
+     * Fixed Mirage Light Projectors use the same energy cost and mode identity as a Flashlight,
+     * but their optic/chassis gives every operating mode 50% more reach. The additional reach
+     * naturally continues into lower levels instead of changing the handheld mode's core output.
+     */
+    public MirageLightProfile lightProjectorProfile(Vec3 direction) {
+        int projectorRadius = Math.round((maxRadius + 1) * 1.5F) - 1;
+        if (this == AMBIENT) {
+            return MirageDynamicLightProfiles.ambientExactPlateaus(
+                    conceptualLight,
+                    substepsPerLightLevel,
+                    projectorRadius,
+                    detourExtraCostUnits,
+                    RGB,
+                    conceptualLight * substepsPerLightLevel
+            );
+        }
+        Vec3 safeDirection = direction == null || direction.lengthSqr() < 1.0E-6D
+                ? new Vec3(0.0D, 0.0D, 1.0D)
+                : direction.normalize();
+        return MirageDynamicLightProfiles.directionalConeExactPlateaus(
+                conceptualLight,
+                substepsPerLightLevel,
+                projectorRadius,
+                detourExtraCostUnits,
+                safeDirection,
+                coneAngleDegrees,
+                RGB,
+                conceptualLight * substepsPerLightLevel
         );
     }
 

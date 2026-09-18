@@ -22,7 +22,7 @@ EMI and JEI are optional. When installed, Mirage Projector exposes its custom pr
 | Tall Mirage Projector | 32×80 | 96 | 16 | ×2.00 |
 | Mirage Prism | 48×48 baseline | 96 | 12 | ×2.00 |
 | Mirage Table Projector | 48×48 | 64 | 12 | ×1.50 |
-| Mirage Wall Display / Data-show | wall-targeted | — | — | ×1.50 |
+| Mirage Wall Projector / Data-show | wall-targeted | — | — | ×1.50 |
 
 The nominal envelope is an efficiency target rather than a hard render cap. Sufficient Projection Power can push a projector into Overdrive.
 
@@ -120,7 +120,7 @@ With EMI installed:
 
 With JEI installed, custom projector-upgrade recipes are exposed through the normal Crafting category and Crying Obsidian/projector guidance is available through ingredient information.
 
-The 1.0.32 Survival-progression recipes (Light Battery, Mirage Flashlight, Light/Wall projectors, Shoulder Strap + patches, Charging Station, Hand Projector, Scan Codex, Table Projector and Wall Display) are ordinary vanilla `crafting_shaped` recipes. Both JEI and EMI therefore expose them directly in their normal Crafting category from the shared RecipeManager rather than through duplicate Mirage-specific wrappers. The Light Battery entry expands `mirage_projector:glow_dust_media`, so the five Glow Dust slots accept both full vanilla Glowstone Dust and rechargeable Mirage Glow Dust.
+The 1.0.32 Survival-progression recipes (Light Battery, Mirage Flashlight, Light/Wall projectors, Shoulder Strap + patches, Charging Station, Hand Projector, Scan Codex, Table Projector and Wall Projector) are ordinary vanilla `crafting_shaped` recipes. Both JEI and EMI therefore expose them directly in their normal Crafting category from the shared RecipeManager rather than through duplicate Mirage-specific wrappers. The Light Battery entry expands `mirage_projector:glow_dust_media`, so the five Glow Dust slots accept both full vanilla Glowstone Dust and rechargeable Mirage Glow Dust.
 
 ## Documentation
 
@@ -149,6 +149,10 @@ The verification suite checks the current registry/resource surface, Mirage Ligh
 
 ## Version scope
 
-**1.0.32** is the current implementation snapshot. It closes the first Survival-progression wave for the 1.1 feature set: Light Battery now uses the fixed five-Glow-Dust X recipe, Mirage Lantern is publicly/runtime-renamed **Mirage Flashlight** while keeping the legacy `mirage_lantern` registry/NBT identities for world compatibility, Shoulder Strap/upgrades, Charging Station, Hand Projector, Scan Codex, Table Projector and Wall Display gain Survival recipes, and the floor Light Projector receives the agreed iron/Crying-Obsidian visual pass. A separate wall-mounted illumination chassis is now the public **Mirage Wall Projector** (`mirage_wall_illuminator` internally), while the old presentation chassis is the **Mirage Wall Display**. The Flashlight also gains a temporary placed world form that preserves mode and battery. Network protocol advances to **43** and `ProjectionSettings` format remains **4**. The floor Light Projector aiming/yaw-pitch follow-up remains intentionally pending. The Table runtime is now isolated behind a dedicated 1:1 settings screen and Table-only render/visibility/placement rules; save format remains unchanged; the main-menu opening payload now carries authoritative chassis identity.
+**1.0.39** is the current implementation snapshot. It is the post-QA hotfix line over the 1.0.34 roadmap/UX cleanup checkpoint. Network protocol remains **43** and `ProjectionSettings` format remains **4**.
 
 **1.0.24** established the current Scan Codex/Card and Hand Projector portable UI contracts. It keeps the vanilla Lectern as the physical Scan Codex workstation while replacing Paper-copy semantics with blank Entity Scan Cards, adding destructive successful imports from filled Mirage cards and optional Easy Mob Farm capture cards, expanding the Codex into a scrollable categorized detail browser, and compacting the Hand Projector into a lite portable UI whose Forward/War Banner, Directional/Billboard, size and height controls update from live device state. Reverse Mirage → Easy Mob Farm card export remains deferred; if added later its cost is measured in experience levels rather than raw XP. Final 1.1.0 work still includes the Wall presentation slide-deck architecture, optional Create Blueprint bridge, End Resonance, recipes/balance and release polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.
+
+### 1.0.34 roadmap/cleanup checkpoint
+
+1.0.34 restores **Mirage Wall Projector** as the sole wall-projector identity (the presentation/Data-show chassis), fixes Table workspace navigation vs active-mode state, updates portable-projector empty-state wording, and performs the Flashlight/Light Projector visual and Ambient-orientation cleanup. The remaining 1.1 implementation order is frozen in `docs/NEXT-WAVES-1.1.0.md`.

@@ -28,7 +28,7 @@ portable_screen=read('src/main/java/celerbi/mirageprojector/client/PortableDevic
 portable_action=read('src/main/java/celerbi/mirageprojector/network/PortableDeviceActionPayload.java')
 networking=read('src/main/java/celerbi/mirageprojector/network/ModNetworking.java')
 
-need(any(v in props for v in ('mod_version=1.0.31', 'mod_version=1.0.32')), 'version is not a compatible 1.0.31+ line')
+need(any(v in props for v in ('mod_version=1.0.31', 'mod_version=1.0.32', 'mod_version=1.0.33', 'mod_version=1.0.34')), 'version is not a compatible 1.0.31+ line')
 need(any(v in main for v in ('NETWORK_PROTOCOL = "42"', 'NETWORK_PROTOCOL = "43"')), 'protocol is not a compatible 42+ line')
 need('buffer.writeBoolean(projectionEnabled);' in be, 'main menu does not publish projection-enabled state')
 need('initialProjectionEnabled = buffer.readBoolean();' in menu, 'main menu does not consume projection-enabled state')
@@ -49,13 +49,20 @@ modes={
     'OpenEntityWorkspacePayload.java':'ENTITY',
     'OpenBannerWorkspacePayload.java':'BANNER',
 }
+current_1034 = 'mod_version=1.0.34' in props
 for fn,mode in modes.items():
     text=read('src/main/java/celerbi/mirageprojector/network/'+fn)
-    need(f'activateProjectionSource(ProjectionSettings.SourceMode.{mode})' in text,
-         f'{mode} workspace does not atomically activate its source server-side')
-    activation=text.find(f'activateProjectionSource(ProjectionSettings.SourceMode.{mode})')
-    opening=text.find('openMenu(provider')
-    need(activation >= 0 and opening > activation, f'{mode} workspace opens before source activation')
+    if current_1034:
+        need(f'activateProjectionSource(ProjectionSettings.SourceMode.{mode})' not in text and 'SetProjectionSourcePayload' not in text, f'{mode} workspace navigation unexpectedly mutates SourceMode in 1.0.34')
+    else:
+        need(f'activateProjectionSource(ProjectionSettings.SourceMode.{mode})' in text, f'{mode} workspace does not atomically activate its source server-side')
+        activation=text.find(f'activateProjectionSource(ProjectionSettings.SourceMode.{mode})')
+        opening=text.find('openMenu(provider')
+        need(activation >= 0 and opening > activation, f'{mode} workspace opens before source activation')
+if current_1034:
+    for name,mode in (('Image','IMAGE'),('Item','ITEM'),('Entity','ENTITY'),('Banner','BANNER')):
+        ws=read(f'src/main/java/celerbi/mirageprojector/client/{name}ProjectorScreen.java')
+        need('new SetProjectionSourcePayload' in ws and f'SourceMode.{mode}' in ws, f'{mode} explicit source activation action missing after navigation split')
 
 for name in ('Item','Entity','Banner'):
     text=read(f'src/main/java/celerbi/mirageprojector/menu/{name}ProjectorMenu.java')

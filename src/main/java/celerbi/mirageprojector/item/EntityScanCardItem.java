@@ -32,21 +32,12 @@ public final class EntityScanCardItem extends Item {
             TooltipFlag tooltipFlag
     ) {
         EntityScanData.read(stack).ifPresentOrElse(scan -> {
-            tooltipComponents.add(Component.literal(scan.displayName()).withStyle(ChatFormatting.AQUA));
+            // A scan card is an identity card, not a debug dump. Keep its tooltip to the
+            // entity type and (when present) the entity's actual custom name.
             tooltipComponents.add(Component.literal(scan.entityType().toString()).withStyle(ChatFormatting.GRAY));
-            if (scan.hasProjectionNameplate()) {
-                tooltipComponents.add(Component.translatable(
-                        "tooltip.mirage_projector.scan_card.nameplate",
-                        scan.projectionNameplateText()
-                ).withStyle(ChatFormatting.GRAY));
+            if (scan.hadCustomName() && !scan.customNameText().isBlank()) {
+                tooltipComponents.add(Component.literal(scan.customNameText()).withStyle(ChatFormatting.AQUA));
             }
-            String id = scan.scanId().toString();
-            tooltipComponents.add(Component.literal("Snapshot " + id.substring(0, 8) + "…")
-                    .withStyle(ChatFormatting.DARK_GRAY));
-            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.frozen")
-                    .withStyle(ChatFormatting.GREEN));
-            tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.clear_recipe")
-                    .withStyle(ChatFormatting.GRAY));
         }, () -> {
             tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_card.empty")
                     .withStyle(ChatFormatting.GRAY));

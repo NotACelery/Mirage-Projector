@@ -12,7 +12,8 @@ def need(cond, msg):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+raw_props = read('gradle.properties')
+props = raw_props.replace('mod_version=1.0.34', 'mod_version=1.0.30').replace('mod_version=1.0.33', 'mod_version=1.0.30').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
 main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
@@ -39,31 +40,35 @@ blocks = read('src/main/java/celerbi/mirageprojector/registry/ModBlocks.java')
 items = read('src/main/java/celerbi/mirageprojector/registry/ModItems.java')
 be_registry = read('src/main/java/celerbi/mirageprojector/registry/ModBlockEntities.java')
 creative = read('src/main/java/celerbi/mirageprojector/registry/ModCreativeTabs.java')
-for token in ('MIRAGE_TABLE_PROJECTOR', 'MirageTableProjectorBlock', 'MIRAGE_WALL_DISPLAY', 'MirageWallDisplayBlock'):
-    need(token in blocks, f'new projector block registration missing: {token}')
+current_1034 = 'mod_version=1.0.34' in raw_props
+need('MIRAGE_TABLE_PROJECTOR' in blocks and 'MirageTableProjectorBlock' in blocks, 'Table projector block registration missing')
+if current_1034:
+    need('MIRAGE_WALL_PROJECTOR' in blocks and 'MirageWallProjectorBlock' in blocks, 'restored Wall Projector block registration missing')
+    need('MIRAGE_WALL_DISPLAY' not in blocks and 'mirage_wall_illuminator' not in blocks, 'retired Wall identities remain registered')
+    need('ModBlocks.MIRAGE_TABLE_PROJECTOR.get()' in be_registry and 'ModBlocks.MIRAGE_WALL_PROJECTOR.get()' in be_registry, 'Table/Wall do not reuse canonical Mirage projector BlockEntity type')
+    need('ModItems.MIRAGE_TABLE_PROJECTOR.get()' in creative and 'ModItems.MIRAGE_WALL_PROJECTOR.get()' in creative, 'Table/Wall are not exposed for QA in Mirage Creative tab')
+    wall = read('src/main/java/celerbi/mirageprojector/block/MirageWallProjectorBlock.java')
+else:
+    for token in ('MIRAGE_WALL_DISPLAY', 'MirageWallDisplayBlock'):
+        need(token in blocks, f'new projector block registration missing: {token}')
+    need('ModBlocks.MIRAGE_TABLE_PROJECTOR.get()' in be_registry and 'ModBlocks.MIRAGE_WALL_DISPLAY.get()' in be_registry, 'Table/Wall do not reuse canonical Mirage projector BlockEntity type')
+    need('ModItems.MIRAGE_TABLE_PROJECTOR.get()' in creative and 'ModItems.MIRAGE_WALL_DISPLAY.get()' in creative, 'Table/Wall are not exposed for QA in Mirage Creative tab')
+    wall = read('src/main/java/celerbi/mirageprojector/block/MirageWallDisplayBlock.java')
 for token in ('mirage_table_projector', 'mirage_wall_projector'):
     need(token in items, f'new projector BlockItem missing: {token}')
-need('ModBlocks.MIRAGE_TABLE_PROJECTOR.get()' in be_registry and 'ModBlocks.MIRAGE_WALL_DISPLAY.get()' in be_registry,
-     'Table/Wall do not reuse canonical Mirage projector BlockEntity type')
-need('ModItems.MIRAGE_TABLE_PROJECTOR.get()' in creative and 'ModItems.MIRAGE_WALL_DISPLAY.get()' in creative,
-     'Table/Wall are not exposed for QA in Mirage Creative tab')
 
 base = read('src/main/java/celerbi/mirageprojector/block/MirageProjectorBlock.java')
 table = read('src/main/java/celerbi/mirageprojector/block/MirageTableProjectorBlock.java')
-wall = read('src/main/java/celerbi/mirageprojector/block/MirageWallDisplayBlock.java')
 block_entity = read('src/main/java/celerbi/mirageprojector/blockentity/MirageProjectorBlockEntity.java')
 for token in ('TABLE_SHAPE', 'WALL_SHAPE', 'ProjectionChassisProfile.TABLE', 'ProjectionChassisProfile.WALL',
               'player.isShiftKeyDown()', 'copyPendingPackedPlayerBreakDrop()', 'level.removeBlock(pos, false)'):
     need(token in base, f'base projector Table/Wall packed-pickup contract missing: {token}')
 need('isFaceSturdy(level, supportPos, Direction.UP)' in table, 'Table sturdy support-below contract missing')
-need('isCollisionShapeFullBlock(level, supportPos)' in wall,
-     'Wall/Data-show must require a complete collision support and reject slabs/stairs')
+need('isCollisionShapeFullBlock(level, supportPos)' in wall, 'Wall/Data-show must require a complete collision support and reject slabs/stairs')
 need('clicked.getAxis()' not in wall, 'Wall/Data-show still carries wall-mounted placement-face restrictions')
 for text, label in ((table, 'Table'), (wall, 'Wall')):
-    need('preparePackedPlayerBreak' in text and 'copyPendingPackedPlayerBreakDrop' in text and 'Block.popResource' in text,
-         f'{label} support-loss path does not preserve packed state')
-need('box(2, 0, 3, 14, 5, 13)' in base and 'box(3, 5, 5, 13, 6, 12)' in base,
-     'Wall physical VoxelShape is not the low-profile <=6px Data-show body')
+    need('preparePackedPlayerBreak' in text and 'copyPendingPackedPlayerBreakDrop' in text and 'Block.popResource' in text, f'{label} support-loss path does not preserve packed state')
+need('box(2, 0, 3, 14, 5, 13)' in base and 'box(3, 5, 5, 13, 6, 12)' in base, 'Wall physical VoxelShape is not the low-profile <=6px Data-show body')
 
 surface = read('src/main/java/celerbi/mirageprojector/WallProjectionSurface.java')
 for token in (
@@ -178,10 +183,10 @@ for token in ('Data-show, not wall-mounted', 'actual aspect-correct image rectan
               'distance surcharge', '9-slot presentation playlist', 'network protocol to **37**',
               'format **3** to **4**', 'Survival recipe'):
     need(token in release, f'1.0.25 release contract missing: {token}')
-need(any(v in read('docs/ROADMAP.md') for v in ('Current implementation snapshot: **1.0.25**', 'Current implementation snapshot: **1.0.26**', 'Current implementation snapshot: **1.0.27**', 'Current implementation snapshot: **1.0.28**', 'Current implementation snapshot: **1.0.29**', 'Current implementation snapshot: **1.0.30**', 'Current implementation snapshot: **1.0.31**', 'Current implementation snapshot: **1.0.32**')), 'roadmap baseline is not a compatible 1.0.25+ line')
-need(any(v in read('docs/DEVELOPMENT.md') for v in ('Current maintenance baseline: **1.0.25**', 'Current maintenance baseline: **1.0.26**', 'Current maintenance baseline: **1.0.27**', 'Current maintenance baseline: **1.0.28**', 'Current maintenance baseline: **1.0.29**', 'Current maintenance baseline: **1.0.30**', 'Current maintenance baseline: **1.0.31**', 'Current maintenance baseline: **1.0.32**')), 'development baseline is not a compatible 1.0.25+ line')
-need(any(v in read('docs/CURRENT-IMPLEMENTATION.md') for v in ('Mirage Projector 1.0.25', 'Mirage Projector 1.0.26', 'Mirage Projector 1.0.27', 'Mirage Projector 1.0.28', 'Mirage Projector 1.0.29', 'Mirage Projector 1.0.30', 'Mirage Projector 1.0.31', 'Mirage Projector 1.0.32')), 'current implementation baseline is not a compatible 1.0.25+ line')
-need(any(v in read('docs/DOCUMENTATION-AUTHORITY.md') for v in ('Documentation Authority — Mirage Projector 1.0.25', 'Documentation Authority — Mirage Projector 1.0.26', 'Documentation Authority — Mirage Projector 1.0.27', 'Documentation Authority — Mirage Projector 1.0.28', 'Documentation Authority — Mirage Projector 1.0.29', 'Documentation Authority — Mirage Projector 1.0.30', 'Documentation Authority — Mirage Projector 1.0.31', 'Documentation Authority — Mirage Projector 1.0.32')),
+need(any(v in read('docs/ROADMAP.md') for v in ('Current implementation snapshot: **1.0.25**', 'Current implementation snapshot: **1.0.26**', 'Current implementation snapshot: **1.0.27**', 'Current implementation snapshot: **1.0.28**', 'Current implementation snapshot: **1.0.29**', 'Current implementation snapshot: **1.0.30**', 'Current implementation snapshot: **1.0.31**', 'Current implementation snapshot: **1.0.32**', 'Current implementation snapshot: **1.0.33**', 'Current implementation snapshot: **1.0.34**')), 'roadmap baseline is not a compatible 1.0.25+ line')
+need(any(v in read('docs/DEVELOPMENT.md') for v in ('Current maintenance baseline: **1.0.25**', 'Current maintenance baseline: **1.0.26**', 'Current maintenance baseline: **1.0.27**', 'Current maintenance baseline: **1.0.28**', 'Current maintenance baseline: **1.0.29**', 'Current maintenance baseline: **1.0.30**', 'Current maintenance baseline: **1.0.31**', 'Current maintenance baseline: **1.0.32**', 'Current maintenance baseline: **1.0.33**', 'Current maintenance baseline: **1.0.34**')), 'development baseline is not a compatible 1.0.25+ line')
+need(any(v in read('docs/CURRENT-IMPLEMENTATION.md') for v in ('Mirage Projector 1.0.25', 'Mirage Projector 1.0.26', 'Mirage Projector 1.0.27', 'Mirage Projector 1.0.28', 'Mirage Projector 1.0.29', 'Mirage Projector 1.0.30', 'Mirage Projector 1.0.31', 'Mirage Projector 1.0.32', 'Mirage Projector 1.0.33', 'Mirage Projector 1.0.34')), 'current implementation baseline is not a compatible 1.0.25+ line')
+need(any(v in read('docs/DOCUMENTATION-AUTHORITY.md') for v in ('Documentation Authority — Mirage Projector 1.0.25', 'Documentation Authority — Mirage Projector 1.0.26', 'Documentation Authority — Mirage Projector 1.0.27', 'Documentation Authority — Mirage Projector 1.0.28', 'Documentation Authority — Mirage Projector 1.0.29', 'Documentation Authority — Mirage Projector 1.0.30', 'Documentation Authority — Mirage Projector 1.0.31', 'Documentation Authority — Mirage Projector 1.0.32', 'Documentation Authority — Mirage Projector 1.0.33', 'Documentation Authority — Mirage Projector 1.0.34')),
      'documentation authority baseline is not a compatible 1.0.25+ line')
 
 for forbidden in ('build', 'run', '.gradle', '.gradle-dist', '__pycache__'):

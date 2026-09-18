@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -28,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 public final class MirageLightProjectorBlock extends BaseEntityBlock {
     public static final MapCodec<MirageLightProjectorBlock> CODEC = simpleCodec(MirageLightProjectorBlock::new);
     public static final net.minecraft.world.level.block.state.properties.DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
+    public static final BooleanProperty AMBIENT = BooleanProperty.create("ambient");
 
     private static final VoxelShape SHAPE = Shapes.or(
             box(3, 0, 3, 13, 2, 13),
@@ -38,7 +40,7 @@ public final class MirageLightProjectorBlock extends BaseEntityBlock {
 
     public MirageLightProjectorBlock(BlockBehaviour.Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(AMBIENT, false));
     }
 
     @Override
@@ -54,7 +56,7 @@ public final class MirageLightProjectorBlock extends BaseEntityBlock {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING);
+        builder.add(FACING, AMBIENT);
     }
 
     @Nullable

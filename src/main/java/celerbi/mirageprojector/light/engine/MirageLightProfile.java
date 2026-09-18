@@ -22,7 +22,8 @@ public record MirageLightProfile(
         MirageLightShape shape,
         Vec3 direction,
         float coneAngleDegrees,
-        int rgb
+        int rgb,
+        int initialEnergyOverride
 ) {
     public static final int MAX_SAFE_RADIUS = 64;
 
@@ -37,6 +38,24 @@ public record MirageLightProfile(
         direction = direction == null ? Vec3.ZERO : direction;
         coneAngleDegrees = Mth.clamp(coneAngleDegrees, 1.0F, 360.0F);
         rgb &= 0xFFFFFF;
+        initialEnergyOverride = Math.max(-1, initialEnergyOverride);
+    }
+
+    /** Backwards-compatible constructor for profiles that use the standard source energy. */
+    public MirageLightProfile(
+            int conceptualLight,
+            int substepsPerLightLevel,
+            int airStepCostUnits,
+            int detourExtraCostUnits,
+            int maxRadius,
+            LightDecayMode decayMode,
+            MirageLightShape shape,
+            Vec3 direction,
+            float coneAngleDegrees,
+            int rgb
+    ) {
+        this(conceptualLight, substepsPerLightLevel, airStepCostUnits, detourExtraCostUnits, maxRadius,
+                decayMode, shape, direction, coneAngleDegrees, rgb, -1);
     }
 
     public static MirageLightProfile vanilla(int lightLevel, int rgb) {
@@ -84,6 +103,9 @@ public record MirageLightProfile(
     public int initialEnergyUnits() {
         if (conceptualLight <= 0) {
             return 0;
+        }
+        if (initialEnergyOverride >= 0) {
+            return initialEnergyOverride;
         }
         return conceptualLight * substepsPerLightLevel + (substepsPerLightLevel - 1);
     }

@@ -12,7 +12,7 @@ def need(condition, message):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.34', 'mod_version=1.0.30').replace('mod_version=1.0.33', 'mod_version=1.0.30').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
 main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
@@ -62,23 +62,30 @@ need('public void renderBackground' in codex and 'physical Codex overlays the li
 need('searchBox.setBordered(false)' in codex and 'renderLecternHomeExtension' in codex,
      'Codex parchment-integrated search/lectern backing missing')
 
-# Table source mode and Core Chamber QA. 1.0.31 replaced the split client
-# SetProjectionSource + OpenWorkspace sequence with one atomic server-side workspace activation.
+# Table source mode and Core Chamber QA.
 workspace_payloads = {
     'IMAGE': read('src/main/java/celerbi/mirageprojector/network/OpenImageWorkspacePayload.java'),
     'ITEM': read('src/main/java/celerbi/mirageprojector/network/OpenItemWorkspacePayload.java'),
     'ENTITY': read('src/main/java/celerbi/mirageprojector/network/OpenEntityWorkspacePayload.java'),
     'BANNER': read('src/main/java/celerbi/mirageprojector/network/OpenBannerWorkspacePayload.java'),
 }
-for source, payload in workspace_payloads.items():
-    legacy = f'activateSource(ProjectionSettings.SourceMode.{source})' in screen
-    atomic = f'activateProjectionSource(ProjectionSettings.SourceMode.{source})' in payload
-    need(legacy or atomic,
-         f'Table/main projector {source} button has no authoritative source activation path')
-need(('new SetProjectionSourcePayload(menu.projectorPos(), source)' in screen)
-     or all('activateProjectionSource(ProjectionSettings.SourceMode.' + source + ')' in payload
-            for source, payload in workspace_payloads.items()),
-     'source activation has neither legacy helper nor 1.0.31 atomic workspace authority')
+current_1034 = 'mod_version=1.0.34' in read('gradle.properties')
+if current_1034:
+    for source, payload in workspace_payloads.items():
+        need('activateProjectionSource(' not in payload and 'SetProjectionSourcePayload' not in payload,
+             f'{source} workspace navigation still mutates active SourceMode')
+    for screen_name, source in (('ImageProjectorScreen.java','IMAGE'),('ItemProjectorScreen.java','ITEM'),('EntityProjectorScreen.java','ENTITY'),('BannerProjectorScreen.java','BANNER')):
+        workspace_screen = read('src/main/java/celerbi/mirageprojector/client/' + screen_name)
+        need('new SetProjectionSourcePayload' in workspace_screen and f'SourceMode.{source}' in workspace_screen,
+             f'{source} explicit Use Mode action missing')
+else:
+    for source, payload in workspace_payloads.items():
+        legacy = f'activateSource(ProjectionSettings.SourceMode.{source})' in screen
+        atomic = f'activateProjectionSource(ProjectionSettings.SourceMode.{source})' in payload
+        need(legacy or atomic, f'Table/main projector {source} button has no authoritative source activation path')
+    need(('new SetProjectionSourcePayload(menu.projectorPos(), source)' in screen)
+         or all('activateProjectionSource(ProjectionSettings.SourceMode.' + source + ')' in payload for source, payload in workspace_payloads.items()),
+         'source activation has neither legacy helper nor 1.0.31 atomic workspace authority')
 need('case TABLE -> new ProjectorVisualLayout(6, 4.5F, 11, 0.13F);' in layout,
      'Table Core render is not reduced/recentered inside its chamber')
 need('blockEntity.chassisProfile() != ProjectionChassisProfile.TABLE' in read('src/main/java/celerbi/mirageprojector/client/MirageProjectorRenderer.java'),

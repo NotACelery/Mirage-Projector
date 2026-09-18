@@ -46,8 +46,8 @@ public final class ScanCodexSavedData extends SavedData {
      * Imports one already-frozen Mirage scan root into a Codex.
      *
      * <p>This is used by physical Entity Scan Cards handed between players. The snapshot is copied;
-     * if its ScanId already exists in the destination Codex a fresh id is assigned without changing
-     * the source card.</p>
+     * player cards can retain multiple skin snapshots of the same player. Non-player imports are
+     * rejected by {@link ScanCodexImportService} when the source entity is already present.</p>
      */
     public UUID addScanRoot(UUID codexId, CompoundTag sourceRoot) {
         if (codexId == null || sourceRoot == null || sourceRoot.isEmpty()
@@ -116,6 +116,23 @@ public final class ScanCodexSavedData extends SavedData {
 
     public boolean contains(UUID codexId, UUID scanId) {
         return stored(codexId, scanId) != null;
+    }
+
+    public boolean containsNonPlayerSource(UUID codexId, UUID sourceUuid) {
+        if (codexId == null || sourceUuid == null) {
+            return false;
+        }
+        CodexLibrary library = codices.get(codexId);
+        if (library == null) {
+            return false;
+        }
+        for (StoredScan stored : library.entries.values()) {
+            Optional<EntityScanData.View> view = EntityScanData.readRoot(stored.root);
+            if (view.isPresent() && !view.get().playerSource() && sourceUuid.equals(view.get().sourceUuid())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Optional<CompoundTag> copyScanRoot(UUID codexId, UUID scanId) {

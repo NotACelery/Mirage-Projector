@@ -1,11 +1,15 @@
+# Current development line — 1.0.39
+
+The current public/code name `Mirage Wall Projector` belongs to the historical presentation/Data-show registry `mirage_projector:mirage_wall_projector`. Do not reintroduce `Mirage Wall Display`, `MIRAGE_WALL_DISPLAY`, `MirageWallDisplayBlock`, `mirage_wall_illuminator` or a second wall illumination chassis without an explicit new design decision. Table workspace-opening payloads are navigation only; only `SetProjectionSourcePayload` may commit a source-mode change.
+
 # Development Guide — Mirage Projector
 
-Current maintenance baseline: **1.0.32** (initial stable baseline: **1.0.0**)
+Current maintenance baseline: **1.0.39** (initial stable baseline: **1.0.0**)
 
 
 ## 1.0.32 Survival progression / illumination identity
 
-The 1.0.32 pass commits the first final Survival recipe set, renames the Lantern runtime/public identity to Mirage Flashlight while preserving legacy registry/NBT compatibility, disambiguates the presentation `mirage_wall_projector` registry as Mirage Wall Display, adds the separate `mirage_wall_illuminator` Mirage Wall Projector, and makes the Flashlight temporarily placeable with exact cell/mode round-trip. The floor Light Projector and Flashlight art move to Iron/Crying-Obsidian/magenta-glass language. Protocol remains 42; ProjectionSettings format remains 4.
+The 1.0.32 pass commits the first final Survival recipe set, renames the Lantern runtime/public identity to Mirage Flashlight while preserving legacy registry/NBT compatibility, disambiguates the presentation `mirage_wall_projector` registry as Mirage Wall Projector, adds the separate `mirage_wall_illuminator` Mirage Wall Projector, and makes the Flashlight temporarily placeable with exact cell/mode round-trip. The floor Light Projector and Flashlight art move to Iron/Crying-Obsidian/magenta-glass language. Protocol remains 42; ProjectionSettings format remains 4.
 
 ## 1.0.31 canonical workspace/runtime rebuild
 
@@ -70,10 +74,10 @@ The authoritative compiled build remains Windows `build.bat` under Java 21. A st
 
 ## Versioning
 
-`gradle.properties` is the single source of the project version used by the build metadata. Current 1.0.32 uses:
+`gradle.properties` is the single source of the project version used by the build metadata. Current 1.0.33 uses:
 
 ```text
-mod_version=1.0.32
+mod_version=1.0.33
 ```
 
 Patch development continues through monotonically increasing `1.0.x` versions. The second version component advances to `1.1.0` only when the planned feature expansion is complete; internal `dev-X` labels are reserved for exceptional recovery/build snapshots rather than normal feature numbering.

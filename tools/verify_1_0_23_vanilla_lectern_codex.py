@@ -16,7 +16,7 @@ def read(rel):
 
 
 raw_props = read('gradle.properties')
-props = raw_props.replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = raw_props.replace('mod_version=1.0.34', 'mod_version=1.0.30').replace('mod_version=1.0.33', 'mod_version=1.0.30').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
 main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
@@ -138,7 +138,7 @@ need(set(langs['en_us']) == set(langs['es_cl']) == set(langs['es_es']), 'languag
 need((ROOT / 'docs/RELEASE-1.0.23-VANILLA-LECTERN-CODEX.md').exists(), '1.0.23 release note missing')
 need((ROOT / 'docs/history/handoffs/NEXT-CHAT-HANDOFF-1.0.23-VANILLA-LECTERN-CODEX.md').exists(),
      '1.0.23 handoff missing')
-current_minor = 32 if 'mod_version=1.0.32' in raw_props else (31 if 'mod_version=1.0.31' in raw_props else (30 if 'mod_version=1.0.30' in props else (29 if 'mod_version=1.0.29' in props else (28 if is_1028 else (27 if is_1027 else (26 if is_1026 else (25 if is_1025 else (24 if is_1024 else 23))))))))
+current_minor = 34 if 'mod_version=1.0.34' in raw_props else (33 if 'mod_version=1.0.33' in raw_props else (32 if 'mod_version=1.0.32' in raw_props else (31 if 'mod_version=1.0.31' in raw_props else (30 if 'mod_version=1.0.30' in props else (29 if 'mod_version=1.0.29' in props else (28 if is_1028 else (27 if is_1027 else (26 if is_1026 else (25 if is_1025 else (24 if is_1024 else 23))))))))))
 need(f'Current implementation snapshot: **1.0.{current_minor}**' in read('docs/ROADMAP.md'), 'roadmap baseline is not current')
 need(f'Current maintenance baseline: **1.0.{current_minor}**' in read('docs/DEVELOPMENT.md'), 'development baseline is not current')
 need(f'Mirage Projector 1.0.{current_minor}' in read('docs/CURRENT-IMPLEMENTATION.md'), 'current implementation baseline is not current')

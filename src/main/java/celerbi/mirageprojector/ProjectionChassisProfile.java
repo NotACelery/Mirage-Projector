@@ -3,27 +3,27 @@ package celerbi.mirageprojector;
 import java.util.EnumSet;
 
 public enum ProjectionChassisProfile {
-    COMPACT("Compact", Geometry.PLANE, 10, 10, 32, 4, 1.00F, 5, 3.0F, Anchor.FLOOR_UPRIGHT,
+    COMPACT("Compact", Geometry.PLANE, 10, 10, 32, 4, 1.00F, 5, 3.0F, Anchor.FLOOR_UPRIGHT, false,
             PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING),
-    DISPLAY("Display", Geometry.PLANE, 32, 32, 48, 12, 1.50F, 6, 4.0F, Anchor.FLOOR_UPRIGHT,
+    DISPLAY("Display", Geometry.PLANE, 32, 32, 48, 12, 1.50F, 6, 4.0F, Anchor.FLOOR_UPRIGHT, false,
             PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING),
-    WIDE("Wide", Geometry.PLANE, 80, 32, 64, 12, 2.00F, 6, 4.0F, Anchor.FLOOR_UPRIGHT,
+    WIDE("Wide", Geometry.PLANE, 80, 32, 64, 12, 2.00F, 6, 4.0F, Anchor.FLOOR_UPRIGHT, false,
             PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING),
-    TALL("Tall", Geometry.PLANE, 32, 80, 96, 16, 2.00F, 8, 6.0F, Anchor.FLOOR_UPRIGHT,
+    TALL("Tall", Geometry.PLANE, 32, 80, 96, 16, 2.00F, 8, 6.0F, Anchor.FLOOR_UPRIGHT, false,
             PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING),
-    FIELD("Field", Geometry.PLANE, 128, 128, 144, 24, 4.00F, 7, 5.0F, Anchor.FLOOR_UPRIGHT,
+    FIELD("Field", Geometry.PLANE, 128, 128, 144, 24, 4.00F, 7, 5.0F, Anchor.FLOOR_UPRIGHT, true,
             PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING),
-    PRISM("Prism", Geometry.PRISM, 48, 48, 96, 12, 2.00F, 7, 5.0F, Anchor.FLOOR_UPRIGHT,
+    PRISM("Prism", Geometry.PRISM, 48, 48, 96, 12, 2.00F, 7, 5.0F, Anchor.FLOOR_UPRIGHT, true,
             PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING,
             PlacementCapability.PRISM_DISTANCE),
 
     // 1.0.25 1.1-foundation chassis. Appended after the original six so historical ordinal
     // values sent through workspace menus remain stable. Final Survival recipes/balance are still
     // intentionally provisional; these entries freeze the runtime anchor semantics first.
-    TABLE("Table", Geometry.PLANE, 48, 48, 64, 12, 1.50F, 6, 4.0F, Anchor.TABLE_HORIZONTAL,
+    TABLE("Table", Geometry.PLANE, 48, 48, 64, 12, 1.50F, 6, 4.0F, Anchor.TABLE_HORIZONTAL, false,
             PlacementCapability.LIFT, PlacementCapability.TILT, PlacementCapability.ROTATION, PlacementCapability.FLOATING,
             PlacementCapability.TABLE_XZ_OFFSET),
-    WALL("Wall", Geometry.PLANE, 64, 36, 0, 0, 1.50F, 6, 3.0F, Anchor.WALL_TARGET,
+    WALL("Wall", Geometry.PLANE, 64, 36, 0, 0, 1.50F, 6, 3.0F, Anchor.WALL_TARGET, false,
             PlacementCapability.WALL_XY_OFFSET);
 
     private final String displayName;
@@ -36,6 +36,7 @@ public enum ProjectionChassisProfile {
     private final int physicalTopPixels;
     private final float coreChamberCenterYPixels;
     private final Anchor anchor;
+    private final boolean endResonanceCapable;
     private final EnumSet<PlacementCapability> placementCapabilities;
 
     ProjectionChassisProfile(
@@ -49,6 +50,7 @@ public enum ProjectionChassisProfile {
             int physicalTopPixels,
             float coreChamberCenterYPixels,
             Anchor anchor,
+            boolean endResonanceCapable,
             PlacementCapability... placementCapabilities
     ) {
         this.displayName = displayName;
@@ -61,6 +63,7 @@ public enum ProjectionChassisProfile {
         this.physicalTopPixels = physicalTopPixels;
         this.coreChamberCenterYPixels = coreChamberCenterYPixels;
         this.anchor = anchor == null ? Anchor.FLOOR_UPRIGHT : anchor;
+        this.endResonanceCapable = endResonanceCapable;
         this.placementCapabilities = EnumSet.noneOf(PlacementCapability.class);
         if (placementCapabilities != null) {
             for (PlacementCapability capability : placementCapabilities) {
@@ -82,6 +85,7 @@ public enum ProjectionChassisProfile {
     public int physicalTopPixels() { return physicalTopPixels; }
     public float coreChamberCenterYPixels() { return coreChamberCenterYPixels; }
     public Anchor anchor() { return anchor; }
+    public boolean supportsEndResonance() { return endResonanceCapable; }
 
     public boolean supportsProjectionSource(ProjectionSettings.SourceMode source) {
         return ProjectionSourceRegistry.isCompatible(source, this);

@@ -33,6 +33,13 @@ public final class ProjectorUpgradeRecipe implements CraftingRecipe {
             return false;
         }
 
+        ItemStack center = input.getItem(1, 1);
+        if (!center.isEmpty() && center.getItem() == path.sourceBlock().asItem()
+                && ProjectorStateTransfer.hasSpecialResonanceCatalyst(
+                        center, path.sourceBlock(), level.registryAccess())) {
+            return false;
+        }
+
         String[] pattern = path.pattern();
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 3; x++) {

@@ -14,7 +14,7 @@ def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
 # Release line / protocol / serialization.
-props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.34', 'mod_version=1.0.30').replace('mod_version=1.0.33', 'mod_version=1.0.30').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 # Later protocol bumps preserve this historical contract.
 main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
@@ -177,7 +177,7 @@ need('double coneRadius' in solver and 'perpendicularSq <= coneRadius * coneRadi
      'directional light cone still samples only voxel centers')
 need('look.scale(0.82D)' in held_lights, 'held Lantern light source was not moved in front of player')
 need(('look.scale(0.78D)' in shoulder_client or 'horizontalForward.scale(0.18D)' in shoulder_client), 'shoulder Lantern light source was not moved in front of player')
-need('direction.scale(0.72D)' in placed_lights, 'placed Light Projector source still begins inside its chassis')
+need(('direction.scale(0.72D)' in placed_lights or 'forward.scale(0.72D)' in placed_lights), 'placed Light Projector source still begins inside its chassis')
 
 # Scan Codex must be inventory-like: world continues and no background blur/dim pass.
 codex = read('src/main/java/celerbi/mirageprojector/client/ScanCodexScreen.java')

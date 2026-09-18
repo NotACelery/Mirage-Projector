@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Mirage Projector 1.0.32 cumulative regression/survival-progression suite."""
+"""Run the Mirage Projector 1.0.34 cumulative regression/roadmap-cleanup suite."""
 
 from pathlib import Path
 import subprocess
@@ -77,6 +77,10 @@ SUITE = [
     'verify_1_0_32_table_rotation_visibility.py',
     'verify_1_0_32_table_dedicated_runtime.py',
     'verify_release_1_0_32.py',
+    'verify_1_0_33_end_resonance_foundation.py',
+    'verify_release_1_0_33.py',
+    'verify_1_0_34_roadmap_ux_cleanup.py',
+    'verify_release_1_0_34.py',
 ]
 
 for name in SUITE:
@@ -85,4 +89,4 @@ for name in SUITE:
     if code:
         raise SystemExit(code)
 
-print(f'\nMIRAGE PROJECTOR 1.0.32 VERIFICATION PASS ({len(SUITE)} gates)')
+print(f'\nMIRAGE PROJECTOR 1.0.34 VERIFICATION PASS ({len(SUITE)} gates)')

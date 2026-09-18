@@ -1,20 +1,20 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "redstone",
+  "category": "building",
   "pattern": [
-    "ICI",
-    "SPS",
-    " D "
+    "IDI",
+    "CSC",
+    " H "
   ],
   "key": {
     "I": { "item": "minecraft:iron_ingot" },
+    "D": { "item": "mirage_projector:mirage_display" },
     "C": { "item": "minecraft:copper_ingot" },
     "S": { "item": "mirage_projector:crying_obsidian_shard" },
-    "P": { "item": "mirage_projector:mirage_light_projector" },
-    "D": { "item": "mirage_projector:mirage_display" }
+    "H": { "item": "minecraft:smooth_stone_slab" }
   },
   "result": {
-    "id": "mirage_projector:mirage_wall_illuminator",
+    "id": "mirage_projector:mirage_wall_projector",
     "count": 1
   }
 }

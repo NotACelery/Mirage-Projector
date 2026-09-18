@@ -21,6 +21,29 @@ public final class MirageDynamicLightProfiles {
             int detourExtraCostUnits,
             int rgb
     ) {
+        return ambientExactPlateaus(
+                conceptualLight,
+                substepsPerLightLevel,
+                maxRadius,
+                detourExtraCostUnits,
+                rgb,
+                -1
+        );
+    }
+
+    /**
+     * Creates an omnidirectional profile whose source can start at an exact fixed-point energy.
+     * This is used by portable lights where, for example, 15,15 / 14,14 must be exact rather
+     * than receiving the regular solver's protective extra substep.
+     */
+    public static MirageLightProfile ambientExactPlateaus(
+            int conceptualLight,
+            int substepsPerLightLevel,
+            int maxRadius,
+            int detourExtraCostUnits,
+            int rgb,
+            int initialEnergyUnits
+    ) {
         int safeSubsteps = Mth.clamp(substepsPerLightLevel, 1, 8);
         return new MirageLightProfile(
                 conceptualLight,
@@ -32,7 +55,8 @@ public final class MirageDynamicLightProfiles {
                 MirageLightShape.OMNIDIRECTIONAL,
                 Vec3.ZERO,
                 360.0F,
-                rgb
+                rgb,
+                initialEnergyUnits
         );
     }
 
@@ -45,6 +69,29 @@ public final class MirageDynamicLightProfiles {
             float coneAngleDegrees,
             int rgb
     ) {
+        return directionalConeExactPlateaus(
+                conceptualLight,
+                substepsPerLightLevel,
+                maxRadius,
+                detourExtraCostUnits,
+                direction,
+                coneAngleDegrees,
+                rgb,
+                -1
+        );
+    }
+
+    /** See {@link #ambientExactPlateaus(int, int, int, int, int, int)}. */
+    public static MirageLightProfile directionalConeExactPlateaus(
+            int conceptualLight,
+            int substepsPerLightLevel,
+            int maxRadius,
+            int detourExtraCostUnits,
+            Vec3 direction,
+            float coneAngleDegrees,
+            int rgb,
+            int initialEnergyUnits
+    ) {
         int safeSubsteps = Mth.clamp(substepsPerLightLevel, 1, 8);
         return new MirageLightProfile(
                 conceptualLight,
@@ -56,7 +103,8 @@ public final class MirageDynamicLightProfiles {
                 MirageLightShape.DIRECTIONAL_CONE,
                 direction,
                 coneAngleDegrees,
-                rgb
+                rgb,
+                initialEnergyUnits
         );
     }
 }

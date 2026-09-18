@@ -47,7 +47,7 @@ def load_json_no_duplicates(path: Path):
 
 
 # Release metadata / platform baseline.
-props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.34', 'mod_version=1.0.30').replace('mod_version=1.0.33', 'mod_version=1.0.30').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 need(any(v in props for v in ('mod_version=1.0.13', 'mod_version=1.0.14', 'mod_version=1.0.15', 'mod_version=1.0.16', 'mod_version=1.0.17', 'mod_version=1.0.18', 'mod_version=1.0.19', 'mod_version=1.0.20', 'mod_version=1.0.21', 'mod_version=1.0.22', 'mod_version=1.0.23', 'mod_version=1.0.24', 'mod_version=1.0.25', 'mod_version=1.0.26', 'mod_version=1.0.27', 'mod_version=1.0.28', 'mod_version=1.0.29', 'mod_version=1.0.30')), 'gradle.properties is not a compatible 1.0.13+ line')
 need('minecraft_version=1.21.1' in props, 'Minecraft baseline changed')
 need('neo_version=21.1.244' in props, 'NeoForge baseline changed')

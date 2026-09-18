@@ -66,9 +66,9 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
     private static final String WAR_BANNER_SIZE_TAG = "MirageHandProjectorWarBannerSize";
     private static final String WAR_BANNER_HEIGHT_TAG = "MirageHandProjectorWarBannerHeight";
 
-    public static final int WAR_BANNER_DEFAULT_SIZE_PERCENT = 65;
-    public static final int WAR_BANNER_MIN_SIZE_PERCENT = 45;
-    public static final int WAR_BANNER_MAX_SIZE_PERCENT = 80;
+    public static final int WAR_BANNER_DEFAULT_SIZE_PERCENT = 75;
+    public static final int WAR_BANNER_MIN_SIZE_PERCENT = 50;
+    public static final int WAR_BANNER_MAX_SIZE_PERCENT = 100;
     public static final int WAR_BANNER_SIZE_STEP_PERCENT = 5;
     public static final int WAR_BANNER_DEFAULT_HEIGHT_PIXELS = 4;
     public static final int WAR_BANNER_MIN_HEIGHT_PIXELS = 0;

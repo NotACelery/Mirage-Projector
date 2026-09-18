@@ -4,6 +4,7 @@ import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.menu.ItemProjectorMenu;
 import celerbi.mirageprojector.network.OpenProjectorWorkspacePayload;
 import celerbi.mirageprojector.network.OpenItemWorkspacePayload;
+import celerbi.mirageprojector.network.SetProjectionSourcePayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -23,6 +24,7 @@ public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemPro
     private final ItemProjectionPreviewRenderer preview = new ItemProjectionPreviewRenderer();
     private Button modeButton;
     private Button backButton;
+    private boolean modeActivated;
 
     public ItemProjectorScreen(ItemProjectorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -35,9 +37,12 @@ public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemPro
     @Override
     protected void init() {
         super.init();
-        modeButton = addRenderableWidget(Button.builder(Component.empty(), button ->
-                PacketDistributor.sendToServer(new OpenItemWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
+        modeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.ITEM));
+            modeActivated = true;
+            button.active = false;
+            button.setMessage(Component.translatable("gui.mirage_projector.workspace.mode_active"));
+        }).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
         modeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.item.activate")));
 
         backButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button ->
@@ -64,7 +69,7 @@ public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemPro
         if (modeButton == null) {
             return;
         }
-        boolean activeMode = currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.ITEM;
+        boolean activeMode = modeActivated || (currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.ITEM);
         modeButton.active = !activeMode;
         modeButton.setMessage(activeMode
                 ? Component.translatable("gui.mirage_projector.workspace.mode_active")

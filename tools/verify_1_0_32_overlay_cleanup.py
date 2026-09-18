@@ -37,7 +37,7 @@ for tombstone in (
 need('call :delete_file' not in cleanup.lower(), 'cleanup still calls fragile :delete_file helper')
 need('\n:delete_file' not in cleanup.lower().replace('\r', ''), 'obsolete :delete_file helper label still present')
 need('for %%F in (' in cleanup, 'cumulative inline cleanup loop missing')
-need('cumulative pre-build cleanup - 1.0.32' in cleanup, 'cleanup diagnostic version is not 1.0.32')
+need(('cumulative pre-build cleanup - 1.0.32' in cleanup or 'cumulative pre-build cleanup - 1.0.34' in cleanup), 'cleanup diagnostic version is not compatible with 1.0.32+')
 
 if errors:
     print('Mirage Projector 1.0.32 overlay cleanup verification FAILED')

@@ -10,8 +10,10 @@ import net.minecraft.network.chat.Component;
 public final class MirageEquipmentPanelWidget extends AbstractWidget {
     public static final int WIDTH = 96;
     public static final int EMPTY_HEIGHT = 50;
-    public static final int BASE_HEIGHT = 142;
-    public static final int EXPANDED_HEIGHT = 164;
+    // Space the category labels above their slot grids, rather than underneath them.
+    // A cell is 20 px, so adjacent cells read as one normal-inventory grid.
+    public static final int BASE_HEIGHT = 136;
+    public static final int EXPANDED_HEIGHT = 156;
 
     private final boolean strapPresent;
     private final boolean expanded;
@@ -39,7 +41,7 @@ public final class MirageEquipmentPanelWidget extends AbstractWidget {
         var font = Minecraft.getInstance().font;
         graphics.drawString(
                 font,
-                Component.translatable("gui.mirage_projector.equipment.shoulder_strap"),
+                Component.translatable("gui.mirage_projector.equipment.shoulder_slot"),
                 getX() + 6,
                 getY() + 6,
                 0xFFF1D8B8,
@@ -48,8 +50,8 @@ public final class MirageEquipmentPanelWidget extends AbstractWidget {
         if (!strapPresent) {
             return;
         }
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.equipment.upgrades"), getX() + 6, getY() + 48, 0xFFE2C39F, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.equipment.power_cells"), getX() + 6, getY() + 80, 0xFFE2C39F, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.equipment.upgrades"), getX() + 6, getY() + 43, 0xFFE2C39F, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.equipment.power_cells"), getX() + 6, getY() + 78, 0xFFE2C39F, false);
     }
 
     @Override

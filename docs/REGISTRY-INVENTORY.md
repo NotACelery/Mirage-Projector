@@ -11,7 +11,7 @@ This file distinguishes active gameplay IDs from compatibility-only IDs.
 - `mirage_projector:tall_mirage_projector`
 - `mirage_projector:mirage_prism`
 - `mirage_projector:mirage_table_projector`
-- `mirage_projector:mirage_wall_projector` — legacy registry ID; public/current code identity: **Mirage Wall Display**
+- `mirage_projector:mirage_wall_projector` — **Mirage Wall Projector**, presentation/Data-show chassis.
 
 These are the current runtime projector chassis IDs. No temporary/comparison projector IDs are registered.
 
@@ -19,7 +19,6 @@ These are the current runtime projector chassis IDs. No temporary/comparison pro
 
 - `mirage_projector:core_booster`
 - `mirage_projector:mirage_light_projector` — placed rechargeable Focus/Flood/Ambient/Off DYNAMIC_VISUAL emitter.
-- `mirage_projector:mirage_wall_illuminator` — **Mirage Wall Projector**, true wall-mounted illumination chassis.
 - `mirage_projector:mirage_flashlight_beacon` — itemless temporary world form used when placing a Mirage Flashlight.
 - `mirage_projector:mirage_lantern` — legacy registry ID retained for compatibility; public/runtime identity: **Mirage Flashlight**, rechargeable Focus/Flood/Ambient/Off player-following DYNAMIC_VISUAL emitter.
 - `mirage_projector:arm_strap` — dedicated Mirage Equipment harness; unlocks the Shoulder Slot without consuming armor/offhand space.

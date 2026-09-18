@@ -177,7 +177,11 @@ public final class ScanCodexMenu extends AbstractContainerMenu {
     }
 
     public void setDuplicatePanelOpen(boolean open) {
-        duplicatePanelOpen = open;
+        duplicatePanelOpen = lecternMode && open;
+    }
+
+    public boolean duplicatePanelOpen() {
+        return duplicatePanelOpen;
     }
 
     public void setImportPanelOpen(boolean open) {

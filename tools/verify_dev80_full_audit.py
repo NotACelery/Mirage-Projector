@@ -8,7 +8,7 @@ errors=[]; notes=[]
 def read(rel): return (ROOT/rel).read_text(encoding='utf-8')
 def need(c,m):
     if not c: errors.append(m)
-props=read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props=read('gradle.properties').replace('mod_version=1.0.34', 'mod_version=1.0.30').replace('mod_version=1.0.33', 'mod_version=1.0.30').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 need('mod_version=0.1.0-dev.86a' in props,'gradle.properties is not dev.86a')
 need('minecraft_version=1.21.1' in props,'Minecraft baseline changed')
 need('neo_version=21.1.244' in props,'NeoForge baseline changed')

@@ -1,8 +1,12 @@
 {
   "variants": {
-    "facing=north": { "model": "mirage_projector:block/mirage_light_projector" },
-    "facing=east": { "model": "mirage_projector:block/mirage_light_projector", "y": 90 },
-    "facing=south": { "model": "mirage_projector:block/mirage_light_projector", "y": 180 },
-    "facing=west": { "model": "mirage_projector:block/mirage_light_projector", "y": 270 }
+    "ambient=false,facing=north": { "model": "mirage_projector:block/mirage_light_projector" },
+    "ambient=false,facing=east": { "model": "mirage_projector:block/mirage_light_projector", "y": 90 },
+    "ambient=false,facing=south": { "model": "mirage_projector:block/mirage_light_projector", "y": 180 },
+    "ambient=false,facing=west": { "model": "mirage_projector:block/mirage_light_projector", "y": 270 },
+    "ambient=true,facing=north": { "model": "mirage_projector:block/mirage_light_projector_ambient" },
+    "ambient=true,facing=east": { "model": "mirage_projector:block/mirage_light_projector_ambient", "y": 90 },
+    "ambient=true,facing=south": { "model": "mirage_projector:block/mirage_light_projector_ambient", "y": 180 },
+    "ambient=true,facing=west": { "model": "mirage_projector:block/mirage_light_projector_ambient", "y": 270 }
   }
 }

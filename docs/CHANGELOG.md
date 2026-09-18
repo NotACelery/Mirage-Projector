@@ -1,3 +1,13 @@
+# 1.0.34 — Roadmap & UX/visual cleanup
+
+- Restored the original presentation/Data-show **Mirage Wall Projector** identity and removed the accidental `mirage_wall_illuminator` experiment.
+- Separated Table workspace navigation from source activation; only explicit `Use <mode> mode` actions change SourceMode.
+- Replaced obsolete portable copied-profile empty-state messaging with `No projection has been configured.`
+- Rebuilt Mirage Flashlight item/placed presentation around a coherent Crying-Obsidian/magenta-glass work-flashlight shape; held form is horizontal and Ambient emission/placed presentation point upward.
+- Reworked Mirage Light Projector art: Crying Obsidian exterior, Iron internal structure, one-pixel-border front reflector, and four upper lateral Ambient lenses.
+- Added `NEXT-WAVES-1.1.0.md` as the recovery-oriented remaining implementation order; visible Light Projector yaw/pitch aiming is intentionally last.
+- Network protocol remains 43; ProjectionSettings format remains 4.
+
 ## 1.0.32 — Table dedicated runtime hotfix
 
 - Rebuilt Mirage Table Projector client runtime behind a dedicated Table dispatcher/rules class while preserving the existing GUI 1:1.
@@ -14,7 +24,7 @@
 - Added committed Survival recipes for the rechargeable/portable/Shoulder/Charging/Codex/Table/Wall progression set.
 - Added the exact five-Glow-Dust Light Battery recipe and common Glow Dust media tag.
 - Reworked Flashlight and floor Light Projector visual language around Crying Obsidian, magenta glass and iron.
-- Renamed the presentation chassis publicly/code-wise to Mirage Wall Display while retaining its legacy registry ID.
+- Renamed the presentation chassis publicly/code-wise to Mirage Wall Projector while retaining its legacy registry ID.
 - Added a separate true Mirage Wall Projector illumination chassis.
 - Added temporary placed Flashlight form with battery/mode round-trip.
 - All twelve Survival-progression recipes are standard shaped Crafting entries and are explicitly regression-gated for native JEI/EMI discovery; Light Battery exposes both vanilla Glowstone Dust and rechargeable Mirage Glow Dust through `mirage_projector:glow_dust_media`.

@@ -7,6 +7,7 @@ import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.ProjectionSourceRegistry;
 import celerbi.mirageprojector.ProjectorStateTransfer;
+import celerbi.mirageprojector.SpecialResonanceProfile;
 import celerbi.mirageprojector.WallProjectionSurface;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
 import celerbi.mirageprojector.entity.EntityProjectionState;
@@ -37,7 +38,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -66,6 +66,10 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
      * Unknown payloads are intentionally round-tripped even when their provider is absent.
      */
     private CompoundTag projectionSourcePayloads = new CompoundTag();
+
+    /** Complete suspended projector-facing state while a special resonance catalyst owns runtime. */
+    private CompoundTag endResonanceRestoreSnapshot = new CompoundTag();
+    private boolean loadingCoreState;
 
     private final ItemStackHandler projectionSnapshot = new ItemStackHandler(1) {
         @Override
@@ -174,6 +178,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     private final ItemStackHandler coreItem = new ItemStackHandler(1) {
         @Override
         protected void onContentsChanged(int slot) {
+            if (!loadingCoreState) {
+                handleCoreChanged();
+            }
             setChangedAndSync();
         }
 
@@ -184,7 +191,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return ProjectionCoreProfile.isCoreItem(stack);
+            return acceptsCoreStack(stack);
         }
     };
 
@@ -226,13 +233,33 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         return projectionEnabled;
     }
 
-    /**
-     * 1.1.0 End Resonance hook. Dragon Egg is not accepted as a normal Core yet,
-     * but once that special Core path is enabled this guard already freezes normal
-     * source/power controls without encoding resonance into SourceMode.
-     */
+    public SpecialResonanceProfile specialResonanceProfile() {
+        SpecialResonanceProfile profile = SpecialResonanceProfile.fromStack(coreStack());
+        return profile.supportedBy(chassisProfile()) ? profile : SpecialResonanceProfile.NONE;
+    }
+
+    public boolean acceptsCoreStack(ItemStack stack) {
+        if (ProjectionCoreProfile.isCoreItem(stack)) {
+            return true;
+        }
+        return SpecialResonanceProfile.fromStack(stack).supportedBy(chassisProfile());
+    }
+
+    public boolean endResonanceActive() {
+        return specialResonanceProfile() == SpecialResonanceProfile.END_RESONANCE;
+    }
+
+    /** Normal projection controls are suspended while the special resonance owns the chassis. */
     public boolean endResonanceLocksControls() {
-        return coreStack().is(Items.DRAGON_EGG);
+        return endResonanceActive();
+    }
+
+    public boolean hasEndResonanceRestoreSnapshot() {
+        return !endResonanceRestoreSnapshot.isEmpty();
+    }
+
+    public CompoundTag endResonanceRestoreSnapshotCopy() {
+        return endResonanceRestoreSnapshot.copy();
     }
 
     public boolean setProjectionEnabled(boolean enabled) {
@@ -252,7 +279,19 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
                 || !ProjectionSourceRegistry.isCompatible(sourceMode, chassisProfile())) {
             return false;
         }
+        boolean changedMode = settings.sourceMode() != sourceMode;
         settings = settings.withSourceMode(sourceMode);
+        // A Table is a presentation surface by default.  Motion remains a deliberate per-mode
+        // choice, but it must not leak from one source family into the next one.
+        if (changedMode && chassisProfile() == ProjectionChassisProfile.TABLE) {
+            settings = settings.withPresentation(
+                    settings.scalePixels(), settings.liftPixels(), false,
+                    settings.rotationPeriodTicks(), settings.clockwise(), settings.rotationOffsetDegrees(),
+                    false, settings.floatMode(), settings.floatAmplitudePixels(),
+                    settings.floatCycleTicks(), settings.floatIntervalDegrees(), settings.fullbright(),
+                    settings.opacityPercent(), settings.tintRgb(), settings.debugChassisOverride()
+            );
+        }
         projectionEnabled = true;
         setChangedAndSync();
         return true;
@@ -270,7 +309,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void setProjectionSourcePayload(ProjectionSettings.SourceMode source, CompoundTag payload) {
-        if (source == null) {
+        if (endResonanceLocksControls() || source == null) {
             return;
         }
         if (payload == null || payload.isEmpty()) {
@@ -297,6 +336,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             ProjectionSettings newSettings, ImageSourceBank bank, int requestedWallSlideIndex,
             boolean automaticPresentation, int automaticIntervalSeconds
     ) {
+        if (endResonanceLocksControls()) {
+            return;
+        }
         ProjectionSettings next = newSettings.sanitized();
         if (!chassisProfile().supportsMultiSourceImageLayout()
                 && next.imageLayoutMode() == ProjectionSettings.ImageLayoutMode.MULTI) {
@@ -387,6 +429,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void configureAutomaticPresentation(boolean enabled, int intervalSeconds) {
+        if (endResonanceLocksControls()) {
+            return;
+        }
         automaticPresentationEnabled = supportsPresentationDeck() && enabled;
         automaticPresentationIntervalTicks = Math.max(20, Math.min(2400, intervalSeconds * 20));
         automaticPresentationElapsedTicks = 0;
@@ -394,7 +439,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public boolean stepPresentationSlide(int direction, boolean resetTimer) {
-        if (!supportsPresentationDeck()) {
+        if (endResonanceLocksControls() || !supportsPresentationDeck()) {
             return false;
         }
         int next = imageSourceBank.nextPresentIndex(wallSlideIndex, direction);
@@ -406,6 +451,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void setPresentationSlideIndex(int requestedIndex, boolean resetTimer) {
+        if (endResonanceLocksControls()) {
+            return;
+        }
         int normalized = imageSourceBank.normalizePresentIndex(requestedIndex);
         if (normalized < 0) {
             wallSlideIndex = 0;
@@ -617,6 +665,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void captureProjectionSnapshot(ItemStack source) {
+        if (endResonanceLocksControls()) {
+            return;
+        }
         if (source == null || source.isEmpty()) {
             clearProjectionSnapshot();
             return;
@@ -628,13 +679,16 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void clearProjectionSnapshot() {
+        if (endResonanceLocksControls()) {
+            return;
+        }
         projectionSnapshotId = null;
         projectionSnapshot.setStackInSlot(0, ItemStack.EMPTY);
         setChangedAndSync();
     }
 
     public boolean captureBannerSnapshot(int face, ItemStack source) {
-        if (!bannerFaceAvailable(face) || source == null || source.isEmpty()
+        if (endResonanceLocksControls() || !bannerFaceAvailable(face) || source == null || source.isEmpty()
                 || !(source.getItem() instanceof BannerItem)) {
             return false;
         }
@@ -644,7 +698,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void clearBannerSnapshot(int face) {
-        if (!bannerFaceAvailable(face)) {
+        if (endResonanceLocksControls() || !bannerFaceAvailable(face)) {
             return;
         }
         bannerSnapshots.setStackInSlot(face, ItemStack.EMPTY);
@@ -652,7 +706,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public boolean copyPrimaryBannerToAllFaces() {
-        if (chassisProfile().geometry() != ProjectionChassisProfile.Geometry.PRISM) {
+        if (endResonanceLocksControls() || chassisProfile().geometry() != ProjectionChassisProfile.Geometry.PRISM) {
             return false;
         }
         ItemStack primary = bannerSnapshot(0);
@@ -678,6 +732,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void clearAllBannerSnapshots() {
+        if (endResonanceLocksControls()) {
+            return;
+        }
         for (int face = 0; face < bannerSnapshots.getSlots(); face++) {
             bannerSnapshots.setStackInSlot(face, ItemStack.EMPTY);
         }
@@ -722,6 +779,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             VirtualEquipmentSnapshots.Channel channel,
             boolean replaceExisting
     ) {
+        if (endResonanceLocksControls()) {
+            return EntityProjectionState.ApplyResult.EMPTY_INCOMING;
+        }
         ItemStack staged = physicalStagingStack(channel);
         if (!staged.isEmpty()) {
             VirtualEquipmentSnapshots incoming = channel.humanoid()
@@ -739,12 +799,15 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void clearProjectedEntityEquipment(VirtualEquipmentSnapshots.Channel channel) {
+        if (endResonanceLocksControls()) {
+            return;
+        }
         entityProjectionState.clearProjected(channel);
         setChangedAndSync();
     }
 
     public boolean toggleProjectedEntityEquipmentVisibility(VirtualEquipmentSnapshots.Channel channel) {
-        if (channel == null) {
+        if (endResonanceLocksControls() || channel == null) {
             return false;
         }
         boolean visible = entityProjectionState.toggleEquipmentVisible(channel);
@@ -753,30 +816,45 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public int captureEquippedHumanoidLoadout(Player player) {
+        if (endResonanceLocksControls()) {
+            return 0;
+        }
         int captured = entityProjectionState.captureEquippedHumanoidLoadout(player);
         setChangedAndSync();
         return captured;
     }
 
     public HumanoidPosePreset cycleHumanoidPose() {
+        if (endResonanceLocksControls()) {
+            return entityProjectionState.humanoidPose();
+        }
         HumanoidPosePreset pose = entityProjectionState.cycleHumanoidPose();
         setChangedAndSync();
         return pose;
     }
 
     public boolean togglePlayerAllLayers() {
+        if (endResonanceLocksControls()) {
+            return entityProjectionState.playerAllLayers();
+        }
         boolean allLayers = entityProjectionState.togglePlayerAllLayers();
         setChangedAndSync();
         return allLayers;
     }
 
     public HorsePosePreset cycleHorsePose() {
+        if (endResonanceLocksControls()) {
+            return entityProjectionState.horsePose();
+        }
         HorsePosePreset pose = entityProjectionState.cycleHorsePose();
         setChangedAndSync();
         return pose;
     }
 
     public GenericPosePreset cycleGenericPose() {
+        if (endResonanceLocksControls()) {
+            return entityProjectionState.genericPose();
+        }
         GenericPosePreset pose = entityProjectionState.cycleGenericPose();
         setChangedAndSync();
         return pose;
@@ -878,7 +956,10 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
     }
 
     public void applySettings(ProjectionSettings newSettings) {
-        settings = newSettings.sanitized();
+        if (endResonanceLocksControls()) {
+            return;
+        }
+        settings = normalizeSettingsForChassis(newSettings);
         setChangedAndSync();
     }
 
@@ -905,6 +986,63 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             }
         });
         setChangedAndSync();
+    }
+
+    private void handleCoreChanged() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        if (endResonanceActive()) {
+            if (endResonanceRestoreSnapshot.isEmpty()) {
+                endResonanceRestoreSnapshot = captureProjectionFacingState(level.registryAccess());
+            }
+            return;
+        }
+        if (!endResonanceRestoreSnapshot.isEmpty()) {
+            restoreProjectionFacingState(level.registryAccess());
+        }
+    }
+
+    private CompoundTag captureProjectionFacingState(HolderLookup.Provider registries) {
+        CompoundTag snapshot = saveWithoutMetadata(registries);
+        snapshot.remove("CoreItem");
+        snapshot.remove("EndResonanceRestoreSnapshot");
+        return snapshot;
+    }
+
+    private void restoreProjectionFacingState(HolderLookup.Provider registries) {
+        if (endResonanceRestoreSnapshot.isEmpty()) {
+            return;
+        }
+        CompoundTag merged = saveWithoutMetadata(registries);
+        merged.remove("EndResonanceRestoreSnapshot");
+        for (String key : endResonanceRestoreSnapshot.getAllKeys()) {
+            if (endResonanceRestoreSnapshot.get(key) != null) {
+                merged.put(key, endResonanceRestoreSnapshot.get(key).copy());
+            }
+        }
+        // The physical catalyst belongs to the current slot state, not the suspended snapshot.
+        merged.put("CoreItem", coreItem.serializeNBT(registries));
+
+        loadingCoreState = true;
+        endResonanceRestoreSnapshot = new CompoundTag();
+        try {
+            loadAdditional(merged, registries);
+        } finally {
+            loadingCoreState = false;
+            endResonanceRestoreSnapshot = new CompoundTag();
+        }
+        setChangedAndSync();
+    }
+
+    /** State used for Creative clone/pick-block: never copies the unique special catalyst. */
+    public CompoundTag stateForCreativeClone(HolderLookup.Provider registries) {
+        CompoundTag state = endResonanceActive() && !endResonanceRestoreSnapshot.isEmpty()
+                ? endResonanceRestoreSnapshot.copy()
+                : saveWithoutMetadata(registries);
+        state.remove("CoreItem");
+        state.remove("EndResonanceRestoreSnapshot");
+        return state;
     }
 
     public void preparePackedPlayerBreak(HolderLookup.Provider registries) {
@@ -981,12 +1119,15 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         tag.put("HumanoidStagingItems", humanoidStagingItems.serializeNBT(registries));
         tag.put("HorseStagingItems", horseStagingItems.serializeNBT(registries));
         tag.put("CoreItem", coreItem.serializeNBT(registries));
+        if (!endResonanceRestoreSnapshot.isEmpty()) {
+            tag.put("EndResonanceRestoreSnapshot", endResonanceRestoreSnapshot.copy());
+        }
     }
 
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
-        settings = ProjectionSettings.load(tag);
+        settings = normalizeSettingsForChassis(ProjectionSettings.load(tag));
         projectionEnabled = !tag.contains("ProjectionEnabled") || tag.getBoolean("ProjectionEnabled");
         projectionSourcePayloads = tag.contains("ProjectionSourcePayloads")
                 ? tag.getCompound("ProjectionSourcePayloads").copy()
@@ -1105,13 +1246,43 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             }
         }
 
-        if (tag.contains("CoreItem")) {
-            coreItem.deserializeNBT(registries, tag.getCompound("CoreItem"));
-            if (!coreItem.getStackInSlot(0).isEmpty() && !ProjectionCoreProfile.isCoreItem(coreItem.getStackInSlot(0))) {
+        endResonanceRestoreSnapshot = tag.contains("EndResonanceRestoreSnapshot")
+                ? tag.getCompound("EndResonanceRestoreSnapshot").copy()
+                : new CompoundTag();
+        loadingCoreState = true;
+        try {
+            if (tag.contains("CoreItem")) {
+                coreItem.deserializeNBT(registries, tag.getCompound("CoreItem"));
+                ItemStack loadedCore = coreItem.getStackInSlot(0);
+                // Preserve a special catalyst even if legacy/state-transfer data put it into an
+                // incompatible chassis. It remains inactive but can still be extracted safely.
+                if (!loadedCore.isEmpty()
+                        && !ProjectionCoreProfile.isCoreItem(loadedCore)
+                        && !SpecialResonanceProfile.fromStack(loadedCore).present()) {
+                    coreItem.setStackInSlot(0, ItemStack.EMPTY);
+                }
+            } else {
                 coreItem.setStackInSlot(0, ItemStack.EMPTY);
             }
-        } else {
-            coreItem.setStackInSlot(0, ItemStack.EMPTY);
+        } finally {
+            loadingCoreState = false;
+        }
+    }
+
+    private ProjectionSettings normalizeSettingsForChassis(ProjectionSettings candidate) {
+        ProjectionSettings safe = candidate == null ? ProjectionSettings.DEFAULT : candidate.sanitized();
+        if (!ProjectionSourceRegistry.isCompatible(safe.sourceMode(), chassisProfile())) {
+            safe = safe.withSourceMode(ProjectionSettings.SourceMode.IMAGE);
+        }
+        return safe;
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level != null && !level.isClientSide && endResonanceActive() && endResonanceRestoreSnapshot.isEmpty()) {
+            endResonanceRestoreSnapshot = captureProjectionFacingState(level.registryAccess());
+            setChangedAndSync();
         }
     }
 

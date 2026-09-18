@@ -10,6 +10,7 @@ import celerbi.mirageprojector.menu.EntityProjectorMenu;
 import celerbi.mirageprojector.network.EntityWorkspaceActionPayload;
 import celerbi.mirageprojector.network.OpenProjectorWorkspacePayload;
 import celerbi.mirageprojector.network.OpenEntityWorkspacePayload;
+import celerbi.mirageprojector.network.SetProjectionSourcePayload;
 import java.util.EnumMap;
 import java.util.Map;
 import net.minecraft.client.gui.GuiGraphics;
@@ -45,6 +46,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
 
     private Button modeButton;
     private Button backButton;
+    private boolean modeActivated;
     private Button captureLoadoutButton;
     private Button returnGearButton;
     private Button poseButton;
@@ -70,9 +72,12 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
         createApplyButtons();
         createVisibilityButtons();
 
-        modeButton = addRenderableWidget(Button.builder(Component.empty(), button ->
-                PacketDistributor.sendToServer(new OpenEntityWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + 286, topPos + 34, 130, 18).build());
+        modeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.ENTITY));
+            modeActivated = true;
+            button.active = false;
+            button.setMessage(Component.translatable("gui.mirage_projector.workspace.mode_active"));
+        }).bounds(leftPos + 286, topPos + 34, 130, 18).build());
 
         backButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button ->
                 PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
@@ -356,7 +361,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
         if (modeButton == null) {
             return;
         }
-        boolean activeMode = currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.ENTITY;
+        boolean activeMode = modeActivated || (currentProjectionEnabled() && currentSourceMode() == ProjectionSettings.SourceMode.ENTITY);
         modeButton.active = !activeMode;
         modeButton.setMessage(activeMode
                 ? Component.translatable("gui.mirage_projector.workspace.mode_active")

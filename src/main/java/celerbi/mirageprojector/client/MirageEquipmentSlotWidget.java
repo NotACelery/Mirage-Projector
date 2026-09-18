@@ -59,13 +59,12 @@ public final class MirageEquipmentSlotWidget extends AbstractWidget {
             );
         }
 
-        if (isHovered()) {
-            graphics.renderTooltip(
-                    Minecraft.getInstance().font,
-                    tooltip(unlocked),
-                    mouseX,
-                    mouseY
-            );
+        if (isHovered() && !stack.isEmpty()) {
+            // These are real item stacks, so expose their ordinary item tooltip instead of
+            // replacing it with the slot label.
+            graphics.renderTooltip(Minecraft.getInstance().font, stack, mouseX, mouseY);
+        } else if (isHovered() && !unlocked) {
+            graphics.renderTooltip(Minecraft.getInstance().font, tooltip(false), mouseX, mouseY);
         }
     }
 
@@ -74,7 +73,8 @@ public final class MirageEquipmentSlotWidget extends AbstractWidget {
         if (!visible || !isMouseOver(mouseX, mouseY)) {
             return false;
         }
-        if (button == 1 && target == ShoulderEquipmentActionPayload.Target.DEVICE) {
+        if (button == 1 && (target == ShoulderEquipmentActionPayload.Target.DEVICE
+                || target == ShoulderEquipmentActionPayload.Target.STRAP)) {
             ItemStack device = ClientShoulderEquipment.localDevice();
             if (!device.isEmpty()) {
                 PacketDistributor.sendToServer(new OpenPortableDeviceMenuPayload(PortableDeviceSource.SHOULDER));
@@ -91,7 +91,28 @@ public final class MirageEquipmentSlotWidget extends AbstractWidget {
         } else if (minecraft.player != null && minecraft.player.containerMenu != null) {
             carried = minecraft.player.containerMenu.getCarried().copy();
         }
-        PacketDistributor.sendToServer(new ShoulderEquipmentActionPayload(target, carried));
+        // Preserve the cursor that existed before this click for the server packet.  Creative
+        // explicitly trusts that packet cursor; sending the optimistic pick-up below made the
+        // server interpret an extraction as a swap with the very same stack, duplicating it.
+        ItemStack carriedBeforeClick = carried.copy();
+
+        // This panel is external to vanilla's Slot list.  Put a picked-up stack on the local
+        // cursor immediately, then let the authoritative server correction confirm or undo it.
+        // Without this bridge vanilla can process the following outside click as an empty-cursor
+        // click and throw the just-extracted stack onto the ground.
+        if (carried.isEmpty()) {
+            ItemStack displayed = displayedStack();
+            if (!displayed.isEmpty()) {
+                if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen) {
+                    containerScreen.getMenu().setCarried(displayed.copy());
+                }
+                if (minecraft.player != null && minecraft.player.containerMenu != null) {
+                    minecraft.player.containerMenu.setCarried(displayed.copy());
+                }
+                carried = displayed;
+            }
+        }
+        PacketDistributor.sendToServer(new ShoulderEquipmentActionPayload(target, carriedBeforeClick));
         return true;
     }
 
@@ -120,7 +141,7 @@ public final class MirageEquipmentSlotWidget extends AbstractWidget {
         if (target == ShoulderEquipmentActionPayload.Target.STRAP) {
             return ClientShoulderEquipment.localStrapPresent()
                     ? new ItemStack(ModItems.SHOULDER_STRAP.get())
-                    : ItemStack.EMPTY;
+                    : ClientShoulderEquipment.localDevice();
         }
         if (target == ShoulderEquipmentActionPayload.Target.DEVICE) {
             return ClientShoulderEquipment.localDevice();
@@ -141,12 +162,12 @@ public final class MirageEquipmentSlotWidget extends AbstractWidget {
             }
             return Component.translatable("gui.mirage_projector.equipment.requires_expansion");
         }
-        return getMessage();
+        return Component.empty();
     }
 
     private static Component label(ShoulderEquipmentActionPayload.Target target) {
         if (target == ShoulderEquipmentActionPayload.Target.STRAP) {
-            return Component.translatable("gui.mirage_projector.equipment.strap_slot");
+            return Component.translatable("gui.mirage_projector.equipment.shoulder_slot");
         }
         if (target == ShoulderEquipmentActionPayload.Target.DEVICE) {
             return Component.translatable("gui.mirage_projector.equipment.shoulder_slot");

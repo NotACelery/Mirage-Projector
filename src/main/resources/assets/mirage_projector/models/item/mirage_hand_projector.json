@@ -1,6 +1,27 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
   "textures": {
-    "layer0": "mirage_projector:item/mirage_hand_projector"
+    "body": "minecraft:block/crying_obsidian",
+    "metal": "minecraft:block/iron_block",
+    "glass": "minecraft:block/magenta_stained_glass",
+    "accent": "minecraft:block/copper_block",
+    "particle": "minecraft:block/crying_obsidian"
+  },
+  "elements": [
+    {"from":[5.5,2,9],"to":[10.5,7,15],"faces":{"down":{"texture":"#metal"},"up":{"texture":"#metal"},"north":{"texture":"#metal"},"south":{"texture":"#metal"},"west":{"texture":"#metal"},"east":{"texture":"#metal"}}},
+    {"from":[3,6,3],"to":[13,12,10],"faces":{"down":{"texture":"#body"},"up":{"texture":"#body"},"north":{"texture":"#body"},"south":{"texture":"#body"},"west":{"texture":"#body"},"east":{"texture":"#body"}}},
+    {"from":[4,7,2.75],"to":[12,11,3],"faces":{"north":{"texture":"#glass"},"south":{"texture":"#glass"}}},
+    {"from":[4.5,7,10],"to":[11.5,11,13],"faces":{"down":{"texture":"#body"},"up":{"texture":"#body"},"north":{"texture":"#body"},"south":{"texture":"#body"},"west":{"texture":"#body"},"east":{"texture":"#body"}}},
+    {"from":[10.75,8,6],"to":[12,10,8],"faces":{"down":{"texture":"#accent"},"up":{"texture":"#accent"},"north":{"texture":"#accent"},"south":{"texture":"#accent"},"west":{"texture":"#accent"},"east":{"texture":"#accent"}}}
+  ],
+  "display": {
+    "gui":{"rotation":[25,225,0],"scale":[0.75,0.75,0.75]},
+    "ground":{"translation":[0,2,0],"scale":[0.45,0.45,0.45]},
+    "fixed":{"rotation":[0,180,0],"scale":[0.6,0.6,0.6]},
+    "thirdperson_righthand":{"rotation":[0,0,-15],"translation":[0,2.4,1],"scale":[0.56,0.56,0.56]},
+    "thirdperson_lefthand":{"rotation":[0,0,15],"translation":[0,2.4,1],"scale":[0.56,0.56,0.56]},
+    "firstperson_righthand":{"rotation":[0,0,0],"translation":[1.5,3.0,1.0],"scale":[0.68,0.68,0.68]},
+    "firstperson_lefthand":{"rotation":[0,0,0],"translation":[-1.5,3.0,1.0],"scale":[0.68,0.68,0.68]}
   }
 }

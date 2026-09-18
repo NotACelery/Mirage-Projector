@@ -2,14 +2,16 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.network.ShoulderEquipmentActionPayload;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -20,12 +22,16 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 /** Client inventory-panel and physical shoulder-device hooks. */
 @EventBusSubscriber(modid = MirageProjector.MOD_ID, value = Dist.CLIENT)
 public final class MirageEquipmentClientEvents {
+    private static final int SLOT_STEP = MirageEquipmentSlotWidget.SLOT_SIZE;
     private static boolean equipmentPanelOpen;
     private static Screen equipmentScreen;
-    private static Button equipmentToggle;
     private static MirageEquipmentPanelWidget equipmentPanel;
     private static final List<MirageEquipmentSlotWidget> equipmentSlots = new ArrayList<>();
     private static int capturedEquipmentButton = -1;
+    private static int toggleX;
+    private static int toggleY;
+    private static boolean toggleReady;
+    private static Field creativeSelectedTabField;
 
     private MirageEquipmentClientEvents() {
     }
@@ -44,33 +50,22 @@ public final class MirageEquipmentClientEvents {
         equipmentScreen = screen;
         equipmentSlots.clear();
         equipmentPanel = null;
-        equipmentToggle = null;
+        toggleReady = false;
 
         int guiLeft = inventory.getGuiLeft();
         int guiTop = inventory.getGuiTop();
         int rightEdge = guiLeft + inventory.getXSize();
         boolean creative = inventory instanceof CreativeModeInventoryScreen;
 
-        // Keep a real gap from the vanilla frame; this also stops the control reading like part of
-        // Creative's page arrows/trash controls.
-        // Visually dock the extension to the vanilla frame instead of leaving the toggle/panel
-        // floating in the empty screen area.
-        int toggleX = rightEdge + 5;
-        int toggleY = guiTop + (creative ? 10 : 61);
-        int panelX = rightEdge + 24;
+        // Keep the toggle on the inventory frame.  In Creative it is visible only on the
+        // Survival Inventory tab, never beside the recipe/category tabs.
+        // Keep this inside the vanilla frame and high enough to avoid third-party sort/action
+        // controls which conventionally occupy the inventory's lower-right edge.
+        toggleX = rightEdge - 20;
+        toggleY = guiTop + 6;
+        toggleReady = true;
+        int panelX = rightEdge + 5;
         int panelY = guiTop + 3;
-
-        equipmentToggle = Button.builder(
-                Component.literal(equipmentPanelOpen ? "›" : "‹"),
-                button -> {
-                    equipmentPanelOpen = !equipmentPanelOpen;
-                    MinecraftScreenReinitializer.reinitialize(inventory);
-                }
-        ).bounds(toggleX, toggleY, 14, 18).build();
-        equipmentToggle.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-                Component.translatable("gui.mirage_projector.equipment.toggle")
-        ));
-        event.addListener(equipmentToggle);
 
         if (equipmentPanelOpen) {
             boolean strapPresent = ClientShoulderEquipment.localStrapPresent();
@@ -93,8 +88,8 @@ public final class MirageEquipmentClientEvents {
                 int activeUpgrades = ClientShoulderEquipment.localActiveUpgradeSlots();
                 for (int i = 0; i < activeUpgrades; i++) {
                     addEquipmentSlot(event, new MirageEquipmentSlotWidget(
-                            panelX + 6 + i * 24,
-                            panelY + 58,
+                            panelX + 6 + i * SLOT_STEP,
+                            panelY + 55,
                             ShoulderEquipmentActionPayload.Target.upgrade(i)
                     ));
                 }
@@ -104,8 +99,8 @@ public final class MirageEquipmentClientEvents {
                     int column = i % 3;
                     int row = i / 3;
                     addEquipmentSlot(event, new MirageEquipmentSlotWidget(
-                            panelX + 6 + column * 24,
-                            panelY + 94 + row * 22,
+                            panelX + 6 + column * SLOT_STEP,
+                            panelY + 90 + row * SLOT_STEP,
                             ShoulderEquipmentActionPayload.Target.battery(i)
                     ));
                 }
@@ -126,19 +121,24 @@ public final class MirageEquipmentClientEvents {
      * appears immediately when the player switches back to the inventory tab.
      */
     @SubscribeEvent
-    public static void onScreenRender(ScreenEvent.Render.Pre event) {
+    public static void onScreenRender(ScreenEvent.Render.Post event) {
         if (event.getScreen() != equipmentScreen) {
             return;
         }
 
-        // Creative keeps one screen instance while rebuilding its child widgets as tabs change.
-        // If vanilla discarded our extension, rebuild the current screen once so the Mirage
-        // Equipment toggle comes back when the Inventory tab is selected again.
-        if (equipmentToggle != null && !event.getScreen().children().contains(equipmentToggle)) {
-            MinecraftScreenReinitializer.reinitialize(event.getScreen());
-            return;
-        }
         applyInventoryTabVisibility(event.getScreen());
+        if (toggleReady && equipmentVisible(event.getScreen())) {
+            var graphics = event.getGuiGraphics();
+            boolean hovered = event.getMouseX() >= toggleX && event.getMouseX() < toggleX + 14
+                    && event.getMouseY() >= toggleY && event.getMouseY() < toggleY + 18;
+            // Match a normal raised inventory button instead of the previous dark, disabled-looking tile.
+            graphics.fill(toggleX, toggleY, toggleX + 14, toggleY + 18, 0xFF202020);
+            graphics.fill(toggleX + 1, toggleY + 1, toggleX + 13, toggleY + 17, 0xFFF0F0F0);
+            graphics.fill(toggleX + 2, toggleY + 2, toggleX + 12, toggleY + 16,
+                    hovered ? 0xFFAFAFAF : 0xFF8E8E8E);
+            graphics.drawCenteredString(net.minecraft.client.Minecraft.getInstance().font,
+                    equipmentPanelOpen ? "‹" : "›", toggleX + 7, toggleY + 5, 0xFF202020);
+        }
     }
 
     /**
@@ -147,7 +147,19 @@ public final class MirageEquipmentClientEvents {
      */
     @SubscribeEvent
     public static void onMousePressed(ScreenEvent.MouseButtonPressed.Pre event) {
-        if (event.getScreen() != equipmentScreen || !equipmentPanelOpen || !equipmentVisible(event.getScreen())) {
+        if (event.getScreen() != equipmentScreen || !equipmentVisible(event.getScreen())) {
+            return;
+        }
+        if (toggleReady && event.getButton() == 0
+                && event.getMouseX() >= toggleX && event.getMouseX() < toggleX + 14
+                && event.getMouseY() >= toggleY && event.getMouseY() < toggleY + 18) {
+            equipmentPanelOpen = !equipmentPanelOpen;
+            MinecraftScreenReinitializer.reinitialize(event.getScreen());
+            capturedEquipmentButton = event.getButton();
+            event.setCanceled(true);
+            return;
+        }
+        if (!equipmentPanelOpen) {
             return;
         }
         for (MirageEquipmentSlotWidget slot : equipmentSlots) {
@@ -156,6 +168,12 @@ public final class MirageEquipmentClientEvents {
                 event.setCanceled(true);
                 return;
             }
+        }
+        // The whole extension is inventory territory.  A click in its background must not be
+        // interpreted by AbstractContainerScreen as an outside click that drops the cursor item.
+        if (insideEquipmentSafeZone(event.getScreen(), event.getMouseX(), event.getMouseY())) {
+            capturedEquipmentButton = event.getButton();
+            event.setCanceled(true);
         }
     }
 
@@ -178,7 +196,11 @@ public final class MirageEquipmentClientEvents {
 
     private static void applyInventoryTabVisibility(Screen screen) {
         boolean visible = equipmentVisible(screen);
-        setVisible(equipmentToggle, visible);
+        if (!visible && screen instanceof CreativeModeInventoryScreen && equipmentPanelOpen) {
+            // A Creative category change closes the extension; returning to Survival Inventory
+            // must not resurrect a panel from another tab.
+            equipmentPanelOpen = false;
+        }
         setVisible(equipmentPanel, visible && equipmentPanelOpen);
         for (MirageEquipmentSlotWidget slot : equipmentSlots) {
             setVisible(slot, visible && equipmentPanelOpen);
@@ -189,10 +211,44 @@ public final class MirageEquipmentClientEvents {
         if (screen instanceof InventoryScreen) {
             return true;
         }
-        if (screen instanceof CreativeModeInventoryScreen creative) {
-            return creative.isInventoryOpen();
+        if (screen instanceof CreativeModeInventoryScreen) {
+            return isCreativeSurvivalInventory();
         }
         return false;
+    }
+
+    /**
+     * NeoForge 1.21.1 keeps the selected Creative tab private and isInventoryOpen() can briefly
+     * report false while the tab rebuilds. Read the stable tab identity once; retain the public
+     * method as a safe fallback for environments that restrict reflective access.
+     */
+    private static boolean isCreativeSurvivalInventory() {
+        try {
+            if (creativeSelectedTabField == null) {
+                creativeSelectedTabField = CreativeModeInventoryScreen.class.getDeclaredField("selectedTab");
+                creativeSelectedTabField.setAccessible(true);
+            }
+            Object selected = creativeSelectedTabField.get(null);
+            var screen = net.minecraft.client.Minecraft.getInstance().screen;
+            return (screen instanceof CreativeModeInventoryScreen creative && creative.isInventoryOpen())
+                    || selected == BuiltInRegistries.CREATIVE_MODE_TAB.get(CreativeModeTabs.INVENTORY);
+        } catch (ReflectiveOperationException | SecurityException ignored) {
+            var screen = net.minecraft.client.Minecraft.getInstance().screen;
+            return screen instanceof CreativeModeInventoryScreen creative && creative.isInventoryOpen();
+        }
+    }
+
+    private static boolean insideEquipmentSafeZone(Screen screen, double mouseX, double mouseY) {
+        if (!(screen instanceof AbstractContainerScreen<?> inventory) || equipmentPanel == null) {
+            return false;
+        }
+        // Include the narrow gutter between vanilla's right border and the panel.  It reads as
+        // one extended inventory surface and must never become a drop-to-world dead zone.
+        int minX = inventory.getGuiLeft() + inventory.getXSize() - 2;
+        int maxX = equipmentPanel.getX() + equipmentPanel.getWidth();
+        int minY = Math.min(inventory.getGuiTop(), equipmentPanel.getY());
+        int maxY = Math.max(inventory.getGuiTop() + inventory.getYSize(), equipmentPanel.getY() + equipmentPanel.getHeight());
+        return mouseX >= minX && mouseX < maxX && mouseY >= minY && mouseY < maxY;
     }
 
     private static void setVisible(AbstractWidget widget, boolean visible) {
@@ -203,10 +259,10 @@ public final class MirageEquipmentClientEvents {
 
     private static void clearWidgetRefs() {
         equipmentScreen = null;
-        equipmentToggle = null;
         equipmentPanel = null;
         equipmentSlots.clear();
         capturedEquipmentButton = -1;
+        toggleReady = false;
     }
 
     static void refreshIfInventoryOpen() {

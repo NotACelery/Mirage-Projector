@@ -167,6 +167,7 @@ public record LecternScanCodexActionPayload(
             case MOD_NOT_LOADED -> Component.translatable("message.mirage_projector.scan_codex.import.mod_missing");
             case INVALID_CARD -> Component.translatable("message.mirage_projector.scan_codex.import.invalid_card");
             case EMPTY_CARD -> Component.translatable("message.mirage_projector.scan_codex.import.empty_card");
+            case DUPLICATE_SOURCE -> Component.translatable("message.mirage_projector.scan_codex.import.duplicate_source");
             case TYPE_LIMIT -> Component.translatable(
                     "message.mirage_projector.scan_codex.type_limit_short",
                     ScanCodexSavedData.MAX_SCANS_PER_ENTITY_TYPE

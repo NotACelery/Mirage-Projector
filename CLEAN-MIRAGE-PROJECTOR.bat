@@ -9,7 +9,7 @@ set /a REMOVED=0
 set /a SKIPPED=0
 set /a FAILED=0
 
->"%LOG%" echo Mirage Projector cumulative pre-build cleanup - 1.0.32
+>"%LOG%" echo Mirage Projector cumulative pre-build cleanup - 1.0.39
 >>"%LOG%" echo Started: %DATE% %TIME%
 
 if not exist "gradle.properties" goto :wrong_folder
@@ -18,7 +18,7 @@ if errorlevel 1 goto :wrong_folder
 
 if "%FROM_BUILD%"=="0" (
     echo ============================================================
-    echo      MIRAGE PROJECTOR - LIMPIEZA ACUMULATIVA 1.0.32
+    echo      MIRAGE PROJECTOR - LIMPIEZA ACUMULATIVA 1.0.39
     echo ============================================================
     echo Proyecto: %CD%
     echo.
@@ -55,6 +55,12 @@ for %%F in (
     "src\main\resources\data\mirage_projector\recipe\improved_quartz_core.json"
     "src\main\java\celerbi\mirageprojector\client\ClientHeldLanterns.java"
     "src\main\java\celerbi\mirageprojector\item\MirageLanternItem.java"
+    "src\main\java\celerbi\mirageprojector\block\MirageWallDisplayBlock.java"
+    "src\main\java\celerbi\mirageprojector\block\MirageWallIlluminatorBlock.java"
+    "src\main\resources\assets\mirage_projector\blockstates\mirage_wall_illuminator.json"
+    "src\main\resources\assets\mirage_projector\models\block\mirage_wall_illuminator.json"
+    "src\main\resources\assets\mirage_projector\models\item\mirage_wall_illuminator.json"
+    "src\main\resources\data\mirage_projector\loot_table\blocks\mirage_wall_illuminator.json"
 ) do (
     if exist "%%~F" (
         >>"%LOG%" echo DELETE %%~F

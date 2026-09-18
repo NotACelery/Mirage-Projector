@@ -13,7 +13,7 @@ The original 1.0.32 Survival-progression wave shipped on network protocol **42**
 ## Illumination chassis
 
 - The floor **Mirage Light Projector** now uses Iron Block as its dominant casing language, Crying Obsidian bands on multiple sides and a magenta lens.
-- The presentation/Data-show chassis historically registered as `mirage_projector:mirage_wall_projector` is now publicly/code-named **Mirage Wall Display**; its registry ID remains unchanged.
+- The presentation/Data-show chassis historically registered as `mirage_projector:mirage_wall_projector` is now publicly/code-named **Mirage Wall Projector**; its registry ID remains unchanged.
 - A separate true wall-mounted illumination chassis is introduced as `mirage_projector:mirage_wall_illuminator`, public name **Mirage Wall Projector**.
 - Mirage Wall Projector mounts only to a sturdy vertical face, emits perpendicular to that wall and reuses the existing rechargeable-cell + Focus/Flood/Ambient/Off block-entity/menu/runtime contract.
 - Visible yaw/pitch aiming for the floor Mirage Light Projector remains intentionally deferred.
@@ -33,7 +33,7 @@ Committed recipes now exist for:
 - Mirage Hand Projector;
 - Mirage Scan Codex;
 - Mirage Table Projector;
-- Mirage Wall Display.
+- Mirage Wall Projector.
 
 Light Battery uses the frozen layout `GCG / IGI / GRG`: five Glow Dust media in an X, Copper above, Redstone below and Iron on both sides. `mirage_projector:glow_dust_media` accepts either full vanilla Glowstone Dust or Mirage's rechargeable Glow Dust. The existing ItemCrafted charge hook therefore preserves the average charge of the five media. Glow Dust itself intentionally has no crafting recipe because its progression is derived from vanilla Glowstone Dust and the recharge loop.
 

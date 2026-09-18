@@ -86,6 +86,8 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
     private Button importToggleButton;
     private Button importButton;
     private Button takeCodexButton;
+    private Button copyUuidButton;
+    private Button duplicateToggleButton;
 
     private final EntityProjectionPreviewRenderer previewRenderer = new EntityProjectionPreviewRenderer();
     private final EntityProjectionState previewState = new EntityProjectionState();
@@ -134,7 +136,7 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         int bx = leftPos + BOOK_X;
         int by = topPos + BOOK_Y;
 
-        searchBox = new EditBox(
+        searchBox = new ParchmentSearchBox(
                 font,
                 bx + 18,
                 by + 42,
@@ -183,7 +185,28 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
                 })
         ).bounds(bx + 346, by + 260, 90, 20).build());
 
+        copyUuidButton = addRenderableWidget(Button.builder(
+                Component.translatable("gui.mirage_projector.scan_codex.copy_uuid"),
+                button -> EntityScanData.readRoot(snapshot.selectedScanRoot()).ifPresent(scan ->
+                        minecraft.keyboardHandler.setClipboard(scan.sourceUuid().toString())
+                )
+        // Keep the utility action anchored to the page action column. In handheld mode the
+        // lectern-only tray control simply leaves its neighbour empty.
+        ).bounds(bx + 248, by + 238, 72, 18).build());
+
         if (menu.lecternMode()) {
+            duplicateToggleButton = addRenderableWidget(Button.builder(
+                    Component.translatable("gui.mirage_projector.scan_codex.duplicate.show"),
+                    button -> {
+                        boolean opening = !menu.duplicatePanelOpen();
+                        menu.setDuplicatePanelOpen(opening);
+                        button.setMessage(Component.translatable(opening
+                                ? "gui.mirage_projector.scan_codex.duplicate.hide"
+                                : "gui.mirage_projector.scan_codex.duplicate.show"));
+                        updateControls();
+                    }
+            ).bounds(bx + 324, by + 238, 92, 18).build());
+
             duplicateButton = addRenderableWidget(Button.builder(
                     Component.translatable("gui.mirage_projector.scan_codex.duplicate"),
                     button -> selectedEntry().ifPresent(entry -> sendLectern(
@@ -222,6 +245,16 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
             ).bounds(leftPos + 488, topPos + 294, 112, 20).build());
         }
 
+        styleParchmentButton(backButton);
+        styleParchmentButton(favoriteButton);
+        styleParchmentButton(deleteButton);
+        styleParchmentButton(copyUuidButton);
+        styleParchmentButton(duplicateToggleButton);
+        styleParchmentButton(duplicateButton);
+        styleParchmentButton(importToggleButton);
+        styleParchmentButton(importButton);
+        styleParchmentButton(takeCodexButton);
+
         OpenScanCodexPayload cached = ClientScanCodex.latest();
         if (cached != null && cached.codexId().equals(menu.codexId())) {
             acceptSnapshot(cached);
@@ -257,13 +290,16 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         if (menu.lecternMode()) {
             renderLecternInventory(graphics);
             if (detailView) {
-                renderDuplicateExtension(graphics);
+                if (menu.duplicatePanelOpen()) {
+                    renderDuplicateExtension(graphics);
+                }
             } else if (importPanelOpen) {
                 renderImportExtension(graphics);
             } else {
                 renderLecternHomeExtension(graphics);
             }
         }
+        renderParchmentButtons(graphics);
     }
 
     @Override
@@ -307,6 +343,7 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
             // vanilla textbox over the live world.
             graphics.fill(x + 17, y + 38, x + 211, y + 64, PAGE_LINE);
             graphics.fill(x + 19, y + 40, x + 209, y + 62, 0xFFF7E9CD);
+            renderSearchText(graphics, x, y);
             graphics.drawString(
                     font,
                     Component.translatable("gui.mirage_projector.scan_codex.count", snapshot.entries().size()),
@@ -331,7 +368,25 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
             int ty = y + 68 + row * 18;
             int bg = values[i] == category ? 0xFF8C5A7A : 0xFFB89B73;
             graphics.fill(tx, ty, tx + tabWidth, ty + tabHeight, bg);
-            graphics.drawCenteredString(font, values[i].label(), tx + tabWidth / 2, ty + 4, INK);
+            Component label = values[i].label();
+            graphics.drawString(font, label, tx + (tabWidth - font.width(label)) / 2, ty + 4, INK, false);
+        }
+    }
+
+    private void renderSearchText(GuiGraphics graphics, int x, int y) {
+        if (searchBox == null) {
+            return;
+        }
+        String value = searchBox.getValue();
+        boolean empty = value.isEmpty();
+        String visible = font.plainSubstrByWidth(
+                empty ? Component.translatable("gui.mirage_projector.scan_codex.search").getString() : value,
+                178
+        );
+        graphics.drawString(font, visible, x + 22, y + 47, empty ? MUTED_INK : INK, false);
+        if (searchBox.isFocused()) {
+            int cursorX = x + 22 + Math.min(font.width(font.plainSubstrByWidth(value, 178)), 178);
+            graphics.fill(cursorX, y + 46, cursorX + 1, y + 57, INK);
         }
     }
 
@@ -378,13 +433,8 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         }
 
         if (filtered.isEmpty()) {
-            graphics.drawCenteredString(
-                    font,
-                    Component.translatable("gui.mirage_projector.scan_codex.no_results"),
-                    x + width / 2,
-                    y + 62,
-                    MUTED_INK
-            );
+            drawCenteredNoShadow(graphics, Component.translatable("gui.mirage_projector.scan_codex.no_results"),
+                    x + width / 2, y + 62, MUTED_INK);
         }
     }
 
@@ -398,7 +448,7 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         int by = topPos + BOOK_Y;
 
         String titleText = !entry.nameplateText().isBlank() ? entry.nameplateText() : entry.displayName();
-        graphics.drawCenteredString(font, trim(titleText, 32), bx + 116, by + 20, INK);
+        drawCenteredNoShadow(graphics, Component.literal(trim(titleText, 32)), bx + 116, by + 20, INK);
         graphics.drawString(font, trim(entry.entityType().toString(), 28), bx + 245, by + 21, MUTED_INK, false);
 
         // Give the entity almost the full left page. The viewport is intentionally taller and
@@ -428,14 +478,14 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
                     x, y, INK, false);
             y += 14;
         }
-        graphics.drawString(font,
-                Component.translatable("gui.mirage_projector.scan_codex.equipment", entry.equipmentCount()),
-                x, y, INK, false);
-        y += 18;
-        renderEquipment(graphics, bx + 248, y);
+        if (!entry.playerSource()) {
+            graphics.drawString(font,
+                    Component.translatable("gui.mirage_projector.scan_codex.equipment", entry.equipmentCount()),
+                    x, y, INK, false);
+            y += 18;
+            renderEquipment(graphics, bx + 248, y);
+        }
 
-        String id = entry.scanId().toString();
-        graphics.drawString(font, Component.literal("ID " + id.substring(0, 8) + "…"), bx + 248, by + 238, MUTED_INK, false);
     }
 
     private void renderEquipment(GuiGraphics graphics, int x, int y) {
@@ -473,8 +523,7 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         int y = topPos + 140;
         graphics.fill(x, y, x + 126, y + 100, COVER_EDGE);
         graphics.fill(x + 2, y + 2, x + 124, y + 98, EXTENSION_PAGE);
-        graphics.drawCenteredString(font,
-                Component.translatable("gui.mirage_projector.scan_codex.duplicate.extension"),
+        drawCenteredNoShadow(graphics, Component.translatable("gui.mirage_projector.scan_codex.duplicate.extension"),
                 x + 63, y + 12, INK);
         extensionSlotFrame(graphics,
                 leftPos + ScanCodexMenu.DUPLICATE_SLOT_X,
@@ -490,8 +539,7 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         int y = topPos + 60;
         graphics.fill(x, y, x + 126, y + 112, COVER_EDGE);
         graphics.fill(x + 2, y + 2, x + 124, y + 110, EXTENSION_PAGE);
-        graphics.drawCenteredString(font,
-                Component.translatable("gui.mirage_projector.scan_codex.import.extension"),
+        drawCenteredNoShadow(graphics, Component.translatable("gui.mirage_projector.scan_codex.import.extension"),
                 x + 63, y + 10, INK);
         extensionSlotFrame(graphics,
                 leftPos + ScanCodexMenu.IMPORT_SLOT_X,
@@ -503,11 +551,6 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         graphics.drawString(font,
                 fitText(Component.translatable("gui.mirage_projector.scan_codex.import.consumed_hint").getString(), 108),
                 x + 8, y + 58, 0xFF8D4E3B, false);
-        if (menu.easyMobFarmAvailable()) {
-            graphics.drawString(font,
-                    fitText(Component.translatable("gui.mirage_projector.scan_codex.import.easy_mob_farm_hint").getString(), 108),
-                    x + 8, y + 71, MUTED_INK, false);
-        }
     }
 
     private void renderLecternHomeExtension(GuiGraphics graphics) {
@@ -515,11 +558,8 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         int y = topPos + 270;
         graphics.fill(x, y, x + 126, y + 58, COVER_EDGE);
         graphics.fill(x + 2, y + 2, x + 124, y + 56, EXTENSION_PAGE);
-        graphics.drawCenteredString(
-                font,
-                Component.translatable("gui.mirage_projector.scan_codex.lectern_actions"),
-                x + 63, y + 10, INK
-        );
+        drawCenteredNoShadow(graphics, Component.translatable("gui.mirage_projector.scan_codex.lectern_actions"),
+                x + 63, y + 10, INK);
     }
 
     private void renderLecternInventory(GuiGraphics graphics) {
@@ -539,6 +579,41 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
                     leftPos + ScanCodexMenu.PLAYER_INV_X + col * 18 - 1,
                     topPos + ScanCodexMenu.PLAYER_INV_Y + 58 - 1,
                     0xFF8C7967);
+        }
+    }
+
+    private void renderParchmentButtons(GuiGraphics graphics) {
+        renderParchmentButton(graphics, backButton);
+        renderParchmentButton(graphics, favoriteButton);
+        renderParchmentButton(graphics, deleteButton);
+        renderParchmentButton(graphics, copyUuidButton);
+        renderParchmentButton(graphics, duplicateToggleButton);
+        renderParchmentButton(graphics, duplicateButton);
+        renderParchmentButton(graphics, importToggleButton);
+        renderParchmentButton(graphics, importButton);
+        renderParchmentButton(graphics, takeCodexButton);
+    }
+
+    private void renderParchmentButton(GuiGraphics graphics, Button button) {
+        if (button == null || !button.visible) {
+            return;
+        }
+        int background = button.active ? (button.isHovered() ? 0xFF8C6E84 : 0xFF727272) : 0xFF3E3E3E;
+        // Buttons belong to the parchment: a one-pixel leather edge is sufficient. The old
+        // two-pixel near-black outline made every entity action look like a debug overlay.
+        graphics.fill(button.getX(), button.getY(), button.getX() + button.getWidth(), button.getY() + button.getHeight(), 0xFF7B604C);
+        graphics.fill(button.getX() + 1, button.getY() + 1, button.getX() + button.getWidth() - 1, button.getY() + button.getHeight() - 1, background);
+        drawCenteredNoShadow(graphics, button.getMessage(), button.getX() + button.getWidth() / 2,
+                button.getY() + (button.getHeight() - 8) / 2, button.active ? 0xFFF7E9CD : 0xFFB0A8A0);
+    }
+
+    private void drawCenteredNoShadow(GuiGraphics graphics, Component text, int centerX, int y, int color) {
+        graphics.drawString(font, text, centerX - font.width(text) / 2, y, color, false);
+    }
+
+    private static void styleParchmentButton(Button button) {
+        if (button != null) {
+            button.setAlpha(0.0F);
         }
     }
 
@@ -605,7 +680,7 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         detailView = true;
         importPanelOpen = false;
         menu.setImportPanelOpen(false);
-        menu.setDuplicatePanelOpen(menu.lecternMode());
+        menu.setDuplicatePanelOpen(false);
         sendEntryAction(
                 entry.scanId(),
                 ScanCodexActionPayload.Action.SELECT,
@@ -627,6 +702,13 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         detailView = false;
         menu.setDuplicatePanelOpen(false);
         updateControls();
+    }
+
+    @Override
+    public void onClose() {
+        requestReturnDuplicateCard();
+        menu.setDuplicatePanelOpen(false);
+        super.onClose();
     }
 
     private void requestReturnDuplicateCard() {
@@ -705,9 +787,18 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
             deleteButton.active = detailView && selected.isPresent();
         }
 
-        menu.setDuplicatePanelOpen(menu.lecternMode() && detailView);
+        if (!detailView) {
+            menu.setDuplicatePanelOpen(false);
+        }
+        if (duplicateToggleButton != null) {
+            duplicateToggleButton.visible = menu.lecternMode() && detailView && selected.isPresent();
+            duplicateToggleButton.active = duplicateToggleButton.visible;
+            duplicateToggleButton.setMessage(Component.translatable(menu.duplicatePanelOpen()
+                    ? "gui.mirage_projector.scan_codex.duplicate.hide"
+                    : "gui.mirage_projector.scan_codex.duplicate.show"));
+        }
         if (duplicateButton != null) {
-            duplicateButton.visible = detailView;
+            duplicateButton.visible = detailView && menu.duplicatePanelOpen();
             ItemStack card = menu.duplicateCard();
             duplicateButton.active = selected.isPresent()
                     && card.is(ModItems.ENTITY_SCAN_CARD.get())
@@ -736,6 +827,11 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
         }
         if (takeCodexButton != null) {
             takeCodexButton.visible = menu.lecternMode() && !detailView && !importPanelOpen;
+        }
+        if (copyUuidButton != null) {
+            copyUuidButton.visible = detailView && selected.isPresent();
+            copyUuidButton.active = copyUuidButton.visible
+                    && EntityScanData.readRoot(snapshot.selectedScanRoot()).isPresent();
         }
     }
 
@@ -795,6 +891,25 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
             if (mobCategory == MobCategory.CREATURE || mobCategory == MobCategory.AMBIENT) return Category.PASSIVE;
         }
         return Category.OTHER;
+    }
+
+    /** Keeps EditBox input and focus behaviour while the parchment owns its non-shadowed text. */
+    private static final class ParchmentSearchBox extends EditBox {
+        private ParchmentSearchBox(
+                net.minecraft.client.gui.Font font,
+                int x,
+                int y,
+                int width,
+                int height,
+                Component message
+        ) {
+            super(font, x, y, width, height, message);
+        }
+
+        @Override
+        public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            // The parent screen renders the field inside the parchment with clipping and no shadow.
+        }
     }
 
     private static void slotFrame(GuiGraphics graphics, int x, int y, int border) {

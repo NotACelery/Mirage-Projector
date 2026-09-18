@@ -34,6 +34,10 @@ public final class ProjectorStateTransfer {
         if (source == null || source.isEmpty()) {
             return ItemStack.EMPTY;
         }
+        if (hasSpecialResonanceCatalyst(source, sourceBlock, registries)) {
+            // The unique physical catalyst must be removed before chassis crafting/upgrades.
+            return ItemStack.EMPTY;
+        }
 
         ItemStack result = source.transmuteCopy(targetBlock, 1);
 
@@ -41,6 +45,20 @@ public final class ProjectorStateTransfer {
         CompoundTag normalized = normalizeForTarget(sourceState, targetBlock.defaultBlockState(), registries);
         BlockItem.setBlockEntityData(result, ModBlockEntities.MIRAGE_PROJECTOR.get(), normalized);
         return result;
+    }
+
+    public static boolean hasSpecialResonanceCatalyst(
+            ItemStack source,
+            Block sourceBlock,
+            HolderLookup.Provider registries
+    ) {
+        if (source == null || source.isEmpty()) {
+            return false;
+        }
+        CompoundTag sourceState = sourceState(source, sourceBlock, registries);
+        MirageProjectorBlockEntity state = new MirageProjectorBlockEntity(BlockPos.ZERO, sourceBlock.defaultBlockState());
+        state.loadCustomOnly(sourceState.copy(), registries);
+        return SpecialResonanceProfile.fromStack(state.coreStack()).present();
     }
 
     private static CompoundTag sourceState(

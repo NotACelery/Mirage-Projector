@@ -1,6 +1,7 @@
 package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.CoreBoosterMaterial;
+import celerbi.mirageprojector.EndResonanceGeometry;
 import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
@@ -65,6 +66,9 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     private static final UUID BODYLESS_CACHE_ID = new UUID(0L, 1L);
     private static final ResourceLocation PROJECTION_CANCELLATION_TEXTURE = ResourceLocation.fromNamespaceAndPath(
             "mirage_projector", "textures/misc/projection_cancellation.png"
+    );
+    private static final ResourceLocation END_RESONANCE_TEXTURE = ResourceLocation.withDefaultNamespace(
+            "textures/environment/end_portal.png"
     );
 
     private static final List<DeferredEntityProjection> DEFERRED_ENTITY_PROJECTIONS = new ArrayList<>();
@@ -144,6 +148,11 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         double gameTime = blockEntity.getLevel() == null ? 0.0D : blockEntity.getLevel().getGameTime() + partialTick;
         renderCoreItem(blockEntity, poseStack, bufferSource, gameTime);
         renderDockedPresentationRemote(blockEntity, poseStack, bufferSource, packedLight);
+        if (blockEntity.endResonanceActive()) {
+            renderEndResonance(blockEntity, poseStack, bufferSource, gameTime);
+            equippedItemCache.remove(blockEntity);
+            return;
+        }
         if (!blockEntity.projectionEnabled()) {
             equippedItemCache.remove(blockEntity);
             return;
@@ -240,6 +249,112 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         ProjectionSourceRenderRegistry.renderer(settings.sourceMode()).ifPresent(renderer -> renderer.render(context));
     }
 
+    private void renderEndResonance(
+            MirageProjectorBlockEntity blockEntity,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            double gameTime
+    ) {
+        poseStack.pushPose();
+        poseStack.translate(0.5D, blockEntity.chassisProfile().physicalTopPixels() * PIXEL, 0.5D);
+        poseStack.mulPose(Axis.YP.rotationDegrees(blockFacingAngle(blockEntity)));
+        if (blockEntity.chassisProfile() == ProjectionChassisProfile.PRISM) {
+            renderEndResonancePrism(poseStack, bufferSource, gameTime);
+        } else {
+            renderEndResonanceField(poseStack, bufferSource, gameTime);
+        }
+        poseStack.popPose();
+    }
+
+    private static void renderEndResonanceField(
+            PoseStack poseStack, MultiBufferSource bufferSource, double gameTime
+    ) {
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f matrix = pose.pose();
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(END_RESONANCE_TEXTURE));
+        float uShift = (float) ((gameTime * 0.003D) % 1.0D);
+        emitResonanceQuad(consumer, matrix, pose, -1.0F, 1.0F, 0.0F, 3.0F, 0.0F, uShift, false);
+        emitResonanceQuad(consumer, matrix, pose, -1.0F, 1.0F, 0.0F, 3.0F, 0.0F, uShift, true);
+    }
+
+    private static void renderEndResonancePrism(
+            PoseStack poseStack, MultiBufferSource bufferSource, double gameTime
+    ) {
+        float half = 1.0F;
+        float height = 3.0F;
+        float shift = (float) ((gameTime * 0.003D) % 1.0D);
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(END_RESONANCE_TEXTURE));
+
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 0.0F, half);
+        emitResonanceQuad(consumer, poseStack.last().pose(), poseStack.last(), -half, half, 0.0F, height, 0.0F, shift, false);
+        poseStack.popPose();
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.translate(0.0F, 0.0F, half);
+        emitResonanceQuad(consumer, poseStack.last().pose(), poseStack.last(), -half, half, 0.0F, height, 0.0F, shift, false);
+        poseStack.popPose();
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(90.0F));
+        poseStack.translate(0.0F, 0.0F, half);
+        emitResonanceQuad(consumer, poseStack.last().pose(), poseStack.last(), -half, half, 0.0F, height, 0.0F, shift, false);
+        poseStack.popPose();
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(-90.0F));
+        poseStack.translate(0.0F, 0.0F, half);
+        emitResonanceQuad(consumer, poseStack.last().pose(), poseStack.last(), -half, half, 0.0F, height, 0.0F, shift, false);
+        poseStack.popPose();
+
+        // Ceiling/floor close the anomaly visually so it reads as a volume rather than four flat portals.
+        emitHorizontalResonanceFace(poseStack, consumer, 0.0F, half, shift, true);
+        emitHorizontalResonanceFace(poseStack, consumer, height, half, shift, false);
+    }
+
+    private static void emitHorizontalResonanceFace(
+            PoseStack poseStack, VertexConsumer consumer, float y, float half, float shift, boolean upward
+    ) {
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f matrix = pose.pose();
+        float ny = upward ? 1.0F : -1.0F;
+        resonanceVertex(consumer, matrix, pose, -half, y, -half, shift, 0.0F, 0.0F, ny, 0.0F);
+        resonanceVertex(consumer, matrix, pose, -half, y, half, shift, 1.0F, 0.0F, ny, 0.0F);
+        resonanceVertex(consumer, matrix, pose, half, y, half, shift + 1.0F, 1.0F, 0.0F, ny, 0.0F);
+        resonanceVertex(consumer, matrix, pose, half, y, -half, shift + 1.0F, 0.0F, 0.0F, ny, 0.0F);
+    }
+
+    private static void emitResonanceQuad(
+            VertexConsumer consumer, Matrix4f matrix, PoseStack.Pose pose,
+            float minX, float maxX, float minY, float maxY, float z, float uShift, boolean back
+    ) {
+        float nz = back ? -1.0F : 1.0F;
+        if (!back) {
+            resonanceVertex(consumer, matrix, pose, minX, minY, z, uShift, 1.0F, 0.0F, 0.0F, nz);
+            resonanceVertex(consumer, matrix, pose, maxX, minY, z, uShift + 1.0F, 1.0F, 0.0F, 0.0F, nz);
+            resonanceVertex(consumer, matrix, pose, maxX, maxY, z, uShift + 1.0F, 0.0F, 0.0F, 0.0F, nz);
+            resonanceVertex(consumer, matrix, pose, minX, maxY, z, uShift, 0.0F, 0.0F, 0.0F, nz);
+        } else {
+            resonanceVertex(consumer, matrix, pose, minX, maxY, z, uShift, 0.0F, 0.0F, 0.0F, nz);
+            resonanceVertex(consumer, matrix, pose, maxX, maxY, z, uShift + 1.0F, 0.0F, 0.0F, 0.0F, nz);
+            resonanceVertex(consumer, matrix, pose, maxX, minY, z, uShift + 1.0F, 1.0F, 0.0F, 0.0F, nz);
+            resonanceVertex(consumer, matrix, pose, minX, minY, z, uShift, 1.0F, 0.0F, 0.0F, nz);
+        }
+    }
+
+    private static void resonanceVertex(
+            VertexConsumer consumer, Matrix4f matrix, PoseStack.Pose pose,
+            float x, float y, float z, float u, float v, float nx, float ny, float nz
+    ) {
+        consumer.addVertex(matrix, x, y, z)
+                .setColor(0.80F, 0.38F, 1.0F, 0.94F)
+                .setUv(u, v)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(LightTexture.FULL_BRIGHT)
+                .setNormal(pose, nx, ny, nz);
+    }
+
     /**
      * Render only the hologram carried by a Mirage Hand Projector.
      *
@@ -269,6 +384,33 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         float angle = projectionBaseAngle(blockEntity, settings) + rotationAngle(settings, gameTime);
         float bob = bobOffset(settings, gameTime);
         int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
+
+        // Entity projections normally enter a deferred world pass so they can be depth-sorted
+        // against fixed projector blocks. A Hand Projector is already being rendered in the
+        // player's interpolated pose stack; deferring it would throw that pose away and snap the
+        // projection back to the temporary block entity's integer coordinates.
+        if (settings.sourceMode() == ProjectionSettings.SourceMode.ENTITY) {
+            LivingEntity entity = resolveProjectedEntity(blockEntity);
+            if (entity != null) {
+                renderProjectedEntity(
+                        blockEntity,
+                        settings,
+                        entity,
+                        partialTick,
+                        poseStack,
+                        bufferSource,
+                        angle,
+                        bob,
+                        projectionLight,
+                        blockEntity.entityProjectionState().activeKind()
+                                == celerbi.mirageprojector.entity.EntityScanData.Kind.HUMANOID
+                                || !blockEntity.entityProjectionState().hasActiveEntity(),
+                        settings.opacityPercent() < 100
+                );
+                renderProjectionNameplate(blockEntity, settings, bob, poseStack, bufferSource, projectionLight);
+            }
+            return;
+        }
 
         ProjectionSourceRenderRegistry.renderer(settings.sourceMode()).ifPresent(renderer -> renderer.render(
                 new ProjectionSourceRenderRegistry.RenderContext(
@@ -1790,6 +1932,10 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
     public AABB getRenderBoundingBox(MirageProjectorBlockEntity blockEntity) {
         ProjectionSettings settings = blockEntity.settings();
         BlockPos pos = blockEntity.getBlockPos();
+
+        if (blockEntity.endResonanceActive()) {
+            return EndResonanceGeometry.renderBounds(blockEntity);
+        }
 
         if (blockEntity.chassisProfile() == ProjectionChassisProfile.TABLE) {
             return MirageTableProjectorLogic.renderBoundingBox(blockEntity);

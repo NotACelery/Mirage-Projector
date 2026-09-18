@@ -231,12 +231,12 @@ No current gameplay path may create `mirage_projector:crying_light_node`; that b
 - custom projector upgrades appear under Crafting;
 - Crying Obsidian shaped recipes appear normally;
 - projector/Crying Obsidian ingredient information is present;
-- the twelve 1.0.32 Survival recipes appear once each under Crafting: Light Battery, Mirage Flashlight, Mirage Light Projector, Mirage Wall Projector, Shoulder Strap, Auto Battery Swap Patch, Shoulder Strap Slot Expansion, Charging Station, Mirage Hand Projector, Mirage Scan Codex, Mirage Table Projector and Mirage Wall Display;
+- the eleven surviving 1.0.32 Survival recipes appear once each under Crafting: Light Battery, Mirage Flashlight, Mirage Light Projector, Shoulder Strap, Auto Battery Swap Patch, Shoulder Strap Slot Expansion, Charging Station, Mirage Hand Projector, Mirage Scan Codex, Mirage Table Projector and Mirage Wall Projector; the retired `mirage_wall_illuminator` recipe is absent;
 - the Light Battery grid is `GCG / IGI / GRG`, and each `G` slot accepts/cycles both vanilla Glowstone Dust and rechargeable Mirage Glow Dust.
 
 ### EMI 1.0.32 Survival progression
 
-- the same twelve 1.0.32 Survival recipes appear once each under Crafting;
+- the same eleven surviving 1.0.32 Survival recipes appear once each under Crafting, with no retired wall-illuminator entry;
 - none is duplicated by a Mirage synthetic EMI wrapper;
 - the Light Battery grid is `GCG / IGI / GRG`, with `mirage_projector:glow_dust_media` exposing both supported Glow Dust media;
 - looking up either a recipe output or one of its ingredients opens the expected Crafting row.

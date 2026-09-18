@@ -22,32 +22,23 @@ public final class ClientHeldFlashlights {
     private static final double CULL_DISTANCE = 96.0D;
     private static final int REFRESH_TICKS = 2;
     private static final int STALE_TICKS = 4;
-    private static long lastSubmitTick = Long.MIN_VALUE;
-
     private ClientHeldFlashlights() {
     }
 
-    public static void submitVisiblePlayers(Minecraft minecraft, Vec3 cameraPosition) {
+    public static void submitVisiblePlayers(Minecraft minecraft, Vec3 cameraPosition, float partialTick) {
         if (minecraft == null || minecraft.level == null) {
             return;
         }
         ClientLevel level = minecraft.level;
-        long now = level.getGameTime();
-        if (lastSubmitTick == now) {
-            return;
-        }
-        lastSubmitTick = now;
-
         Vec3 camera = cameraPosition == null ? Vec3.ZERO : cameraPosition;
         double cullSq = CULL_DISTANCE * CULL_DISTANCE;
         for (Player player : level.players()) {
-            submitHand(player, InteractionHand.MAIN_HAND, player.getMainHandItem(), camera, cullSq);
-            submitHand(player, InteractionHand.OFF_HAND, player.getOffhandItem(), camera, cullSq);
+            submitHand(player, InteractionHand.MAIN_HAND, player.getMainHandItem(), camera, cullSq, partialTick);
+            submitHand(player, InteractionHand.OFF_HAND, player.getOffhandItem(), camera, cullSq, partialTick);
         }
     }
 
     public static void resetSession() {
-        lastSubmitTick = Long.MIN_VALUE;
     }
 
     private static void submitHand(
@@ -55,7 +46,8 @@ public final class ClientHeldFlashlights {
             InteractionHand hand,
             ItemStack stack,
             Vec3 camera,
-            double cullSq
+            double cullSq,
+            float partialTick
     ) {
         String kind = hand == InteractionHand.MAIN_HAND ? "flashlight_main" : "flashlight_off";
         MirageLightSourceId sourceId = MirageLightSourceId.entity(kind, player.getUUID());
@@ -68,18 +60,27 @@ public final class ClientHeldFlashlights {
             return;
         }
 
-        Vec3 look = player.getLookAngle().normalize();
-        Vec3 sourcePos = player.getEyePosition().add(look.scale(0.82D)).add(0.0D, -0.08D, 0.0D);
+        Vec3 look = player.getViewVector(partialTick).normalize();
+        Vec3 interpolatedPosition = new Vec3(
+                net.minecraft.util.Mth.lerp(partialTick, player.xo, player.getX()),
+                net.minecraft.util.Mth.lerp(partialTick, player.yo, player.getY()),
+                net.minecraft.util.Mth.lerp(partialTick, player.zo, player.getZ())
+        );
+        Vec3 eye = interpolatedPosition.add(0.0D, player.getEyeHeight(), 0.0D);
+        PortableLightMode mode = MirageFlashlightItem.mode(stack);
+        Vec3 emissionDirection = mode == PortableLightMode.AMBIENT ? new Vec3(0.0D, 1.0D, 0.0D) : look;
+        Vec3 sourcePos = mode == PortableLightMode.AMBIENT
+                ? eye.add(0.0D, 0.42D, 0.0D)
+                : eye.add(look.scale(0.82D)).add(0.0D, -0.08D, 0.0D);
         if (camera.distanceToSqr(sourcePos) > cullSq) {
             ClientDynamicMirageLightManager.remove(sourceId);
             return;
         }
 
-        PortableLightMode mode = MirageFlashlightItem.mode(stack);
         ClientDynamicMirageLightManager.submit(new MirageDynamicLightSnapshot(
                 sourceId,
                 sourcePos,
-                mode.profile(look),
+                mode.profile(emissionDirection),
                 REFRESH_TICKS,
                 CULL_DISTANCE,
                 STALE_TICKS

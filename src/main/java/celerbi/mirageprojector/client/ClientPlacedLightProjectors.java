@@ -1,7 +1,9 @@
 package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.block.MirageLightProjectorBlock;
+import celerbi.mirageprojector.registry.ModBlocks;
 import celerbi.mirageprojector.blockentity.MirageLightProjectorBlockEntity;
+import celerbi.mirageprojector.light.device.PortableLightMode;
 import celerbi.mirageprojector.light.engine.MirageDynamicLightSnapshot;
 import celerbi.mirageprojector.light.engine.MirageLightSourceId;
 import java.util.Map;
@@ -50,7 +52,9 @@ public final class ClientPlacedLightProjectors {
                         continue;
                     }
                     BlockPos pos = entry.getKey();
-                    MirageLightSourceId sourceId = MirageLightSourceId.block("light_projector", pos);
+                    boolean flashlight = projector.getBlockState().is(ModBlocks.MIRAGE_FLASHLIGHT_BEACON.get());
+                    MirageLightSourceId sourceId = MirageLightSourceId.block(
+                            flashlight ? "placed_flashlight" : "light_projector", pos);
                     if (!projector.emitting()) {
                         ClientDynamicMirageLightManager.remove(sourceId);
                         continue;
@@ -58,17 +62,24 @@ public final class ClientPlacedLightProjectors {
                     Direction facing = projector.getBlockState().hasProperty(MirageLightProjectorBlock.FACING)
                             ? projector.getBlockState().getValue(MirageLightProjectorBlock.FACING)
                             : Direction.NORTH;
-                    Vec3 direction = Vec3.atLowerCornerOf(facing.getNormal());
-                    // Seed the voxel source just outside the opaque projector chassis. Starting
-                    // inside the block made the first propagation edge self-occlude.
-                    Vec3 sourcePos = Vec3.atCenterOf(pos).add(direction.scale(0.72D)).add(0.0D, 0.08D, 0.0D);
+                    Vec3 forward = Vec3.atLowerCornerOf(facing.getNormal());
+                    boolean ambient = projector.mode() == PortableLightMode.AMBIENT;
+                    Vec3 direction = ambient ? new Vec3(0.0D, 1.0D, 0.0D) : forward;
+                    // Directional modes seed just outside the front lens. Ambient mode behaves
+                    // as an upward beacon and seeds above the chassis instead of beside it.
+                    Vec3 sourcePos = ambient
+                            ? Vec3.atCenterOf(pos).add(0.0D, 0.78D, 0.0D)
+                            : Vec3.atCenterOf(pos).add(forward.scale(0.72D)).add(0.0D, 0.08D, 0.0D);
                     if (camera.distanceToSqr(sourcePos) > cullSq) {
                         continue;
                     }
                     ClientDynamicMirageLightManager.submit(new MirageDynamicLightSnapshot(
                             sourceId,
                             sourcePos,
-                            projector.mode().profile(direction),
+                            // A placed Flashlight remains a portable optic on a stand; only the
+                            // dedicated Mirage Light Projector receives the 50% chassis range.
+                            flashlight ? projector.mode().profile(direction)
+                                    : projector.mode().lightProjectorProfile(direction),
                             MirageDynamicLightSnapshot.DEFAULT_REFRESH_TICKS,
                             CULL_RADIUS_BLOCKS,
                             MirageDynamicLightSnapshot.DEFAULT_STALE_TICKS

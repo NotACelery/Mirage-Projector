@@ -31,7 +31,7 @@
 - **delivered in 1.0.18 stabilization:** device GUIs, packed Shoulder Strap inventory/migration, dynamic-light angle fix, Charging Station input/UI/render polish, Glow Dust full-charge normalization and non-pausing Codex UX;
 - **delivered in 1.0.19 QA follow-up:** corrected Lantern/Light Projector gestures, device/station hover tooltips, compact Lantern GUI, Creative Mirage Equipment visibility, Charging Station lane/Jade progress, explicit Codex no-blur override and the final packed-light visual bridge for DYNAMIC_VISUAL terrain rendering;
 - **delivered/corrected in 1.0.23:** physical scan-copy workflow through a vanilla Lectern hosting the Codex; no separate Mirage station remains;
-- **delivered foundations + 1.0.32 recipes:** horizontal/Table Projector and presentation-oriented Mirage Wall Display families;
+- **delivered foundations + 1.0.32 recipes:** horizontal/Table Projector and presentation-oriented Mirage Wall Projector families;
 - final source/chassis capability enumeration and portable/wall/table anchor semantics;
 - Dragon Egg / End Resonance Field+Prism behavior;
 - remaining recipes only where a future 1.1 feature introduces a new Survival item; documentation, multiplayer/performance QA and release polish.
@@ -180,14 +180,14 @@ Possible later interoperability, deliberately **not** implemented in 1.0.24: exp
 ## F0. Physical anchor + presentation chassis foundation — delivered in 1.0.25 / presentation controls in 1.0.26
 
 - Mirage Table Projector: supported tabletop/floor anchor, horizontal Image/Banner plane, upright Item/Entity volume, packed Shift+empty-hand pickup.
-- Mirage Wall Display (legacy registry ID `mirage_wall_projector`) is a low-profile **Data-show**, not a wall-mounted illumination block: it stands on a complete flat support, faces N/E/S/W and projects Image content onto a real regular wall ahead.
+- Mirage Wall Projector (legacy registry ID `mirage_wall_projector`) is a low-profile **Data-show**, not a wall-mounted illumination block: it stands on a complete flat support, faces N/E/S/W and projects Image content onto a real regular wall ahead.
 - Wall validates only the real aspect-correct image footprint after Scale + X/Y offsets. Irregular unused space outside that footprint does not matter; irregular/obstructed cells touched by the image cancel the projection.
 - Wall distance has a PU surcharge and Scale may resolve downward until both the wall footprint and Core budget are valid.
 - Wall Image Workspace owns an ordered nine-image presentation playlist with reorder/current/Previous/Next controls.
 - Wall supports Image only; Item/Entity/Banner remain hologram-oriented sources for other chassis.
 - anchor/capability/source metadata is shared by rendering, wall validation, Projection Power and settings UI.
 - **delivered in 1.0.26:** Table/Wall automatic slideshow timing, persistent manual current slide and Data-show Presentation Remote pairing/control; invalid wall slides remain traversable and show a prohibition marker.
-- **Survival recipes delivered in 1.0.32** for Table Projector and Mirage Wall Display; still pending: final Table/Wall Display art polish, optional slideshow transition effects, optional Create Blueprint bridge and any later ceiling-specific family decision.
+- **Survival recipes delivered in 1.0.32** for Table Projector and Mirage Wall Projector; still pending: final Table/Wall Projector art polish, optional slideshow transition effects, optional Create Blueprint bridge and any later ceiling-specific family decision.
 
 ## F. Portable projector family
 
@@ -323,6 +323,8 @@ The War Banner feature is intended for battle standards, team identification, te
 - portable/fixed power models share presentation/source contracts without pretending Core PU and battery charge are identical resources.
 
 ## H. Dragon Egg / End Resonance Easter Egg
+
+**Implementation status (1.0.33 foundation):** special-provider/chassis capability, physical Field/Prism Core acceptance, persistent ProjectionState suspend/restore, normal-control lock, resonance status UI, anti-dup state-transfer guards and fixed 2×3 / 2×3×2 Mirage-rendered envelopes are implemented. Functional entity dimensional transfer, cooldown/anti-loop and destination-safety semantics remain pending and continue to be release blockers for this subsection.
 
 ### Product intent
 
@@ -566,5 +568,15 @@ Do **not** add a normal changelog bullet explicitly describing End Resonance unl
 
 - Keep the existing floor-standing `Mirage Light Projector`; it was not part of the original lantern-on-ground request, but is now an accepted device.
 - Its lamp head should later gain visible horizontal rotation + vertical tilt so players can aim the beam at a chosen point/direction.
-- **delivered in 1.0.32:** a separate true wall-mounted illumination chassis now exists as **Mirage Wall Projector** (`mirage_wall_illuminator`), distinct from the presentation-oriented Mirage Wall Display. It reuses the Focus/Flood/Ambient/Off battery/runtime contract and emits perpendicular to its supporting wall.
+- **delivered in 1.0.32:** the temporary `mirage_wall_illuminator` experiment was **removed in 1.0.34**. The established presentation/Data-show block is again named **Mirage Wall Projector**. A separate wall-mounted illumination chassis is **not part of the current 1.1 scope** unless explicitly redesigned later.
 - **delivered in 1.0.32:** the handheld **Mirage Flashlight** can be placed temporarily on a sturdy block top as a portable beacon. Placement transfers its exact mode and rechargeable cell into the world form; breaking it or losing support returns one Flashlight with that same state.
+
+
+## 1.0.34 cleanup decisions (frozen)
+
+- **Wall naming rollback delivered:** the established presentation/Data-show chassis is again **Mirage Wall Projector** (`mirage_projector:mirage_wall_projector`). The separate `mirage_wall_illuminator` experiment is removed from registry, recipes, assets and current scope.
+- **Table mode navigation fix delivered:** opening Image/Item/Entity/Banner workspaces is navigation only. A source becomes active only from the explicit `Use <mode> mode` action. Exactly one stored SourceMode remains authoritative.
+- **Portable wording fix delivered:** an unconfigured Hand Projector reports `No projection has been configured.` rather than referring to the removed copied-profile architecture.
+- **Flashlight physical/visual cleanup delivered:** held and placed forms share the same work-flashlight material/shape language; held form is horizontal/forward-facing; Ambient emission points upward and the placed Ambient form is visually upright.
+- **Light Projector visual cleanup delivered:** Crying Obsidian dominates the exterior, Iron is structural/interior, the front magenta reflector leaves one pixel of border, and Ambient exposes lenses on all four upper lateral faces while emitting upward.
+- **Still deliberately pending:** visible Mirage Light Projector yaw/pitch aiming. This remains the final physical-illumination implementation before 1.1 release QA.

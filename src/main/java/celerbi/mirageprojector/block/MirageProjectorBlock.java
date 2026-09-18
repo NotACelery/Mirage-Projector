@@ -284,7 +284,7 @@ public class MirageProjectorBlock extends BaseEntityBlock {
             if (state.is(ModBlocks.MIRAGE_TABLE_PROJECTOR.get())) {
                 return ProjectionChassisProfile.TABLE;
             }
-            if (state.is(ModBlocks.MIRAGE_WALL_DISPLAY.get())) {
+            if (state.is(ModBlocks.MIRAGE_WALL_PROJECTOR.get())) {
                 return ProjectionChassisProfile.WALL;
             }
         }
@@ -296,7 +296,14 @@ public class MirageProjectorBlock extends BaseEntityBlock {
         ItemStack result = new ItemStack(this);
         if (level instanceof Level actualLevel
                 && level.getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) {
-            projector.saveToItem(result, actualLevel.registryAccess());
+            if (projector.endResonanceActive()) {
+                net.minecraft.world.item.BlockItem.setBlockEntityData(
+                        result, ModBlockEntities.MIRAGE_PROJECTOR.get(),
+                        projector.stateForCreativeClone(actualLevel.registryAccess())
+                );
+            } else {
+                projector.saveToItem(result, actualLevel.registryAccess());
+            }
         }
         return result;
     }

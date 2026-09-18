@@ -6,6 +6,7 @@ import celerbi.mirageprojector.ProjectionPower;
 import celerbi.mirageprojector.PrismProjectionSpacing;
 import celerbi.mirageprojector.ProjectionSettings;
 import celerbi.mirageprojector.ProjectionSourceRegistry;
+import celerbi.mirageprojector.SpecialResonanceProfile;
 import celerbi.mirageprojector.WallProjectionSurface;
 import celerbi.mirageprojector.ImageSourceBank;
 import celerbi.mirageprojector.block.MirageProjectorBlock;
@@ -25,6 +26,7 @@ import java.util.function.IntConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
@@ -55,6 +57,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     private int transparencyPercent;
     private int tintRgb;
     private boolean debugChassisOverride;
+    private boolean endResonanceUiLocked;
 
     private Button imageModeButton;
     private Button itemModeButton;
@@ -71,6 +74,8 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     private Button tintButton;
     private Button resetPlacementButton;
     private Button resetTiltButton;
+    private Button applyButton;
+    private Button cancelButton;
     private Button geometryTabButton;
     private Button placementTabButton;
     private Button rotationTabButton;
@@ -156,7 +161,9 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 3, y + 40, sourceButtonWidth, 20).build());
 
         turnOffButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.turn_off"), button -> {
-            projectionEnabled = false;
+            if (!endResonanceActive()) {
+                projectionEnabled = false;
+            }
             PacketDistributor.sendToServer(new SetProjectionEnabledPayload(menu.projectorPos(), false));
             refreshProjectionStateButtons();
         }).bounds(x + imageWidth - 104, y + 6, 92, 18).build());
@@ -371,15 +378,19 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
             refreshLabels();
         }).bounds(x + 12, row3, wide, 20).build());
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> {
-            saveSettings();
-            base = buildSettings();
-            updateClearance(true);
+        applyButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> {
+            if (!endResonanceActive()) {
+                saveSettings();
+                base = buildSettings();
+                updateClearance(true);
+            }
         }).bounds(x + 12, y + 382, half, 22).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button -> {
-            restoreFromBase();
-            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), base));
-            updateClearance(true);
+        cancelButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button -> {
+            if (!endResonanceActive()) {
+                restoreFromBase();
+                PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), base));
+                updateClearance(true);
+            }
             // Cancel means discard the preview and leave the projector UI.
             onClose();
         }).bounds(x + 20 + half, y + 382, half, 22).build());
@@ -392,6 +403,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         refreshSettingsTabVisibility();
         updateClearance(true);
         refreshProjectionStateButtons();
+        refreshEndResonanceLock();
     }
 
     private Button addSettingsTab(SettingsTab tab, int x, int y, int width) {
@@ -770,6 +782,56 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         return selectedSourceMode;
     }
 
+    private boolean endResonanceActive() {
+        return SpecialResonanceProfile.fromStack(menu.coreStack()).supportedBy(menu.chassisProfile());
+    }
+
+    private void refreshEndResonanceLock() {
+        boolean locked = endResonanceActive();
+        boolean changed = locked != endResonanceUiLocked;
+        endResonanceUiLocked = locked;
+        if (!locked) {
+            if (applyButton != null) {
+                applyButton.active = true;
+            }
+            if (cancelButton != null) {
+                cancelButton.active = true;
+            }
+            if (changed) {
+                refreshSettingsTabVisibility();
+                setSourceButtonCompatibility(imageModeButton, ProjectionSettings.SourceMode.IMAGE);
+                setSourceButtonCompatibility(itemModeButton, ProjectionSettings.SourceMode.ITEM);
+                setSourceButtonCompatibility(entityModeButton, ProjectionSettings.SourceMode.ENTITY);
+                setSourceButtonCompatibility(bannerModeButton, ProjectionSettings.SourceMode.BANNER);
+            }
+            return;
+        }
+        AbstractWidget[] mutating = {
+                imageModeButton, itemModeButton, entityModeButton, bannerModeButton,
+                rotationButton, directionButton, orientationButton, floatingButton, floatModeButton,
+                lightingButton, tintButton, resetPlacementButton, resetTiltButton,
+                geometryTabButton, placementTabButton, rotationTabButton, floatingTabButton,
+                scaleSlider, liftSlider, distanceOffsetSlider, horizontalOffsetSlider, verticalOffsetSlider,
+                tableXOffsetSlider, tableZOffsetSlider, tiltSlider, floatAmplitudeSlider, floatTimingSlider,
+                rotationPeriodSlider, ghostSlider, applyButton
+        };
+        if (locked) {
+            for (AbstractWidget widget : mutating) {
+                if (widget != null) {
+                    widget.active = false;
+                }
+            }
+            if (turnOffButton != null) {
+                turnOffButton.visible = true;
+                turnOffButton.active = true;
+                turnOffButton.setMessage(Component.translatable("gui.mirage_projector.turn_off"));
+            }
+            if (cancelButton != null) {
+                cancelButton.active = true;
+            }
+        }
+    }
+
     private void refreshProjectionStateButtons() {
         if (turnOffButton == null) {
             return;
@@ -779,8 +841,8 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         setSourceButtonCompatibility(itemModeButton, ProjectionSettings.SourceMode.ITEM);
         setSourceButtonCompatibility(entityModeButton, ProjectionSettings.SourceMode.ENTITY);
         setSourceButtonCompatibility(bannerModeButton, ProjectionSettings.SourceMode.BANNER);
-        turnOffButton.active = enabled;
-        turnOffButton.setMessage(Component.translatable(enabled
+        turnOffButton.active = endResonanceActive() || enabled;
+        turnOffButton.setMessage(Component.translatable(endResonanceActive() || enabled
                 ? "gui.mirage_projector.turn_off"
                 : "gui.mirage_projector.projector_off_button"));
         if (unpairRemoteButton != null) {
@@ -796,7 +858,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         if (button == null) return;
         boolean supported = ProjectionSourceRegistry.isCompatible(source, menu.chassisProfile());
         button.visible = supported;
-        button.active = supported;
+        button.active = supported && !endResonanceActive();
     }
 
     private void renderActiveModeOutline(GuiGraphics graphics) {
@@ -874,11 +936,27 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 10, 8, 0xFFF4F4F4, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.sources"), 14, 29, 0xFFBFA5D1, false);
-        Component projectionStateLabel = currentProjectionEnabled()
+        Component projectionStateLabel = endResonanceActive()
+                ? Component.translatable("gui.mirage_projector.end_resonance.title")
+                : currentProjectionEnabled()
                 ? Component.translatable("gui.mirage_projector.current_source", sourceName(currentSourceMode()))
                 : Component.translatable("gui.mirage_projector.projector_off");
         graphics.drawString(font, projectionStateLabel, 14, 62, 0xFF9FBED1, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.core"), 12, 186, 0xFFBFA5D1, false);
+
+        if (endResonanceActive()) {
+            String aperture = menu.chassisProfile() == ProjectionChassisProfile.PRISM
+                    ? "gui.mirage_projector.end_resonance.volumetric"
+                    : "gui.mirage_projector.end_resonance.planar";
+            String dimensions = menu.chassisProfile() == ProjectionChassisProfile.PRISM ? "2 × 3 × 2" : "2 × 3";
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.end_resonance.title"), 50, 196, 0xFFD29BFF, false);
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.end_resonance.suspended"), 50, 207, 0xFFBFD8FF, false);
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.end_resonance.detected"), 50, 218, 0xFFC9A7FF, false);
+            graphics.drawString(font, fitText(Component.translatable("gui.mirage_projector.end_resonance.aperture",
+                    Component.translatable(aperture), dimensions).getString(), 342), 50, 240, 0xFFBFD8FF, false);
+            graphics.drawString(font, Component.translatable("container.inventory"), MirageProjectorMenu.PLAYER_INV_X, MirageProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
+            return;
+        }
 
         ProjectionCoreProfile core = menu.coreProfile();
         ProjectionChassisProfile chassis = menu.chassisProfile();
@@ -1061,6 +1139,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     protected void containerTick() {
         super.containerTick();
         refreshProjectionStateButtons();
+        refreshEndResonanceLock();
         ProjectionCoreProfile currentCore = menu.coreProfile();
         if (currentCore != observedCore) {
             observedCore = currentCore;

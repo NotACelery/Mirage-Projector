@@ -2,6 +2,7 @@ package celerbi.mirageprojector.equipment;
 
 import celerbi.mirageprojector.item.RechargeableEnergyItem;
 import celerbi.mirageprojector.item.ShoulderUpgrade;
+import celerbi.mirageprojector.item.ShoulderMountableDevice;
 import celerbi.mirageprojector.registry.ModItems;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -11,7 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 /**
- * Mirage-owned player attachment containing only the currently equipped Shoulder Strap.
+ * Mirage-owned player attachment containing the base Shoulder Slot.
  *
  * <p>Since 1.0.18 the strap ItemStack itself owns its Shoulder Device, battery pouch and upgrades
  * through the vanilla container data component. This means a packed strap can be removed, carried,
@@ -19,7 +20,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  * dedicated player equipment socket and to migrate the legacy 1.0.13-1.0.17 fourteen-slot format.</p>
  */
 public final class ShoulderEquipment extends ItemStackHandler {
-    /** Physical attachment slot. */
+    /** Base Shoulder Slot. It accepts a portable device directly or a Shoulder Strap expander. */
     public static final int STRAP_SLOT = 0;
 
     /** Legacy logical constants retained for migration/tests and network target numbering. */
@@ -31,7 +32,9 @@ public final class ShoulderEquipment extends ItemStackHandler {
     public static final int BASE_UPGRADE_SLOTS = 2;
     public static final int EXPANDED_UPGRADE_SLOTS = 3;
     public static final int LEGACY_SLOT_COUNT = UPGRADE_START + EXPANDED_UPGRADE_SLOTS;
-    public static final int SLOT_COUNT = 1;
+    /** Kept separate from the legacy numbering: this is only used by a bare mounted device. */
+    private static final int BARE_DEVICE_SLOT = 1;
+    public static final int SLOT_COUNT = 2;
 
     private final Player owner;
 
@@ -57,7 +60,11 @@ public final class ShoulderEquipment extends ItemStackHandler {
     }
 
     public ItemStack device() {
-        return hasStrap() ? strapInventory().getItem(ShoulderStrapContainer.DEVICE_SLOT) : ItemStack.EMPTY;
+        if (hasStrap()) {
+            return strapInventory().getItem(ShoulderStrapContainer.DEVICE_SLOT);
+        }
+        ItemStack direct = getStackInSlot(STRAP_SLOT);
+        return direct.getItem() instanceof ShoulderMountableDevice ? direct : ItemStack.EMPTY;
     }
 
     public boolean hasDevice() {
@@ -66,6 +73,7 @@ public final class ShoulderEquipment extends ItemStackHandler {
 
     public void setDevice(ItemStack stack) {
         if (!hasStrap()) {
+            setStackInSlot(STRAP_SLOT, safeOne(stack));
             return;
         }
         ShoulderStrapContainer container = strapInventory();
@@ -75,7 +83,11 @@ public final class ShoulderEquipment extends ItemStackHandler {
 
     public ItemStack extractDevice() {
         if (!hasStrap()) {
-            return ItemStack.EMPTY;
+            ItemStack direct = getStackInSlot(STRAP_SLOT);
+            if (!(direct.getItem() instanceof ShoulderMountableDevice)) {
+                return ItemStack.EMPTY;
+            }
+            return extractItem(STRAP_SLOT, 1, false);
         }
         ShoulderStrapContainer container = strapInventory();
         ItemStack removed = container.removeItemNoUpdate(ShoulderStrapContainer.DEVICE_SLOT);
@@ -215,7 +227,8 @@ public final class ShoulderEquipment extends ItemStackHandler {
 
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
-        return slot == STRAP_SLOT && stack != null && stack.is(ModItems.SHOULDER_STRAP.get());
+        return slot == STRAP_SLOT && stack != null
+                && (stack.is(ModItems.SHOULDER_STRAP.get()) || stack.getItem() instanceof ShoulderMountableDevice);
     }
 
     @Override

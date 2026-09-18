@@ -18,7 +18,7 @@ def load(rel):
 props = read('gradle.properties')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 settings = read('src/main/java/celerbi/mirageprojector/ProjectionSettings.java')
-need('mod_version=1.0.32' in props, 'mod_version is not 1.0.32')
+need(any(v in props for v in ('mod_version=1.0.32','mod_version=1.0.33','mod_version=1.0.34')), 'mod_version is not a compatible 1.0.32+ line')
 need(any(v in main for v in ('NETWORK_PROTOCOL = "42"', 'NETWORK_PROTOCOL = "43"')), '1.0.32 protocol is not a compatible 42+ line')
 need('SERIALIZATION_VERSION = 4' in settings, '1.0.32 must retain ProjectionSettings format 4')
 
@@ -47,26 +47,28 @@ need('ModBlocks.MIRAGE_FLASHLIGHT_BEACON' in flash and 'useOn(UseOnContext conte
 need('placed.setMode(mode(flashlight));' in flash and 'placed.setEnergyCell(cell);' in flash,
      'Flashlight placement does not transfer mode/cell')
 
-# Presentation Wall is now a Display; new true Wall Projector is illumination.
+# Later 1.0.34 rollback: the historical presentation chassis resumes the sole Wall Projector identity.
 blocks = read('src/main/java/celerbi/mirageprojector/registry/ModBlocks.java')
 block_items = items
 be_registry = read('src/main/java/celerbi/mirageprojector/registry/ModBlockEntities.java')
-need('MIRAGE_WALL_DISPLAY' in blocks and 'MirageWallDisplayBlock' in blocks
-     and '"mirage_wall_projector"' in blocks,
-     'legacy presentation chassis is not preserved as Mirage Wall Display')
-need('MIRAGE_WALL_DISPLAY' in block_items and 'registerSimpleBlockItem("mirage_wall_projector"' in block_items,
-     'Wall Display legacy BlockItem registry identity missing')
-need((ROOT / 'src/main/java/celerbi/mirageprojector/block/MirageWallDisplayBlock.java').exists(),
-     'MirageWallDisplayBlock source missing')
 wall = read('src/main/java/celerbi/mirageprojector/block/MirageWallProjectorBlock.java')
-need('BLOCKS.register(' in blocks and '"mirage_wall_illuminator"' in blocks and 'MIRAGE_WALL_PROJECTOR' in blocks,
-     'true Mirage Wall Projector is not registered')
-need('class MirageWallProjectorBlock extends BaseEntityBlock' in wall,
-     'true wall illumination block source missing/incompatible')
-need('clicked.getAxis().isHorizontal()' in wall and 'isFaceSturdy' in wall and 'getOpposite()' in wall,
-     'Wall Projector does not enforce sturdy vertical-wall mounting')
-need('ModBlocks.MIRAGE_WALL_PROJECTOR.get()' in be_registry,
-     'Wall Projector does not reuse placed-light BlockEntity type')
+if 'mod_version=1.0.34' in props:
+    need('MIRAGE_WALL_PROJECTOR' in blocks and 'MirageWallProjectorBlock' in blocks and '"mirage_wall_projector"' in blocks,
+         'presentation Mirage Wall Projector identity missing after 1.0.34 rollback')
+    need('MIRAGE_WALL_DISPLAY' not in blocks and 'mirage_wall_illuminator' not in blocks,
+         'retired wall-display/illuminator architecture leaked into current registry')
+    need('MIRAGE_WALL_PROJECTOR' in block_items and 'registerSimpleBlockItem("mirage_wall_projector"' in block_items,
+         'Wall Projector BlockItem identity missing')
+    need('ModBlocks.MIRAGE_WALL_PROJECTOR.get()' in be_registry, 'Wall Projector BlockEntity registration missing')
+    need('class MirageWallProjectorBlock extends MirageProjectorBlock' in wall, 'presentation wall block source missing/incompatible')
+else:
+    need('MIRAGE_WALL_DISPLAY' in blocks and 'MirageWallDisplayBlock' in blocks and '"mirage_wall_projector"' in blocks,
+         'legacy presentation chassis is not preserved as Mirage Wall Display')
+    need('MIRAGE_WALL_DISPLAY' in block_items and 'registerSimpleBlockItem("mirage_wall_projector"' in block_items,
+         'Wall Display legacy BlockItem registry identity missing')
+    need((ROOT / 'src/main/java/celerbi/mirageprojector/block/MirageWallDisplayBlock.java').exists(), 'MirageWallDisplayBlock source missing')
+    need('BLOCKS.register(' in blocks and '"mirage_wall_illuminator"' in blocks and 'MIRAGE_WALL_PROJECTOR' in blocks, 'true Mirage Wall Projector is not registered')
+    need('class MirageWallProjectorBlock extends BaseEntityBlock' in wall, 'true wall illumination block source missing/incompatible')
 
 # Temporary placed Flashlight is a block-only transient chassis and round-trips its device state.
 beacon = read('src/main/java/celerbi/mirageprojector/block/MirageFlashlightBeaconBlock.java')
@@ -86,11 +88,10 @@ need('ModBlocks.MIRAGE_FLASHLIGHT_BEACON.get()' in be_registry,
 # Frozen Survival recipes.
 expected_recipes = (
     'light_battery.json', 'mirage_flashlight.json', 'mirage_light_projector.json',
-    'mirage_wall_projector.json', 'shoulder_strap.json', 'auto_battery_swap_patch.json',
+    'shoulder_strap.json', 'auto_battery_swap_patch.json',
     'shoulder_strap_slot_expansion.json', 'charging_station.json',
     'mirage_hand_projector.json', 'scan_codex.json', 'mirage_table_projector.json',
-    'mirage_wall_display.json',
-)
+) + (('mirage_wall_projector.json',) if 'mod_version=1.0.34' in props else ('mirage_wall_display.json',))
 for name in expected_recipes:
     path = ROOT / 'src/main/resources/data/mirage_projector/recipe' / name
     need(path.exists(), f'1.0.32 Survival recipe missing: {name}')
@@ -120,23 +121,32 @@ need('5 * GlowDustItem.MAX_CHARGE' in craft_hook and 'averageFraction' in craft_
 
 # Visual identity gates.
 flash_model = read('src/main/resources/assets/mirage_projector/models/item/mirage_lantern.json')
-need('"elements"' in flash_model and 'minecraft:block/crying_obsidian' in flash_model
-     and 'minecraft:block/magenta_stained_glass' in flash_model,
-     'Flashlight model is not the Crying-Obsidian/magenta-glass 3D design')
+flash_block_model = read('src/main/resources/assets/mirage_projector/models/block/mirage_flashlight.json') if (ROOT/'src/main/resources/assets/mirage_projector/models/block/mirage_flashlight.json').exists() else flash_model
+need('minecraft:block/crying_obsidian' in flash_block_model and 'minecraft:block/magenta_stained_glass' in flash_block_model, 'Flashlight model is not the Crying-Obsidian/magenta-glass 3D design')
 light_model = read('src/main/resources/assets/mirage_projector/models/block/mirage_light_projector.json')
 need('minecraft:block/iron_block' in light_model and 'minecraft:block/crying_obsidian' in light_model
      and 'minecraft:block/magenta_stained_glass' in light_model,
      'floor Light Projector model lacks iron + Crying Obsidian + magenta visual language')
-for rel in (
-    'src/main/resources/assets/mirage_projector/blockstates/mirage_wall_illuminator.json',
-    'src/main/resources/assets/mirage_projector/models/block/mirage_wall_illuminator.json',
-    'src/main/resources/assets/mirage_projector/models/item/mirage_wall_illuminator.json',
-    'src/main/resources/data/mirage_projector/loot_table/blocks/mirage_wall_illuminator.json',
+required_resources = [
     'src/main/resources/assets/mirage_projector/blockstates/mirage_flashlight_beacon.json',
     'src/main/resources/assets/mirage_projector/models/block/mirage_flashlight_beacon.json',
     'src/main/resources/data/mirage_projector/loot_table/blocks/mirage_flashlight_beacon.json',
-):
+]
+if 'mod_version=1.0.34' not in props:
+    required_resources += [
+        'src/main/resources/assets/mirage_projector/blockstates/mirage_wall_illuminator.json',
+        'src/main/resources/assets/mirage_projector/models/block/mirage_wall_illuminator.json',
+        'src/main/resources/assets/mirage_projector/models/item/mirage_wall_illuminator.json',
+        'src/main/resources/data/mirage_projector/loot_table/blocks/mirage_wall_illuminator.json',
+    ]
+for rel in required_resources:
     need((ROOT / rel).exists(), f'1.0.32 resource missing: {rel}')
+if 'mod_version=1.0.34' in props:
+    need(not any((ROOT / rel).exists() for rel in (
+        'src/main/resources/assets/mirage_projector/blockstates/mirage_wall_illuminator.json',
+        'src/main/resources/assets/mirage_projector/models/block/mirage_wall_illuminator.json',
+        'src/main/resources/assets/mirage_projector/models/item/mirage_wall_illuminator.json',
+    )), 'retired wall illuminator resources survived 1.0.34 rollback')
 
 # Locale/public naming and parity.
 langs = {}
@@ -145,10 +155,12 @@ for locale in ('en_us', 'es_cl', 'es_es'):
 need(set(langs['en_us']) == set(langs['es_cl']) == set(langs['es_es']), 'language-key parity broken')
 need(langs['en_us'].get('item.mirage_projector.mirage_flashlight') == 'Mirage Flashlight',
      'English public Flashlight name missing')
-need(langs['en_us'].get('block.mirage_projector.mirage_wall_projector') == 'Mirage Wall Display',
-     'legacy presentation chassis is not publicly Mirage Wall Display')
-need(langs['en_us'].get('block.mirage_projector.mirage_wall_illuminator') == 'Mirage Wall Projector',
-     'new illumination chassis is not publicly Mirage Wall Projector')
+if 'mod_version=1.0.34' in props:
+    need(langs['en_us'].get('block.mirage_projector.mirage_wall_projector') == 'Mirage Wall Projector', 'presentation chassis did not regain Mirage Wall Projector public name')
+    need('block.mirage_projector.mirage_wall_illuminator' not in langs['en_us'], 'retired wall illuminator translation survived')
+else:
+    need(langs['en_us'].get('block.mirage_projector.mirage_wall_projector') == 'Mirage Wall Display', 'legacy presentation chassis is not publicly Mirage Wall Display')
+    need(langs['en_us'].get('block.mirage_projector.mirage_wall_illuminator') == 'Mirage Wall Projector', 'new illumination chassis is not publicly Mirage Wall Projector')
 for locale in langs:
     need('item.mirage_projector.mirage_lantern' not in langs[locale],
          f'{locale} retained obsolete public Mirage Lantern translation key')
@@ -161,7 +173,7 @@ need('delivered in 1.0.32' in waitlist.lower() and 'Mirage Wall Projector' in wa
 need('yaw' in waitlist.lower() and 'pitch' in waitlist.lower(),
      'floor Light Projector yaw/pitch follow-up was accidentally removed from waitlist')
 current = read('docs/CURRENT-IMPLEMENTATION.md')
-need('Version: **1.0.32**' in current and '## 1.0.32 Survival progression' in current,
+need(any(v in current for v in ('Version: **1.0.32**','Version: **1.0.33**', 'Version: **1.0.34**','Version: **1.0.34**')) and '## 1.0.32 Survival progression' in current,
      'current implementation authority is not on 1.0.32')
 need((ROOT / 'docs/RELEASE-1.0.32-SURVIVAL-PROGRESSION.md').exists(),
      '1.0.32 release note missing')

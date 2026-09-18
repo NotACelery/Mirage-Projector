@@ -61,6 +61,9 @@ public final class ScanCodexImportService {
 
         UUID codexId = ScanCodexItem.ensureCodexId(codex);
         ScanCodexSavedData saved = ScanCodexSavedData.get(player.getServer());
+        if (!parsed.get().playerSource() && saved.containsNonPlayerSource(codexId, parsed.get().sourceUuid())) {
+            return Result.DUPLICATE_SOURCE;
+        }
         if (!saved.canAddType(codexId, parsed.get().entityType())) {
             return Result.TYPE_LIMIT;
         }
@@ -90,6 +93,7 @@ public final class ScanCodexImportService {
         NO_CARD,
         INVALID_CARD,
         EMPTY_CARD,
+        DUPLICATE_SOURCE,
         MOD_NOT_LOADED,
         TYPE_LIMIT,
         TOO_LARGE,

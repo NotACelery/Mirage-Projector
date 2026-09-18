@@ -3,6 +3,7 @@ package celerbi.mirageprojector.menu;
 import celerbi.mirageprojector.ProjectionChassisProfile;
 import celerbi.mirageprojector.ProjectionCoreProfile;
 import celerbi.mirageprojector.ProjectionSettings;
+import celerbi.mirageprojector.SpecialResonanceProfile;
 import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.entity.EntityScanData;
 import celerbi.mirageprojector.entity.HumanoidPosePreset;
@@ -66,7 +67,8 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
             }
             @Override
             public boolean mayPlace(ItemStack stack) {
-                return ProjectionCoreProfile.isCoreItem(stack);
+                return ProjectionCoreProfile.isCoreItem(stack)
+                        || SpecialResonanceProfile.fromStack(stack).supportedBy(initialChassisProfile);
             }
         });
     }
@@ -150,7 +152,8 @@ public final class MirageProjectorMenu extends AbstractContainerMenu {
             if (!moveItemStackTo(current, FIRST_PLAYER_SLOT_INDEX, slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
-        } else if (ProjectionCoreProfile.isCoreItem(current)) {
+        } else if (ProjectionCoreProfile.isCoreItem(current)
+                || SpecialResonanceProfile.fromStack(current).supportedBy(initialChassisProfile)) {
             if (!moveItemStackTo(current, CORE_SLOT_INDEX, CORE_SLOT_INDEX + 1, false)) {
                 return ItemStack.EMPTY;
             }

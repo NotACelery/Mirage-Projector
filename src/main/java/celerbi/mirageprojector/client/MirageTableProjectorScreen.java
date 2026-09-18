@@ -16,6 +16,7 @@ import celerbi.mirageprojector.network.OpenImageWorkspacePayload;
 import celerbi.mirageprojector.network.OpenItemWorkspacePayload;
 import celerbi.mirageprojector.network.UpdateProjectorPayload;
 import celerbi.mirageprojector.network.SetProjectionEnabledPayload;
+import celerbi.mirageprojector.network.SetProjectionSourcePayload;
 import celerbi.mirageprojector.network.UnpairPresentationRemotePayload;
 import java.util.ArrayList;
 import java.util.List;
@@ -143,24 +144,27 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
 
         enforcePrismSpacing();
 
-        int sourceButtonWidth = 94;
+        int sourceButtonWidth = 127;
         int sourceGap = 5;
         imageModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.image_short"), button -> {
             saveSettings();
+            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.IMAGE));
             PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12, y + 40, sourceButtonWidth, 20).build());
         itemModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.item_short"), button -> {
-            saveSettings();
-            PacketDistributor.sendToServer(new OpenItemWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 12 + sourceButtonWidth + sourceGap, y + 40, sourceButtonWidth, 20).build());
+            // Table deliberately has no Item source.  Keep an inert off-screen widget only so
+            // shared outline/refresh code stays null-safe.
+        }).bounds(x - 200, y + 40, 1, 1).build());
         entityModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.entity_short"), button -> {
             saveSettings();
+            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.ENTITY));
             PacketDistributor.sendToServer(new OpenEntityWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 2, y + 40, sourceButtonWidth, 20).build());
+        }).bounds(x + 12 + sourceButtonWidth + sourceGap, y + 40, sourceButtonWidth, 20).build());
         bannerModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.banner_short"), button -> {
             saveSettings();
+            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.BANNER));
             PacketDistributor.sendToServer(new OpenBannerWorkspacePayload(menu.projectorPos()));
-        }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 3, y + 40, sourceButtonWidth, 20).build());
+        }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 2, y + 40, sourceButtonWidth, 20).build());
 
         turnOffButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.turn_off"), button -> {
             projectionEnabled = false;

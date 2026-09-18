@@ -1,8 +1,31 @@
 {
   "variants": {
-    "facing=north": { "model": "mirage_projector:block/mirage_flashlight_beacon" },
-    "facing=east": { "model": "mirage_projector:block/mirage_flashlight_beacon", "y": 90 },
-    "facing=south": { "model": "mirage_projector:block/mirage_flashlight_beacon", "y": 180 },
-    "facing=west": { "model": "mirage_projector:block/mirage_flashlight_beacon", "y": 270 }
+    "ambient=false,facing=north": {
+      "model": "mirage_projector:block/mirage_flashlight_beacon"
+    },
+    "ambient=false,facing=east": {
+      "model": "mirage_projector:block/mirage_flashlight_beacon",
+      "y": 90
+    },
+    "ambient=false,facing=south": {
+      "model": "mirage_projector:block/mirage_flashlight_beacon",
+      "y": 180
+    },
+    "ambient=false,facing=west": {
+      "model": "mirage_projector:block/mirage_flashlight_beacon",
+      "y": 270
+    },
+    "ambient=true,facing=north": {
+      "model": "mirage_projector:block/mirage_flashlight_beacon_ambient"
+    },
+    "ambient=true,facing=east": {
+      "model": "mirage_projector:block/mirage_flashlight_beacon_ambient"
+    },
+    "ambient=true,facing=south": {
+      "model": "mirage_projector:block/mirage_flashlight_beacon_ambient"
+    },
+    "ambient=true,facing=west": {
+      "model": "mirage_projector:block/mirage_flashlight_beacon_ambient"
+    }
   }
 }

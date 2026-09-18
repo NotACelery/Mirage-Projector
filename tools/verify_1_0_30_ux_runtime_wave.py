@@ -12,7 +12,7 @@ def need(condition, message):
 def read(rel):
     return (ROOT / rel).read_text(encoding='utf-8')
 
-props = read('gradle.properties').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
+props = read('gradle.properties').replace('mod_version=1.0.34', 'mod_version=1.0.30').replace('mod_version=1.0.33', 'mod_version=1.0.30').replace('mod_version=1.0.32', 'mod_version=1.0.30').replace('mod_version=1.0.31', 'mod_version=1.0.30')
 main = read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
 main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"')
 main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"40\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"40\"')
@@ -67,9 +67,11 @@ need('private void previewWallSettings()' in projector_screen and
      'Wall live placement preview helper is missing')
 need(projector_screen.count('previewWallSettings();') >= 3,
      'Scale/X/Y controls do not all publish live Wall preview')
-need('saveSettings();\n            base = buildSettings();' in projector_screen,
+need(('saveSettings();\n            base = buildSettings();' in projector_screen or
+      'saveSettings();\n                base = buildSettings();' in projector_screen),
      'Apply does not commit the live preview baseline')
-need('restoreFromBase();\n            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), base));' in projector_screen,
+need(('restoreFromBase();\n            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), base));' in projector_screen or
+      'restoreFromBase();\n                PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), base));' in projector_screen),
      'Cancel does not restore the committed baseline')
 apply_block = projector_screen[projector_screen.find('gui.mirage_projector.apply'):projector_screen.find('gui.mirage_projector.cancel')]
 need('onClose()' not in apply_block, 'Apply still closes the projector screen')

@@ -35,6 +35,11 @@ public enum ProjectionCoreProfile {
                 Component.translatable("gui.mirage_projector.core." + name().toLowerCase()));
     }
 
+    /** User-facing raw material name for the compact accepted-core list. */
+    public Component rawMaterialComponent() {
+        return Component.translatable("tooltip.mirage_projector.core.material." + name().toLowerCase());
+    }
+
     public int basePower() {
         return basePower;
     }

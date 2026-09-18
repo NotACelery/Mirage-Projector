@@ -1125,13 +1125,9 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         List<Component> lines = new ArrayList<>();
         lines.add(Component.translatable("tooltip.mirage_projector.core.accepted"));
         java.util.Arrays.stream(ProjectionCoreProfile.values())
-                .filter(ProjectionCoreProfile::present)
-                .sorted(java.util.Comparator
-                        .comparingDouble(ProjectionCoreProfile::materialOutput)
-                        .thenComparingInt(ProjectionCoreProfile::basePower))
-                .forEach(profile -> lines.add(Component.translatable(
-                        "tooltip.mirage_projector.core.entry", profile.displayComponent(),
-                        profile.basePower(), String.format(Locale.ROOT, "%.2f", profile.amplificationMultiplier()))));
+                .filter(profile -> profile.present() && !profile.improved())
+                .forEach(profile -> lines.add(profile.rawMaterialComponent()));
+        lines.add(Component.translatable("tooltip.mirage_projector.core.booster"));
         graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
     }
 

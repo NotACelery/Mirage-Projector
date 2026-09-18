@@ -26,7 +26,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
     private static final int PANEL_HEIGHT = 466;
 
     private static final int APPLY_X = 52;
-    private static final int CHANNEL_X = 94;
+    private static final int CHANNEL_X = 100;
     private static final int PROJECTED_X = 302;
     private static final int VISIBILITY_X = 334;
 
@@ -563,10 +563,10 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
 
         // These are deliberately complete column names. The old abbreviated labels ran into
         // each other and made the equipment workflow look like an unfinished debug panel.
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 10, 134, 0xFFAFD8EE, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 18, 134, 0xFFAFD8EE, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.channel"), CHANNEL_X, 134, 0xFFC9CED7, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.projected"), 270, 134, 0xFFB9E4C0, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.visibility"), 326, 134, 0xFFC9CED7, false);
+        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.projected"), PROJECTED_X + 9, 128, 0xFFB9E4C0);
+        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.visibility"), VISIBILITY_X + 12, 140, 0xFFC9CED7);
 
         EntityScanData.Kind kind = menu.effectiveKind();
         boolean playerSource = menu.state().activeEntityIsPlayer();

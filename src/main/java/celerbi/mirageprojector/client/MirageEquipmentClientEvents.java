@@ -3,6 +3,7 @@ package celerbi.mirageprojector.client;
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.network.ShoulderEquipmentActionPayload;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -223,18 +224,22 @@ public final class MirageEquipmentClientEvents {
      * method as a safe fallback for environments that restrict reflective access.
      */
     private static boolean isCreativeSurvivalInventory() {
+        var screen = net.minecraft.client.Minecraft.getInstance().screen;
+        if (!(screen instanceof CreativeModeInventoryScreen creative)) {
+            return false;
+        }
         try {
             if (creativeSelectedTabField == null) {
                 creativeSelectedTabField = CreativeModeInventoryScreen.class.getDeclaredField("selectedTab");
                 creativeSelectedTabField.setAccessible(true);
             }
-            Object selected = creativeSelectedTabField.get(null);
-            var screen = net.minecraft.client.Minecraft.getInstance().screen;
-            return (screen instanceof CreativeModeInventoryScreen creative && creative.isInventoryOpen())
-                    || selected == BuiltInRegistries.CREATIVE_MODE_TAB.get(CreativeModeTabs.INVENTORY);
-        } catch (ReflectiveOperationException | SecurityException ignored) {
-            var screen = net.minecraft.client.Minecraft.getInstance().screen;
-            return screen instanceof CreativeModeInventoryScreen creative && creative.isInventoryOpen();
+            Object selected = Modifier.isStatic(creativeSelectedTabField.getModifiers())
+                    ? creativeSelectedTabField.get(null)
+                    : creativeSelectedTabField.get(creative);
+            Object inventoryTab = BuiltInRegistries.CREATIVE_MODE_TAB.get(CreativeModeTabs.INVENTORY);
+            return creative.isInventoryOpen() || selected == inventoryTab || inventoryTab.equals(selected);
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            return creative.isInventoryOpen();
         }
     }
 

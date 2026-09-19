@@ -31,12 +31,23 @@ public final class MirageLightProjectorBlock extends BaseEntityBlock {
     public static final net.minecraft.world.level.block.state.properties.DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final BooleanProperty AMBIENT = BooleanProperty.create("ambient");
 
-    private static final VoxelShape SHAPE = Shapes.or(
+    private static final VoxelShape NORTH_SHAPE = Shapes.or(
             box(3, 0, 3, 13, 2, 13),
+            box(4, 2, 4, 12, 2.25, 12),
             box(4, 2, 6, 6, 9, 10),
             box(10, 2, 6, 12, 9, 10),
-            box(3, 7, 3, 13, 14, 12)
+            box(4.5, 2.01, 5.75, 5.75, 8.75, 6.01),
+            box(10, 2.01, 5.75, 11.5, 8.75, 6.01),
+            box(3, 8, 3, 13, 15, 12),
+            box(4, 15, 4, 12, 15.25, 11),
+            box(4, 9, 2.75, 12, 14, 3),
+            box(4, 9, 11.99, 12, 14, 12.25),
+            box(2.75, 9, 4, 3.01, 14, 11),
+            box(12.99, 9, 4, 13.25, 14, 11)
     );
+    private static final VoxelShape EAST_SHAPE = rotateY(NORTH_SHAPE);
+    private static final VoxelShape SOUTH_SHAPE = rotateY(EAST_SHAPE);
+    private static final VoxelShape WEST_SHAPE = rotateY(SOUTH_SHAPE);
 
     public MirageLightProjectorBlock(BlockBehaviour.Properties properties) {
         super(properties);
@@ -89,7 +100,27 @@ public final class MirageLightProjectorBlock extends BaseEntityBlock {
 
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return SHAPE;
+        return switch (state.getValue(FACING)) {
+            case EAST -> EAST_SHAPE;
+            case SOUTH -> SOUTH_SHAPE;
+            case WEST -> WEST_SHAPE;
+            default -> NORTH_SHAPE;
+        };
+    }
+
+    @Override
+    protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return getShape(state, level, pos, context);
+    }
+
+    private static VoxelShape rotateY(VoxelShape shape) {
+        VoxelShape[] rotated = {Shapes.empty()};
+        shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
+                rotated[0] = Shapes.or(rotated[0], Shapes.box(
+                        1.0D - maxZ, minY, minX, 1.0D - minZ, maxY, maxX
+                ))
+        );
+        return rotated[0];
     }
 
     @Override

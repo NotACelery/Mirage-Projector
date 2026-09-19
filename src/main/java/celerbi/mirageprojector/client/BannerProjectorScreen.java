@@ -130,7 +130,7 @@ public final class BannerProjectorScreen extends ResponsiveContainerScreen<Banne
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, fit(title.getString(), 190), 12, 10, 0xFFF4F4F4, false);
+        graphics.drawString(font, GuiText.fit(font, title.getString(), 190), 12, 10, 0xFFF4F4F4, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.banner.sources"), 22, 72, 0xFFD7B8F5, false);
 
         if (menu.prism()) {
@@ -148,7 +148,7 @@ public final class BannerProjectorScreen extends ResponsiveContainerScreen<Banne
         Component previewName = primary.isEmpty()
                 ? Component.translatable("gui.mirage_projector.banner.empty")
                 : primary.getHoverName();
-        graphics.drawCenteredString(font, fit(previewName.getString(), 112), 344, 140, primary.isEmpty() ? 0xFF8D8493 : 0xFF9DDBA8);
+        graphics.drawCenteredString(font, GuiText.fit(font, previewName.getString(), 112), 344, 140, primary.isEmpty() ? 0xFF8D8493 : 0xFF9DDBA8);
 
         graphics.drawString(font, Component.translatable("gui.mirage_projector.banner.virtual_notice"), 22, 132, 0xFF8FCFA0, false);
         graphics.drawString(font, Component.translatable("container.inventory"), BannerProjectorMenu.PLAYER_INV_X, BannerProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
@@ -164,16 +164,4 @@ public final class BannerProjectorScreen extends ResponsiveContainerScreen<Banne
         graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF171A20);
     }
 
-    private String fit(String value, int maxWidth) {
-        if (value == null || value.isEmpty() || font.width(value) <= maxWidth) {
-            return value == null ? "" : value;
-        }
-        String ellipsis = "…";
-        int target = Math.max(0, maxWidth - font.width(ellipsis));
-        int end = value.length();
-        while (end > 0 && font.width(value.substring(0, end)) > target) {
-            end--;
-        }
-        return value.substring(0, Math.max(0, end)) + ellipsis;
-    }
 }

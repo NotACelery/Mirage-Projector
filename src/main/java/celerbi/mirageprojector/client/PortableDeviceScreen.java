@@ -20,9 +20,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 /** Source-aware configuration screen shared by the Mirage Flashlight and Hand Projector. */
 public final class PortableDeviceScreen extends AbstractContainerScreen<PortableDeviceMenu> {
@@ -358,25 +355,7 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
     }
 
     private Path chooseImageFile(String title) {
-        String startPath = System.getProperty("user.home", "");
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            PointerBuffer filters = stack.mallocPointer(7);
-            filters.put(stack.UTF8("*.png"));
-            filters.put(stack.UTF8("*.jpg"));
-            filters.put(stack.UTF8("*.jpeg"));
-            filters.put(stack.UTF8("*.webp"));
-            filters.put(stack.UTF8("*.gif"));
-            filters.put(stack.UTF8("*.bmp"));
-            filters.put(stack.UTF8("*.*"));
-            filters.flip();
-            String path = TinyFileDialogs.tinyfd_openFileDialog(
-                    title, startPath, filters,
-                    "PNG / JPG / JPEG / WebP / GIF / BMP / renamed image", false);
-            return path == null || path.isBlank() ? null : Path.of(path);
-        } catch (Throwable throwable) {
-            MirageProjector.LOGGER.error("Could not open the portable image picker", throwable);
-            return null;
-        }
+        return NativeImagePicker.choose(title, "the portable image picker");
     }
 
     private ItemStack currentDevice() {
@@ -396,15 +375,6 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
     private static void slotFrame(GuiGraphics graphics, int x, int y, int border) {
         graphics.fill(x, y, x + 18, y + 18, border);
         graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF171A20);
-    }
-
-    private String fit(String value, int maxWidth) {
-        if (value == null || font.width(value) <= maxWidth) return value == null ? "" : value;
-        String ellipsis = "…";
-        int target = Math.max(0, maxWidth - font.width(ellipsis));
-        int end = value.length();
-        while (end > 0 && font.width(value.substring(0, end)) > target) end--;
-        return value.substring(0, Math.max(0, end)) + ellipsis;
     }
 
     private static final class ScaleSlider extends AbstractSliderButton {

@@ -436,3 +436,40 @@ First stable Mirage Projector release for Minecraft 1.21.1 / NeoForge 21.1.244+.
 Development-version chronology is preserved in `docs/history/development-notes/CHANGELOG-DEVELOPMENT.md`.
 
 - Fixed Mirage Table Projector image visibility across rotation angles by using the correct horizontal-plane front normal; zero-tilt table rotation no longer flips front/back classification.
+## 1.0.67
+
+- Added Shift+click Codex insertion and extraction to the Scanner configuration menu.
+
+## 1.0.66
+
+- Removed redundant equipment labels and empty-state text from Codex scan details; populated equipment is shown only in slots.
+- Extended UUID duplicate protection to same-equipment horses and other equipment-capable entities, while permitting captures when their equipment changed.
+
+## 1.0.65
+
+- Locked the Scanner's originating hotbar slot while its configuration menu is open, including pickup, drop, drag, and hotbar-number swaps.
+
+## 1.0.64
+
+- Prevented duplicate UUID scans for already-recorded non-player, non-equipment entities, while retaining player and equipment-capable rescans.
+- Replaced the scanner HUD fill with magenta stained glass for a stable, readable progress surface.
+
+## 1.0.63
+
+- Made the Entity Scanner main-hand only and gave its scan interaction priority over all living-entity interactions.
+
+## 1.0.62
+
+- Scanner progress HUD is now additionally gated by the local held-RMB scanner state, preventing stale progress from remaining on-screen and keeping paused snapshots out of Jade.
+
+## 1.0.61
+
+- Reworked the Entity Scanner into a 1.5-second, four-block, server-authoritative sustained scan.
+- Target loss or release pauses the current target progress; changing targets, target death, scan completion, and logout clear it.
+- Active scanning halves movement speed, keeps the scanning arm neutral for all player render views, and shows a crying-obsidian 0–100% HUD meter.
+
+## 1.0.57
+
+- Added the handheld Mirage Entity Scanner with an inserted-Codex workflow for direct entity scans, including underwater use.
+- Fish previews compensate for vanilla's out-of-water rotation so they render as swimming.
+- New Codex captures display recorded health, movement speed, horse jump, llama storage/decoration, and stored variants when applicable.

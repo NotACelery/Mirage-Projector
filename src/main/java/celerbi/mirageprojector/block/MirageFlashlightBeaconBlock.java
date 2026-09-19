@@ -56,9 +56,12 @@ public final class MirageFlashlightBeaconBlock extends BaseEntityBlock {
     private static final VoxelShape EAST = rotateY(NORTH);
     private static final VoxelShape SOUTH = rotateY(EAST);
     private static final VoxelShape WEST = rotateY(SOUTH);
-    // Ambient is an upright, centred flashlight without the horizontal iron stand. It has no
-    // horizontal facing, so a single compact collision shape serves every state.
-    private static final VoxelShape AMBIENT_SHAPE = box(4, 1, 4, 12, 15.25, 12);
+    private static final VoxelShape AMBIENT_SHAPE = Shapes.or(
+            box(4, 11, 4, 12, 15.25, 12),
+            box(5, 6, 5, 11, 11, 11),
+            box(5.5, 1, 5.5, 10.5, 6, 10.5),
+            box(7.25, 7.25, 4.25, 8.75, 8.75, 5)
+    );
 
     public MirageFlashlightBeaconBlock(BlockBehaviour.Properties properties) {
         super(properties);
@@ -163,14 +166,6 @@ public final class MirageFlashlightBeaconBlock extends BaseEntityBlock {
                 shifted[0] = Shapes.or(shifted[0], Shapes.box(minX, minY + amount, minZ, maxX, maxY + amount, maxZ))
         );
         return shifted[0];
-    }
-
-    private static VoxelShape rotateX(VoxelShape shape) {
-        VoxelShape[] rotated = {Shapes.empty()};
-        shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
-                rotated[0] = Shapes.or(rotated[0], Shapes.box(minX, 1.0D - maxZ, minY, maxX, 1.0D - minZ, maxY))
-        );
-        return rotated[0];
     }
 
     @Override

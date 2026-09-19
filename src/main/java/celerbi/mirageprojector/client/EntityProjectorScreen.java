@@ -529,7 +529,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
             }
             graphics.drawCenteredString(
                     font,
-                    fit(footer, PREVIEW_W - 16),
+                    GuiText.fit(font, footer, PREVIEW_W - 16),
                     x + PREVIEW_W / 2,
                     y + PREVIEW_H - 17,
                     0xFF9CA3AF
@@ -552,14 +552,14 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, fit(title.getString(), 220), 10, 9, 0xFFF4F4F4, false);
+        graphics.drawString(font, GuiText.fit(font, title.getString(), 220), 10, 9, 0xFFF4F4F4, false);
 
         graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.source_section"), 18, 65, 0xFFD7B8F5, false);
         ItemStack card = menu.cardStack();
         String source = card.isEmpty()
                 ? Component.translatable("gui.mirage_projector.entity.scan_hint").getString()
                 : card.getHoverName().getString();
-        graphics.drawString(font, fit(source, 292), 58, 92, 0xFFD8C5EB, false);
+        graphics.drawString(font, GuiText.fit(font, source, 292), 58, 92, 0xFFD8C5EB, false);
 
         // These are deliberately complete column names. The old abbreviated labels ran into
         // each other and made the equipment workflow look like an unfinished debug panel.
@@ -579,17 +579,17 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
                 renderRow(graphics, channel);
             }
         } else if (playerSource) {
-            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.player_skin_only").getString(), 330), 18, 164, 0xFFC4C9D3, false);
-            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.entity.player_skin_only_hint").getString(), 330), 18, 179, 0xFF8F98A8, false);
+            graphics.drawString(font, GuiText.fit(font, Component.translatable("gui.mirage_projector.entity.player_skin_only").getString(), 330), 18, 164, 0xFFC4C9D3, false);
+            graphics.drawString(font, GuiText.fit(font, Component.translatable("gui.mirage_projector.entity.player_skin_only_hint").getString(), 330), 18, 179, 0xFF8F98A8, false);
         }
 
-        graphics.drawString(font, fit(status.getString(), 532), 18, STATUS_Y, pendingConflict == null ? 0xFFE7DCF5 : 0xFFFFB98E, false);
+        graphics.drawString(font, GuiText.fit(font, status.getString(), 532), 18, STATUS_Y, pendingConflict == null ? 0xFFE7DCF5 : 0xFFFFB98E, false);
         graphics.drawString(font, Component.translatable("container.inventory"), EntityProjectorMenu.PLAYER_INV_X, EntityProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
     }
 
     private void renderRow(GuiGraphics graphics, VirtualEquipmentSnapshots.Channel channel) {
         int y = localY(channel);
-        graphics.drawString(font, fit(channelComponent(channel).getString(), 190), CHANNEL_X, y + 5, 0xFFC9CED7, false);
+        graphics.drawString(font, GuiText.fit(font, channelComponent(channel).getString(), 190), CHANNEL_X, y + 5, 0xFFC9CED7, false);
 
         ItemStack physical = menu.physicalStaging(channel);
         VirtualEquipmentSnapshots.Snapshot incoming = menu.incoming(channel);
@@ -688,19 +688,6 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
     private static void drawSlotFrame(GuiGraphics graphics, int x, int y, int border) {
         graphics.fill(x, y, x + 18, y + 18, border);
         graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF171A20);
-    }
-
-    private String fit(String value, int maxWidth) {
-        if (value == null || value.isEmpty() || font.width(value) <= maxWidth) {
-            return value == null ? "" : value;
-        }
-        String ellipsis = "…";
-        int target = Math.max(0, maxWidth - font.width(ellipsis));
-        int end = value.length();
-        while (end > 0 && font.width(value.substring(0, end)) > target) {
-            end--;
-        }
-        return value.substring(0, Math.max(0, end)) + ellipsis;
     }
 
     private static String truncate(String value, int max) {

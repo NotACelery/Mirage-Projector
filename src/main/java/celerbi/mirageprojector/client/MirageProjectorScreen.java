@@ -1123,12 +1123,12 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
             return;
         }
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.translatable("tooltip.mirage_projector.core.accepted"));
-        java.util.Arrays.stream(ProjectionCoreProfile.values())
-                .filter(profile -> profile.present() && !profile.improved())
-                .forEach(profile -> lines.add(profile.rawMaterialComponent()));
-        lines.add(Component.translatable("tooltip.mirage_projector.core.booster"));
+        ProjectionCoreProfile.appendAcceptedCoreLines(lines);
         graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
+    }
+
+    private String fitText(String value, int maxWidth) {
+        return GuiText.fit(font, value, maxWidth);
     }
 
     @Override
@@ -1198,19 +1198,6 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         int y = Math.max(1, (int) Math.ceil(result.envelope().getYsize() * 16.0D));
         int z = Math.max(1, (int) Math.ceil(result.envelope().getZsize() * 16.0D));
         return x + "×" + y + "×" + z + " px";
-    }
-
-    private String fitText(String value, int maxWidth) {
-        if (value == null || font.width(value) <= maxWidth) {
-            return value == null ? "" : value;
-        }
-        String ellipsis = "…";
-        int target = Math.max(0, maxWidth - font.width(ellipsis));
-        int end = value.length();
-        while (end > 0 && font.width(value.substring(0, end)) > target) {
-            end--;
-        }
-        return value.substring(0, Math.max(0, end)) + ellipsis;
     }
 
     @Override

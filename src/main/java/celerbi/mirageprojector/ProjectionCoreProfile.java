@@ -1,6 +1,7 @@
 package celerbi.mirageprojector;
 
 import celerbi.mirageprojector.blockentity.CoreBoosterBlockEntity;
+import java.util.List;
 import celerbi.mirageprojector.registry.ModItems;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -38,6 +39,16 @@ public enum ProjectionCoreProfile {
     /** User-facing raw material name for the compact accepted-core list. */
     public Component rawMaterialComponent() {
         return Component.translatable("tooltip.mirage_projector.core.material." + name().toLowerCase());
+    }
+
+    public static void appendAcceptedCoreLines(List<Component> lines) {
+        lines.add(Component.translatable("tooltip.mirage_projector.core.accepted"));
+        for (ProjectionCoreProfile profile : values()) {
+            if (profile.present() && !profile.improved()) {
+                lines.add(profile.rawMaterialComponent());
+            }
+        }
+        lines.add(Component.translatable("tooltip.mirage_projector.core.booster"));
     }
 
     public int basePower() {

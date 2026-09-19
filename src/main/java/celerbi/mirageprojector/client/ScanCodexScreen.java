@@ -478,17 +478,16 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
                     x, y, INK, false);
             y += 14;
         }
+        for (String trait : EntityScanData.traits(snapshot.selectedScanRoot())) {
+            graphics.drawString(font, trait, x, y, MUTED_INK, false);
+            y += 12;
+        }
         boolean showEquipment = EntityScanData.readRoot(snapshot.selectedScanRoot())
                 .map(EntityScanData.View::equipmentCapable)
                 .orElse(false);
         if (showEquipment) {
-            graphics.drawString(font,
-                    Component.translatable("gui.mirage_projector.scan_codex.equipment", entry.equipmentCount()),
-                    x, y, INK, false);
-            y += 18;
             renderEquipment(graphics, bx + 248, y);
         }
-
     }
 
     private void renderEquipment(GuiGraphics graphics, int x, int y) {
@@ -509,10 +508,7 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
                 if (!stack.isEmpty()) stacks.add(stack);
             }
         }
-        if (stacks.isEmpty()) {
-            graphics.drawString(font, Component.translatable("gui.mirage_projector.scan_codex.detail.no_equipment"), x, y + 5, MUTED_INK, false);
-            return;
-        }
+        if (stacks.isEmpty()) return;
         for (int i = 0; i < Math.min(stacks.size(), 6); i++) {
             int sx = x + (i % 3) * 28;
             int sy = y + (i / 3) * 28;
@@ -921,19 +917,12 @@ public final class ScanCodexScreen extends AbstractContainerScreen<ScanCodexMenu
     }
 
     private static void extensionSlotFrame(GuiGraphics graphics, int slotX, int slotY, int border) {
-        // Two-pixel breathing room around the vanilla 16px item render keeps paper/card art from
-        // visually touching the extension-page frame.
         graphics.fill(slotX - 2, slotY - 2, slotX + 18, slotY + 18, border);
         graphics.fill(slotX - 1, slotY - 1, slotX + 17, slotY + 17, 0xFFF6E7CB);
     }
 
     private String fitText(String value, int maxWidth) {
-        if (value == null || font.width(value) <= maxWidth) return value == null ? "" : value;
-        String ellipsis = "…";
-        int target = Math.max(0, maxWidth - font.width(ellipsis));
-        int end = value.length();
-        while (end > 0 && font.width(value.substring(0, end)) > target) end--;
-        return value.substring(0, Math.max(0, end)) + ellipsis;
+        return GuiText.fit(font, value, maxWidth);
     }
 
     private static String trim(String value, int max) {

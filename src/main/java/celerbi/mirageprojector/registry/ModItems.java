@@ -5,6 +5,7 @@ import celerbi.mirageprojector.item.ShoulderStrapItem;
 import celerbi.mirageprojector.item.CoreBoosterItem;
 import celerbi.mirageprojector.item.CreativeBatteryItem;
 import celerbi.mirageprojector.item.EntityScanCardItem;
+import celerbi.mirageprojector.item.EntityScannerItem;
 import celerbi.mirageprojector.item.MirageHandProjectorItem;
 import celerbi.mirageprojector.item.GlowDustItem;
 import celerbi.mirageprojector.item.LightBatteryItem;
@@ -90,6 +91,8 @@ public final class ModItems {
             ITEMS.register("scan_codex", () -> new ScanCodexItem(new Item.Properties()));
     public static final DeferredItem<EntityScanCardItem> ENTITY_SCAN_CARD =
             ITEMS.register("entity_scan_card", () -> new EntityScanCardItem(new Item.Properties()));
+    public static final DeferredItem<EntityScannerItem> ENTITY_SCANNER =
+            ITEMS.register("entity_scanner", () -> new EntityScannerItem(new Item.Properties()));
     public static final DeferredItem<MirageDebugHandbookItem> DEBUG_HANDBOOK =
             ITEMS.register("debug_handbook", () -> new MirageDebugHandbookItem(new Item.Properties()));
 

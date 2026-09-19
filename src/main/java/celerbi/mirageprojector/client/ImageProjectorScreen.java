@@ -18,9 +18,6 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageProjectorMenu> {
     private String frontId;
@@ -804,22 +801,22 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, fit(title.getString(), 220), 10, 9, 0xFFF4F4F4, false);
+        graphics.drawString(font, GuiText.fit(font, title.getString(), 220), 10, 9, 0xFFF4F4F4, false);
         if (menu.isPresentationDeck()) {
             graphics.drawString(font, Component.translatable("gui.mirage_projector.wall.summary",
                     sourceBank.countPresent(ImageSourceBank.PERSISTED_COMPAT_SLOTS), ImageSourceBank.PERSISTED_COMPAT_SLOTS),
                     216, 62, 0xFF9FBED1, false);
-            graphics.drawString(font, fit(status.getString(), imageWidth - 44), 22, 367, 0xFFE3D7FF, false);
+            graphics.drawString(font, GuiText.fit(font, status.getString(), imageWidth - 44), 22, 367, 0xFFE3D7FF, false);
         } else if (isMultiSource()) {
             graphics.drawString(font, Component.translatable("gui.mirage_projector.image.bank.summary",
                     menu.chassisProfile().displayName(), menu.imageLayoutColumns(), menu.imageLayoutRows(), menu.imageLayoutSlots()),
                     244, 62, 0xFF9FBED1, false);
-            graphics.drawString(font, fit(status.getString(), imageWidth - 44), 22, 362, 0xFFE3D7FF, false);
+            graphics.drawString(font, GuiText.fit(font, status.getString(), imageWidth - 44), 22, 362, 0xFFE3D7FF, false);
         } else {
             int ox = faceOffsetX();
             int oy = faceOffsetY();
-            graphics.drawString(font, fit(Component.translatable("gui.mirage_projector.image.face_count", menu.physicalFaceCount()).getString(), 380), 18 + ox, 22 + oy, 0xFF9FBED1, false);
-            graphics.drawString(font, fit(status.getString(), 380), 18 + ox, 236 + oy, 0xFFE3D7FF, false);
+            graphics.drawString(font, GuiText.fit(font, Component.translatable("gui.mirage_projector.image.face_count", menu.physicalFaceCount()).getString(), 380), 18 + ox, 22 + oy, 0xFF9FBED1, false);
+            graphics.drawString(font, GuiText.fit(font, status.getString(), 380), 18 + ox, 236 + oy, 0xFFE3D7FF, false);
         }
     }
 
@@ -887,19 +884,6 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
             case READABLE -> Component.translatable("gui.mirage_projector.image.face.back_readable");
             case INDEPENDENT -> Component.translatable("gui.mirage_projector.image.face.back_independent");
         };
-    }
-
-    private String fit(String value, int maxWidth) {
-        if (value == null || value.isEmpty() || font.width(value) <= maxWidth) {
-            return value == null ? "" : value;
-        }
-        String ellipsis = "…";
-        int target = Math.max(0, maxWidth - font.width(ellipsis));
-        int end = value.length();
-        while (end > 0 && font.width(value.substring(0, end)) > target) {
-            end--;
-        }
-        return value.substring(0, Math.max(0, end)) + ellipsis;
     }
 
     private static Component faceLabel(String face) {
@@ -995,23 +979,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
     }
 
     private Path chooseImageFile(String title) {
-        String startPath = System.getProperty("user.home", "");
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            PointerBuffer filters = stack.mallocPointer(7);
-            filters.put(stack.UTF8("*.png"));
-            filters.put(stack.UTF8("*.jpg"));
-            filters.put(stack.UTF8("*.jpeg"));
-            filters.put(stack.UTF8("*.webp"));
-            filters.put(stack.UTF8("*.gif"));
-            filters.put(stack.UTF8("*.bmp"));
-            filters.put(stack.UTF8("*.*"));
-            filters.flip();
-            String path = TinyFileDialogs.tinyfd_openFileDialog(title, startPath, filters, "PNG / JPG / JPEG / WebP / GIF / BMP / renamed image", false);
-            return path == null || path.isBlank() ? null : Path.of(path);
-        } catch (Throwable throwable) {
-            MirageProjector.LOGGER.error("Could not open the native image picker", throwable);
-            return null;
-        }
+        return NativeImagePicker.choose(title, "the native image picker");
     }
 
     @Override

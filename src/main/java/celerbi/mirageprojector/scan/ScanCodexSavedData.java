@@ -135,6 +135,27 @@ public final class ScanCodexSavedData extends SavedData {
         return false;
     }
 
+    public boolean containsNonPlayerSourceWithEquipment(UUID codexId, UUID sourceUuid, CompoundTag equipment) {
+        if (codexId == null || sourceUuid == null) {
+            return false;
+        }
+        CodexLibrary library = codices.get(codexId);
+        if (library == null) {
+            return false;
+        }
+        CompoundTag expectedEquipment = equipment == null ? new CompoundTag() : equipment;
+        for (StoredScan stored : library.entries.values()) {
+            Optional<EntityScanData.View> view = EntityScanData.readRoot(stored.root);
+            if (view.isPresent()
+                    && !view.get().playerSource()
+                    && sourceUuid.equals(view.get().sourceUuid())
+                    && expectedEquipment.equals(stored.root.getCompound("Equipment"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Optional<CompoundTag> copyScanRoot(UUID codexId, UUID scanId) {
         StoredScan stored = stored(codexId, scanId);
         return stored == null ? Optional.empty() : Optional.of(stored.root.copy());

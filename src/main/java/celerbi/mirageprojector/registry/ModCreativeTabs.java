@@ -55,6 +55,7 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.CRYING_OBSIDIAN_CLUSTER.get());
                         output.accept(ModItems.OBSIDIAN_SPIKE.get());
                         output.accept(ModItems.SCAN_CODEX.get());
+                        output.accept(ModItems.ENTITY_SCANNER.get());
                         output.accept(ModItems.ENTITY_SCAN_CARD.get());
                         output.accept(ModItems.DEBUG_HANDBOOK.get());
                     })

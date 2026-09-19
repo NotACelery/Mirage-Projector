@@ -80,7 +80,7 @@ public record UpdateImageWorkspacePayload(
             }
             BlockPos pos = payload.pos();
             if (player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) > 64.0D
-                    || !player.level().hasChunkAt(pos)) return;
+                    || !player.level().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) return;
             if (player.level().getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector) {
                 ProjectionSettings merged = projector.settings().withImageWorkspace(
                         payload.frontId(), payload.frontWidth(), payload.frontHeight(),

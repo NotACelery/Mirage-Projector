@@ -1,11 +1,29 @@
-# Current Implementation — Mirage Projector 1.0.41
+# Current Implementation — Mirage Projector 1.0.67
 
-Version: **1.0.41**
+Version: **1.0.67**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
-Network protocol: **43**
+Network protocol: **44**
 
 This document describes the current implementation behavior of Mirage Projector 1.0.41. Historical development notes are archived under `docs/history/` and are not current authority.
+
+## Entity Scanner
+
+The handheld **Mirage Entity Scanner** holds one Scan Codex. Sneak + right-click opens its one-slot configuration screen. Hold right-click while keeping a living entity in the normal four-block interaction reach for 1.5 seconds to write its frozen capture directly into the inserted Codex. Scanning halves movement speed only while the target remains under the reticle. Releasing right-click or looking away pauses and retains the target's progress; resuming on that same living target continues it. Selecting a different target, the target dying, completing the scan, or leaving the server clears that transient snapshot.
+
+The Scanner is main-hand only. With it in the main hand, its entity scan action takes precedence over entity interactions such as mounting, taming, breeding, or equipping a mule; its configuration screen cannot be opened from the off hand.
+
+Opening the Scanner menu locks its originating main-hand hotbar slot. The Scanner cannot be picked up, swapped, dropped, or targeted by a hotbar-number swap until that menu closes.
+
+The inserted Codex supports standard Shift+click transfers: Shift+clicking a Codex from the inventory inserts it when the Scanner slot is empty, and Shift+clicking the inserted Codex returns it to the inventory.
+
+For non-player entities, the inserted Codex rejects a new scan when it already contains that exact source UUID with the same frozen equipment state. Players remain rescanable; entities with changed equipment may also be scanned again. Equipment is represented solely by its slots in the Codex—without a count or explanatory label. The active progress meter uses the vanilla magenta stained-glass texture.
+
+While RMB is held with the scanner and an active target scan is underway, it uses a straight neutral arm pose for every player view and presents a 0–100% HUD meter. Its side readouts and one-pixel outline are iron-white, while its fill is the vanilla crying-obsidian texture. Paused snapshots are internal only: they do not add a Jade indicator or any persistent on-screen percentage.
+
+The Codex and empty Scan Templates never capture entities directly. The Scanner is the exclusive capture tool; a Codex mounted on a lectern is the exclusive path for copying a stored record to an empty Scan Template.
+
+Each new capture also records its maximum health and movement speed. Horses record jump strength; llamas record chest capacity and decoration state; variants preserved in entity data are surfaced as an explicit Codex trait.
 
 
 ## 1.0.34 Roadmap & UX cleanup

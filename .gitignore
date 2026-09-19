@@ -1,8 +1,11 @@
 .gradle/
 .gradle-dist/
 build/
+build-mirage-projector.log
+cleanup-mirage-projector.log
 run/
 out/
 .idea/
+.eclipse/
 *.iml
 javac.*.args

@@ -16,7 +16,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -84,20 +83,7 @@ public final class ScanCodexItem extends Item {
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }
 
-    @Override
-    public InteractionResult interactLivingEntity(
-            ItemStack stack,
-            Player player,
-            LivingEntity target,
-            InteractionHand hand
-    ) {
-        if (!player.isShiftKeyDown()) {
-            return InteractionResult.PASS;
-        }
-        return scanTarget(stack, player, target);
-    }
-
-    public InteractionResult scanTarget(ItemStack stack, Player player, LivingEntity target) {
+    public static InteractionResult captureTarget(ItemStack stack, Player player, net.minecraft.world.entity.LivingEntity target) {
         if (target.isPassenger() || target.isVehicle()) {
             if (!player.level().isClientSide) {
                 player.displayClientMessage(
@@ -155,8 +141,6 @@ public final class ScanCodexItem extends Item {
     ) {
         tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_codex.open")
                 .withStyle(ChatFormatting.GRAY));
-        tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_codex.scan")
-                .withStyle(ChatFormatting.AQUA));
         tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_codex.independent")
                 .withStyle(ChatFormatting.DARK_GRAY));
         tooltipComponents.add(Component.translatable("tooltip.mirage_projector.scan_codex.lectern")

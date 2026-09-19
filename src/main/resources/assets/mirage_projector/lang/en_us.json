@@ -528,7 +528,6 @@
   "tooltip.mirage_projector.tilt": "Tilts projections up or down through a full ±90°. On Mirage Prism, outward tilt keeps the lower edges tight; inward tilt increases the minimum Prism Distance only when needed to prevent overlap.",
   "item.mirage_projector.scan_codex": "Mirage Scan Codex",
   "tooltip.mirage_projector.scan_codex.open": "Right-click to open the scan library",
-  "tooltip.mirage_projector.scan_codex.scan": "Shift + right-click a living entity or player to add a new capture",
   "tooltip.mirage_projector.scan_codex.independent": "Repeated captures of the same type remain independent snapshots",
   "message.mirage_projector.scan_codex.saved": "Stored new Codex capture: %s",
   "message.mirage_projector.scan_codex.failed": "Could not store this capture in the Scan Codex",
@@ -721,5 +720,12 @@
   "gui.mirage_projector.end_resonance.detected": "Dragon Egg resonance detected.",
   "gui.mirage_projector.end_resonance.aperture": "Aperture: %s · Dimensions: %s",
   "gui.mirage_projector.end_resonance.planar": "PLANAR",
-  "gui.mirage_projector.end_resonance.volumetric": "VOLUMETRIC"
+  "gui.mirage_projector.end_resonance.volumetric": "VOLUMETRIC",
+  "item.mirage_projector.entity_scanner": "Mirage Entity Scanner",
+  "gui.mirage_projector.entity_scanner.title": "Mirage Entity Scanner",
+  "gui.mirage_projector.entity_scanner.codex_slot": "Inserted Scan Codex",
+  "tooltip.mirage_projector.entity_scanner.scan": "Hold Right-click while aiming at an entity to scan it into the inserted Codex.",
+  "tooltip.mirage_projector.entity_scanner.configure": "Sneak + Right-click: insert or remove a Scan Codex.",
+  "message.mirage_projector.entity_scanner.no_codex": "Insert a Scan Codex into the Entity Scanner first.",
+  "message.mirage_projector.entity_scanner.already_registered": "This exact entity is already registered in the inserted Scan Codex."
 }

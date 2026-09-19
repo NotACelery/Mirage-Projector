@@ -8,6 +8,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
@@ -23,6 +25,8 @@ import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.horse.Llama;
 import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -219,6 +223,7 @@ public final class EntityScanData {
         }
         root.put("EntityData", entityData);
         root.put("Equipment", equipment);
+        root.put("MirageTraits", captureTraits(target, entityData));
 
         int totalBytes = root.sizeInBytes();
         if (totalBytes > MAX_ENTITY_NBT_BYTES) {
@@ -262,6 +267,10 @@ public final class EntityScanData {
         }
         Kind kind = classify(entity);
         return kind == Kind.HUMANOID || kind == Kind.HORSE || entity instanceof Fox;
+    }
+
+    public static boolean canCarryFrozenEquipment(LivingEntity entity) {
+        return entity != null && supportsFrozenEquipment(entity);
     }
 
     private static boolean supportsFrozenEquipment(ResourceLocation entityType, Kind kind) {
@@ -426,6 +435,36 @@ public final class EntityScanData {
         for (String key : keys) {
             tag.remove(key);
         }
+    }
+
+    private static net.minecraft.nbt.ListTag captureTraits(LivingEntity entity, CompoundTag entityData) {
+        List<String> values = new ArrayList<>();
+        values.add("Health: " + String.format(Locale.ROOT, "%.1f", entity.getAttributeValue(Attributes.MAX_HEALTH)));
+        values.add("Speed: " + String.format(Locale.ROOT, "%.3f", entity.getAttributeValue(Attributes.MOVEMENT_SPEED)));
+        if (entity instanceof Horse) {
+            values.add("Jump: " + String.format(Locale.ROOT, "%.3f", entity.getAttributeValue(Attributes.JUMP_STRENGTH)));
+        }
+        if (entity instanceof Llama llama) {
+            values.add("Storage: " + llama.getInventoryColumns() * 3 + " slots");
+            values.add("Decoration: " + (entityData.contains("DecorItem") ? "present" : "none"));
+        }
+        for (String key : new String[]{"variant", "Variant", "Type", "CatType"}) {
+            if (entityData.contains(key)) {
+                values.add("Variant: " + entityData.get(key).getAsString());
+                break;
+            }
+        }
+        net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
+        for (String value : values) list.add(net.minecraft.nbt.StringTag.valueOf(value));
+        return list;
+    }
+
+    public static List<String> traits(CompoundTag root) {
+        if (root == null || !root.contains("MirageTraits", net.minecraft.nbt.Tag.TAG_LIST)) return List.of();
+        net.minecraft.nbt.ListTag list = root.getList("MirageTraits", net.minecraft.nbt.Tag.TAG_STRING);
+        List<String> values = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) values.add(list.getString(i));
+        return List.copyOf(values);
     }
 
     private static void stripHumanoidEquipment(CompoundTag tag) {

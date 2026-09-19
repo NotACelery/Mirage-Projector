@@ -1,7 +1,0 @@
-{
-  "parent": "minecraft:block/cross",
-  "render_type": "minecraft:cutout",
-  "textures": {
-    "cross": "mirage_projector:block/crying_obsidian_cluster_energized"
-  }
-}

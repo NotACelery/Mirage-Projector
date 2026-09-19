@@ -721,5 +721,12 @@
   "gui.mirage_projector.end_resonance.detected": "Resonancia de Huevo de Dragón detectada.",
   "gui.mirage_projector.end_resonance.aperture": "Apertura: %s · Dimensiones: %s",
   "gui.mirage_projector.end_resonance.planar": "PLANA",
-  "gui.mirage_projector.end_resonance.volumetric": "VOLUMÉTRICA"
+  "gui.mirage_projector.end_resonance.volumetric": "VOLUMÉTRICA",
+  "item.mirage_projector.entity_scanner": "Escáner de Entidades Mirage",
+  "gui.mirage_projector.entity_scanner.title": "Escáner de Entidades Mirage",
+  "gui.mirage_projector.entity_scanner.codex_slot": "Codex de Escaneo insertado",
+  "tooltip.mirage_projector.entity_scanner.scan": "Mantén clic derecho apuntando a una entidad para escanearla al Codex insertado.",
+  "tooltip.mirage_projector.entity_scanner.configure": "Agachado + clic derecho: inserta o retira un Codex de Escaneo.",
+  "message.mirage_projector.entity_scanner.no_codex": "Primero inserta un Codex de Escaneo en el Escáner de Entidades.",
+  "message.mirage_projector.entity_scanner.already_registered": "Esta entidad exacta ya está registrada en el Codex de Escaneo insertado."
 }

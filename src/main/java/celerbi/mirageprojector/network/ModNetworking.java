@@ -136,6 +136,11 @@ public final class ModNetworking {
                 OpenScanCodexPayload.STREAM_CODEC,
                 OpenScanCodexPayload::handle
         );
+        registrar.playToClient(
+                EntityScannerProgressPayload.TYPE,
+                EntityScannerProgressPayload.STREAM_CODEC,
+                EntityScannerProgressPayload::handle
+        );
         registrar.playToServer(
                 ScanCodexActionPayload.TYPE,
                 ScanCodexActionPayload.STREAM_CODEC,

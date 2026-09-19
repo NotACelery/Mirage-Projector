@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.AbstractFish;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -148,6 +149,9 @@ public final class EntityProjectionPreviewRenderer {
         graphics.enableScissor(left, top, right, bottom);
 
         Quaternionf orientation = new Quaternionf().rotateZ((float) Math.PI);
+        if (entity instanceof AbstractFish) {
+            orientation.rotateZ(-(float) Math.PI / 2.0F);
+        }
         Quaternionf pitch = new Quaternionf().rotateX(angleY * 20.0F * (float) (Math.PI / 180.0));
         orientation.mul(pitch);
 

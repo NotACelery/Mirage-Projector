@@ -1,5 +1,6 @@
 package celerbi.mirageprojector.client;
 
+import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.entity.EntityProjectionState;
 import celerbi.mirageprojector.entity.EntityScanData;
 import celerbi.mirageprojector.entity.EquipmentSnapshotRules;
@@ -81,8 +82,8 @@ public final class EntityProjectionClientEntityFactory {
             }
             applyProjectedEquipment(living, state, scan.kind());
             return living;
-        } catch (Throwable ignored) {
-
+        } catch (Exception exception) {
+            MirageProjector.LOGGER.debug("Could not create frozen entity projection {}", scan.entityType(), exception);
             return null;
         }
     }

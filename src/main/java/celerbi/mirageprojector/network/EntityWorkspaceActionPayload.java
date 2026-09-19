@@ -51,7 +51,7 @@ public record EntityWorkspaceActionPayload(
             }
             BlockPos pos = payload.pos();
             if (player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) > 64.0D
-                    || !player.level().hasChunkAt(pos)) {
+                    || !player.level().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
                 return;
             }
             if (!(player.level().getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector)) {

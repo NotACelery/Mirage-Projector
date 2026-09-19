@@ -128,7 +128,7 @@ public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemPro
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, fit(title.getString(), 150), 10, 9, 0xFFF4F4F4, false);
+        graphics.drawString(font, GuiText.fit(font, title.getString(), 150), 10, 9, 0xFFF4F4F4, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.item.snapshot_slot"), 20, 71, 0xFFC9CED7, false);
         graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.item.preview"), PREVIEW_X + PREVIEW_W / 2, 70, 0xFFD7B8F5);
 
@@ -136,7 +136,7 @@ public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemPro
         Component description = stack.isEmpty()
                 ? Component.translatable("gui.mirage_projector.item.empty_hint_short")
                 : Component.translatable("gui.mirage_projector.item.captured", stack.getHoverName());
-        graphics.drawString(font, fit(description.getString(), 180), 20, 119, stack.isEmpty() ? 0xFF9CA3AF : 0xFF9DDBA8, false);
+        graphics.drawString(font, GuiText.fit(font, description.getString(), 180), 20, 119, stack.isEmpty() ? 0xFF9CA3AF : 0xFF9DDBA8, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.item.virtual_notice_short"), 20, 129, 0xFF8FCFA0, false);
         graphics.drawString(font, Component.translatable("container.inventory"), ItemProjectorMenu.PLAYER_INV_X, ItemProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
     }
@@ -157,16 +157,4 @@ public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemPro
         graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF171A20);
     }
 
-    private String fit(String value, int maxWidth) {
-        if (value == null || value.isEmpty() || font.width(value) <= maxWidth) {
-            return value == null ? "" : value;
-        }
-        String ellipsis = "…";
-        int target = Math.max(0, maxWidth - font.width(ellipsis));
-        int end = value.length();
-        while (end > 0 && font.width(value.substring(0, end)) > target) {
-            end--;
-        }
-        return value.substring(0, Math.max(0, end)) + ellipsis;
-    }
 }

@@ -42,7 +42,7 @@ public record UpdateProjectorPayload(BlockPos pos, ProjectionSettings settings) 
 
             BlockPos pos = payload.pos();
             double distance = player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D);
-            if (distance > 64.0D || !player.level().hasChunkAt(pos)) {
+            if (distance > 64.0D || !player.level().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
                 return;
             }
 

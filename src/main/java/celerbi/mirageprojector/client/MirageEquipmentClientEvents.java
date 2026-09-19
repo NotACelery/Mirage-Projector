@@ -58,10 +58,6 @@ public final class MirageEquipmentClientEvents {
         int rightEdge = guiLeft + inventory.getXSize();
         boolean creative = inventory instanceof CreativeModeInventoryScreen;
 
-        // Keep the toggle on the inventory frame.  In Creative it is visible only on the
-        // Survival Inventory tab, never beside the recipe/category tabs.
-        // Keep this inside the vanilla frame and high enough to avoid third-party sort/action
-        // controls which conventionally occupy the inventory's lower-right edge.
         toggleX = rightEdge - 20;
         toggleY = guiTop + 6;
         toggleReady = true;
@@ -116,11 +112,6 @@ public final class MirageEquipmentClientEvents {
         event.addListener(slot);
     }
 
-    /**
-     * Creative's inventory tab is a page inside one persistent CreativeModeInventoryScreen. Update
-     * visibility every frame so Mirage Equipment never leaks into Building Blocks/Search/etc. and
-     * appears immediately when the player switches back to the inventory tab.
-     */
     @SubscribeEvent
     public static void onScreenRender(ScreenEvent.Render.Post event) {
         if (event.getScreen() != equipmentScreen) {
@@ -132,7 +123,6 @@ public final class MirageEquipmentClientEvents {
             var graphics = event.getGuiGraphics();
             boolean hovered = event.getMouseX() >= toggleX && event.getMouseX() < toggleX + 14
                     && event.getMouseY() >= toggleY && event.getMouseY() < toggleY + 18;
-            // Match a normal raised inventory button instead of the previous dark, disabled-looking tile.
             graphics.fill(toggleX, toggleY, toggleX + 14, toggleY + 18, 0xFF202020);
             graphics.fill(toggleX + 1, toggleY + 1, toggleX + 13, toggleY + 17, 0xFFF0F0F0);
             graphics.fill(toggleX + 2, toggleY + 2, toggleX + 12, toggleY + 16,
@@ -142,10 +132,6 @@ public final class MirageEquipmentClientEvents {
         }
     }
 
-    /**
-     * The extension lives outside vanilla's container bounds. Intercept its slot clicks before
-     * AbstractContainerScreen can interpret them as an outside click and drop the carried stack.
-     */
     @SubscribeEvent
     public static void onMousePressed(ScreenEvent.MouseButtonPressed.Pre event) {
         if (event.getScreen() != equipmentScreen || !equipmentVisible(event.getScreen())) {
@@ -170,20 +156,12 @@ public final class MirageEquipmentClientEvents {
                 return;
             }
         }
-        // The whole extension is inventory territory.  A click in its background must not be
-        // interpreted by AbstractContainerScreen as an outside click that drops the cursor item.
         if (insideEquipmentSafeZone(event.getScreen(), event.getMouseX(), event.getMouseY())) {
             capturedEquipmentButton = event.getButton();
             event.setCanceled(true);
         }
     }
 
-
-    /**
-     * A Mirage Equipment slot press is handled completely by its own server-authoritative packet.
-     * Capture the matching release as well, even if the pointer has moved back over vanilla empty
-     * space; otherwise AbstractContainerScreen interprets the release as an outside-container drop.
-     */
     @SubscribeEvent
     public static void onMouseReleased(ScreenEvent.MouseButtonReleased.Pre event) {
         if (event.getScreen() != equipmentScreen || capturedEquipmentButton < 0) {
@@ -198,8 +176,6 @@ public final class MirageEquipmentClientEvents {
     private static void applyInventoryTabVisibility(Screen screen) {
         boolean visible = equipmentVisible(screen);
         if (!visible && screen instanceof CreativeModeInventoryScreen && equipmentPanelOpen) {
-            // A Creative category change closes the extension; returning to Survival Inventory
-            // must not resurrect a panel from another tab.
             equipmentPanelOpen = false;
         }
         setVisible(equipmentPanel, visible && equipmentPanelOpen);
@@ -218,11 +194,6 @@ public final class MirageEquipmentClientEvents {
         return false;
     }
 
-    /**
-     * NeoForge 1.21.1 keeps the selected Creative tab private and isInventoryOpen() can briefly
-     * report false while the tab rebuilds. Read the stable tab identity once; retain the public
-     * method as a safe fallback for environments that restrict reflective access.
-     */
     private static boolean isCreativeSurvivalInventory() {
         var screen = net.minecraft.client.Minecraft.getInstance().screen;
         if (!(screen instanceof CreativeModeInventoryScreen creative)) {
@@ -247,8 +218,6 @@ public final class MirageEquipmentClientEvents {
         if (!(screen instanceof AbstractContainerScreen<?> inventory) || equipmentPanel == null) {
             return false;
         }
-        // Include the narrow gutter between vanilla's right border and the panel.  It reads as
-        // one extended inventory surface and must never become a drop-to-world dead zone.
         int minX = inventory.getGuiLeft() + inventory.getXSize() - 2;
         int maxX = equipmentPanel.getX() + equipmentPanel.getWidth();
         int minY = Math.min(inventory.getGuiTop(), equipmentPanel.getY());
@@ -280,7 +249,13 @@ public final class MirageEquipmentClientEvents {
     }
 
     @SubscribeEvent
+    public static void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
+        ClientEntityScanner.poseScanningArm(event.getEntity(), event.getRenderer());
+    }
+
+    @SubscribeEvent
     public static void onRenderPlayer(RenderPlayerEvent.Post event) {
+        ClientEntityScanner.restoreScanningArm(event.getRenderer());
         ClientShoulderEquipment.renderMountedDevice(
                 event.getEntity(),
                 event.getPoseStack(),

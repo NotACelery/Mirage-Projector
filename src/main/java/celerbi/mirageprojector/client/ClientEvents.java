@@ -29,6 +29,7 @@ public final class ClientEvents {
         event.register(ModMenus.PORTABLE_DEVICE.get(), PortableDeviceScreen::new);
         event.register(ModMenus.MIRAGE_LIGHT_PROJECTOR.get(), MirageLightProjectorScreen::new);
         event.register(ModMenus.SCAN_CODEX.get(), ScanCodexScreen::new);
+        event.register(ModMenus.ENTITY_SCANNER.get(), EntityScannerScreen::new);
     }
 
 

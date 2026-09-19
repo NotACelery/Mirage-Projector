@@ -203,7 +203,7 @@ public final class CryingObsidianLightField {
         List<BlockPos> impacted = new ArrayList<>();
         List<BlockPos> stale = new ArrayList<>();
         for (BlockPos sourcePos : sources) {
-            if (!level.hasChunkAt(sourcePos)) {
+            if (!level.hasChunk(sourcePos.getX() >> 4, sourcePos.getZ() >> 4)) {
                 continue;
             }
             BlockState state = level.getBlockState(sourcePos);
@@ -361,7 +361,7 @@ public final class CryingObsidianLightField {
         List<BlockPos> impacted = new ArrayList<>();
         List<BlockPos> stale = new ArrayList<>();
         for (BlockPos sourcePos : sources) {
-            if (!level.hasChunkAt(sourcePos)) {
+            if (!level.hasChunk(sourcePos.getX() >> 4, sourcePos.getZ() >> 4)) {
                 continue;
             }
             BlockState state = level.getBlockState(sourcePos);
@@ -405,7 +405,7 @@ public final class CryingObsidianLightField {
         int removedCount = 0;
         for (MirageLightSource source : MirageLightEngine.sources(level)) {
             if (!MIRAGE_LIGHT_SOURCE_KIND.equals(source.id().kind())
-                    || !level.hasChunkAt(source.origin())) {
+                    || !level.hasChunk(source.origin().getX() >> 4, source.origin().getZ() >> 4)) {
                 continue;
             }
             BlockState state = level.getBlockState(source.origin());
@@ -708,7 +708,7 @@ public final class CryingObsidianLightField {
     }
 
     private static void removeLegacyNode(ServerLevel level, BlockPos nodePos) {
-        if (level.isOutsideBuildHeight(nodePos) || !level.hasChunkAt(nodePos)) {
+        if (level.isOutsideBuildHeight(nodePos) || !level.hasChunk(nodePos.getX() >> 4, nodePos.getZ() >> 4)) {
             return;
         }
         if (level.getBlockState(nodePos).is(ModBlocks.CRYING_LIGHT_NODE.get())) {

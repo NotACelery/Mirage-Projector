@@ -73,7 +73,7 @@ public record PresentationRemoteActionPayload(InteractionHand hand, int directio
                 return;
             }
             ServerLevel targetLevel = player.getServer().getLevel(dimensionKey);
-            if (targetLevel == null || !targetLevel.hasChunkAt(linked.pos())) {
+            if (targetLevel == null || !targetLevel.hasChunk(linked.pos().getX() >> 4, linked.pos().getZ() >> 4)) {
                 player.displayClientMessage(Component.translatable("message.mirage_projector.presentation_remote.unavailable"), true);
                 return;
             }

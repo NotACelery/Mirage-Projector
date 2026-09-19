@@ -7,7 +7,7 @@
 - Minecraft **1.21.1**
 - NeoForge **21.1.244+**
 - Java **21**
-- Network protocol **43**
+- Network protocol **44**
 
 EMI and JEI are optional. When installed, Mirage Projector exposes its custom projector-upgrade recipes and Crying Obsidian guidance directly in the recipe viewer.
 
@@ -72,7 +72,7 @@ The Mirage Hand Projector is a direct portable hologram consumer with its own ph
 
 Since 1.0.13, **Mirage Equipment** adds a dedicated Shoulder Strap + Shoulder Slot without consuming armor or offhand space. In 1.0.18 the Strap becomes the real owner of its mounted device, battery pouch and upgrades: a packed Strap can be removed/stored/swapped while retaining its contents, and the right-side inventory panel exposes only the slots currently unlocked. The base Strap has six power-cell slots plus two upgrades; **Shoulder Strap Slot Expansion** raises that to nine cells plus a third upgrade. Auto Battery Swap remains shoulder-only. Since 1.0.15 the directional Charging Station provides four queued inputs, one active charger, four outputs and front-face logistics; 1.0.18 tightens it to incomplete normal rechargeable media, enlarges its GUI and visualizes queued/charging/output stacks in-world. Since 1.0.16 Banner-profile Hand Projectors can use the smaller pole-free overhead War Banner presentation with Directional or per-viewer billboard facing.
 
-Since 1.0.17, the **Mirage Scan Codex** stores multiple distinct frozen entity captures in a server-backed persistent library. 1.0.24 turns it into a scrollable categorized library with global search, Favorites, per-entry preview/equipment/nameplate detail and a 25-per-entity-type cap. Entity Scan Cards are transport containers rather than scanners. Mounting the Codex on a vanilla Lectern unlocks side-page duplication into a blank Entity Scan Card and a permanent destructive import panel for filled Mirage cards; optional Easy Mob Farm capture cards are accepted when that mod is present.
+The handheld **Mirage Entity Scanner** is the exclusive way to capture a living entity: insert a Scan Codex, hold RMB while aiming at the target within four blocks for 1.5 seconds, and the frozen record is saved directly to that Codex. The Scanner supports underwater capture, pauses progress when aim is lost, and gives capture priority over living-entity interactions. Since 1.0.17, the **Mirage Scan Codex** stores those distinct frozen captures in a server-backed persistent library with global search, Favorites, previews and a 25-per-entity-type cap. Entity Scan Cards are transport containers rather than scanners. Mounting the Codex on a vanilla Lectern unlocks duplication into a blank Entity Scan Card and a permanent destructive import panel for filled Mirage cards; optional Easy Mob Farm capture cards are accepted when that mod is present.
 
 ## Projection Power
 
@@ -149,9 +149,9 @@ The verification suite checks the current registry/resource surface, Mirage Ligh
 
 ## Version scope
 
-**1.0.41** is the current implementation snapshot. It is the post-QA hotfix line over the 1.0.34 roadmap/UX cleanup checkpoint. Network protocol remains **43** and `ProjectionSettings` format remains **4**.
+**1.0.69** is the current implementation snapshot. It carries the tested End Resonance portal flow, Entity Scanner/Codex workflow and runtime-QA corrections toward the 1.1.0 release candidate. Network protocol is **44** and `ProjectionSettings` format remains **4**.
 
-**1.0.24** established the current Scan Codex/Card and Hand Projector portable UI contracts. It keeps the vanilla Lectern as the physical Scan Codex workstation while replacing Paper-copy semantics with blank Entity Scan Cards, adding destructive successful imports from filled Mirage cards and optional Easy Mob Farm capture cards, expanding the Codex into a scrollable categorized detail browser, and compacting the Hand Projector into a lite portable UI whose Forward/War Banner, Directional/Billboard, size and height controls update from live device state. Reverse Mirage → Easy Mob Farm card export remains deferred; if added later its cost is measured in experience levels rather than raw XP. Final 1.1.0 work still includes the Wall presentation slide-deck architecture, optional Create Blueprint bridge, End Resonance, recipes/balance and release polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.
+**1.0.24** established the current Scan Codex/Card and Hand Projector portable UI contracts. It keeps the vanilla Lectern as the physical Scan Codex workstation while replacing Paper-copy semantics with blank Entity Scan Cards, adding destructive successful imports from filled Mirage cards and optional Easy Mob Farm capture cards, expanding the Codex into a scrollable categorized detail browser, and compacting the Hand Projector into a lite portable UI whose Forward/War Banner, Directional/Billboard, size and height controls update from live device state. Reverse Mirage → Easy Mob Farm card export remains deferred; if added later its cost is measured in experience levels rather than raw XP. End Resonance is implemented and runtime-tested; the remaining 1.1.0 work is release documentation, final compatibility/QA and any explicitly retained polish. The UV ecosystem and direct grab/free-rotate hologram interaction belong to **1.2.0**.
 
 ### 1.0.34 roadmap/cleanup checkpoint
 

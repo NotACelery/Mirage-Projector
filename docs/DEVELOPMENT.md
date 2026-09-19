@@ -1,13 +1,13 @@
-# Current development line — 1.0.40
+# Current development line — 1.0.69
 
 The current public/code name `Mirage Wall Projector` belongs to the historical presentation/Data-show registry `mirage_projector:mirage_wall_projector`. Do not reintroduce `Mirage Wall Display`, `MIRAGE_WALL_DISPLAY`, `MirageWallDisplayBlock`, `mirage_wall_illuminator` or a second wall illumination chassis without an explicit new design decision. Table workspace-opening payloads are navigation only; only `SetProjectionSourcePayload` may commit a source-mode change.
 
 # Development Guide — Mirage Projector
 
-Current maintenance baseline: **1.0.40** (initial stable baseline: **1.0.0**)
+Current maintenance baseline: **1.0.69** (initial stable baseline: **1.0.0**)
 
 
-## 1.0.32 Survival progression / illumination identity
+## Historical 1.0.32 Survival progression / illumination identity
 
 The 1.0.32 pass commits the first final Survival recipe set, renames the Lantern runtime/public identity to Mirage Flashlight while preserving legacy registry/NBT compatibility, disambiguates the presentation `mirage_wall_projector` registry as Mirage Wall Projector, adds the separate `mirage_wall_illuminator` Mirage Wall Projector, and makes the Flashlight temporarily placeable with exact cell/mode round-trip. The floor Light Projector and Flashlight art move to Iron/Crying-Obsidian/magenta-glass language. Protocol remains 42; ProjectionSettings format remains 4.
 
@@ -26,7 +26,7 @@ The 1.0.29 pass converts several 1.0.28 visual-only surfaces into authoritative 
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
 Java: **21**
-Network protocol: **43**
+Network protocol: **44**
 
 ## Source layout
 
@@ -74,10 +74,10 @@ The authoritative compiled build remains Windows `build.bat` under Java 21. A st
 
 ## Versioning
 
-`gradle.properties` is the single source of the project version used by the build metadata. Current 1.0.33 uses:
+`gradle.properties` is the single source of the project version used by the build metadata. Current 1.0.69 uses:
 
 ```text
-mod_version=1.0.33
+mod_version=1.0.69
 ```
 
 Patch development continues through monotonically increasing `1.0.x` versions. The second version component advances to `1.1.0` only when the planned feature expansion is complete; internal `dev-X` labels are reserved for exceptional recovery/build snapshots rather than normal feature numbering.

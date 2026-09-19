@@ -58,7 +58,7 @@ public final class ClientEntityScanner {
                 ? (player.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm)
                 : (player.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm);
         ARM_POSES.put(model, new ArmPose(arm, arm.xRot, arm.yRot, arm.zRot));
-        arm.xRot = 0.0F;
+        arm.xRot = -(float) Math.PI / 2.0F;
         arm.yRot = 0.0F;
         arm.zRot = 0.0F;
     }

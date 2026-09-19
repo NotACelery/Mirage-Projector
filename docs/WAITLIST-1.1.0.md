@@ -33,7 +33,7 @@
 - **delivered/corrected in 1.0.23:** physical scan-copy workflow through a vanilla Lectern hosting the Codex; no separate Mirage station remains;
 - **delivered foundations + 1.0.32 recipes:** horizontal/Table Projector and presentation-oriented Mirage Wall Projector families;
 - final source/chassis capability enumeration and portable/wall/table anchor semantics;
-- Dragon Egg / End Resonance Field+Prism behavior;
+- Dragon Egg / End Resonance Field+Prism/Table behavior;
 - remaining recipes only where a future 1.1 feature introduces a new Survival item; documentation, multiplayer/performance QA and release polish.
 
 ### Explicitly deferred to 1.2.0
@@ -130,9 +130,9 @@ The placed Mirage Light Projector exercises these four modes in 1.0.9 and the ha
 
 ## D. Mirage Scan Codex
 
-Foundation delivered in **1.0.17**, reworked in **1.0.24**:
+Foundation delivered in **1.0.17**, reworked in **1.0.24** and finalized for direct capture in **1.0.57–1.0.69**:
 
-- `mirage_projector:scan_codex` is a physical, non-stackable Codex item. Shift + right-click scans a living entity/player; right-click in air opens the browser.
+- `mirage_projector:scan_codex` is a physical, non-stackable Codex item and persistent library key. The handheld `mirage_projector:entity_scanner` is the exclusive capture tool: it stores one Codex, scans a living entity/player through a 1.5-second sustained main-hand action, and writes the frozen record directly into that Codex.
 - each scan reuses the canonical `EntityScanData` frozen snapshot and receives its own scan UUID, so multiple independent captures of the same species/type remain distinct.
 - the physical ItemStack stores only a stable Codex UUID and selected scan UUID; full snapshots live in Overworld `SavedData` so large libraries do not bloat ordinary inventory synchronization.
 - browser sync is metadata-first and includes name/type, Player-vs-mob/category, frozen nameplate, equipment count and favorite state; the selected entry additionally receives its exact root for preview.
@@ -324,7 +324,7 @@ The War Banner feature is intended for battle standards, team identification, te
 
 ## H. Dragon Egg / End Resonance Easter Egg
 
-**Implementation status (1.0.33 foundation):** special-provider/chassis capability, physical Field/Prism Core acceptance, persistent ProjectionState suspend/restore, normal-control lock, resonance status UI, anti-dup state-transfer guards and fixed 2×3 / 2×3×2 Mirage-rendered envelopes are implemented. Functional entity dimensional transfer, cooldown/anti-loop and destination-safety semantics remain pending and continue to be release blockers for this subsection.
+**Implementation status (runtime-tested through 1.0.69):** special-provider/chassis capability, physical Field/Prism/Table Core acceptance, persistent ProjectionState suspend/restore, normal-control lock, resonance status UI, anti-dup state-transfer guards, End Portal rendering and Field 2×3 / Prism 2×3×2 / Table 3×3 envelopes are implemented. Players and compatible non-player entities transfer with anti-loop cooldown, and safe-platform arrival has been tested across multiple worlds. Remaining work is release QA for edge entity classes, automation and multiplayer/restart scenarios.
 
 ### Product intent
 
@@ -336,10 +336,11 @@ This feature is **not a 1.0.0 blocker**. It belongs to 1.1.0 after the generaliz
 
 ### Compatible chassis
 
-Only these fixed chassis accept a Dragon Egg as an End Resonance Core:
+These fixed chassis accept a Dragon Egg as an End Resonance Core:
 
 - **Mirage Field Projector** — creates a planar End aperture.
 - **Mirage Prism** — creates a volumetric End anomaly.
+- **Mirage Table Projector** — creates a horizontal 3 × 3 End aperture.
 
 The following must reject Dragon Egg resonance mode:
 

@@ -1,7 +1,7 @@
 # Mirage Projector — Remaining 1.1.0 waves
 
-Baseline after this checkpoint: **1.0.34**
-Network protocol: **43**
+Baseline after this checkpoint: **1.0.69**
+Network protocol: **44**
 ProjectionSettings format: **4**
 
 This file is the recovery-oriented implementation order. `WAITLIST-1.1.0.md` remains the detailed requirement source; this document answers **what comes next and what is intentionally last**.
@@ -13,31 +13,24 @@ This file is the recovery-oriented implementation order. `WAITLIST-1.1.0.md` rem
 - Table dedicated runtime, offsets/tilt/central pivot and workspace-navigation vs active-mode separation.
 - Presentation **Mirage Wall Projector** + deck/autoplay/remote. There is no separate wall illumination chassis in current scope.
 - Player scan identity/layers cleanup, Scan Codex library/card/Lectern foundations.
-- End Resonance state/control/render foundation for Dragon Egg on Field/Prism.
+- End Resonance portal, transfer and runtime QA foundation for Dragon Egg on Field/Prism/Table.
+- Mirage Entity Scanner, persistent Codex capture flow, scanner HUD and scanner inventory safety.
 
-## Wave 1 — End Resonance transfer
+## Wave 1 — End Resonance transfer — delivered and runtime-tested
 
-- Shared server collision envelope matching Field 2×3 and Prism 2×3×2 geometry.
+- Shared server collision envelope matching Field 2×3, Prism 2×3×2 and Table 3×3 geometry.
 - Players, ordinary living entities and dropped items.
-- Overworld/other dimensions → The End, and End → appropriate safe return destination.
-- Per-entity cooldown/anti-loop.
-- Safe destination resolution and obstruction handling.
-- Save/reload/chunk-boundary QA.
+- End platform arrival and Overworld return, with per-entity anti-loop cooldown.
+- Runtime-tested safe-platform arrival across multiple worlds.
 
-## Wave 2 — End Resonance edge entities & safety
+## Wave 2 — End Resonance edge-entity release QA
 
-- Projectiles where dimension transfer is semantically safe.
-- Primed TNT preserving fuse.
-- FallingBlockEntity preserving block/state.
-- Vehicles/passengers only if the full graph can transfer without duplication/desync; otherwise explicitly unsupported for 1.1.
+- Projectiles, Primed TNT, FallingBlockEntity and vehicle/passenger graphs: document the supported set after dedicated multiplayer/restart QA.
 - Automation, break/explosion, hopper insertion/extraction and Dragon Egg anti-dup audit.
-- Multiplayer/restart stress QA.
 
-## Wave 3 — Dynamic Mirage Light completeness
+## Wave 3 — Dynamic Mirage Light release QA
 
-- Geometry invalidation when terrain changes around a stationary emitter.
-- Focus/Flood/Ambient balance pass.
-- Many-emitter performance and multiplayer stress tests.
+- Re-run Focus/Flood/Ambient behavior, many-emitter and multiplayer stress tests after release-candidate packaging.
 - Sodium/vanilla renderer regression QA.
 
 ## Wave 4 — Projection source architecture completion
@@ -54,7 +47,7 @@ This file is the recovery-oriented implementation order. `WAITLIST-1.1.0.md` rem
 - Decide ceiling support: explicitly document Table-as-ceiling if sufficient, otherwise create a dedicated family only with a concrete gameplay reason.
 - Optional slideshow transitions remain non-blocking.
 
-## Wave 6 — Mirage Light Projector aiming — deliberately last
+## Wave 6 — Mirage Light Projector aiming — retained only if it remains a release requirement
 
 - Visible horizontal yaw.
 - Visible vertical pitch/tilt.

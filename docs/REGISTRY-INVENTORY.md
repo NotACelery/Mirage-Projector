@@ -1,4 +1,4 @@
-# Registry Inventory — Mirage Projector 1.0.26
+# Registry Inventory — Mirage Projector 1.0.69
 
 This file distinguishes active gameplay IDs from compatibility-only IDs.
 
@@ -35,6 +35,7 @@ These are the current runtime projector chassis IDs. No temporary/comparison pro
 - `mirage_projector:light_battery` — 4000-unit high-capacity rechargeable cell using the same item-owned charge contract.
 - `mirage_projector:creative_battery` — infinite Creative/debug rechargeable medium; no Survival recipe/loot path.
 - `mirage_projector:scan_codex` — physical UUID key to the persistent server-side scan library; full snapshot data is not stored on the ItemStack.
+- `mirage_projector:entity_scanner` — main-hand, inserted-Codex scanner for sustained living-entity capture.
 - `mirage_projector:entity_scan_card`
 - `mirage_projector:debug_handbook` — public display name: **Mirage Handbook**; registry ID retained for compatibility.
 
@@ -66,6 +67,11 @@ The legacy block-entity registry ID `mirage_projector:improved_core` remains mig
 - `mirage_projector:item_projector`
 - `mirage_projector:entity_projector`
 - `mirage_projector:banner_projector`
+- `mirage_projector:charging_station`
+- `mirage_projector:portable_device`
+- `mirage_projector:mirage_light_projector`
+- `mirage_projector:scan_codex`
+- `mirage_projector:entity_scanner`
 
 ## Recipe serializer
 
@@ -104,6 +110,7 @@ The Mirage creative tab exposes:
 - Small/Medium/Large Crying Obsidian Bud and Cluster;
 - Obsidian Spike;
 - Mirage Scan Codex;
+- Mirage Entity Scanner;
 - Entity Scan Card;
 - Mirage Handbook.
 

@@ -1,6 +1,6 @@
-# Mirage Light Engine — 1.0.21
+# Mirage Light Engine — 1.0.69
 
-Network protocol: **35**
+Network protocol: **44**
 
 The static Mirage Light implementation remains server-authoritative and is currently used by energized Mature Crying Obsidian Clusters. Since 1.0.5, moving/portable emitters have a separate operational `DYNAMIC_VISUAL` client lifecycle. Mirage Flashlight, Mirage Light Projector and Mirage Wall Projector are current consumers; Shoulder-mounted Flashlights reuse the same client-local source manager. The temporary placed Flashlight form reuses the placed-light BlockEntity/runtime instead of introducing another light engine.
 
@@ -102,7 +102,7 @@ The shared solver supports `DIRECTIONAL_CONE` in addition to omnidirectional fie
 
 A submitted moving source is identified independently from its current block position. Repositioning or redirecting it updates the same source contribution rather than leaving transient emitters behind. Sources outside their camera cull distance are removed from the local aggregate until visible again, and consumers that stop submitting expire automatically. Fields clipped by temporarily unavailable chunks retry at their declared cadence.
 
-Placed-device battery integration is active in 1.0.9 and the first handheld/player-following consumer is active in 1.0.10. Held-lantern state is reconstructed from vanilla tracked player transform/equipment plus the lantern ItemStack summary, avoiding a second movement-light packet path. 1.0.11 reuses that design lesson for portable holograms: handheld projector visuals are likewise reconstructed client-side from tracked held ItemStacks plus player transform rather than adding a separate movement/projector payload. Still pending for the 1.1 feature set: stationary-source block-geometry invalidation after arbitrary nearby block edits, final profile/drain balance, additional moving-entity consumers and large-scale performance QA.
+Placed-device battery integration is active in 1.0.9 and the first handheld/player-following consumer is active in 1.0.10. Held-lantern state is reconstructed from vanilla tracked player transform/equipment plus the lantern ItemStack summary, avoiding a second movement-light packet path. 1.0.11 reuses that design lesson for portable holograms: handheld projector visuals are likewise reconstructed client-side from tracked held ItemStacks plus player transform rather than adding a separate movement/projector payload. The stationary and portable lighting behavior is runtime-tested against the defined terrain-change rules; remaining 1.1.0 work is release-candidate performance, multiplayer and renderer-compatibility QA.
 
 ## Release invariants
 

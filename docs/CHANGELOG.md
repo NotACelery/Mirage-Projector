@@ -1,4 +1,12 @@
-# 1.0.34 — Roadmap & UX/visual cleanup
+# Changelog
+
+## 1.0.69 — Scanner finalization and 1.1.0 release reconciliation
+
+- Holds the active Scanner arm straight forward in first-person and all player render views.
+- Adds a one-second quiet cooldown after a successful capture so the duplicate-record message cannot immediately replace capture feedback.
+- Reconciles the public 1.1.0 roadmap with tested End Resonance, Mirage Light, Scanner and Scan Codex behavior.
+
+## 1.0.34 — Roadmap & UX/visual cleanup
 
 - Restored the original presentation/Data-show **Mirage Wall Projector** identity and removed the accidental `mirage_wall_illuminator` experiment.
 - Separated Table workspace navigation from source activation; only explicit `Use <mode> mode` actions change SourceMode.
@@ -436,6 +444,10 @@ First stable Mirage Projector release for Minecraft 1.21.1 / NeoForge 21.1.244+.
 Development-version chronology is preserved in `docs/history/development-notes/CHANGELOG-DEVELOPMENT.md`.
 
 - Fixed Mirage Table Projector image visibility across rotation angles by using the correct horizontal-plane front normal; zero-tilt table rotation no longer flips front/back classification.
+## 1.0.68
+
+- Restricted Scanner interaction priority to living entities so the Scanner can be placed in item frames.
+
 ## 1.0.67
 
 - Added Shift+click Codex insertion and extraction to the Scanner configuration menu.

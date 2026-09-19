@@ -36,11 +36,13 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public final class EntityScannerItem extends Item {
     private static final String CODEX_TAG = "MirageScannerCodex";
     private static final int SCAN_TICKS = 30;
+    private static final int COMPLETION_COOLDOWN_TICKS = 20;
     private static final double SCAN_REACH = 4.0D;
     private static final ResourceLocation MOVEMENT_SLOWDOWN_ID = ResourceLocation.fromNamespaceAndPath(
             "mirage_projector", "entity_scanner_slowdown"
     );
     private static final Map<UUID, ScanSession> SESSIONS = new HashMap<>();
+    private static final Map<UUID, Long> COMPLETION_COOLDOWNS = new HashMap<>();
 
     public EntityScannerItem(Properties properties) {
         super(properties.stacksTo(1));
@@ -77,6 +79,9 @@ public final class EntityScannerItem extends Item {
         ItemStack scanner = player.getMainHandItem();
         if (!scanner.is(ModItems.ENTITY_SCANNER.get())) {
             return InteractionResult.PASS;
+        }
+        if (!player.level().isClientSide && player instanceof ServerPlayer serverPlayer && isCoolingDown(serverPlayer)) {
+            return InteractionResult.CONSUME;
         }
         if (!player.level().isClientSide && player instanceof ServerPlayer serverPlayer
                 && containedCodex(scanner, serverPlayer).isEmpty()) {
@@ -140,6 +145,7 @@ public final class EntityScannerItem extends Item {
         }
         ScanCodexItem.captureTarget(codex, player, target);
         clear(player);
+        COMPLETION_COOLDOWNS.put(player.getUUID(), player.serverLevel().getGameTime() + COMPLETION_COOLDOWN_TICKS);
         player.stopUsingItem();
     }
 
@@ -161,6 +167,9 @@ public final class EntityScannerItem extends Item {
     }
 
     public static void tick(ServerPlayer player) {
+        if (COMPLETION_COOLDOWNS.getOrDefault(player.getUUID(), Long.MIN_VALUE) <= player.serverLevel().getGameTime()) {
+            COMPLETION_COOLDOWNS.remove(player.getUUID());
+        }
         ScanSession session = SESSIONS.get(player.getUUID());
         if (session == null) {
             return;
@@ -172,6 +181,7 @@ public final class EntityScannerItem extends Item {
 
     public static void clearSession(ServerPlayer player) {
         clear(player);
+        COMPLETION_COOLDOWNS.remove(player.getUUID());
     }
 
     private static LivingEntity aimedLivingEntity(ServerPlayer player) {
@@ -213,6 +223,10 @@ public final class EntityScannerItem extends Item {
     private static boolean isDifferentTarget(ServerPlayer player, LivingEntity target) {
         ScanSession session = SESSIONS.get(player.getUUID());
         return session != null && !session.targetId().equals(target.getUUID());
+    }
+
+    private static boolean isCoolingDown(ServerPlayer player) {
+        return COMPLETION_COOLDOWNS.getOrDefault(player.getUUID(), Long.MIN_VALUE) > player.serverLevel().getGameTime();
     }
 
     private static boolean alreadyRegistered(ServerPlayer player, ItemStack scanner, LivingEntity target) {

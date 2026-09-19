@@ -31,8 +31,7 @@ public final class EntityScannerEvents {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
-        interceptEntityInteraction(event.getEntity(), event.getTarget());
-        if (event.getEntity().getMainHandItem().is(celerbi.mirageprojector.registry.ModItems.ENTITY_SCANNER.get())) {
+        if (interceptEntityInteraction(event.getEntity(), event.getTarget())) {
             event.setCancellationResult(net.minecraft.world.InteractionResult.CONSUME);
             event.setCanceled(true);
         }
@@ -40,19 +39,21 @@ public final class EntityScannerEvents {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onEntityInteractSpecific(PlayerInteractEvent.EntityInteractSpecific event) {
-        interceptEntityInteraction(event.getEntity(), event.getTarget());
-        if (event.getEntity().getMainHandItem().is(celerbi.mirageprojector.registry.ModItems.ENTITY_SCANNER.get())) {
+        if (interceptEntityInteraction(event.getEntity(), event.getTarget())) {
             event.setCancellationResult(net.minecraft.world.InteractionResult.CONSUME);
             event.setCanceled(true);
         }
     }
 
-    private static void interceptEntityInteraction(
+    private static boolean interceptEntityInteraction(
             net.minecraft.world.entity.player.Player player,
             net.minecraft.world.entity.Entity target
     ) {
-        if (player.getMainHandItem().is(celerbi.mirageprojector.registry.ModItems.ENTITY_SCANNER.get())) {
-            EntityScannerItem.beginScanning(player, target instanceof net.minecraft.world.entity.LivingEntity living ? living : null);
+        if (!player.getMainHandItem().is(celerbi.mirageprojector.registry.ModItems.ENTITY_SCANNER.get())
+                || !(target instanceof net.minecraft.world.entity.LivingEntity living)) {
+            return false;
         }
+        EntityScannerItem.beginScanning(player, living);
+        return true;
     }
 }

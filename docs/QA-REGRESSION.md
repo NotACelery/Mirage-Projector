@@ -1,4 +1,4 @@
-# QA Regression Matrix — Mirage Projector 1.0.23
+# QA Regression Matrix — Mirage Projector 1.0.69
 
 Use this matrix after any 1.0.x patch/compatibility change, and as the baseline before integrating the 1.1.0 feature expansion.
 
@@ -9,7 +9,7 @@ Use this matrix after any 1.0.x patch/compatibility change, and as the baseline 
 - Launch with EMI only.
 - Launch with JEI only.
 - Launch with EMI + JEI together.
-- Confirm client/server protocol agreement at protocol 31.
+- Confirm client/server protocol agreement at protocol 44.
 
 ## Placement and fixed-tab UI
 

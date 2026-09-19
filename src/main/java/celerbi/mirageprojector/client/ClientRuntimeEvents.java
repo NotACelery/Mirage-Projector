@@ -3,6 +3,7 @@ package celerbi.mirageprojector.client;
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.registry.ModItems;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
@@ -22,6 +23,11 @@ public final class ClientRuntimeEvents {
     @SubscribeEvent
     public static void onRenderHand(RenderHandEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
+        if (event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
+                && ClientEntityScanner.isUsingScanner()
+                && event.getItemStack().is(ModItems.ENTITY_SCANNER.get())) {
+            event.getPoseStack().mulPose(Axis.XP.rotationDegrees(-90.0F));
+        }
         if (!(minecraft.screen instanceof DebugHandbookScreen)) {
             return;
         }

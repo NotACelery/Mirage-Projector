@@ -1,4 +1,4 @@
-# Projection Power and Chassis — 1.0.26
+# Projection Power and Chassis — 1.0.69
 
 ## Chassis profiles
 

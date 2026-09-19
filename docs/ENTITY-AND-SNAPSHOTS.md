@@ -1,4 +1,4 @@
-# Entity Projection and Snapshots — 1.0.0
+# Entity Projection and Snapshots — 1.0.69
 
 ## Snapshot model
 
@@ -25,7 +25,7 @@ Hiding a projected equipment channel suppresses rendering only. The saved snapsh
 
 ## Supported body modes
 
-Current 1.0.0 behavior covers:
+Current behavior covers:
 
 - generic living entities;
 - Player reconstruction;
@@ -71,5 +71,7 @@ Clearing a virtual snapshot must not delete or duplicate a real inventory stack.
 ## Scan Codex library layer
 
 Starting in 1.0.17, the Mirage Scan Codex stores multiple independent canonical scan roots in server Overworld SavedData. The physical Codex ItemStack stores only a stable library UUID and selected scan UUID. Search/favorites/category UI works from lightweight metadata summaries; full frozen entity data stays server-authoritative until a physical-copy consumer explicitly requests one exact scan root. Since 1.0.23 that consumer is the vanilla-Lectern Codex copy mode.
+
+Since 1.0.57, direct capture is owned exclusively by the Mirage Entity Scanner rather than the Codex or Entity Scan Card. The Scanner holds one Codex, requires a sustained four-block living-entity scan, and writes the completed frozen root directly to that library. Entity Scan Cards remain passive transport/projection containers.
 
 Repeated scans of the same entity type are intentionally separate. The scan UUID, not the entity registry ID, is the library identity.

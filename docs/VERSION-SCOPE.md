@@ -1,5 +1,9 @@
 # Version Scope
 
+## 1.0.69 — Scanner finalization and 1.1.0 documentation reconciliation
+
+The Scanner now holds the main arm straight forward during an active capture in every view and applies a one-second post-capture quiet cooldown. This preserves the successful-capture feedback before duplicate protection becomes eligible again. Current implementation is 1.0.69, network protocol 44 and `ProjectionSettings` format 4. End Resonance and the Scanner/Codex flow are runtime-tested foundations for the 1.1.0 release candidate.
+
 ## 1.0.34 — Roadmap & UX/visual cleanup
 
 Network protocol remains **43** and `ProjectionSettings` remains format **4**. This wave restores the original presentation/Data-show identity **Mirage Wall Projector** and removes the short-lived `mirage_wall_illuminator` experiment; fixes Table workspace navigation so opening a tab does not activate that projection mode; replaces obsolete portable “profile” wording; rebuilds Mirage Flashlight held/placed presentation around one coherent Crying-Obsidian/magenta-glass work-flashlight design with upward Ambient emission; and gives Mirage Light Projector a Crying-Obsidian exterior, Iron interior, larger one-pixel-margin front reflector and explicit four-side Ambient lens state. The 1.1 roadmap is frozen in `NEXT-WAVES-1.1.0.md`; floor-projector yaw/pitch aiming remains deliberately last.

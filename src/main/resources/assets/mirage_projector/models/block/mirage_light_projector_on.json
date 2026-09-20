@@ -4,10 +4,10 @@
 	"parent": "minecraft:block/block",
 	"ambientocclusion": false,
 	"textures": {
+		"2": "minecraft:block/magenta_stained_glass",
 		"particle": "minecraft:block/crying_obsidian",
 		"outer": "minecraft:block/crying_obsidian",
-		"inner": "minecraft:block/iron_block",
-		"glass": "minecraft:block/magenta_stained_glass"
+		"inner": "minecraft:block/iron_block"
 	},
 	"elements": [
 		{
@@ -250,84 +250,77 @@
 			}
 		},
 		{
-			"from": [2, 4, 4],
-			"to": [14, 13, 12],
-			"rotation": {"angle": 0, "axis": "x", "origin": [0, -2, -1]},
+			"from": [2, 5, 4],
+			"to": [14, 13, 13],
+			"rotation": {"angle": 0, "axis": "y", "origin": [0, -2, 0]},
 			"faces": {
 				"north": {"uv": [2, 1, 14, 9], "texture": "#outer"},
-				"east": {"uv": [4, 1, 12, 10], "texture": "#outer"},
+				"east": {"uv": [3, 1, 12, 9], "texture": "#outer"},
 				"south": {"uv": [2, 1, 14, 9], "texture": "#outer"},
-				"west": {"uv": [4, 1, 12, 10], "texture": "#outer"},
-				"up": {"uv": [2, 4, 14, 12], "texture": "#outer"},
+				"west": {"uv": [4, 1, 13, 9], "texture": "#outer"},
+				"up": {"uv": [2, 4, 14, 13], "texture": "#outer"},
 				"down": {"uv": [2, 3, 14, 12], "texture": "#outer"}
 			}
 		},
 		{
-			"name": "Border1",
-			"from": [13, 13, 4],
-			"to": [14, 14, 12],
-			"rotation": {"angle": 0, "axis": "x", "origin": [13, 17, 8]},
+			"from": [13, 5, 3],
+			"to": [14, 13, 4],
+			"rotation": {"angle": 0, "axis": "y", "origin": [13, 9, 2]},
 			"faces": {
-				"north": {"uv": [2, 0, 3, 1], "texture": "#outer"},
-				"east": {"uv": [4, 0, 12, 1], "texture": "#outer"},
-				"south": {"uv": [13, 0, 14, 1], "texture": "#outer"},
-				"west": {"uv": [4, 0, 12, 1], "texture": "#outer"},
-				"up": {"uv": [13, 4, 14, 12], "texture": "#outer"},
+				"north": {"uv": [2, 2, 3, 10], "texture": "#outer"},
+				"east": {"uv": [12, 2, 13, 10], "texture": "#outer"},
+				"south": {"uv": [0, 0, 1, 8], "texture": "#outer"},
+				"west": {"uv": [3, 2, 4, 10], "texture": "#outer"},
+				"up": {"uv": [13, 3, 14, 4], "texture": "#outer"},
 				"down": {"uv": [2, 2, 3, 3], "texture": "#outer"}
 			}
 		},
 		{
-			"name": "Border2",
-			"from": [2, 13, 4],
-			"to": [3, 14, 12],
-			"rotation": {"angle": 0, "axis": "x", "origin": [2, 17, 8]},
+			"from": [2, 5, 3],
+			"to": [3, 13, 4],
+			"rotation": {"angle": 0, "axis": "y", "origin": [2, 9, 2]},
 			"faces": {
-				"north": {"uv": [13, 0, 14, 1], "texture": "#outer"},
-				"east": {"uv": [4, 0, 12, 1], "texture": "#outer"},
-				"south": {"uv": [2, 0, 3, 1], "texture": "#outer"},
-				"west": {"uv": [4, 0, 12, 1], "texture": "#outer"},
-				"up": {"uv": [2, 4, 3, 12], "texture": "#outer"},
+				"north": {"uv": [13, 2, 14, 10], "texture": "#outer"},
+				"east": {"uv": [13, 2, 14, 10], "texture": "#outer"},
+				"south": {"uv": [0, 0, 1, 8], "texture": "#outer"},
+				"west": {"uv": [3, 2, 4, 10], "texture": "#outer"},
+				"up": {"uv": [2, 3, 3, 4], "texture": "#outer"},
 				"down": {"uv": [13, 2, 14, 3], "texture": "#outer"}
 			}
 		},
 		{
-			"name": "Border3",
-			"from": [3, 13, 11],
-			"to": [13, 14, 12],
-			"rotation": {"angle": 0, "axis": "x", "origin": [8, 12, 10]},
+			"from": [3, 6, 3],
+			"to": [13, 12, 4],
+			"rotation": {"angle": 0, "axis": "y", "origin": [0, -2, 0.25]},
+			"faces": {
+				"north": {"uv": [3, 4, 13, 10], "texture": "#2"},
+				"south": {"uv": [3, 4, 13, 10], "texture": "#outer"}
+			}
+		},
+		{
+			"from": [3, 12, 3],
+			"to": [13, 13, 4],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 11, 2]},
 			"faces": {
 				"north": {"uv": [3, 3, 13, 4], "texture": "#outer"},
 				"east": {"uv": [0, 0, 1, 1], "texture": "#outer"},
-				"south": {"uv": [3, 0, 13, 1], "texture": "#outer"},
-				"west": {"uv": [1, 0, 2, 1], "texture": "#outer"},
-				"up": {"uv": [3, 11, 13, 12], "texture": "#outer"}
-			}
-		},
-		{
-			"name": "Border4",
-			"from": [3, 13, 4],
-			"to": [13, 14, 5],
-			"rotation": {"angle": 0, "axis": "x", "origin": [8, 12, 3]},
-			"faces": {
-				"north": {"uv": [3, 0, 13, 1], "texture": "#outer"},
-				"east": {"uv": [0, 0, 1, 1], "texture": "#outer"},
-				"south": {"uv": [3, 0, 13, 1], "texture": "#outer"},
-				"west": {"uv": [1, 0, 2, 1], "texture": "#outer"},
-				"up": {"uv": [3, 4, 13, 5], "texture": "#outer"}
-			}
-		},
-		{
-			"name": "Lens",
-			"from": [3, 13, 5],
-			"to": [13, 14, 11],
-			"rotation": {"angle": 0, "axis": "y", "origin": [3, 12, 9]},
-			"faces": {
-				"north": {"uv": [0, 0, 10, 1], "texture": "#outer"},
-				"east": {"uv": [0, 0, 6, 1], "texture": "#outer"},
 				"south": {"uv": [0, 0, 10, 1], "texture": "#outer"},
-				"west": {"uv": [0, 0, 6, 1], "texture": "#outer"},
-				"up": {"uv": [3, 5, 13, 11], "texture": "#glass"},
-				"down": {"uv": [0, 0, 10, 6], "texture": "#outer"}
+				"west": {"uv": [1, 0, 2, 1], "texture": "#outer"},
+				"up": {"uv": [3, 3, 13, 4], "texture": "#outer"},
+				"down": {"uv": [3, 3, 13, 4], "texture": "#outer"}
+			}
+		},
+		{
+			"from": [3, 5, 3],
+			"to": [13, 6, 4],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 4, 2]},
+			"faces": {
+				"north": {"uv": [3, 10, 13, 11], "texture": "#outer"},
+				"east": {"uv": [0, 0, 1, 1], "texture": "#outer"},
+				"south": {"uv": [0, 0, 10, 1], "texture": "#outer"},
+				"west": {"uv": [1, 0, 2, 1], "texture": "#outer"},
+				"up": {"uv": [3, 3, 13, 4], "texture": "#outer"},
+				"down": {"uv": [3, 3, 13, 4], "texture": "#outer"}
 			}
 		}
 	],

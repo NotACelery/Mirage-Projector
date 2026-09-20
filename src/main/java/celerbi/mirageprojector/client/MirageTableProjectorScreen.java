@@ -41,6 +41,8 @@ import net.neoforged.neoforge.network.PacketDistributor;
  */
 public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<MirageProjectorMenu> {
     private ProjectionSettings base;
+    /** Last settings packet published while this live-edit screen is open. */
+    private ProjectionSettings lastPublishedSettings;
     private ProjectionSettings.SourceMode selectedSourceMode;
     private boolean projectionEnabled;
     private int scalePixels;
@@ -131,6 +133,7 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
         transparencyPercent = base.transparencyPercent();
         tintRgb = base.tintRgb();
         debugChassisOverride = base.debugChassisOverride();
+        lastPublishedSettings = base;
     }
 
     @Override
@@ -146,6 +149,7 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
         int sourceButtonWidth = 127;
         int sourceGap = 5;
         imageModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.image_short"), button -> {
+            saveSettings();
             PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12, y + 40, sourceButtonWidth, 20).build());
         itemModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.item_short"), button -> {
@@ -153,9 +157,11 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
             // shared outline/refresh code stays null-safe.
         }).bounds(x - 200, y + 40, 1, 1).build());
         entityModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.entity_short"), button -> {
+            saveSettings();
             PacketDistributor.sendToServer(new OpenEntityWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12 + sourceButtonWidth + sourceGap, y + 40, sourceButtonWidth, 20).build());
         bannerModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.banner_short"), button -> {
+            saveSettings();
             PacketDistributor.sendToServer(new OpenBannerWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 2, y + 40, sourceButtonWidth, 20).build());
 
@@ -669,9 +675,7 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
     }
 
     private void previewWallSettings() {
-        if (menu.chassisProfile() == ProjectionChassisProfile.WALL) {
-            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), buildSettings()));
-        }
+        publishSettingsIfChanged();
     }
 
     private void restoreFromBase() {
@@ -753,7 +757,18 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
     }
 
     private void saveSettings() {
-        PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), buildSettings()));
+        ProjectionSettings settings = buildSettings();
+        PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), settings));
+        lastPublishedSettings = settings;
+    }
+
+    /** Sends one live update per client tick whenever any control changed. */
+    private void publishSettingsIfChanged() {
+        ProjectionSettings settings = buildSettings();
+        if (!settings.equals(lastPublishedSettings)) {
+            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), settings));
+            lastPublishedSettings = settings;
+        }
     }
 
     private boolean currentProjectionEnabled() {
@@ -871,7 +886,9 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
         Component projectionStateLabel = currentProjectionEnabled()
                 ? Component.translatable("gui.mirage_projector.current_source", sourceName(currentSourceMode()))
                 : Component.translatable("gui.mirage_projector.projector_off");
-        graphics.drawString(font, projectionStateLabel, 14, 62, 0xFF9FBED1, false);
+        // Keep the active-source state within the Sources header instead of letting it
+        // collide with the first row of workspace buttons.
+        graphics.drawString(font, projectionStateLabel, imageWidth - 14 - font.width(projectionStateLabel), 29, 0xFF9FBED1, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.core"), 12, 186, 0xFFBFA5D1, false);
 
         ProjectionCoreProfile core = menu.coreProfile();
@@ -1059,6 +1076,7 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
         } else {
             updateClearance(false);
         }
+        publishSettingsIfChanged();
     }
 
     private void updateClearance(boolean force) {

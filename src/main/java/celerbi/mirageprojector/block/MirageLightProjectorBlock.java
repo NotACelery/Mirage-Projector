@@ -30,28 +30,42 @@ public final class MirageLightProjectorBlock extends BaseEntityBlock {
     public static final MapCodec<MirageLightProjectorBlock> CODEC = simpleCodec(MirageLightProjectorBlock::new);
     public static final net.minecraft.world.level.block.state.properties.DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final BooleanProperty AMBIENT = BooleanProperty.create("ambient");
+    public static final BooleanProperty ACTIVE = BooleanProperty.create("active");
 
     private static final VoxelShape NORTH_SHAPE = Shapes.or(
-            box(3, 0, 3, 13, 2, 13),
-            box(4, 2, 4, 12, 2.25, 12),
-            box(4, 2, 6, 6, 9, 10),
-            box(10, 2, 6, 12, 9, 10),
-            box(4.5, 2.01, 5.75, 5.75, 8.75, 6.01),
-            box(10, 2.01, 5.75, 11.5, 8.75, 6.01),
-            box(3, 8, 3, 13, 15, 12),
-            box(4, 15, 4, 12, 15.25, 11),
-            box(4, 9, 2.75, 12, 14, 3),
-            box(4, 9, 11.99, 12, 14, 12.25),
-            box(2.75, 9, 4, 3.01, 14, 11),
-            box(12.99, 9, 4, 13.25, 14, 11)
+            // Derived from the shared structural elements of the supplied Off/On/Ambient models.
+            // Thin screens, trims and light panels remain non-colliding on purpose.
+            box(0, 0, 0, 16, 1, 16),
+            box(1, 1, 1, 15, 2, 15),
+            box(0, 2, 6, 1, 11, 10),
+            box(15, 2, 6, 16, 11, 10),
+            box(2, 5, 4, 14, 13, 13)
     );
     private static final VoxelShape EAST_SHAPE = rotateY(NORTH_SHAPE);
     private static final VoxelShape SOUTH_SHAPE = rotateY(EAST_SHAPE);
     private static final VoxelShape WEST_SHAPE = rotateY(SOUTH_SHAPE);
+    // The Ambient export has its own low base, side pylons, latch bridges and
+    // 12×10 housing.  Keep the collision footprint faithful to those structural
+    // parts only; the shallow lens surface is already enclosed by the housing.
+    private static final VoxelShape AMBIENT_NORTH_SHAPE = Shapes.or(
+            box(0, 0, 0, 16, 1, 16),
+            box(1, 1, 1, 15, 2, 15),
+            box(1, 2, 6, 5, 3, 10),
+            box(11, 2, 6, 15, 3, 10),
+            box(0, 2, 6, 1, 11, 10),
+            box(15, 2, 6, 16, 11, 10),
+            box(2, 4, 4, 14, 14, 12)
+    );
+    private static final VoxelShape AMBIENT_EAST_SHAPE = rotateY(AMBIENT_NORTH_SHAPE);
+    private static final VoxelShape AMBIENT_SOUTH_SHAPE = rotateY(AMBIENT_EAST_SHAPE);
+    private static final VoxelShape AMBIENT_WEST_SHAPE = rotateY(AMBIENT_SOUTH_SHAPE);
 
     public MirageLightProjectorBlock(BlockBehaviour.Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(AMBIENT, false));
+        registerDefaultState(stateDefinition.any()
+                .setValue(FACING, Direction.NORTH)
+                .setValue(AMBIENT, false)
+                .setValue(ACTIVE, true));
     }
 
     @Override
@@ -67,7 +81,7 @@ public final class MirageLightProjectorBlock extends BaseEntityBlock {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, AMBIENT);
+        builder.add(FACING, AMBIENT, ACTIVE);
     }
 
     @Nullable
@@ -100,6 +114,14 @@ public final class MirageLightProjectorBlock extends BaseEntityBlock {
 
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        if (state.getValue(AMBIENT)) {
+            return switch (state.getValue(FACING)) {
+                case EAST -> AMBIENT_EAST_SHAPE;
+                case SOUTH -> AMBIENT_SOUTH_SHAPE;
+                case WEST -> AMBIENT_WEST_SHAPE;
+                default -> AMBIENT_NORTH_SHAPE;
+            };
+        }
         return switch (state.getValue(FACING)) {
             case EAST -> EAST_SHAPE;
             case SOUTH -> SOUTH_SHAPE;

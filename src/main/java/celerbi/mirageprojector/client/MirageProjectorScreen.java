@@ -36,6 +36,8 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class MirageProjectorScreen extends ResponsiveContainerScreen<MirageProjectorMenu> {
     private ProjectionSettings base;
+    /** Last settings packet published while this live-edit screen is open. */
+    private ProjectionSettings lastPublishedSettings;
     private ProjectionSettings.SourceMode selectedSourceMode;
     private boolean projectionEnabled;
     private int scalePixels;
@@ -129,6 +131,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         transparencyPercent = base.transparencyPercent();
         tintRgb = base.tintRgb();
         debugChassisOverride = base.debugChassisOverride();
+        lastPublishedSettings = base;
     }
 
     @Override
@@ -674,9 +677,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     }
 
     private void previewWallSettings() {
-        if (menu.chassisProfile() == ProjectionChassisProfile.WALL) {
-            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), buildSettings()));
-        }
+        publishSettingsIfChanged();
     }
 
     private void restoreFromBase() {
@@ -758,7 +759,23 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
     }
 
     private void saveSettings() {
-        PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), buildSettings()));
+        ProjectionSettings settings = buildSettings();
+        PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), settings));
+        lastPublishedSettings = settings;
+    }
+
+    /**
+     * All main-projector controls are live edits.  This covers every slider and
+     * button alike without turning a workspace navigation or Close button into a
+     * second, misleading commit step.  One send per client tick avoids flooding
+     * the server while a slider is being dragged.
+     */
+    private void publishSettingsIfChanged() {
+        ProjectionSettings settings = buildSettings();
+        if (!settings.equals(lastPublishedSettings)) {
+            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), settings));
+            lastPublishedSettings = settings;
+        }
     }
 
     private boolean currentProjectionEnabled() {
@@ -928,7 +945,9 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
                 : currentProjectionEnabled()
                 ? Component.translatable("gui.mirage_projector.current_source", sourceName(currentSourceMode()))
                 : Component.translatable("gui.mirage_projector.projector_off");
-        graphics.drawString(font, projectionStateLabel, 14, 62, 0xFF9FBED1, false);
+        // Keep the active-source state within the Sources header instead of letting it
+        // collide with the first row of workspace buttons.
+        graphics.drawString(font, projectionStateLabel, imageWidth - 14 - font.width(projectionStateLabel), 29, 0xFF9FBED1, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.core"), 12, 186, 0xFFBFA5D1, false);
 
         if (endResonanceActive()) {
@@ -1131,6 +1150,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         } else {
             updateClearance(false);
         }
+        publishSettingsIfChanged();
     }
 
     private void updateClearance(boolean force) {

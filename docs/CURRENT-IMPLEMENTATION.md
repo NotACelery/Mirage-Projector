@@ -1,11 +1,11 @@
-# Current Implementation — Mirage Projector 1.0.82
+# Current Implementation — Mirage Projector 1.0.89
 
-Version: **1.0.82**
+Version: **1.0.89**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
 Network protocol: **44**
 
-This document describes the current implementation behavior of Mirage Projector 1.0.82. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.89. Historical development notes are archived under `docs/history/` and are not current authority.
 
 ## Entity Scanner
 
@@ -21,7 +21,7 @@ The inserted Codex supports standard Shift+click transfers: Shift+clicking a Cod
 
 For non-player entities, the inserted Codex rejects a new scan when it already contains that exact source UUID with the same frozen equipment state. The rejection shows its message without starting a use animation or removing the Scanner from view. Players remain rescanable; entities with changed equipment may also be scanned again. Equipment is represented solely by its slots in the Codex—without a count or explanatory label. The active progress meter uses the vanilla magenta stained-glass texture.
 
-The Entity Workspace without a scan card is a deliberate, visible floating humanoid mannequin. Its six equipment slots, scale and humanoid poses remain available so it can be composed like a poseable armour stand. A scanned fish instead always uses its stable native aquatic render state and orientation in the preview and projection; fish continue to show no equipment slots or fish-specific action button. The 3D preview derives its scale from the body bounds with extra model margin, including very large multipart bodies, rather than clipping them to a fixed minimum scale.
+The Entity Workspace without a scan card is a deliberate, visible floating humanoid mannequin. Its six equipment slots, scale and humanoid poses remain available so it can be composed like a poseable armour stand. A scanned fish instead always uses its stable native aquatic render state and orientation in the preview and projection; fish continue to show no equipment slots or fish-specific action button. The 3D preview derives its scale from the body bounds with extra model margin, including very large multipart bodies, rather than clipping them to a fixed minimum scale. Every shared entity preview uses the same bounded, symmetric model-space mouse orbit, so multipart renderers such as the Ender Dragon turn horizontally and vertically without camera-pitch compounding.
 
 While RMB is held with the scanner and an active target scan is underway, only the device-holding arm uses the forward aiming pose in third-person and front-facing player views; first-person keeps its ordinary held-item pose. Focus/Flood Flashlights use that same one-arm pose; Ambient alone raises the holding arm, while Off does not force a pose. A 0–100% HUD meter is shown; its side readouts and one-pixel outline are iron-white, while its fill is vanilla magenta stained glass. Paused snapshots are internal only: they do not add a Jade indicator or any persistent on-screen percentage. A completed scan starts a one-second quiet cooldown so its successful-capture feedback is not immediately replaced by the duplicate-record message.
 

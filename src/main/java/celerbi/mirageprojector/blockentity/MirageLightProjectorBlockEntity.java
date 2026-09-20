@@ -126,12 +126,21 @@ public final class MirageLightProjectorBlockEntity extends BlockEntity implement
         }
         BlockState state = getBlockState();
         boolean ambient = mode == PortableLightMode.AMBIENT;
+        boolean active = mode != PortableLightMode.OFF;
         if (state.hasProperty(MirageFlashlightBeaconBlock.AMBIENT)
                 && state.getValue(MirageFlashlightBeaconBlock.AMBIENT) != ambient) {
             level.setBlock(worldPosition, state.setValue(MirageFlashlightBeaconBlock.AMBIENT, ambient), Block.UPDATE_CLIENTS);
-        } else if (state.hasProperty(MirageLightProjectorBlock.AMBIENT)
-                && state.getValue(MirageLightProjectorBlock.AMBIENT) != ambient) {
-            level.setBlock(worldPosition, state.setValue(MirageLightProjectorBlock.AMBIENT, ambient), Block.UPDATE_CLIENTS);
+        } else if (state.hasProperty(MirageLightProjectorBlock.AMBIENT)) {
+            BlockState updated = state;
+            if (updated.getValue(MirageLightProjectorBlock.AMBIENT) != ambient) {
+                updated = updated.setValue(MirageLightProjectorBlock.AMBIENT, ambient);
+            }
+            if (updated.getValue(MirageLightProjectorBlock.ACTIVE) != active) {
+                updated = updated.setValue(MirageLightProjectorBlock.ACTIVE, active);
+            }
+            if (updated != state) {
+                level.setBlock(worldPosition, updated, Block.UPDATE_CLIENTS);
+            }
         }
     }
 

@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.EntityType;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -69,6 +70,12 @@ public final class EntityProjectionPreviewRenderer {
                 1,
                 72
         );
+        // The Dragon's reported bounds reserve a large amount of invisible multipart
+        // space.  Its fitted preview consequently reads much smaller than its visible
+        // body, so give that one entity the requested 60% display compensation.
+        if (entity.getType() == EntityType.ENDER_DRAGON) {
+            scale = Math.min(72, Math.round(scale * 1.60F));
+        }
 
         HumanoidPoseController.bind(entity, humanoidPose ? state.humanoidPose() : null);
         EntityProjectionClientEntityFactory.prepareVisualFrame(
@@ -115,8 +122,8 @@ public final class EntityProjectionPreviewRenderer {
     ) {
         float centerX = (left + right) / 2.0F;
         float centerY = (top + bottom) / 2.0F;
-        float angleX = (float) Math.atan((centerX - mouseX) / 40.0F);
-        float angleY = (float) Math.atan((centerY - mouseY) / 40.0F);
+        float angleX = previewOrbitDegrees(mouseX, centerX, right - left, 42.0F);
+        float angleY = previewOrbitDegrees(mouseY, centerY, bottom - top, 26.0F);
         renderEntityInViewport(
                 graphics,
                 left,
@@ -130,6 +137,15 @@ public final class EntityProjectionPreviewRenderer {
                 entity,
                 settings
         );
+    }
+
+    /**
+     * Maps the cursor to a bounded, symmetric orbit.  Keeping this in screen-space
+     * makes a small Codex preview and a wide projector workspace behave alike.
+     */
+    private static float previewOrbitDegrees(float cursor, float center, int span, float maximumDegrees) {
+        float halfSpan = Math.max(1.0F, span / 2.0F);
+        return Mth.clamp((center - cursor) / halfSpan, -1.0F, 1.0F) * maximumDegrees;
     }
 
     private static void renderEntityInViewport(
@@ -149,11 +165,14 @@ public final class EntityProjectionPreviewRenderer {
         float centerY = (top + bottom) / 2.0F;
         graphics.enableScissor(left, top, right, bottom);
 
-        // Fish render aquatic through the projection context itself.  Do not rotate their
-        // preview separately: that was what mapped mouse X/Y onto the wrong local axes.
-        Quaternionf orientation = new Quaternionf().rotateZ((float) Math.PI);
-        Quaternionf pitch = new Quaternionf().rotateX(angleY * 20.0F * (float) (Math.PI / 180.0));
-        orientation.mul(pitch);
+        // Rotate the rendered model, rather than relying on each entity renderer's
+        // interpretation of entity yaw/pitch.  Multipart renderers such as the Ender
+        // Dragon do not use those fields uniformly.  This also prevents pitch from
+        // being applied once to the camera and again to the entity.
+        Quaternionf orientation = new Quaternionf()
+                .rotateZ((float) Math.PI)
+                .rotateY(angleX * (float) (Math.PI / 180.0))
+                .rotateX(angleY * (float) (Math.PI / 180.0));
 
         float oldBodyRot = entity.yBodyRot;
         float oldYRot = entity.getYRot();
@@ -161,9 +180,9 @@ public final class EntityProjectionPreviewRenderer {
         float oldHeadRotO = entity.yHeadRotO;
         float oldHeadRot = entity.yHeadRot;
 
-        entity.yBodyRot = 180.0F + angleX * 20.0F;
-        entity.setYRot(180.0F + angleX * 40.0F);
-        entity.setXRot(-angleY * 20.0F);
+        entity.yBodyRot = 180.0F;
+        entity.setYRot(180.0F);
+        entity.setXRot(0.0F);
         entity.yHeadRot = entity.getYRot();
         entity.yHeadRotO = entity.getYRot();
 
@@ -179,7 +198,7 @@ public final class EntityProjectionPreviewRenderer {
         Lighting.setupForEntityInInventory();
 
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        dispatcher.overrideCameraOrientation(pitch.conjugate(new Quaternionf()).rotateY((float) Math.PI));
+        dispatcher.overrideCameraOrientation(new Quaternionf().rotateY((float) Math.PI));
         dispatcher.setRenderShadow(false);
         MultiBufferSource projectionBuffers = ProjectionRenderBuffers.wrap(graphics.bufferSource(), settings);
         try {

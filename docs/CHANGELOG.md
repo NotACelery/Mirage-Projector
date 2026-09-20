@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.0.89 — Dragon preview visibility
+
+- Enlarges the Ender Dragon by 60% in the shared Scan Codex and projector entity previews to compensate for its oversized multipart bounds.
+
+## 1.0.88 — Source header alignment
+
+- Moves the active-source indicator into the right side of the `SOURCE WORKSPACES` header for every fixed projector, clear of the source buttons below.
+
+## 1.0.87 — Rebuilt Ambient light projector
+
+- Replaces the Ambient Light Projector resource with the new rotation-free, hand-assembled Blockbench export.
+- Gives Ambient its own facing-aware collision volume derived from its base, latch bridges, supports and housing.
+
+## 1.0.86 — Restored live projector controls
+
+- Restores immediate server synchronization for every main-projector setting on every chassis, including scale, placement, rotation, floating, lighting and tint.
+- Coalesces slider drags to one update per client tick and preserves the immediate update made before opening a source workspace; Close remains navigation only.
+
+## 1.0.85 — Unified entity preview orbit
+
+- Replaces entity-field mouse rotation with a bounded model-space orbit, so multipart and very large entities, including the Ender Dragon, turn on both axes in every shared preview.
+- Uses the same symmetric vertical range in the Scan Codex and projector workspaces, avoiding compounded pitch that made upward inspection nearly inaccessible.
+
+## 1.0.84 — Ambient model import and structural collision
+
+- Bakes the invalid 90-degree Blockbench element rotations in the supplied Ambient model into native Minecraft block coordinates, restoring a loadable Ambient model.
+- Replaces the legacy Light Projector collision with boxes derived from the supplied model's base, side supports and main housing; decorative screens and trim remain non-colliding.
+
+## 1.0.83 — Handcrafted Mirage Light Projector states
+
+- Integrates the supplied Blockbench models as separate whole-device Off, Focus/Flood and Ambient block states.
+- Adds a block-state-only `active` flag so Focus/Flood no longer share the Off appearance; Ambient continues to select its dedicated model.
+- Rebuilds the inventory and held BlockItem presentation from the supplied Off model.
+- Normalizes the supplied vanilla texture references and replaces unbound Blockbench faces with the outer Crying Obsidian material, preventing missing-texture faces at runtime.
+
 ## 1.0.82 — Table core without glass chamber
 
 - Removes the Table Projector's glass chamber and matching collision volume.

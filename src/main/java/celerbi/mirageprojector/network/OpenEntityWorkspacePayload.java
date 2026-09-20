@@ -49,7 +49,6 @@ public record OpenEntityWorkspacePayload(BlockPos pos) implements CustomPacketPa
             if (!(player.level().getBlockEntity(pos) instanceof MirageProjectorBlockEntity projector)) {
                 return;
             }
-
             SimpleMenuProvider provider = new SimpleMenuProvider(
                     (containerId, inventory, ignored) -> new EntityProjectorMenu(containerId, inventory, projector),
                     Component.translatable("container.mirage_projector.entity_workspace")

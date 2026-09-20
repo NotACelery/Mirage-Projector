@@ -378,22 +378,9 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
             refreshLabels();
         }).bounds(x + 12, row3, wide, 20).build());
 
-        applyButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> {
-            if (!endResonanceActive()) {
-                saveSettings();
-                base = buildSettings();
-                updateClearance(true);
-            }
-        }).bounds(x + 12, y + 382, half, 22).build());
-        cancelButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button -> {
-            if (!endResonanceActive()) {
-                restoreFromBase();
-                PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), base));
-                updateClearance(true);
-            }
-            // Cancel means discard the preview and leave the projector UI.
-            onClose();
-        }).bounds(x + 20 + half, y + 382, half, 22).build());
+        applyButton = addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
+                .bounds(x + 12, y + 382, wide, 22).build());
+        cancelButton = null;
 
         refreshLabels();
         refreshFloatTimingSlider();

@@ -18,6 +18,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
@@ -32,6 +33,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.entity.PartEntity;
 
 public final class EntityScannerItem extends Item {
     private static final String CODEX_TAG = "MirageScannerCodex";
@@ -58,9 +60,19 @@ public final class EntityScannerItem extends Item {
             EntityScannerMenu.open(serverPlayer, hand, scanner);
             return InteractionResultHolder.success(scanner);
         }
-        return beginScanning(player, null).consumesAction()
-                ? InteractionResultHolder.consume(scanner)
-                : InteractionResultHolder.fail(scanner);
+        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
+            LivingEntity target = aimedLivingEntity(serverPlayer);
+            if (target == null) {
+                player.displayClientMessage(Component.translatable(
+                        "message.mirage_projector.entity_scanner.no_valid_target"
+                ), true);
+                return InteractionResultHolder.fail(scanner);
+            }
+            return beginScanning(player, target).consumesAction()
+                    ? InteractionResultHolder.consume(scanner)
+                    : InteractionResultHolder.fail(scanner);
+        }
+        return InteractionResultHolder.consume(scanner);
     }
 
     @Override
@@ -80,15 +92,20 @@ public final class EntityScannerItem extends Item {
         if (!scanner.is(ModItems.ENTITY_SCANNER.get())) {
             return InteractionResult.PASS;
         }
-        if (!player.level().isClientSide && player instanceof ServerPlayer serverPlayer && isCoolingDown(serverPlayer)) {
-            return InteractionResult.CONSUME;
-        }
-        if (!player.level().isClientSide && player instanceof ServerPlayer serverPlayer
-                && containedCodex(scanner, serverPlayer).isEmpty()) {
-            player.displayClientMessage(Component.translatable("message.mirage_projector.entity_scanner.no_codex"), true);
-            return InteractionResult.FAIL;
-        }
-        if (!player.level().isClientSide && player instanceof ServerPlayer serverPlayer && target != null) {
+        if (!player.level().isClientSide && player instanceof ServerPlayer serverPlayer) {
+            if (isCoolingDown(serverPlayer)) {
+                return InteractionResult.CONSUME;
+            }
+            if (target == null || !target.isAlive() || !isWithinScanReach(serverPlayer, target)) {
+                player.displayClientMessage(Component.translatable(
+                        "message.mirage_projector.entity_scanner.no_valid_target"
+                ), true);
+                return InteractionResult.FAIL;
+            }
+            if (containedCodex(scanner, serverPlayer).isEmpty()) {
+                player.displayClientMessage(Component.translatable("message.mirage_projector.entity_scanner.no_codex"), true);
+                return InteractionResult.FAIL;
+            }
             if (isDifferentTarget(serverPlayer, target)) {
                 clear(serverPlayer);
             }
@@ -96,10 +113,10 @@ public final class EntityScannerItem extends Item {
                 player.displayClientMessage(Component.translatable(
                         "message.mirage_projector.entity_scanner.already_registered"
                 ), true);
-                return InteractionResult.FAIL;
+                return InteractionResult.CONSUME;
             }
+            player.startUsingItem(InteractionHand.MAIN_HAND);
         }
-        player.startUsingItem(InteractionHand.MAIN_HAND);
         return InteractionResult.CONSUME;
     }
 
@@ -146,6 +163,7 @@ public final class EntityScannerItem extends Item {
         ScanCodexItem.captureTarget(codex, player, target);
         clear(player);
         COMPLETION_COOLDOWNS.put(player.getUUID(), player.serverLevel().getGameTime() + COMPLETION_COOLDOWN_TICKS);
+        player.getCooldowns().addCooldown(scanner.getItem(), COMPLETION_COOLDOWN_TICKS);
         player.stopUsingItem();
     }
 
@@ -196,13 +214,38 @@ public final class EntityScannerItem extends Item {
                 start,
                 end,
                 player.getBoundingBox().expandTowards(end.subtract(start)).inflate(1.0D),
-                entity -> entity instanceof LivingEntity && entity.isPickable(),
+                entity -> scanTarget(entity) != null
+                        && (entity.isPickable() || entity instanceof PartEntity<?>),
                 maximumDistance
         );
-        if (entityHit == null || !(entityHit.getEntity() instanceof LivingEntity target)) {
+        LivingEntity target = entityHit == null ? null : scanTarget(entityHit.getEntity());
+        if (target == null) {
             return null;
         }
-        return target.isAlive() && player.distanceToSqr(target) <= SCAN_REACH * SCAN_REACH ? target : null;
+        return target.isAlive() && start.distanceToSqr(entityHit.getLocation()) <= SCAN_REACH * SCAN_REACH ? target : null;
+    }
+
+    private static LivingEntity scanTarget(Entity entity) {
+        if (entity instanceof LivingEntity living) {
+            return living;
+        }
+        if (entity instanceof PartEntity<?> part && part.getParent() instanceof LivingEntity living) {
+            return living;
+        }
+        return null;
+    }
+
+    /**
+     * A multipart boss has one logical LivingEntity but several independently hit-tested
+     * parts. Its origin can be far away even when the pointed-at part is in the scanner's
+     * four-block ray, so verify that ray instead of rejecting it by the parent's center.
+     */
+    private static boolean isWithinScanReach(ServerPlayer player, LivingEntity target) {
+        if (player.distanceToSqr(target) <= SCAN_REACH * SCAN_REACH) {
+            return true;
+        }
+        LivingEntity aimed = aimedLivingEntity(player);
+        return aimed != null && aimed.getUUID().equals(target.getUUID());
     }
 
     private static void pause(ServerPlayer player) {

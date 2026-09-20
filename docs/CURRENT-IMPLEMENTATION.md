@@ -1,15 +1,15 @@
-# Current Implementation — Mirage Projector 1.0.69
+# Current Implementation — Mirage Projector 1.0.82
 
-Version: **1.0.69**
+Version: **1.0.82**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
 Network protocol: **44**
 
-This document describes the current implementation behavior of Mirage Projector 1.0.69. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.82. Historical development notes are archived under `docs/history/` and are not current authority.
 
 ## Entity Scanner
 
-The handheld **Mirage Entity Scanner** holds one Scan Codex. Sneak + right-click opens its one-slot configuration screen. Hold right-click while keeping a living entity in the normal four-block interaction reach for 1.5 seconds to write its frozen capture directly into the inserted Codex. Scanning halves movement speed only while the target remains under the reticle. Releasing right-click or looking away pauses and retains the target's progress; resuming on that same living target continues it. Selecting a different target, the target dying, completing the scan, or leaving the server clears that transient snapshot.
+The handheld **Mirage Entity Scanner** holds one Scan Codex. Sneak + right-click opens its one-slot configuration screen. A scan begins only when right-click targets a living entity within the normal four-block interaction reach; an empty or invalid target reports `No valid entity targeted.` without beginning use or slowing the player. Multipart bosses resolve from the pointed-at part to their living parent, so an Ender Dragon can be scanned from any part actually reached by the four-block ray. Hold right-click on a valid target for 1.5 seconds to write its frozen capture directly into the inserted Codex. Scanning halves movement speed only while the target remains under the reticle. Releasing right-click or looking away pauses and retains the target's progress; resuming on that same living target continues it. Selecting a different target, the target dying, completing the scan, or leaving the server clears that transient snapshot.
 
 The Scanner is main-hand only. With it in the main hand, its entity scan action takes precedence over entity interactions such as mounting, taming, breeding, or equipping a mule; its configuration screen cannot be opened from the off hand.
 
@@ -19,9 +19,11 @@ Opening the Scanner menu locks its originating main-hand hotbar slot. The Scanne
 
 The inserted Codex supports standard Shift+click transfers: Shift+clicking a Codex from the inventory inserts it when the Scanner slot is empty, and Shift+clicking the inserted Codex returns it to the inventory.
 
-For non-player entities, the inserted Codex rejects a new scan when it already contains that exact source UUID with the same frozen equipment state. Players remain rescanable; entities with changed equipment may also be scanned again. Equipment is represented solely by its slots in the Codex—without a count or explanatory label. The active progress meter uses the vanilla magenta stained-glass texture.
+For non-player entities, the inserted Codex rejects a new scan when it already contains that exact source UUID with the same frozen equipment state. The rejection shows its message without starting a use animation or removing the Scanner from view. Players remain rescanable; entities with changed equipment may also be scanned again. Equipment is represented solely by its slots in the Codex—without a count or explanatory label. The active progress meter uses the vanilla magenta stained-glass texture.
 
-While RMB is held with the scanner and an active target scan is underway, the main arm is held straight forward in first-person and every player render view. A 0–100% HUD meter is shown; its side readouts and one-pixel outline are iron-white, while its fill is vanilla magenta stained glass. Paused snapshots are internal only: they do not add a Jade indicator or any persistent on-screen percentage. A completed scan starts a one-second quiet cooldown so its successful-capture feedback is not immediately replaced by the duplicate-record message.
+The Entity Workspace without a scan card is a deliberate, visible floating humanoid mannequin. Its six equipment slots, scale and humanoid poses remain available so it can be composed like a poseable armour stand. A scanned fish instead always uses its stable native aquatic render state and orientation in the preview and projection; fish continue to show no equipment slots or fish-specific action button. The 3D preview derives its scale from the body bounds with extra model margin, including very large multipart bodies, rather than clipping them to a fixed minimum scale.
+
+While RMB is held with the scanner and an active target scan is underway, only the device-holding arm uses the forward aiming pose in third-person and front-facing player views; first-person keeps its ordinary held-item pose. Focus/Flood Flashlights use that same one-arm pose; Ambient alone raises the holding arm, while Off does not force a pose. A 0–100% HUD meter is shown; its side readouts and one-pixel outline are iron-white, while its fill is vanilla magenta stained glass. Paused snapshots are internal only: they do not add a Jade indicator or any persistent on-screen percentage. A completed scan starts a one-second quiet cooldown so its successful-capture feedback is not immediately replaced by the duplicate-record message.
 
 The Codex and empty Scan Templates never capture entities directly. The Scanner is the exclusive capture tool; a Codex mounted on a lectern is the exclusive path for copying a stored record to an empty Scan Template.
 
@@ -110,7 +112,7 @@ Wall is Image-only. Target validation belongs to `WallProjectionSurface`, not ge
 
 ### Presentation Deck / automatic playback
 
-Table and Wall/Data-show own the same ordered nine-image Presentation Deck. The Image Workspace can import/replace, clear, reorder, select the current slide and move Previous/Next. Automatic Presentation is optional and uses a **1–120 second** user interval. Server-side ticking advances only when projection is enabled and at least two deck images exist. Manual current-slide changes from either the workspace or Presentation Remote do not reset the elapsed automatic clock. Automatic mode stays enabled and the next timed advance occurs on the same cadence it already had; only toggling Automatic Presentation or changing its interval starts a fresh countdown. With automatic mode disabled, the selected slide is stable until the user explicitly changes it.
+Table and Wall/Data-show own the same ordered nine-image Presentation Deck. The Image Workspace can import/replace, clear, reorder, select the current slide and move Previous/Next. Automatic Presentation is optional and uses a **1–120 second** user interval. Server-side ticking advances only while Image is the active source, projection is enabled and at least two deck images exist; the Table deck can never overwrite an active Entity or Banner source. Manual current-slide changes from either the workspace or Presentation Remote do not reset the elapsed automatic clock. Automatic mode stays enabled and the next timed advance occurs on the same cadence it already had; only toggling Automatic Presentation or changing its interval starts a fresh countdown. With automatic mode disabled, the selected slide is stable until the user explicitly changes it.
 
 Wall/Data-show may contain one physical `Presentation Remote` in its top pairing dock. Inserting a remote binds it to a persistent projector link UUID plus current dimension/position. Sneak + empty-hand RMB retrieves it before the normal packed-projector pickup gesture. A bound handheld remote opens a non-pausing, no-background controller while RMB is held: `<--`, `-`, `-->`. The cursor starts neutral; releasing RMB on left/right sends one previous/next action. Server validation requires the same dimension, a currently loaded target chunk, the Wall chassis and the exact persistent link UUID, so a replacement projector at the same coordinates cannot inherit the old control. The remote does not force-load chunks.
 
@@ -199,7 +201,7 @@ A fixed projector keeps these concepts separate:
 
 ## Main projector settings UI
 
-The main projector screen uses a fixed option area with four mutually exclusive tabs: **Geometry**, **Placement**, **Rotation** and **Floating**. Geometry also contains Lighting, Ghost/opacity and Tint. Switching tabs only changes the controls inside that area; Source Workspaces, Power / Capacity, Core slot, inventory and Apply / Cancel stay anchored. The compact 412-pixel panel fits 1920×1080 at GUI Scale 2 without responsive scrolling, while the existing scrollbar remains available at smaller effective heights.
+The main projector screen uses a fixed option area with four mutually exclusive tabs: **Geometry**, **Placement**, **Rotation** and **Floating**. Geometry also contains Lighting, Ghost/opacity and Tint. Switching tabs only changes the controls inside that area; Source Workspaces, Power / Capacity, Core slot, inventory and the single Close action stay anchored. The compact 412-pixel panel fits 1920×1080 at GUI Scale 2 without responsive scrolling, while the existing scrollbar remains available at smaller effective heights.
 
 ## Projection source architecture
 

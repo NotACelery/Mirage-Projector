@@ -727,5 +727,6 @@
   "tooltip.mirage_projector.entity_scanner.scan": "Hold Right-click while aiming at an entity to scan it into the inserted Codex.",
   "tooltip.mirage_projector.entity_scanner.configure": "Sneak + Right-click: insert or remove a Scan Codex.",
   "message.mirage_projector.entity_scanner.no_codex": "Insert a Scan Codex into the Entity Scanner first.",
+  "message.mirage_projector.entity_scanner.no_valid_target": "No valid entity targeted.",
   "message.mirage_projector.entity_scanner.already_registered": "This exact entity is already registered in the inserted Scan Codex."
 }

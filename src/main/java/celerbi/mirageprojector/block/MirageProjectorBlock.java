@@ -147,8 +147,7 @@ public class MirageProjectorBlock extends BaseEntityBlock {
             box(2, 0, 2, 14, 2, 14),
             box(4, 2, 4, 12, 3, 12),
             box(3, 2, 7, 13, 4, 9),
-            box(7, 2, 3, 9, 4, 13),
-            box(5.25, 3.25, 5.25, 10.75, 5.75, 10.75)
+            box(7, 2, 3, 9, 4, 13)
     );
 
     // NORTH-facing data-show body. Maximum Y is 6 px: visibly smaller than a vanilla slab.

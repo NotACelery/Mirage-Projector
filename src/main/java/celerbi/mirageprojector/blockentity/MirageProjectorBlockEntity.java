@@ -368,6 +368,9 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             }
             wallSlideIndex = imageSourceBank.normalizePresentIndex(requestedWallSlideIndex);
             ImageSourceBank.Asset active = activeWallImageFromBank(next);
+            // Editing the image deck intentionally selects Image, but the deck itself is shared
+            // by Table and Wall.  Table may subsequently project Entity or Banner; only Wall is
+            // image-only by chassis contract.
             next = next.withSourceMode(ProjectionSettings.SourceMode.IMAGE)
                     .withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
             if (chassisProfile() == ProjectionChassisProfile.WALL) {
@@ -579,6 +582,7 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
         }
         if (!projector.supportsPresentationDeck() || !projector.automaticPresentationEnabled
                 || !projector.projectionEnabled()
+                || !projector.settings.sourceMode().equals(ProjectionSettings.SourceMode.IMAGE)
                 || projector.imageSourceBank.countPresent(ImageSourceBank.PERSISTED_COMPAT_SLOTS) < 2) {
             return;
         }
@@ -1209,12 +1213,16 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
                     : (tag.contains("WallSlideIndex") ? tag.getInt("WallSlideIndex") : 0);
             wallSlideIndex = imageSourceBank.normalizePresentIndex(savedSlideIndex);
             ImageSourceBank.Asset active = activeWallImageFromBank(settings);
-            settings = settings.withSourceMode(ProjectionSettings.SourceMode.IMAGE)
-                    .withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
+            // The presentation deck owns image assets for both chassis, not the active source
+            // for Table.  Forcing Image here runs on every client sync as well as world load,
+            // which made a successfully activated Table Entity/Banner source immediately look
+            // like Image again.  Wall still has its image-only normalization below.
+            settings = settings.withImageLayoutMode(ProjectionSettings.ImageLayoutMode.SINGLE);
             if (chassisProfile() == ProjectionChassisProfile.WALL) {
-                settings = settings.withBackFaceMode(ProjectionSettings.BackFaceMode.FRONT);
+                settings = settings.withSourceMode(ProjectionSettings.SourceMode.IMAGE)
+                        .withBackFaceMode(ProjectionSettings.BackFaceMode.FRONT);
             }
-            if (active.present()) {
+            if (active.present() && settings.sourceMode().equals(ProjectionSettings.SourceMode.IMAGE)) {
                 settings = settings.withImage(active.id(), active.width(), active.height());
             }
             automaticPresentationEnabled = tag.getBoolean("AutomaticPresentation");

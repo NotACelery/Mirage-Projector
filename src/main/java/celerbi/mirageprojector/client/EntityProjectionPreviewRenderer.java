@@ -14,7 +14,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.AbstractFish;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -63,9 +62,11 @@ public final class EntityProjectionPreviewRenderer {
         float fitWidth = Math.max(8.0F, width - 16.0F);
         float fitHeight = Math.max(8.0F, height - 18.0F);
 
+        // Models from addons (and the Dragon) can extend beyond their nominal entity scale.
+        // Leave a deliberate visual margin and permit sub-4px scales instead of clipping them.
         int scale = Mth.clamp(
-                (int) Math.floor(Math.min(fitWidth / entityWidth, fitHeight / entityHeight)),
-                4,
+                (int) Math.floor(Math.min(fitWidth / entityWidth, fitHeight / entityHeight) * 0.82F),
+                1,
                 72
         );
 
@@ -148,10 +149,9 @@ public final class EntityProjectionPreviewRenderer {
         float centerY = (top + bottom) / 2.0F;
         graphics.enableScissor(left, top, right, bottom);
 
+        // Fish render aquatic through the projection context itself.  Do not rotate their
+        // preview separately: that was what mapped mouse X/Y onto the wrong local axes.
         Quaternionf orientation = new Quaternionf().rotateZ((float) Math.PI);
-        if (entity instanceof AbstractFish) {
-            orientation.rotateZ(-(float) Math.PI / 2.0F);
-        }
         Quaternionf pitch = new Quaternionf().rotateX(angleY * 20.0F * (float) (Math.PI / 180.0));
         orientation.mul(pitch);
 
@@ -223,15 +223,6 @@ public final class EntityProjectionPreviewRenderer {
 
         Optional<EntityScanData.View> active = state.activeEntity();
         if (active.isEmpty()) {
-            if (!state.hasVisibleProjectedHumanoidEquipment()) {
-                cachedEntity = null;
-                cachedScanId = null;
-                cachedEquipmentFingerprint = "";
-                creationFailed = false;
-                cachedLevel = level;
-                return null;
-            }
-
             String fingerprint = EntityProjectionClientEntityFactory.equipmentFingerprint(
                     state,
                     EntityScanData.Kind.HUMANOID

@@ -130,7 +130,7 @@ public final class WallProjectionSurface {
         double yOffset = settings.verticalOffsetPixels() * PIXEL;
         double centerX = projectorPos.getX() + 0.5D + right.getStepX() * xOffset;
         double centerZ = projectorPos.getZ() + 0.5D + right.getStepZ() * xOffset;
-        double centerY = projectorPos.getY() + LENS_CENTER_Y_PIXELS * PIXEL + yOffset;
+        double centerY = projectorPos.getY() + yOffset + Math.max(1, size.heightPixels()) * PIXEL * 0.5D;
 
         BlockPos wall = target.wallBlock();
         switch (facing) {

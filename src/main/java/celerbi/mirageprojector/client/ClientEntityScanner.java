@@ -1,20 +1,20 @@
 package celerbi.mirageprojector.client;
 
+import celerbi.mirageprojector.item.MirageFlashlightItem;
+import celerbi.mirageprojector.light.device.PortableLightMode;
 import celerbi.mirageprojector.network.EntityScannerProgressPayload;
 import celerbi.mirageprojector.registry.ModItems;
-import java.util.IdentityHashMap;
-import java.util.Map;
-import net.minecraft.client.model.PlayerModel;
+import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
 public final class ClientEntityScanner {
     private static boolean active;
     private static int progress;
     private static int totalTicks = 30;
-    private static final Map<PlayerModel<?>, ArmPose> ARM_POSES = new IdentityHashMap<>();
 
     private ClientEntityScanner() {
     }
@@ -46,34 +46,53 @@ public final class ClientEntityScanner {
         active = false;
         progress = 0;
         totalTicks = 30;
-        ARM_POSES.clear();
     }
 
-    public static void poseScanningArm(Player player, PlayerRenderer renderer) {
-        if (!player.isUsingItem() || !player.getUseItem().is(ModItems.ENTITY_SCANNER.get())) {
+    /** Applies after vanilla setupAnim so only the device-holding arm is altered. */
+    public static void applyHeldDevicePose(LivingEntity entity, HumanoidModel<?> model) {
+        if (!(entity instanceof Player player) || model == null) {
             return;
         }
-        PlayerModel<?> model = renderer.getModel();
-        var arm = player.getUsedItemHand() == InteractionHand.MAIN_HAND
-                ? (player.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm)
-                : (player.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm);
-        ARM_POSES.put(model, new ArmPose(arm, arm.xRot, arm.yRot, arm.zRot));
-        arm.xRot = -(float) Math.PI / 2.0F;
-        arm.yRot = 0.0F;
-        arm.zRot = 0.0F;
-    }
-
-    public static void restoreScanningArm(PlayerRenderer renderer) {
-        PlayerModel<?> model = renderer.getModel();
-        ArmPose pose = ARM_POSES.remove(model);
-        if (pose == null) {
+        // First-person has its own hand renderer.  Altering the shared humanoid model there
+        // reads as a thrown trident instead of a held scanner/light, so leave that view vanilla.
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == player && minecraft.options.getCameraType().isFirstPerson()) {
             return;
         }
-        pose.arm().xRot = pose.xRot();
-        pose.arm().yRot = pose.yRot();
-        pose.arm().zRot = pose.zRot();
+        HeldPresentation presentation = activePresentation(player);
+        if (presentation == null) {
+            return;
+        }
+        HumanoidArm arm = presentation.hand() == InteractionHand.MAIN_HAND
+                ? player.getMainArm()
+                : player.getMainArm().getOpposite();
+        float xRotation = presentation.ambient() ? (float) Math.toRadians(-135.0D) : (float) Math.toRadians(-90.0D);
+        if (arm == HumanoidArm.RIGHT) {
+            model.rightArm.xRot = xRotation;
+            model.rightArm.yRot = 0.0F;
+            model.rightArm.zRot = 0.0F;
+        } else {
+            model.leftArm.xRot = xRotation;
+            model.leftArm.yRot = 0.0F;
+            model.leftArm.zRot = 0.0F;
+        }
     }
 
-    private record ArmPose(net.minecraft.client.model.geom.ModelPart arm, float xRot, float yRot, float zRot) {
+    private static HeldPresentation activePresentation(Player player) {
+        if (player.isUsingItem() && player.getUseItem().is(ModItems.ENTITY_SCANNER.get())) {
+            return new HeldPresentation(player.getUsedItemHand(), false);
+        }
+        if (!MirageFlashlightItem.emitting(player.getMainHandItem())) {
+            return null;
+        }
+        PortableLightMode mode = MirageFlashlightItem.mode(player.getMainHandItem());
+        return switch (mode) {
+            case FOCUS, FLOOD -> new HeldPresentation(InteractionHand.MAIN_HAND, false);
+            case AMBIENT -> new HeldPresentation(InteractionHand.MAIN_HAND, true);
+            case OFF -> null;
+        };
+    }
+
+    private record HeldPresentation(InteractionHand hand, boolean ambient) {
     }
 }

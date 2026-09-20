@@ -2,17 +2,14 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.network.ShoulderEquipmentActionPayload;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -32,7 +29,7 @@ public final class MirageEquipmentClientEvents {
     private static int toggleX;
     private static int toggleY;
     private static boolean toggleReady;
-    private static Field creativeSelectedTabField;
+    private static Button creativeToggleButton;
 
     private MirageEquipmentClientEvents() {
     }
@@ -58,9 +55,18 @@ public final class MirageEquipmentClientEvents {
         int rightEdge = guiLeft + inventory.getXSize();
         boolean creative = inventory instanceof CreativeModeInventoryScreen;
 
-        toggleX = rightEdge - 20;
+        toggleX = creative ? rightEdge + 4 : rightEdge - 20;
         toggleY = guiTop + 6;
         toggleReady = true;
+        if (creative) {
+            creativeToggleButton = Button.builder(
+                    Component.literal(equipmentPanelOpen ? "‹" : "›"),
+                    ignored -> togglePanel(screen)
+            ).bounds(toggleX, toggleY, 14, 18).build();
+            event.addListener(creativeToggleButton);
+        } else {
+            creativeToggleButton = null;
+        }
         int panelX = rightEdge + 5;
         int panelY = guiTop + 3;
 
@@ -119,7 +125,8 @@ public final class MirageEquipmentClientEvents {
         }
 
         applyInventoryTabVisibility(event.getScreen());
-        if (toggleReady && equipmentVisible(event.getScreen())) {
+        if (toggleReady && equipmentVisible(event.getScreen())
+                && !(event.getScreen() instanceof CreativeModeInventoryScreen)) {
             var graphics = event.getGuiGraphics();
             boolean hovered = event.getMouseX() >= toggleX && event.getMouseX() < toggleX + 14
                     && event.getMouseY() >= toggleY && event.getMouseY() < toggleY + 18;
@@ -137,11 +144,10 @@ public final class MirageEquipmentClientEvents {
         if (event.getScreen() != equipmentScreen || !equipmentVisible(event.getScreen())) {
             return;
         }
-        if (toggleReady && event.getButton() == 0
+        if (toggleReady && !(event.getScreen() instanceof CreativeModeInventoryScreen) && event.getButton() == 0
                 && event.getMouseX() >= toggleX && event.getMouseX() < toggleX + 14
                 && event.getMouseY() >= toggleY && event.getMouseY() < toggleY + 18) {
-            equipmentPanelOpen = !equipmentPanelOpen;
-            MinecraftScreenReinitializer.reinitialize(event.getScreen());
+            togglePanel(event.getScreen());
             capturedEquipmentButton = event.getButton();
             event.setCanceled(true);
             return;
@@ -189,29 +195,9 @@ public final class MirageEquipmentClientEvents {
             return true;
         }
         if (screen instanceof CreativeModeInventoryScreen) {
-            return isCreativeSurvivalInventory();
+            return true;
         }
         return false;
-    }
-
-    private static boolean isCreativeSurvivalInventory() {
-        var screen = net.minecraft.client.Minecraft.getInstance().screen;
-        if (!(screen instanceof CreativeModeInventoryScreen creative)) {
-            return false;
-        }
-        try {
-            if (creativeSelectedTabField == null) {
-                creativeSelectedTabField = CreativeModeInventoryScreen.class.getDeclaredField("selectedTab");
-                creativeSelectedTabField.setAccessible(true);
-            }
-            Object selected = Modifier.isStatic(creativeSelectedTabField.getModifiers())
-                    ? creativeSelectedTabField.get(null)
-                    : creativeSelectedTabField.get(creative);
-            Object inventoryTab = BuiltInRegistries.CREATIVE_MODE_TAB.get(CreativeModeTabs.INVENTORY);
-            return creative.isInventoryOpen() || selected == inventoryTab || inventoryTab.equals(selected);
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
-            return creative.isInventoryOpen();
-        }
     }
 
     private static boolean insideEquipmentSafeZone(Screen screen, double mouseX, double mouseY) {
@@ -237,6 +223,12 @@ public final class MirageEquipmentClientEvents {
         equipmentSlots.clear();
         capturedEquipmentButton = -1;
         toggleReady = false;
+        creativeToggleButton = null;
+    }
+
+    private static void togglePanel(Screen screen) {
+        equipmentPanelOpen = !equipmentPanelOpen;
+        MinecraftScreenReinitializer.reinitialize(screen);
     }
 
     static void refreshIfInventoryOpen() {
@@ -249,13 +241,7 @@ public final class MirageEquipmentClientEvents {
     }
 
     @SubscribeEvent
-    public static void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
-        ClientEntityScanner.poseScanningArm(event.getEntity(), event.getRenderer());
-    }
-
-    @SubscribeEvent
     public static void onRenderPlayer(RenderPlayerEvent.Post event) {
-        ClientEntityScanner.restoreScanningArm(event.getRenderer());
         ClientShoulderEquipment.renderMountedDevice(
                 event.getEntity(),
                 event.getPoseStack(),

@@ -22,7 +22,9 @@ public record ProjectorVisualLayout(
             case TALL -> new ProjectorVisualLayout(12, 6, 15, CORE_SCALE);
             case FIELD -> new ProjectorVisualLayout(9, 6, 13, CORE_SCALE);
             case PRISM -> new ProjectorVisualLayout(12, 7, 16, CORE_SCALE);
-            case TABLE -> new ProjectorVisualLayout(6, 4.5F, 11, 0.13F);
+            // Table shares Wall's physical core scale; its raised center clears the low frame
+            // through the entire intentional bob without needing a glass chamber.
+            case TABLE -> new ProjectorVisualLayout(9, 7, 11, CORE_SCALE);
             case WALL -> new ProjectorVisualLayout(6, 8, 12, CORE_SCALE);
             default -> new ProjectorVisualLayout(9, 5, 14, CORE_SCALE);
         };

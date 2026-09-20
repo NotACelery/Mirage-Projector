@@ -16,7 +16,6 @@ import celerbi.mirageprojector.network.OpenImageWorkspacePayload;
 import celerbi.mirageprojector.network.OpenItemWorkspacePayload;
 import celerbi.mirageprojector.network.UpdateProjectorPayload;
 import celerbi.mirageprojector.network.SetProjectionEnabledPayload;
-import celerbi.mirageprojector.network.SetProjectionSourcePayload;
 import celerbi.mirageprojector.network.UnpairPresentationRemotePayload;
 import java.util.ArrayList;
 import java.util.List;
@@ -147,8 +146,6 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
         int sourceButtonWidth = 127;
         int sourceGap = 5;
         imageModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.image_short"), button -> {
-            saveSettings();
-            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.IMAGE));
             PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12, y + 40, sourceButtonWidth, 20).build());
         itemModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.item_short"), button -> {
@@ -156,13 +153,9 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
             // shared outline/refresh code stays null-safe.
         }).bounds(x - 200, y + 40, 1, 1).build());
         entityModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.entity_short"), button -> {
-            saveSettings();
-            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.ENTITY));
             PacketDistributor.sendToServer(new OpenEntityWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12 + sourceButtonWidth + sourceGap, y + 40, sourceButtonWidth, 20).build());
         bannerModeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.banner_short"), button -> {
-            saveSettings();
-            PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.BANNER));
             PacketDistributor.sendToServer(new OpenBannerWorkspacePayload(menu.projectorPos()));
         }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 2, y + 40, sourceButtonWidth, 20).build());
 
@@ -382,18 +375,8 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
             refreshLabels();
         }).bounds(x + 12, row3, wide, 20).build());
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> {
-            saveSettings();
-            base = buildSettings();
-            updateClearance(true);
-        }).bounds(x + 12, y + 382, half, 22).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button -> {
-            restoreFromBase();
-            PacketDistributor.sendToServer(new UpdateProjectorPayload(menu.projectorPos(), base));
-            updateClearance(true);
-            // Cancel means discard the preview and leave the projector UI.
-            onClose();
-        }).bounds(x + 20 + half, y + 382, half, 22).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
+                .bounds(x + 12, y + 382, wide, 22).build());
 
         refreshLabels();
         refreshFloatTimingSlider();

@@ -857,11 +857,6 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
 
         var active = blockEntity.entityProjectionState().activeEntity();
         if (active.isEmpty()) {
-            if (!blockEntity.entityProjectionState().hasVisibleProjectedHumanoidEquipment()) {
-                entityCache.remove(blockEntity);
-                return null;
-            }
-
             String fingerprint = EntityProjectionClientEntityFactory.equipmentFingerprint(
                     blockEntity.entityProjectionState(),
                     celerbi.mirageprojector.entity.EntityScanData.Kind.HUMANOID
@@ -1204,8 +1199,8 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         );
 
         poseStack.mulPose(Axis.YP.rotationDegrees(-rotation));
-        // The Table chamber is only 2.5 px tall. Keep its real installed Core upright so the
-        // rotating/bobbing item stays inside the glass instead of clipping through base/lid.
+        // The Table uses Wall's full core scale, but keeps it upright and raised enough to
+        // clear the low frame throughout the intentional floating movement.
         if (blockEntity.chassisProfile() != ProjectionChassisProfile.TABLE) {
             poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
         }

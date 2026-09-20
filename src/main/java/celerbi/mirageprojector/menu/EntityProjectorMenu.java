@@ -198,6 +198,8 @@ public final class EntityProjectorMenu extends AbstractContainerMenu {
             return projector.stagedEntityCardKind();
         }
 
+        // A blank Entity workspace is an intentionally bodyless humanoid mannequin: players
+        // may assemble, pose and scale it before inserting a scanned entity.
         return EntityScanData.Kind.HUMANOID;
     }
 

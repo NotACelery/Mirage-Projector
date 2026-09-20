@@ -728,5 +728,6 @@
   "tooltip.mirage_projector.entity_scanner.scan": "Mantén clic derecho apuntando a una entidad para escanearla al Codex insertado.",
   "tooltip.mirage_projector.entity_scanner.configure": "Agachado + clic derecho: inserta o retira un Codex de Escaneo.",
   "message.mirage_projector.entity_scanner.no_codex": "Primero inserta un Codex de Escaneo en el Escáner de Entidades.",
+  "message.mirage_projector.entity_scanner.no_valid_target": "No se apunta a ninguna entidad válida.",
   "message.mirage_projector.entity_scanner.already_registered": "Esta entidad exacta ya está registrada en el Codex de Escaneo insertado."
 }

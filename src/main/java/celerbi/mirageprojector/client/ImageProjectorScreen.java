@@ -598,7 +598,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
     }
 
     private ProjectionSettings.SourceMode currentSourceMode() {
-        return menu.initialSettings().sourceMode();
+        return menu.projector() == null ? menu.initialSettings().sourceMode() : menu.projector().settings().sourceMode();
     }
 
     private void apply(boolean returnToMain) {

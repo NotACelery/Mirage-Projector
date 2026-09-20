@@ -24,6 +24,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.animal.horse.Horse;
+import net.minecraft.world.entity.animal.AbstractFish;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
@@ -64,6 +65,11 @@ public final class EntityProjectionClientEntityFactory {
 
             living.load(scan.entityData().copy());
             normalizeForProjection(living);
+            if (living instanceof AbstractFish fish) {
+                // A frozen projection has no real fluid block around it.  Keep the fish
+                // weightless so the visual snapshot remains a swimming specimen, not a flop.
+                fish.setNoGravity(true);
+            }
             if (!scan.playerSource() && scan.hadCustomName()) {
                 String frozenName = scan.projectionNameplateText();
                 if (!frozenName.isBlank()) {
@@ -114,14 +120,12 @@ public final class EntityProjectionClientEntityFactory {
     }
 
     public static LivingEntity createBodylessHumanoid(EntityProjectionState state, ClientLevel level) {
-        if (!state.hasVisibleProjectedHumanoidEquipment()) {
-            return null;
-        }
-
         GameProfile profile = new GameProfile(BODYLESS_MANNEQUIN_UUID, "Mirage");
         MirageRemotePlayer mannequin = new MirageRemotePlayer(level, profile, null);
         normalizeForProjection(mannequin);
-        mannequin.setInvisible(true);
+        // This is the deliberately visible, floating mannequin behind an empty Entity
+        // workspace. Equipment can be assembled before any scanned body is selected.
+        mannequin.setInvisible(false);
         applyProjectedEquipment(mannequin, state, EntityScanData.Kind.HUMANOID);
         return mannequin;
     }

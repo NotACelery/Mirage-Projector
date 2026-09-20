@@ -85,7 +85,7 @@ public final class ItemProjectorScreen extends ResponsiveContainerScreen<ItemPro
     }
 
     private ProjectionSettings.SourceMode currentSourceMode() {
-        return menu.initialSettings().sourceMode();
+        return menu.projector() == null ? menu.initialSettings().sourceMode() : menu.projector().settings().sourceMode();
     }
 
     @Override

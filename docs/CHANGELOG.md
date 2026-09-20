@@ -1,10 +1,79 @@
 # Changelog
 
+## 1.0.82 — Table core without glass chamber
+
+- Removes the Table Projector's glass chamber and matching collision volume.
+- Gives the floating Table Core the same full render scale as the Wall Projector Core, while retaining a raised, collision-free orbit over the Table frame.
+
+## 1.0.81 — Table projector core chamber
+
+- Interim glass-chamber repair; replaced by the larger chamberless core presentation in 1.0.82.
+
+## 1.0.80 — Stable fish presentation
+
+- Makes the stable aquatic swimming frame mandatory for all fish projections and previews.
+- Removes the fish `Swimming` toggle, its action payload and stored state, so existing projectors also stop using the unstable frame after reload.
+
+## 1.0.79 — Fish orientation, large previews and multipart scans
+
+- Removes the fish-only preview quarter-turn. Preview mouse X/Y now use the same axes as every other entity, while the fish keeps its normal aquatic orientation.
+- Preserves the non-flopping aquatic renderer state for vanilla and modded fish; 1.0.80 makes that stable path unconditional.
+- Fits Entity Workspace previews with intentional model margin and supports sub-4px scales, so large bodies such as horses, addon mobs and the Ender Dragon remain inside the viewport.
+- Scanner raycasts resolve NeoForge multipart entities to their living parent and validate the pointed-at part's hit location. Ender Dragon parts can therefore be scanned at the normal four-block reach.
+
+## 1.0.78 — Entity mannequin and aquatic fish state
+
+- Restores the empty Entity Workspace as a visible, projectable humanoid mannequin with equipment slots and poses.
+- Fish projections render as aquatic specimens rather than air-flopping entities; 1.0.79 corrects the remaining preview quarter-turn.
+- Fish animation controls were later removed in 1.0.80 in favor of the stable aquatic state.
+
+## 1.0.77 — Table source persistence and preview correction
+
+- Fixes the Table presentation deck forcing `Image` back into synchronized client state and world reloads. Table now persists Image, Entity or Banner as its active source; Wall remains normalized to Image because it is Image-only.
+- Automatic presentation advances only while Image is the active source, so a stored Table deck cannot replace an Entity/Banner projection.
+- Source-workspace navigation no longer writes the Table's previous source before opening a workspace.
+- Begins the fish-preview axis correction; completed aquatic orientation and animation controls ship in 1.0.78.
+- First-person keeps vanilla held-device presentation; the one-arm aiming/raised poses remain third-person and front-facing only.
+
+## 1.0.75 — Table source dispatch correction
+
+- Table Projectors now use the same source dispatcher as other projection chassis, restoring Entity source rendering.
+- Separates Entity Workspace projected-item and visibility columns.
+- Cursor recentering during workspace transitions is intentionally deferred to 1.2.0.
+
+## 1.0.74 — Projector source and geometry repairs
+
+- Opening an Image, Entity, or Banner workspace is navigation only; explicit `Use <mode> mode` activation remains server-authoritative.
+- Entity equipment headings, controls, and idle status are omitted for sources without equipment slots; their remaining headings now share one baseline.
+- Wall images are anchored from the target wall block upward by default, with Y Offset retaining explicit vertical control.
+- Replaces the Creative shoulder control with an actual screen widget and removes overlapping Light Projector base/support geometry.
+
+## 1.0.73 — Scanner targeting and Creative equipment access
+
+- Scanner use now requires a living target within four blocks before it starts; invalid right-clicks report a clear message and never apply movement slowdown.
+- Removes the spear use animation so Scanner use keeps the ordinary first-person held-item presentation.
+- Rebuilds the Creative-inventory shoulder-slot toggle as an always-available control positioned outside the Creative panel.
+
+## 1.0.72 — One-arm handheld poses
+
+- Applies Scanner and Flashlight rotations after vanilla animation setup, affecting only the actual holding arm.
+
+## 1.0.71 — Directed handheld poses
+
+- Scanner and energized Focus/Flood Flashlights use the forward aiming pose instead of the overhead throwing pose.
+- Only an energized Ambient Flashlight keeps the raised presentation; Off uses no forced pose.
+
 ## 1.0.69 — Scanner finalization and 1.1.0 release reconciliation
 
 - Holds the active Scanner arm straight forward in first-person and all player render views.
 - Adds a one-second quiet cooldown after a successful capture so the duplicate-record message cannot immediately replace capture feedback.
 - Reconciles the public 1.1.0 roadmap with tested End Resonance, Mirage Light, Scanner and Scan Codex behavior.
+
+## 1.0.70 — Scanner interaction correction
+
+- Duplicate-record feedback now consumes the interaction without starting Scanner use or hiding the held item.
+- Uses the native item cooldown path after capture, including the inventory-slot cooldown overlay.
+- Adopts the proven `THROW_SPEAR` arm-pose pattern for active Scanner and energized held Flashlight rendering.
 
 ## 1.0.34 — Roadmap & UX/visual cleanup
 

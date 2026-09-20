@@ -86,7 +86,7 @@ public final class BannerProjectorScreen extends ResponsiveContainerScreen<Banne
     }
 
     private ProjectionSettings.SourceMode currentSourceMode() {
-        return menu.initialSettings().sourceMode();
+        return menu.projector() == null ? menu.initialSettings().sourceMode() : menu.projector().settings().sourceMode();
     }
 
     @Override

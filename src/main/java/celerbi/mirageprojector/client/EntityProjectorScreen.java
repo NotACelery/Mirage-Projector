@@ -27,7 +27,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
 
     private static final int APPLY_X = 52;
     private static final int CHANNEL_X = 100;
-    private static final int PROJECTED_X = 302;
+    private static final int PROJECTED_X = 252;
     private static final int VISIBILITY_X = 334;
 
     private static final int PREVIEW_X = 380;
@@ -119,7 +119,6 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
         poseButton.setTooltip(Tooltip.create(Component.translatable(
                 "tooltip.mirage_projector.entity.pose"
         )));
-
 
         playerLayersButton = addRenderableWidget(Button.builder(Component.empty(), button ->
                 PacketDistributor.sendToServer(new EntityWorkspaceActionPayload(
@@ -377,7 +376,7 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
     }
 
     private ProjectionSettings.SourceMode currentSourceMode() {
-        return menu.initialSettings().sourceMode();
+        return menu.projector() == null ? menu.initialSettings().sourceMode() : menu.projector().settings().sourceMode();
     }
 
     private void refreshPoseButton() {
@@ -561,15 +560,16 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
                 : card.getHoverName().getString();
         graphics.drawString(font, GuiText.fit(font, source, 292), 58, 92, 0xFFD8C5EB, false);
 
-        // These are deliberately complete column names. The old abbreviated labels ran into
-        // each other and made the equipment workflow look like an unfinished debug panel.
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 18, 134, 0xFFAFD8EE, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.channel"), CHANNEL_X, 134, 0xFFC9CED7, false);
-        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.projected"), PROJECTED_X + 9, 128, 0xFFB9E4C0);
-        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.visibility"), VISIBILITY_X + 12, 140, 0xFFC9CED7);
-
         EntityScanData.Kind kind = menu.effectiveKind();
         boolean playerSource = menu.state().activeEntityIsPlayer();
+        boolean hasEquipmentWorkspace = (kind == EntityScanData.Kind.HUMANOID && !playerSource)
+                || kind == EntityScanData.Kind.HORSE;
+        if (hasEquipmentWorkspace) {
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.incoming"), 18, 134, 0xFFAFD8EE, false);
+            graphics.drawString(font, Component.translatable("gui.mirage_projector.entity.channel"), CHANNEL_X, 134, 0xFFC9CED7, false);
+            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.projected"), PROJECTED_X + 9, 134, 0xFFB9E4C0);
+            graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.entity.visibility"), VISIBILITY_X + 12, 134, 0xFFC9CED7);
+        }
         if (kind == EntityScanData.Kind.HUMANOID && !playerSource) {
             for (VirtualEquipmentSnapshots.Channel channel : humanoidChannels()) {
                 renderRow(graphics, channel);
@@ -583,7 +583,9 @@ public final class EntityProjectorScreen extends ResponsiveContainerScreen<Entit
             graphics.drawString(font, GuiText.fit(font, Component.translatable("gui.mirage_projector.entity.player_skin_only_hint").getString(), 330), 18, 179, 0xFF8F98A8, false);
         }
 
-        graphics.drawString(font, GuiText.fit(font, status.getString(), 532), 18, STATUS_Y, pendingConflict == null ? 0xFFE7DCF5 : 0xFFFFB98E, false);
+        if (hasEquipmentWorkspace || pendingConflict != null || !status.equals(Component.translatable("gui.mirage_projector.entity.ready"))) {
+            graphics.drawString(font, GuiText.fit(font, status.getString(), 532), 18, STATUS_Y, pendingConflict == null ? 0xFFE7DCF5 : 0xFFFFB98E, false);
+        }
         graphics.drawString(font, Component.translatable("container.inventory"), EntityProjectorMenu.PLAYER_INV_X, EntityProjectorMenu.PLAYER_INV_Y - 12, 0xFFBEB8C8, false);
     }
 

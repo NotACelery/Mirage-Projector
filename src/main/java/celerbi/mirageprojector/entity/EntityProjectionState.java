@@ -162,7 +162,10 @@ public final class EntityProjectionState {
     }
 
     public boolean hasProjectedEntityContent() {
-        return hasActiveEntity() || hasProjectedHumanoidEquipment() || hasProjectedHorseEquipment();
+        // A bodyless humanoid mannequin is a first-class Entity source.  It deliberately
+        // remains projectable with no card and no equipped slots so it can be assembled like a
+        // floating armour stand.
+        return true;
     }
 
     public CompoundTag activeEntityRootCopy() {

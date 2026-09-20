@@ -1,6 +1,7 @@
 package celerbi.mirageprojector.mixin.client;
 
 import celerbi.mirageprojector.client.HumanoidPoseController;
+import celerbi.mirageprojector.client.ClientEntityScanner;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,5 +22,6 @@ public abstract class HumanoidModelMixin<T extends LivingEntity> {
             CallbackInfo callbackInfo
     ) {
         HumanoidPoseController.applyToModel(entity, (HumanoidModel<?>) (Object) this);
+        ClientEntityScanner.applyHeldDevicePose(entity, (HumanoidModel<?>) (Object) this);
     }
 }

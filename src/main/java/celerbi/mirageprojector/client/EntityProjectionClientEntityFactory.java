@@ -123,9 +123,10 @@ public final class EntityProjectionClientEntityFactory {
         GameProfile profile = new GameProfile(BODYLESS_MANNEQUIN_UUID, "Mirage");
         MirageRemotePlayer mannequin = new MirageRemotePlayer(level, profile, null);
         normalizeForProjection(mannequin);
-        // This is the deliberately visible, floating mannequin behind an empty Entity
-        // workspace. Equipment can be assembled before any scanned body is selected.
-        mannequin.setInvisible(false);
+        // The blank workspace is an invisible armour-stand-like rig, not an Alex
+        // projection.  Its virtual armour and held items remain renderable while the
+        // mannequin body itself stays absent.
+        mannequin.setInvisible(true);
         applyProjectedEquipment(mannequin, state, EntityScanData.Kind.HUMANOID);
         return mannequin;
     }

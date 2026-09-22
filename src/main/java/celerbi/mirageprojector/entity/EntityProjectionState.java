@@ -311,10 +311,27 @@ public final class EntityProjectionState {
         humanoidPose = HumanoidPosePreset.STANDING;
     }
 
+    /**
+     * Clears only virtual equipment state.  The blank mannequin's selected pose is
+     * deliberately retained, and physical staging inventory is never destroyed.
+     */
+    public void clearAllEquipmentSnapshots() {
+        clearHumanoidEquipmentOnly();
+        clearHorseEquipmentOnly();
+    }
+
     private void clearHumanoidEquipmentOnly() {
         humanoidIncoming.clearAll();
         humanoidProjected.clearAll();
         for (VirtualEquipmentSnapshots.Channel channel : HUMANOID_CHANNELS) {
+            hiddenEquipmentChannels.remove(channel);
+        }
+    }
+
+    private void clearHorseEquipmentOnly() {
+        horseIncoming.clearAll();
+        horseProjected.clearAll();
+        for (VirtualEquipmentSnapshots.Channel channel : EntityScanData.HORSE_CHANNELS) {
             hiddenEquipmentChannels.remove(channel);
         }
     }

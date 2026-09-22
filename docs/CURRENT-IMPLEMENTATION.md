@@ -1,11 +1,11 @@
-# Current Implementation — Mirage Projector 1.0.89
+# Current Implementation — Mirage Projector 1.0.91
 
-Version: **1.0.89**
+Version: **1.0.91**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
 Network protocol: **44**
 
-This document describes the current implementation behavior of Mirage Projector 1.0.89. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.91. Historical development notes are archived under `docs/history/` and are not current authority.
 
 ## Entity Scanner
 

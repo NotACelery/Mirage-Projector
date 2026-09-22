@@ -58,6 +58,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 public final class MirageProjectorRenderer implements BlockEntityRenderer<MirageProjectorBlockEntity> {
     private static final float PIXEL = 1.0F / 16.0F;
@@ -381,7 +382,10 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int packedLight,
-            int packedOverlay
+            int packedOverlay,
+            Vec3 cameraPosition,
+            Vec3 worldAnchor,
+            float outerYawDegrees
     ) {
         if (blockEntity == null || !blockEntity.projectionEnabled() || !blockEntity.hasProjectedSourceContent()) {
             return;
@@ -422,6 +426,15 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             return;
         }
 
+        if (settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE) {
+            // The held renderer supplies the real world-space anchor/yaw.  The temporary block
+            // entity itself is always cardinal, so its fixed-projector side test would otherwise
+            // flip FRONT/MIRRORED/READABLE when the player crosses north or south.
+            renderImage(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight,
+                    cameraOnPortableImageFront(cameraPosition, worldAnchor, outerYawDegrees + angle, settings));
+            return;
+        }
+
         ProjectionSourceRenderRegistry.renderer(settings.sourceMode()).ifPresent(renderer -> renderer.render(
                 new ProjectionSourceRenderRegistry.RenderContext(
                         this,
@@ -437,6 +450,65 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                         gameTime
                 )
         ));
+    }
+
+    /** Renders the Hand Projector's two-dimensional image directly on an aimed block face. */
+    public void renderPortableSurfaceImage(
+            MirageProjectorBlockEntity blockEntity,
+            Vec3 surfacePoint,
+            Direction surfaceNormal,
+            Vec3 cameraPosition,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight
+    ) {
+        if (blockEntity == null || surfacePoint == null || surfaceNormal == null) return;
+        ProjectionSettings settings = blockEntity.settings();
+        if (!blockEntity.projectionEnabled() || settings.sourceMode() != ProjectionSettings.SourceMode.IMAGE || !settings.hasImage()) {
+            return;
+        }
+        var texture = ProjectionTextureCache.get(settings.imageId());
+        if (texture.isEmpty()) return;
+
+        FaceSize size = faceSize(settings.imageWidth(), settings.imageHeight(), settings.scalePixels());
+        Vec3 normal = Vec3.atLowerCornerOf(surfaceNormal.getNormal());
+        int projectionLight = settings.fullbright() ? LightTexture.FULL_BRIGHT : packedLight;
+        poseStack.pushPose();
+        poseStack.translate(
+                surfacePoint.x - cameraPosition.x + normal.x * 0.003D,
+                surfacePoint.y - cameraPosition.y + normal.y * 0.003D,
+                surfacePoint.z - cameraPosition.z + normal.z * 0.003D
+        );
+        Vec3 normalVector = Vec3.atLowerCornerOf(surfaceNormal.getNormal());
+        Quaternionf orientation = new Quaternionf().rotationTo(0.0F, 0.0F, 1.0F,
+                surfaceNormal.getStepX(), surfaceNormal.getStepY(), surfaceNormal.getStepZ());
+        // A vertical wall always keeps world-up. For floor and ceiling faces, roll the plane so
+        // its image-up vector points toward the viewer; this makes the artwork turn with the
+        // camera rather than being locked to north/south.
+        if (Math.abs(normalVector.y) > 0.9D) {
+            Vec3 towardCamera = cameraPosition.subtract(surfacePoint);
+            towardCamera = towardCamera.subtract(normalVector.scale(towardCamera.dot(normalVector)));
+            if (towardCamera.lengthSqr() > 1.0E-6D) {
+                Vector3f currentUp = orientation.transform(new Vector3f(0.0F, 1.0F, 0.0F));
+                Vec3 desiredUp = towardCamera.normalize();
+                // A floor is viewed from the opposite side of its front-face basis. Reverse its
+                // in-plane up direction once; ceilings already use the correct handedness.
+                if (surfaceNormal == Direction.UP) {
+                    desiredUp = desiredUp.scale(-1.0D);
+                }
+                Quaternionf twist = new Quaternionf().rotationTo(currentUp,
+                        new Vector3f((float) desiredUp.x, (float) desiredUp.y, (float) desiredUp.z));
+                orientation = twist.mul(orientation);
+            }
+        }
+        poseStack.mulPose(orientation);
+        poseStack.translate(0.0D, -size.height() * 0.5D, 0.0D);
+        PoseStack.Pose pose = poseStack.last();
+        renderFrontFace(texture.get(), size,
+                settings.flipVertical() ? 1.0F : 0.0F,
+                settings.flipVertical() ? 0.0F : 1.0F,
+                settings, projectionLight, pose.pose(), pose, bufferSource);
+        poseStack.popPose();
     }
 
     public void renderPortableWarBanner(
@@ -1513,8 +1585,23 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             float bob,
             int projectionLight
     ) {
+        renderImage(blockEntity, settings, poseStack, bufferSource, angle, bob, projectionLight, null);
+    }
+
+    private static void renderImage(
+            MirageProjectorBlockEntity blockEntity,
+            ProjectionSettings settings,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            float angle,
+            float bob,
+            int projectionLight,
+            Boolean viewingFrontOverride
+    ) {
         float bottom = physicalTop(blockEntity) + settings.liftPixels() * PIXEL + bob;
-        boolean viewingFront = isCameraOnFrontSide(blockEntity, settings, angle, bottom);
+        boolean viewingFront = viewingFrontOverride == null
+                ? isCameraOnFrontSide(blockEntity, settings, angle, bottom)
+                : viewingFrontOverride;
         ProjectionSettings.BackFaceMode mode = settings.backFaceMode();
 
         String assetId;
@@ -1607,6 +1694,20 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             renderFrontFace(texture.get(), size, topV, bottomV, settings, projectionLight, matrix, pose, bufferSource);
         }
         poseStack.popPose();
+    }
+
+    private static boolean cameraOnPortableImageFront(
+            Vec3 cameraPosition,
+            Vec3 anchor,
+            float worldYawDegrees,
+            ProjectionSettings settings
+    ) {
+        if (cameraPosition == null || anchor == null) return true;
+        double yawRadians = Math.toRadians(worldYawDegrees);
+        double tiltRadians = Math.toRadians(settings.tiltDegrees());
+        Vec3 normal = new Vec3(Math.sin(yawRadians) * Math.cos(tiltRadians), -Math.sin(tiltRadians),
+                Math.cos(yawRadians) * Math.cos(tiltRadians));
+        return cameraPosition.subtract(anchor).dot(normal) >= 0.0D;
     }
 
     private static boolean isCameraOnFrontSide(

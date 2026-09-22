@@ -166,8 +166,8 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
         }).bounds(x + 12 + (sourceButtonWidth + sourceGap) * 2, y + 40, sourceButtonWidth, 20).build());
 
         turnOffButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.turn_off"), button -> {
-            projectionEnabled = false;
-            PacketDistributor.sendToServer(new SetProjectionEnabledPayload(menu.projectorPos(), false));
+            projectionEnabled = !projectionEnabled;
+            PacketDistributor.sendToServer(new SetProjectionEnabledPayload(menu.projectorPos(), projectionEnabled));
             refreshProjectionStateButtons();
         }).bounds(x + imageWidth - 104, y + 6, 92, 18).build());
 
@@ -788,10 +788,11 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
         setSourceButtonCompatibility(itemModeButton, ProjectionSettings.SourceMode.ITEM);
         setSourceButtonCompatibility(entityModeButton, ProjectionSettings.SourceMode.ENTITY);
         setSourceButtonCompatibility(bannerModeButton, ProjectionSettings.SourceMode.BANNER);
-        turnOffButton.active = enabled;
+        // Keep this enabled while off so the same button resumes the preserved source.
+        turnOffButton.active = true;
         turnOffButton.setMessage(Component.translatable(enabled
                 ? "gui.mirage_projector.turn_off"
-                : "gui.mirage_projector.projector_off_button"));
+                : "gui.mirage_projector.turn_on"));
         if (unpairRemoteButton != null) {
             boolean wall = menu.chassisProfile() == ProjectionChassisProfile.WALL;
             boolean paired = wall && menu.projector() != null
@@ -883,9 +884,9 @@ public final class MirageTableProjectorScreen extends ResponsiveContainerScreen<
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 10, 8, 0xFFF4F4F4, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.sources"), 14, 29, 0xFFBFA5D1, false);
-        Component projectionStateLabel = currentProjectionEnabled()
-                ? Component.translatable("gui.mirage_projector.current_source", sourceName(currentSourceMode()))
-                : Component.translatable("gui.mirage_projector.projector_off");
+        Component projectionStateLabel = Component.translatable(
+                "gui.mirage_projector.current_source", sourceName(currentSourceMode())
+        );
         // Keep the active-source state within the Sources header instead of letting it
         // collide with the first row of workspace buttons.
         graphics.drawString(font, projectionStateLabel, imageWidth - 14 - font.width(projectionStateLabel), 29, 0xFF9FBED1, false);

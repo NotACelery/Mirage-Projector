@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.91 — Empty entity rig isolation
+
+- Restores the blank Entity workspace as an invisible armour-stand-like rig rather than a visible Alex body; its virtual equipment and poses remain usable.
+- Clears incoming/projected virtual equipment snapshots whenever its Scan Card is inserted, replaced or removed, without deleting physical staging items.
+
+## 1.0.90 — Preserved source power toggle
+
+- Makes the fixed-projector power button a persistent On/Off toggle: switching off retains the selected source and switching on resumes it directly.
+- Keeps the active-source header visible while power is off, replacing the misleading `Projection: OFF` status.
+
 ## 1.0.89 — Dragon preview visibility
 
 - Enlarges the Ender Dragon by 60% in the shared Scan Codex and projector entity previews to compensate for its oversized multipart bounds.

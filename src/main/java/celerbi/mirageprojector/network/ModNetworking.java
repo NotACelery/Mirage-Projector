@@ -172,6 +172,16 @@ public final class ModNetworking {
                 PortableDeviceScalePayload::handle
         );
         registrar.playToServer(
+                PortableDeviceDistancePayload.TYPE,
+                PortableDeviceDistancePayload.STREAM_CODEC,
+                PortableDeviceDistancePayload::handle
+        );
+        registrar.playToServer(
+                PortableDeviceEntityRotationPayload.TYPE,
+                PortableDeviceEntityRotationPayload.STREAM_CODEC,
+                PortableDeviceEntityRotationPayload::handle
+        );
+        registrar.playToServer(
                 PortableDeviceImagePayload.TYPE,
                 PortableDeviceImagePayload.STREAM_CODEC,
                 PortableDeviceImagePayload::handle

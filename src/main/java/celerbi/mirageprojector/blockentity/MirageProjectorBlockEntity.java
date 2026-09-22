@@ -1021,18 +1021,20 @@ public final class MirageProjectorBlockEntity extends BlockEntity implements Men
             return;
         }
 
+        // A Scan Card defines a new entity staging session.  Never let virtual armour
+        // snapshots belonging to the previous card leak into this one (or into the
+        // blank mannequin after the card is removed).  Physical input slots remain
+        // untouched so player items are not silently discarded.
+        entityProjectionState.clearAllEquipmentSnapshots();
         ItemStack card = stagedEntityCard();
         if (card.isEmpty() || !EntityScanData.hasScan(card)) {
-            entityProjectionState.onStagedCardRemoved(stagedEntityCardKind);
+            entityProjectionState.clearActiveEntityBody();
             stagedEntityCardKind = EntityScanData.Kind.GENERIC;
             setChangedAndSync();
             return;
         }
 
         EntityScanData.read(card).ifPresent(scan -> {
-            if (stagedEntityCardKind == EntityScanData.Kind.HORSE && scan.kind() != EntityScanData.Kind.HORSE) {
-                entityProjectionState.onStagedCardRemoved(stagedEntityCardKind);
-            }
             stagedEntityCardKind = scan.kind();
             if (level != null) {
                 entityProjectionState.importFromCard(card, level.registryAccess());

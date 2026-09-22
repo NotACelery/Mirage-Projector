@@ -2,10 +2,13 @@ package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.MirageProjector;
 import celerbi.mirageprojector.ProjectionSettings;
+import celerbi.mirageprojector.blockentity.MirageProjectorBlockEntity;
 import celerbi.mirageprojector.item.MirageHandProjectorItem;
 import celerbi.mirageprojector.item.MirageFlashlightItem;
 import celerbi.mirageprojector.menu.PortableDeviceMenu;
 import celerbi.mirageprojector.network.PortableDeviceActionPayload;
+import celerbi.mirageprojector.network.PortableDeviceDistancePayload;
+import celerbi.mirageprojector.network.PortableDeviceEntityRotationPayload;
 import celerbi.mirageprojector.network.PortableDeviceImagePayload;
 import celerbi.mirageprojector.network.PortableDeviceScalePayload;
 import celerbi.mirageprojector.registry.ModItems;
@@ -17,6 +20,8 @@ import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -24,25 +29,34 @@ import net.neoforged.neoforge.network.PacketDistributor;
 /** Source-aware configuration screen shared by the Mirage Flashlight and Hand Projector. */
 public final class PortableDeviceScreen extends AbstractContainerScreen<PortableDeviceMenu> {
     private static final int PROJECTOR_WIDTH = 360;
-    private static final int PROJECTOR_HEIGHT = 332;
+    private static final int PROJECTOR_HEIGHT = 380;
     private static final int FLASHLIGHT_WIDTH = 196;
     private static final int FLASHLIGHT_HEIGHT = 202;
 
     private static final int MODE_X = 14;
     private static final int MODE_Y = 42;
-    private static final int MODE_W = 78;
-    private static final int MODE_GAP = 6;
-    private static final int CONTROL_X = 108;
-    private static final int CONTROL_WIDTH = 238;
-    private static final int CONTROL_Y = 82;
+    private static final int MODE_W = 106;
+    private static final int MODE_GAP = 8;
+    private static final int SLOT_PANEL_RIGHT = 62;
+    private static final int PANEL_X = 72;
+    private static final int CONTROL_X = 72;
+    private static final int CONTROL_WIDTH = 154;
+    private static final int PREVIEW_X = 236;
+    private static final int PREVIEW_WIDTH = 112;
+    private static final int GENERAL_CONTROL_Y = 90;
+    private static final int SOURCE_CONTROL_Y = 166;
     private static final int ROW_HEIGHT = 18;
     private static final int ROW_GAP = 6;
 
     private Button projectionButton;
     private Button imageImportButton;
+    private Button imagePresentationButton;
+    private Button imageLiftButton;
+    private Button imageRotationButton;
+    private Button imageFaceModeButton;
     private Button imageModeButton;
-    private Button itemModeButton;
     private Button entityModeButton;
+    private Button entityRotationButton;
     private Button bannerModeButton;
     private Button bannerPresentationButton;
     private Button warBannerFacingButton;
@@ -51,6 +65,9 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
     private Button warHeightDownButton;
     private Button warHeightUpButton;
     private ScaleSlider scaleSlider;
+    private DistanceSlider distanceSlider;
+    private EntityRotationSlider entityRotationSlider;
+    private final EntityProjectionPreviewRenderer entityPreview = new EntityProjectionPreviewRenderer();
     private Component status = Component.translatable("gui.mirage_projector.status.ready");
 
     public PortableDeviceScreen(PortableDeviceMenu menu, Inventory inventory, Component title) {
@@ -77,54 +94,82 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         }
 
         imageModeButton = addModeButton(0, "gui.mirage_projector.workspace.image_short", PortableDeviceActionPayload.Action.SELECT_IMAGE);
-        itemModeButton = addModeButton(1, "gui.mirage_projector.workspace.item_short", PortableDeviceActionPayload.Action.SELECT_ITEM);
-        entityModeButton = addModeButton(2, "gui.mirage_projector.workspace.entity_short", PortableDeviceActionPayload.Action.SELECT_ENTITY);
-        bannerModeButton = addModeButton(3, "gui.mirage_projector.workspace.banner_short", PortableDeviceActionPayload.Action.SELECT_BANNER);
+        entityModeButton = addModeButton(1, "gui.mirage_projector.workspace.entity_short", PortableDeviceActionPayload.Action.SELECT_ENTITY);
+        bannerModeButton = addModeButton(2, "gui.mirage_projector.workspace.banner_short", PortableDeviceActionPayload.Action.SELECT_BANNER);
 
         int x = leftPos + CONTROL_X;
         projectionButton = addRenderableWidget(Button.builder(
                 Component.empty(),
                 button -> send(PortableDeviceActionPayload.Action.TOGGLE_PROJECTOR)
-        ).bounds(x, rowY(0), CONTROL_WIDTH, ROW_HEIGHT).build());
+        ).bounds(leftPos + imageWidth - 72, topPos + 7, 60, ROW_HEIGHT).build());
+
+        distanceSlider = addRenderableWidget(new DistanceSlider(
+                x, generalRowY(0), CONTROL_WIDTH, ROW_HEIGHT,
+                currentDistance(device),
+                distance -> PacketDistributor.sendToServer(new PortableDeviceDistancePayload(menu.source(), distance))
+        ));
 
         scaleSlider = addRenderableWidget(new ScaleSlider(
-                x, rowY(1), CONTROL_WIDTH, ROW_HEIGHT,
-                currentScale(device),
+                x, generalRowY(1), CONTROL_WIDTH, ROW_HEIGHT,
+                currentScale(device), currentMaxScale(device),
                 scale -> PacketDistributor.sendToServer(new PortableDeviceScalePayload(menu.source(), scale))
         ));
 
         imageImportButton = addRenderableWidget(Button.builder(
                 Component.translatable("gui.mirage_projector.portable_device.import_image"),
                 button -> openImagePicker()
-        ).bounds(x, rowY(2), CONTROL_WIDTH, ROW_HEIGHT).build());
+        ).bounds(x, sourceRowY(0), CONTROL_WIDTH, ROW_HEIGHT).build());
+
+        imagePresentationButton = addRenderableWidget(Button.builder(
+                Component.empty(), button -> send(PortableDeviceActionPayload.Action.CYCLE_IMAGE_PRESENTATION)
+        ).bounds(x, sourceRowY(1), CONTROL_WIDTH, ROW_HEIGHT).build());
+
+        int imageToggleWidth = (CONTROL_WIDTH - 6) / 2;
+        imageLiftButton = addRenderableWidget(Button.builder(
+                Component.empty(), button -> send(PortableDeviceActionPayload.Action.TOGGLE_IMAGE_LIFT)
+        ).bounds(x, sourceRowY(2), imageToggleWidth, ROW_HEIGHT).build());
+        imageRotationButton = addRenderableWidget(Button.builder(
+                Component.empty(), button -> send(PortableDeviceActionPayload.Action.TOGGLE_IMAGE_ROTATION)
+        ).bounds(x + imageToggleWidth + 6, sourceRowY(2), imageToggleWidth, ROW_HEIGHT).build());
+        imageFaceModeButton = addRenderableWidget(Button.builder(
+                Component.empty(), button -> send(PortableDeviceActionPayload.Action.CYCLE_IMAGE_FACE_MODE)
+        ).bounds(x, sourceRowY(3), CONTROL_WIDTH, ROW_HEIGHT).build());
+
+        entityRotationSlider = addRenderableWidget(new EntityRotationSlider(
+                x, sourceRowY(0), CONTROL_WIDTH, ROW_HEIGHT, currentEntityRotation(device),
+                degrees -> PacketDistributor.sendToServer(new PortableDeviceEntityRotationPayload(menu.source(), degrees))
+        ));
+        entityRotationButton = addRenderableWidget(Button.builder(
+                Component.empty(), button -> send(PortableDeviceActionPayload.Action.TOGGLE_ENTITY_ROTATION)
+        ).bounds(x, sourceRowY(1), CONTROL_WIDTH, ROW_HEIGHT).build());
 
         bannerPresentationButton = addRenderableWidget(Button.builder(
                 Component.empty(),
                 button -> send(PortableDeviceActionPayload.Action.CYCLE_BANNER_PRESENTATION)
-        ).bounds(x, rowY(2), CONTROL_WIDTH, ROW_HEIGHT).build());
+        ).bounds(x, sourceRowY(0), CONTROL_WIDTH, ROW_HEIGHT).build());
 
         warBannerFacingButton = addRenderableWidget(Button.builder(
                 Component.empty(),
                 button -> send(PortableDeviceActionPayload.Action.CYCLE_WAR_BANNER_FACING)
-        ).bounds(x, rowY(3), CONTROL_WIDTH, ROW_HEIGHT).build());
+        ).bounds(x, sourceRowY(1), CONTROL_WIDTH, ROW_HEIGHT).build());
 
         warSizeDownButton = addRenderableWidget(Button.builder(
                 Component.literal("−"),
                 button -> send(PortableDeviceActionPayload.Action.WAR_BANNER_SIZE_DOWN)
-        ).bounds(x, rowY(4), 24, ROW_HEIGHT).build());
+        ).bounds(x, sourceRowY(2), 24, ROW_HEIGHT).build());
         warSizeUpButton = addRenderableWidget(Button.builder(
                 Component.literal("+"),
                 button -> send(PortableDeviceActionPayload.Action.WAR_BANNER_SIZE_UP)
-        ).bounds(x + CONTROL_WIDTH - 24, rowY(4), 24, ROW_HEIGHT).build());
+        ).bounds(x + CONTROL_WIDTH - 24, sourceRowY(2), 24, ROW_HEIGHT).build());
 
         warHeightDownButton = addRenderableWidget(Button.builder(
                 Component.literal("−"),
                 button -> send(PortableDeviceActionPayload.Action.WAR_BANNER_HEIGHT_DOWN)
-        ).bounds(x, rowY(5), 24, ROW_HEIGHT).build());
+        ).bounds(x, sourceRowY(3), 24, ROW_HEIGHT).build());
         warHeightUpButton = addRenderableWidget(Button.builder(
                 Component.literal("+"),
                 button -> send(PortableDeviceActionPayload.Action.WAR_BANNER_HEIGHT_UP)
-        ).bounds(x + CONTROL_WIDTH - 24, rowY(5), 24, ROW_HEIGHT).build());
+        ).bounds(x + CONTROL_WIDTH - 24, sourceRowY(3), 24, ROW_HEIGHT).build());
 
         updateProjectorControls();
     }
@@ -135,8 +180,12 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
                 .build());
     }
 
-    private int rowY(int row) {
-        return topPos + CONTROL_Y + row * (ROW_HEIGHT + ROW_GAP);
+    private int generalRowY(int row) {
+        return topPos + GENERAL_CONTROL_Y + row * (ROW_HEIGHT + ROW_GAP);
+    }
+
+    private int sourceRowY(int row) {
+        return topPos + SOURCE_CONTROL_Y + row * (ROW_HEIGHT + ROW_GAP);
     }
 
     @Override
@@ -153,6 +202,7 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         boolean projector = device.is(ModItems.MIRAGE_HAND_PROJECTOR.get());
         ProjectionSettings.SourceMode mode = MirageHandProjectorItem.sourceMode(device);
         boolean image = projector && mode == ProjectionSettings.SourceMode.IMAGE;
+        boolean entity = projector && mode == ProjectionSettings.SourceMode.ENTITY;
         boolean banner = projector && mode == ProjectionSettings.SourceMode.BANNER;
         boolean warBanner = banner && MirageHandProjectorItem.warBannerActive(device);
 
@@ -160,8 +210,8 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         projectionButton.active = projector;
         projectionButton.setMessage(Component.translatable(
                 MirageHandProjectorItem.projectionEnabled(device)
-                        ? "gui.mirage_projector.portable_device.turn_off"
-                        : "gui.mirage_projector.portable_device.turn_on"
+                        ? "gui.mirage_projector.portable_device.turn_off_short"
+                        : "gui.mirage_projector.portable_device.turn_on_short"
         ));
 
         if (scaleSlider != null) {
@@ -169,15 +219,50 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
             // scale belongs to planar projections and never affected the banner model.
             scaleSlider.visible = projector && !warBanner;
             scaleSlider.active = projector && !warBanner;
-            scaleSlider.syncExternal(currentScale(device));
+            scaleSlider.syncExternal(currentScale(device), currentMaxScale(device));
+        }
+        if (distanceSlider != null) {
+            distanceSlider.visible = projector;
+            distanceSlider.active = projector;
+            distanceSlider.syncExternal(currentDistance(device));
         }
 
         updateModeButton(imageModeButton, mode == ProjectionSettings.SourceMode.IMAGE);
-        updateModeButton(itemModeButton, mode == ProjectionSettings.SourceMode.ITEM);
         updateModeButton(entityModeButton, mode == ProjectionSettings.SourceMode.ENTITY);
         updateModeButton(bannerModeButton, mode == ProjectionSettings.SourceMode.BANNER);
 
         setVisible(imageImportButton, image);
+        setVisible(imagePresentationButton, image);
+        setVisible(imageLiftButton, image);
+        setVisible(imageRotationButton, image);
+        setVisible(imageFaceModeButton, image);
+        if (image) {
+            imagePresentationButton.setMessage(Component.translatable(
+                    MirageHandProjectorItem.imagePresentation(device).translationKey()));
+            ProjectionSettings settings = portableSettings(device);
+            imageLiftButton.setMessage(Component.translatable(
+                    "gui.mirage_projector.portable_device.image_lift",
+                    Component.translatable(settings.liftPixels() > 0
+                            ? "gui.mirage_projector.on" : "gui.mirage_projector.off")));
+            imageRotationButton.setMessage(Component.translatable(
+                    "gui.mirage_projector.rotation",
+                    Component.translatable(settings.rotationEnabled()
+                            ? "gui.mirage_projector.on" : "gui.mirage_projector.off")));
+            imageFaceModeButton.setMessage(Component.translatable(imageFaceModeKey(settings.backFaceMode())));
+        }
+        if (entityRotationSlider != null) {
+            entityRotationSlider.visible = entity;
+            entityRotationSlider.active = entity;
+        }
+        setVisible(entityRotationButton, entity);
+        if (entity) {
+            ProjectionSettings settings = portableSettings(device);
+            entityRotationSlider.syncExternal(currentEntityRotation(device));
+            entityRotationButton.setMessage(Component.translatable(
+                    "gui.mirage_projector.portable_device.entity_auto_rotation",
+                    Component.translatable(settings.rotationEnabled()
+                            ? "gui.mirage_projector.on" : "gui.mirage_projector.off")));
+        }
         setVisible(bannerPresentationButton, banner);
         if (banner) {
             bannerPresentationButton.setMessage(Component.translatable(
@@ -222,9 +307,12 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 3, 0xFF72528D);
 
         if (menu.projectorLayout()) {
-            graphics.fill(x + 12, y + 68, x + 88, y + 112, 0xA20B0E13);
-            graphics.fill(x + 12, y + 128, x + 88, y + 172, 0xA20B0E13);
-            graphics.fill(x + 12, y + 188, x + 88, y + 232, 0xA20B0E13);
+            graphics.fill(x + 12, y + 68, x + SLOT_PANEL_RIGHT, y + 122, 0xA20B0E13);
+            graphics.fill(x + PANEL_X - 10, y + 68, x + CONTROL_X + CONTROL_WIDTH + 10, y + 136, 0xA20B0E13);
+            graphics.fill(x + PANEL_X - 10, y + 144, x + CONTROL_X + CONTROL_WIDTH + 10, y + 258, 0xA20B0E13);
+            graphics.fill(x + 12, y + 126, x + SLOT_PANEL_RIGHT, y + 178, 0xA20B0E13);
+            graphics.fill(x + 12, y + 184, x + SLOT_PANEL_RIGHT, y + 236, 0xA20B0E13);
+            graphics.fill(x + PREVIEW_X, y + 68, x + PREVIEW_X + PREVIEW_WIDTH, y + 258, 0xA20B0E13);
             slotFrame(graphics, x + menu.sourceX() - 1, y + menu.sourceY() - 1, 0xFF7954A0);
             slotFrame(graphics, x + menu.batteryX() - 1, y + menu.batteryY() - 1, 0xFF7954A0);
             slotFrame(graphics, x + menu.coreX() - 1, y + menu.coreY() - 1, 0xFF7954A0);
@@ -257,7 +345,6 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         ItemStack device = currentDevice();
         ProjectionSettings.SourceMode mode = MirageHandProjectorItem.sourceMode(device);
         Button selected = mode == ProjectionSettings.SourceMode.IMAGE ? imageModeButton
-                : mode == ProjectionSettings.SourceMode.ITEM ? itemModeButton
                 : mode == ProjectionSettings.SourceMode.ENTITY ? entityModeButton
                 : mode == ProjectionSettings.SourceMode.BANNER ? bannerModeButton
                 : null;
@@ -289,31 +376,83 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
             return;
         }
 
-        Component state = Component.translatable(MirageHandProjectorItem.projectionEnabled(device)
-                ? "gui.mirage_projector.portable_device.on"
-                : "gui.mirage_projector.portable_device.off");
-        graphics.drawString(font, state, imageWidth - 10 - font.width(state), 9, 0xFFD7B8F5, false);
         graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.source_workspaces"), 14, 29, 0xFFD7B8F5, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.source"), 14, 69, 0xFFD7B8F5, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.geometry"), CONTROL_X, 69, 0xFFD7B8F5, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.battery"), 14, 129, 0xFFD7B8F5, false);
-        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.core"), 14, 189, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.source"), 16, 76, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.general"), CONTROL_X, 76, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.source_options"), CONTROL_X, 152, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.battery"), 16, 134, 0xFFD7B8F5, false);
+        graphics.drawString(font, Component.translatable("gui.mirage_projector.portable_device.core"), 16, 192, 0xFFD7B8F5, false);
+        graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.portable_device.preview"),
+                PREVIEW_X + PREVIEW_WIDTH / 2, 76, 0xFFD7B8F5);
 
         if (MirageHandProjectorItem.warBannerActive(device)) {
             int labelCenter = CONTROL_X + CONTROL_WIDTH / 2;
             graphics.drawCenteredString(font,
                     Component.translatable("gui.mirage_projector.portable_device.war_banner_size_value", MirageHandProjectorItem.warBannerSizePercent(device)),
-                    labelCenter, CONTROL_Y + 4 * (ROW_HEIGHT + ROW_GAP) + 5, 0xFFD7B8F5);
+                    labelCenter, SOURCE_CONTROL_Y + 2 * (ROW_HEIGHT + ROW_GAP) + 5, 0xFFD7B8F5);
             graphics.drawCenteredString(font,
                     Component.translatable("gui.mirage_projector.portable_device.war_banner_height_value", MirageHandProjectorItem.warBannerHeightPixels(device)),
-                    labelCenter, CONTROL_Y + 5 * (ROW_HEIGHT + ROW_GAP) + 5, 0xFFD7B8F5);
+                    labelCenter, SOURCE_CONTROL_Y + 3 * (ROW_HEIGHT + ROW_GAP) + 5, 0xFFD7B8F5);
         }
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderWorkspacePreview(graphics, mouseX, mouseY);
         renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    private void renderWorkspacePreview(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (!menu.projectorLayout()) return;
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) return;
+        ItemStack device = currentDevice();
+        if (!(device.getItem() instanceof MirageHandProjectorItem)) return;
+        MirageProjectorBlockEntity portable = MirageHandProjectorItem.createPortableProjector(
+                device, minecraft.level, BlockPos.ZERO, Direction.SOUTH);
+        if (portable == null) return;
+
+        int x = leftPos + PREVIEW_X + 5;
+        int y = topPos + 90;
+        int width = PREVIEW_WIDTH - 10;
+        int height = 160;
+        ProjectionSettings.SourceMode mode = MirageHandProjectorItem.sourceMode(device);
+        if (mode == ProjectionSettings.SourceMode.ENTITY) {
+            entityPreview.render(graphics, portable.entityProjectionState(), portable.settings(),
+                    x, y, width, height, mouseX, mouseY);
+        } else if (mode == ProjectionSettings.SourceMode.IMAGE) {
+            renderImagePreview(graphics, portable, x, y, width, height);
+        } else {
+            renderBannerPreview(graphics, portable.bannerSnapshot(0), x, y, width, height);
+        }
+    }
+
+    private void renderImagePreview(GuiGraphics graphics, MirageProjectorBlockEntity portable, int x, int y, int width, int height) {
+        var image = portable.imageSourceBank().get(0);
+        if (!image.present()) return;
+        ProjectionTextureCache.get(image.id()).ifPresent(texture -> {
+            float scale = Math.min(width / (float) image.width(), height / (float) image.height());
+            float drawWidth = image.width() * scale;
+            float drawHeight = image.height() * scale;
+            graphics.flush();
+            graphics.pose().pushPose();
+            graphics.pose().translate(x + (width - drawWidth) * 0.5F, y + (height - drawHeight) * 0.5F, 0.0F);
+            graphics.pose().scale(scale, scale, 1.0F);
+            graphics.blit(texture, 0, 0, image.width(), image.height(), 0.0F, 0.0F,
+                    image.width(), image.height(), image.width(), image.height());
+            graphics.pose().popPose();
+            graphics.flush();
+        });
+    }
+
+    private void renderBannerPreview(GuiGraphics graphics, ItemStack banner, int x, int y, int width, int height) {
+        if (banner.isEmpty()) return;
+        graphics.pose().pushPose();
+        graphics.pose().translate(x + width / 2.0F - 40.0F, y + height / 2.0F - 40.0F, 0.0F);
+        graphics.pose().scale(5.0F, 5.0F, 1.0F);
+        graphics.renderItem(banner, 0, 0);
+        graphics.pose().popPose();
     }
 
     private int currentScale(ItemStack device) {
@@ -322,6 +461,39 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
             return ProjectionSettings.DEFAULT.scalePixels();
         }
         return MirageHandProjectorItem.portableScalePixels(device, minecraft.level);
+    }
+
+    private ProjectionSettings portableSettings(ItemStack device) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) return ProjectionSettings.DEFAULT;
+        MirageProjectorBlockEntity portable = MirageHandProjectorItem.createPortableProjector(
+                device, minecraft.level, BlockPos.ZERO, Direction.SOUTH);
+        return portable == null ? ProjectionSettings.DEFAULT : portable.settings();
+    }
+
+    private int currentEntityRotation(ItemStack device) {
+        float degrees = portableSettings(device).rotationOffsetDegrees();
+        return Math.floorMod(Math.round(degrees), 360);
+    }
+
+    private static String imageFaceModeKey(ProjectionSettings.BackFaceMode mode) {
+        return switch (mode) {
+            case MIRRORED -> "gui.mirage_projector.image.back_mode.mirrored";
+            case READABLE -> "gui.mirage_projector.image.back_mode.readable";
+            default -> "gui.mirage_projector.image.back_mode.front";
+        };
+    }
+
+    private int currentMaxScale(ItemStack device) {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.level == null ? MirageHandProjectorItem.PORTABLE_MIN_SCALE_PIXELS
+                : MirageHandProjectorItem.portableMaxScalePixels(device, minecraft.level);
+    }
+
+    private int currentDistance(ItemStack device) {
+        return device.getItem() instanceof MirageHandProjectorItem
+                ? MirageHandProjectorItem.projectionDistancePixels(device)
+                : MirageHandProjectorItem.PORTABLE_DEFAULT_DISTANCE_PIXELS;
     }
 
     private void openImagePicker() {
@@ -379,14 +551,17 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
 
     private static final class ScaleSlider extends AbstractSliderButton {
         private final java.util.function.IntConsumer setter;
+        private int maxScale;
         private int scalePixels;
         private int lastSent;
 
-        private ScaleSlider(int x, int y, int width, int height, int scalePixels, java.util.function.IntConsumer setter) {
-            super(x, y, width, height, Component.empty(), normalize(scalePixels));
+        private ScaleSlider(int x, int y, int width, int height, int scalePixels, int maxScale, java.util.function.IntConsumer setter) {
+            super(x, y, width, height, Component.empty(), 0.0D);
             this.setter = setter;
+            this.maxScale = clampMax(maxScale);
             this.scalePixels = clamp(scalePixels);
             this.lastSent = this.scalePixels;
+            this.value = normalize(this.scalePixels);
             updateMessage();
         }
 
@@ -397,8 +572,8 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
 
         @Override
         protected void applyValue() {
-            scalePixels = clamp(ProjectionSettings.DEBUG_MIN_SCALE_PIXELS
-                    + (int)Math.round(value * (MirageHandProjectorItem.PORTABLE_MAX_SCALE_PIXELS - ProjectionSettings.DEBUG_MIN_SCALE_PIXELS)));
+            scalePixels = clamp(MirageHandProjectorItem.PORTABLE_MIN_SCALE_PIXELS
+                    + (int)Math.round(value * (maxScale - MirageHandProjectorItem.PORTABLE_MIN_SCALE_PIXELS)));
             if (scalePixels != lastSent) {
                 lastSent = scalePixels;
                 setter.accept(scalePixels);
@@ -406,25 +581,124 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
             updateMessage();
         }
 
-        private void syncExternal(int scalePixels) {
+        private void syncExternal(int scalePixels, int maxScale) {
+            this.maxScale = clampMax(maxScale);
             int safe = clamp(scalePixels);
-            if (safe == this.scalePixels) {
-                return;
-            }
             this.scalePixels = safe;
             this.lastSent = safe;
             this.value = normalize(safe);
             updateMessage();
         }
 
-        private static double normalize(int scalePixels) {
-            return (clamp(scalePixels) - ProjectionSettings.DEBUG_MIN_SCALE_PIXELS)
-                    / (double)(MirageHandProjectorItem.PORTABLE_MAX_SCALE_PIXELS - ProjectionSettings.DEBUG_MIN_SCALE_PIXELS);
+        private double normalize(int scalePixels) {
+            int range = maxScale - MirageHandProjectorItem.PORTABLE_MIN_SCALE_PIXELS;
+            return range <= 0 ? 0.0D : (clamp(scalePixels) - MirageHandProjectorItem.PORTABLE_MIN_SCALE_PIXELS) / (double) range;
         }
 
-        private static int clamp(int scalePixels) {
-            return Math.max(ProjectionSettings.DEBUG_MIN_SCALE_PIXELS,
-                    Math.min(MirageHandProjectorItem.PORTABLE_MAX_SCALE_PIXELS, scalePixels));
+        private int clamp(int scalePixels) {
+            return Math.max(MirageHandProjectorItem.PORTABLE_MIN_SCALE_PIXELS, Math.min(maxScale, scalePixels));
+        }
+
+        private static int clampMax(int maxScale) {
+            return Math.max(MirageHandProjectorItem.PORTABLE_MIN_SCALE_PIXELS,
+                    Math.min(MirageHandProjectorItem.PORTABLE_MAX_SCALE_PIXELS, maxScale));
+        }
+    }
+
+    private static final class DistanceSlider extends AbstractSliderButton {
+        private final java.util.function.IntConsumer setter;
+        private int distancePixels;
+        private int lastSent;
+
+        private DistanceSlider(int x, int y, int width, int height, int distancePixels, java.util.function.IntConsumer setter) {
+            super(x, y, width, height, Component.empty(), normalize(distancePixels));
+            this.setter = setter;
+            this.distancePixels = clamp(distancePixels);
+            this.lastSent = this.distancePixels;
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(Component.translatable("gui.mirage_projector.portable_device.distance", distancePixels));
+        }
+
+        @Override
+        protected void applyValue() {
+            distancePixels = clamp(MirageHandProjectorItem.PORTABLE_MIN_DISTANCE_PIXELS
+                    + (int) Math.round(value * (MirageHandProjectorItem.PORTABLE_MAX_DISTANCE_PIXELS
+                    - MirageHandProjectorItem.PORTABLE_MIN_DISTANCE_PIXELS)));
+            if (distancePixels != lastSent) {
+                lastSent = distancePixels;
+                setter.accept(distancePixels);
+            }
+            updateMessage();
+        }
+
+        private void syncExternal(int distancePixels) {
+            int safe = clamp(distancePixels);
+            if (safe == this.distancePixels) return;
+            this.distancePixels = safe;
+            this.lastSent = safe;
+            this.value = normalize(safe);
+            updateMessage();
+        }
+
+        private static double normalize(int distancePixels) {
+            return (clamp(distancePixels) - MirageHandProjectorItem.PORTABLE_MIN_DISTANCE_PIXELS)
+                    / (double) (MirageHandProjectorItem.PORTABLE_MAX_DISTANCE_PIXELS
+                    - MirageHandProjectorItem.PORTABLE_MIN_DISTANCE_PIXELS);
+        }
+
+        private static int clamp(int distancePixels) {
+            return Math.max(MirageHandProjectorItem.PORTABLE_MIN_DISTANCE_PIXELS,
+                    Math.min(MirageHandProjectorItem.PORTABLE_MAX_DISTANCE_PIXELS, distancePixels));
+        }
+    }
+
+    private static final class EntityRotationSlider extends AbstractSliderButton {
+        private final java.util.function.IntConsumer setter;
+        private int degrees;
+        private int lastSent;
+
+        private EntityRotationSlider(int x, int y, int width, int height, int degrees, java.util.function.IntConsumer setter) {
+            super(x, y, width, height, Component.empty(), normalize(degrees));
+            this.setter = setter;
+            this.degrees = clamp(degrees);
+            this.lastSent = this.degrees;
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(Component.translatable("gui.mirage_projector.portable_device.entity_rotation", degrees));
+        }
+
+        @Override
+        protected void applyValue() {
+            degrees = clamp((int) Math.round(value * 360.0D));
+            if (degrees != lastSent) {
+                lastSent = degrees;
+                setter.accept(degrees);
+            }
+            updateMessage();
+        }
+
+        private void syncExternal(int degrees) {
+            int safe = clamp(degrees);
+            if (safe == this.degrees) return;
+            this.degrees = safe;
+            this.lastSent = safe;
+            this.value = normalize(safe);
+            updateMessage();
+        }
+
+        private static double normalize(int degrees) {
+            return clamp(degrees) / 360.0D;
+        }
+
+        private static int clamp(int degrees) {
+            return Math.max(0, Math.min(360, degrees));
         }
     }
 }

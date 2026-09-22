@@ -119,7 +119,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
     protected void init() {
         super.init();
         workspaceModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
-            apply(false);
+            apply();
             PacketDistributor.sendToServer(new SetProjectionSourcePayload(menu.projectorPos(), ProjectionSettings.SourceMode.IMAGE));
             // Reopening this same container recenters Minecraft's cursor. Activating the mode
             // only needs a server state update; keep the player in the current workspace.
@@ -129,7 +129,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         }).bounds(leftPos + imageWidth - 274, topPos + 34, 130, 18).build());
 
         workspaceBackButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.workspace.back"), button -> {
-            apply(false);
+            apply();
             PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()));
         }).bounds(leftPos + imageWidth - 138, topPos + 34, 126, 18).build());
 
@@ -160,7 +160,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
                         && backFaceMode != ProjectionSettings.BackFaceMode.READABLE) {
                     backFaceMode = ProjectionSettings.BackFaceMode.FRONT;
                 }
-                apply(false);
+                apply();
                 PacketDistributor.sendToServer(new OpenImageWorkspacePayload(menu.projectorPos()));
             }).bounds(leftPos + 18, topPos + 58, 210, 20).build());
             layoutModeButton.setTooltip(Tooltip.create(Component.translatable("tooltip.mirage_projector.image.layout_mode")));
@@ -206,7 +206,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
             if (sourceBank.get(selectedBankSlot).present()) {
                 wallSlideIndex = selectedBankSlot;
                 syncWallFrontAsset();
-                apply(false);
+                apply();
                 status = Component.translatable("gui.mirage_projector.wall.current_slide", wallSlideIndex + 1);
                 refreshLabels();
             }
@@ -238,11 +238,6 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
                 "tooltip.mirage_projector.presentation.interval"
         )));
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> apply(true))
-                .bounds(leftPos + 24, topPos + 382, 226, 22).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button ->
-                PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + 270, topPos + 382, 222, 22).build());
     }
 
     private void moveSelectedWallSlide(int delta) {
@@ -271,7 +266,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         wallSlideIndex = next;
         selectedBankSlot = next;
         syncWallFrontAsset();
-        apply(false);
+        apply();
         status = Component.translatable("gui.mirage_projector.wall.current_slide", wallSlideIndex + 1);
         refreshLabels();
     }
@@ -349,11 +344,6 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
             refreshLabels();
         }).bounds(leftPos + 312 + ox, topPos + 208 + oy, 86, 20).build());
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> apply(true))
-                .bounds(leftPos + 18 + ox, topPos + 252 + oy, 180, 22).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button ->
-                PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + 218 + ox, topPos + 252 + oy, 180, 22).build());
     }
 
     private void initMultiSource() {
@@ -401,11 +391,6 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
             refreshLabels();
         }).bounds(leftPos + 371, topPos + 328, 127, 20).build());
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.apply"), button -> apply(true))
-                .bounds(leftPos + 22, topPos + 380, 230, 22).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.cancel"), button ->
-                PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()))
-        ).bounds(leftPos + 268, topPos + 380, 230, 22).build());
     }
 
     private Button addFaceButton(Face face, int localX, int localYShift) {
@@ -601,7 +586,7 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
         return menu.projector() == null ? menu.initialSettings().sourceMode() : menu.projector().settings().sourceMode();
     }
 
-    private void apply(boolean returnToMain) {
+    private void apply() {
         uploadIfPresent(frontId);
         uploadIfPresent(backId);
         uploadIfPresent(eastId);
@@ -626,9 +611,6 @@ public final class ImageProjectorScreen extends ResponsiveContainerScreen<ImageP
                 imageLayoutMode, backFaceMode, flipVertical, scanlines, wallSlideIndex,
                 automaticPresentationEnabled, automaticPresentationIntervalSeconds
         ));
-        if (returnToMain) {
-            PacketDistributor.sendToServer(new OpenProjectorWorkspacePayload(menu.projectorPos()));
-        }
     }
 
     private static void uploadIfPresent(String assetId) {

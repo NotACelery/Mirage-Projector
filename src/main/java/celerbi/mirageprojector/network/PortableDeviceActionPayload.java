@@ -75,6 +75,27 @@ public record PortableDeviceActionPayload(PortableDeviceSource source, Action ac
                             || MirageHandProjectorItem.sourceMode(device) != ProjectionSettings.SourceMode.BANNER) return;
                     MirageHandProjectorItem.cycleBannerPresentation(device);
                 }
+                case CYCLE_IMAGE_PRESENTATION -> {
+                    if (!(device.getItem() instanceof MirageHandProjectorItem)
+                            || MirageHandProjectorItem.sourceMode(device) != ProjectionSettings.SourceMode.IMAGE) return;
+                    MirageHandProjectorItem.cycleImagePresentation(device);
+                }
+                case TOGGLE_IMAGE_LIFT -> {
+                    if (!(device.getItem() instanceof MirageHandProjectorItem)) return;
+                    MirageHandProjectorItem.toggleImageLift(device, player.level());
+                }
+                case TOGGLE_IMAGE_ROTATION -> {
+                    if (!(device.getItem() instanceof MirageHandProjectorItem)) return;
+                    MirageHandProjectorItem.toggleImageRotation(device, player.level());
+                }
+                case TOGGLE_ENTITY_ROTATION -> {
+                    if (!(device.getItem() instanceof MirageHandProjectorItem)) return;
+                    MirageHandProjectorItem.togglePortableEntityRotation(device, player.level());
+                }
+                case CYCLE_IMAGE_FACE_MODE -> {
+                    if (!(device.getItem() instanceof MirageHandProjectorItem)) return;
+                    MirageHandProjectorItem.cycleImageFaceMode(device, player.level());
+                }
                 case CYCLE_WAR_BANNER_FACING -> {
                     if (!(device.getItem() instanceof MirageHandProjectorItem) || !MirageHandProjectorItem.warBannerActive(device)) return;
                     MirageHandProjectorItem.cycleWarBannerFacing(device);
@@ -84,7 +105,7 @@ public record PortableDeviceActionPayload(PortableDeviceSource source, Action ac
                 case WAR_BANNER_HEIGHT_DOWN -> adjust(device, false, -MirageHandProjectorItem.WAR_BANNER_HEIGHT_STEP_PIXELS);
                 case WAR_BANNER_HEIGHT_UP -> adjust(device, false, MirageHandProjectorItem.WAR_BANNER_HEIGHT_STEP_PIXELS);
                 case SELECT_IMAGE -> selectSource(device, player, ProjectionSettings.SourceMode.IMAGE);
-                case SELECT_ITEM -> selectSource(device, player, ProjectionSettings.SourceMode.ITEM);
+                case SELECT_ITEM -> { /* Legacy packet: Item is no longer a Hand Projector workspace. */ }
                 case SELECT_ENTITY -> selectSource(device, player, ProjectionSettings.SourceMode.ENTITY);
                 case SELECT_BANNER -> selectSource(device, player, ProjectionSettings.SourceMode.BANNER);
             }
@@ -119,6 +140,11 @@ public record PortableDeviceActionPayload(PortableDeviceSource source, Action ac
         CYCLE_FLASHLIGHT_MODE,
         TOGGLE_PROJECTOR,
         CYCLE_BANNER_PRESENTATION,
+        CYCLE_IMAGE_PRESENTATION,
+        TOGGLE_IMAGE_LIFT,
+        TOGGLE_IMAGE_ROTATION,
+        TOGGLE_ENTITY_ROTATION,
+        CYCLE_IMAGE_FACE_MODE,
         CYCLE_WAR_BANNER_FACING,
         WAR_BANNER_SIZE_DOWN,
         WAR_BANNER_SIZE_UP,

@@ -165,9 +165,11 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
 
         turnOffButton = addRenderableWidget(Button.builder(Component.translatable("gui.mirage_projector.turn_off"), button -> {
             if (!endResonanceActive()) {
-                projectionEnabled = false;
+                projectionEnabled = !projectionEnabled;
+                PacketDistributor.sendToServer(new SetProjectionEnabledPayload(menu.projectorPos(), projectionEnabled));
+            } else {
+                PacketDistributor.sendToServer(new SetProjectionEnabledPayload(menu.projectorPos(), false));
             }
-            PacketDistributor.sendToServer(new SetProjectionEnabledPayload(menu.projectorPos(), false));
             refreshProjectionStateButtons();
         }).bounds(x + imageWidth - 104, y + 6, 92, 18).build());
 
@@ -845,10 +847,12 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         setSourceButtonCompatibility(itemModeButton, ProjectionSettings.SourceMode.ITEM);
         setSourceButtonCompatibility(entityModeButton, ProjectionSettings.SourceMode.ENTITY);
         setSourceButtonCompatibility(bannerModeButton, ProjectionSettings.SourceMode.BANNER);
-        turnOffButton.active = endResonanceActive() || enabled;
+        // This is a true power toggle.  The stored source mode remains intact while
+        // disabled, and the same button is always available to resume it.
+        turnOffButton.active = true;
         turnOffButton.setMessage(Component.translatable(endResonanceActive() || enabled
                 ? "gui.mirage_projector.turn_off"
-                : "gui.mirage_projector.projector_off_button"));
+                : "gui.mirage_projector.turn_on"));
         if (unpairRemoteButton != null) {
             boolean wall = menu.chassisProfile() == ProjectionChassisProfile.WALL;
             boolean paired = wall && menu.projector() != null
@@ -942,9 +946,7 @@ public final class MirageProjectorScreen extends ResponsiveContainerScreen<Mirag
         graphics.drawString(font, Component.translatable("gui.mirage_projector.section.sources"), 14, 29, 0xFFBFA5D1, false);
         Component projectionStateLabel = endResonanceActive()
                 ? Component.translatable("gui.mirage_projector.end_resonance.title")
-                : currentProjectionEnabled()
-                ? Component.translatable("gui.mirage_projector.current_source", sourceName(currentSourceMode()))
-                : Component.translatable("gui.mirage_projector.projector_off");
+                : Component.translatable("gui.mirage_projector.current_source", sourceName(currentSourceMode()));
         // Keep the active-source state within the Sources header instead of letting it
         // collide with the first row of workspace buttons.
         graphics.drawString(font, projectionStateLabel, imageWidth - 14 - font.width(projectionStateLabel), 29, 0xFF9FBED1, false);

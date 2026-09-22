@@ -47,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>The portable device intentionally keeps a smaller/ghostlier output than full fixed projectors:
  * copied settings are normalized to the compact chassis, clamped to reduced presentation limits,
- * and capped at 90% opacity so at least 10% ghost remains visible.</p>
+ * and retains the source image's native alpha without imposing a ghost transparency.</p>
  */
 public final class MirageHandProjectorItem extends Item implements ShoulderRechargeableDevice {
     private static final String DEVICE_ID_TAG = "MirageHandProjectorId";
@@ -55,6 +55,8 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
     private static final String PROFILE_PRESENT_TAG = "MirageHandProjectorProfilePresent";
     private static final String ACTIVE_TAG = "MirageHandProjectorActive";
     private static final String SOURCE_MODE_TAG = "MirageHandProjectorSource";
+    private static final String IMAGE_PRESENTATION_TAG = "MirageHandProjectorImagePresentation";
+    private static final String PROJECTION_DISTANCE_TAG = "MirageHandProjectorDistancePixels";
     private static final String SOURCE_COUNT_TAG = "MirageHandProjectorSourceCount";
     private static final String CELL_TAG = "MirageHandProjectorCell";
     private static final String CELL_PRESENT_TAG = "MirageHandProjectorCellPresent";
@@ -66,19 +68,24 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
     private static final String WAR_BANNER_SIZE_TAG = "MirageHandProjectorWarBannerSize";
     private static final String WAR_BANNER_HEIGHT_TAG = "MirageHandProjectorWarBannerHeight";
 
-    public static final int WAR_BANNER_DEFAULT_SIZE_PERCENT = 75;
+    public static final int WAR_BANNER_DEFAULT_SIZE_PERCENT = 100;
     public static final int WAR_BANNER_MIN_SIZE_PERCENT = 50;
     public static final int WAR_BANNER_MAX_SIZE_PERCENT = 100;
     public static final int WAR_BANNER_SIZE_STEP_PERCENT = 5;
-    public static final int WAR_BANNER_DEFAULT_HEIGHT_PIXELS = 4;
-    public static final int WAR_BANNER_MIN_HEIGHT_PIXELS = 0;
-    public static final int WAR_BANNER_MAX_HEIGHT_PIXELS = 12;
-    public static final int WAR_BANNER_HEIGHT_STEP_PIXELS = 2;
+    public static final int WAR_BANNER_DEFAULT_HEIGHT_PIXELS = 0;
+    public static final int WAR_BANNER_MIN_HEIGHT_PIXELS = -32;
+    public static final int WAR_BANNER_MAX_HEIGHT_PIXELS = 32;
+    public static final int WAR_BANNER_HEIGHT_STEP_PIXELS = 4;
 
-    public static final int PORTABLE_MAX_SCALE_PIXELS = 10;
+    public static final int PORTABLE_MIN_SCALE_PIXELS = 10;
+    public static final int PORTABLE_MAX_SCALE_PIXELS = 50;
+    public static final int PORTABLE_DEFAULT_DISTANCE_PIXELS = 30;
+    public static final int PORTABLE_MIN_DISTANCE_PIXELS = 16;
+    public static final int PORTABLE_MAX_DISTANCE_PIXELS = 80;
     private static final int PORTABLE_MAX_LIFT_PIXELS = 12;
+    private static final int PORTABLE_DEFAULT_LIFT_PIXELS = 6;
     private static final int PORTABLE_MAX_FLOAT_PIXELS = 4;
-    private static final int PORTABLE_MAX_OPACITY_PERCENT = 90;
+    private static final int PORTABLE_MAX_OPACITY_PERCENT = 100;
     private static final int MIN_DRAIN_PER_SECOND = 4;
 
     public MirageHandProjectorItem(Properties properties) {
@@ -130,10 +137,86 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
     }
 
     public static ProjectionSettings.SourceMode sourceMode(ItemStack projector) {
-        return ProjectionSettings.SourceMode.parseOrDefault(
+        ProjectionSettings.SourceMode mode = ProjectionSettings.SourceMode.parseOrDefault(
                 customTag(projector).getString(SOURCE_MODE_TAG),
                 ProjectionSettings.SourceMode.IMAGE
         );
+        // Item was an early Hand Projector experiment. Keep old data but do not expose it as a
+        // portable workspace any longer.
+        return mode == ProjectionSettings.SourceMode.ITEM ? ProjectionSettings.SourceMode.IMAGE : mode;
+    }
+
+    public static ImagePresentation imagePresentation(ItemStack projector) {
+        return ImagePresentation.parse(customTag(projector).getString(IMAGE_PRESENTATION_TAG));
+    }
+
+    public static void cycleImagePresentation(ItemStack projector) {
+        if (projector == null || projector.isEmpty()) return;
+        ImagePresentation next = imagePresentation(projector).next();
+        CustomData.update(DataComponents.CUSTOM_DATA, projector, tag -> {
+            if (next == ImagePresentation.NORMAL) tag.remove(IMAGE_PRESENTATION_TAG);
+            else tag.putString(IMAGE_PRESENTATION_TAG, next.serializedName());
+        });
+        removeEmptyCustomData(projector);
+    }
+
+    /** Enables a modest static lift for a portable image; it is intentionally not a floating animation. */
+    public static boolean toggleImageLift(ItemStack projector, Level level) {
+        return updatePortableImageSettings(projector, level, settings -> settings.withLiftPixels(
+                settings.liftPixels() > 0 ? 0 : PORTABLE_DEFAULT_LIFT_PIXELS
+        ));
+    }
+
+    /** Portable images may spin, but never inherit the fixed projector's floating effect. */
+    public static boolean toggleImageRotation(ItemStack projector, Level level) {
+        return updatePortableImageSettings(projector, level,
+                settings -> settings.withRotationEnabled(!settings.rotationEnabled()));
+    }
+
+    /** Sets the static facing angle of a portable entity projection. */
+    public static boolean setPortableEntityRotation(ItemStack projector, int degrees, Level level) {
+        return updatePortableEntitySettings(projector, level, settings -> settings.withPresentation(
+                settings.scalePixels(), settings.liftPixels(), settings.rotationEnabled(),
+                settings.rotationPeriodTicks(), settings.clockwise(), Mth.clamp(degrees, 0, 360),
+                settings.floatingEnabled(), settings.floatMode(), settings.floatAmplitudePixels(),
+                settings.floatCycleTicks(), settings.floatIntervalDegrees(), settings.fullbright(),
+                settings.opacityPercent(), settings.tintRgb(), settings.debugChassisOverride()
+        ));
+    }
+
+    /** Enables or disables the entity's automatic spin without changing its selected facing. */
+    public static boolean togglePortableEntityRotation(ItemStack projector, Level level) {
+        return updatePortableEntitySettings(projector, level,
+                settings -> settings.withRotationEnabled(!settings.rotationEnabled()));
+    }
+
+    /** Cycles precisely the three planar face modes offered by the Hand Projector. */
+    public static boolean cycleImageFaceMode(ItemStack projector, Level level) {
+        return updatePortableImageSettings(projector, level, settings -> {
+            ProjectionSettings.BackFaceMode next = switch (settings.backFaceMode()) {
+                case FRONT -> ProjectionSettings.BackFaceMode.MIRRORED;
+                case MIRRORED -> ProjectionSettings.BackFaceMode.READABLE;
+                default -> ProjectionSettings.BackFaceMode.FRONT;
+            };
+            return settings.withBackFaceMode(next);
+        });
+    }
+
+    public static int projectionDistancePixels(ItemStack projector) {
+        return Mth.clamp(customTag(projector).contains(PROJECTION_DISTANCE_TAG)
+                        ? customTag(projector).getInt(PROJECTION_DISTANCE_TAG)
+                        : PORTABLE_DEFAULT_DISTANCE_PIXELS,
+                PORTABLE_MIN_DISTANCE_PIXELS, PORTABLE_MAX_DISTANCE_PIXELS);
+    }
+
+    public static void setProjectionDistancePixels(ItemStack projector, int distancePixels) {
+        if (projector == null || projector.isEmpty()) return;
+        int safe = Mth.clamp(distancePixels, PORTABLE_MIN_DISTANCE_PIXELS, PORTABLE_MAX_DISTANCE_PIXELS);
+        CustomData.update(DataComponents.CUSTOM_DATA, projector, tag -> {
+            if (safe == PORTABLE_DEFAULT_DISTANCE_PIXELS) tag.remove(PROJECTION_DISTANCE_TAG);
+            else tag.putInt(PROJECTION_DISTANCE_TAG, safe);
+        });
+        removeEmptyCustomData(projector);
     }
 
     public static int projectedSourceCount(ItemStack projector) {
@@ -331,12 +414,27 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
 
     public static int portableScalePixels(ItemStack projector, Level level) {
         if (level == null) {
-            return Math.min(ProjectionSettings.DEFAULT.scalePixels(), PORTABLE_MAX_SCALE_PIXELS);
+            return Mth.clamp(ProjectionSettings.DEFAULT.scalePixels(), PORTABLE_MIN_SCALE_PIXELS, PORTABLE_MAX_SCALE_PIXELS);
         }
         MirageProjectorBlockEntity portable = loadOrCreatePortableProjector(projector, level);
         return portable == null
-                ? Math.min(ProjectionSettings.DEFAULT.scalePixels(), PORTABLE_MAX_SCALE_PIXELS)
-                : Math.min(portable.settings().scalePixels(), PORTABLE_MAX_SCALE_PIXELS);
+                ? PORTABLE_MIN_SCALE_PIXELS
+                : Mth.clamp(portable.settings().scalePixels(), PORTABLE_MIN_SCALE_PIXELS,
+                portableMaxScalePixels(projector, level));
+    }
+
+    public static int portableMaxScalePixels(ItemStack projector, Level level) {
+        if (level == null) return PORTABLE_MIN_SCALE_PIXELS;
+        return portableMaxScalePixels(coreProfile(projector, level.registryAccess()));
+    }
+
+    private static int portableMaxScalePixels(ProjectionCoreProfile core) {
+        if (core == ProjectionCoreProfile.IMPROVED_NETHERITE) {
+            return PORTABLE_MAX_SCALE_PIXELS;
+        }
+        float output = core == null ? 0.0F : core.materialOutput();
+        // The compact chassis otherwise retains its existing 10–30 px progression.
+        return Mth.clamp(Math.round(output / 6.4F), PORTABLE_MIN_SCALE_PIXELS, 30);
     }
 
     public static boolean setPortableScale(ItemStack projector, int scalePixels, Level level) {
@@ -347,7 +445,7 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
         if (portable == null) {
             return false;
         }
-        int clamped = Mth.clamp(scalePixels, ProjectionSettings.DEBUG_MIN_SCALE_PIXELS, PORTABLE_MAX_SCALE_PIXELS);
+        int clamped = Mth.clamp(scalePixels, PORTABLE_MIN_SCALE_PIXELS, portableMaxScalePixels(projector, level));
         portable.applySettings(portable.settings().withScalePixels(clamped));
         commitPortableProfile(projector, portable, sourceMode(projector), level.registryAccess());
         return true;
@@ -489,8 +587,8 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
         );
         projector.setLevel(level);
         projector.loadCustomOnly(profile.copy(), level.registryAccess());
-        normalizePortableProjector(projector);
         projector.coreItem().setStackInSlot(0, coreStack(stack, level.registryAccess()));
+        normalizePortableProjector(projector);
         projector.setProjectionEnabled(projectionEnabled(stack));
         return projector;
     }
@@ -537,8 +635,8 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
         portable = new MirageProjectorBlockEntity(BlockPos.ZERO, portableBlockState(Direction.SOUTH));
         portable.setLevel(level);
         portable.applySettings(ProjectionSettings.DEFAULT.withSourceMode(sourceMode(projector)));
-        normalizePortableProjector(portable);
         portable.coreItem().setStackInSlot(0, coreStack(projector, level.registryAccess()));
+        normalizePortableProjector(portable);
         return portable;
     }
 
@@ -566,6 +664,38 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
             }
         });
         removeEmptyCustomData(handProjector);
+    }
+
+    private static boolean updatePortableImageSettings(
+            ItemStack projector,
+            Level level,
+            java.util.function.UnaryOperator<ProjectionSettings> update
+    ) {
+        if (projector == null || projector.isEmpty() || level == null
+                || sourceMode(projector) != ProjectionSettings.SourceMode.IMAGE) {
+            return false;
+        }
+        MirageProjectorBlockEntity portable = loadOrCreatePortableProjector(projector, level);
+        if (portable == null) return false;
+        portable.applySettings(update.apply(portable.settings()).sanitized());
+        commitPortableProfile(projector, portable, ProjectionSettings.SourceMode.IMAGE, level.registryAccess());
+        return true;
+    }
+
+    private static boolean updatePortableEntitySettings(
+            ItemStack projector,
+            Level level,
+            java.util.function.UnaryOperator<ProjectionSettings> update
+    ) {
+        if (projector == null || projector.isEmpty() || level == null
+                || sourceMode(projector) != ProjectionSettings.SourceMode.ENTITY) {
+            return false;
+        }
+        MirageProjectorBlockEntity portable = loadOrCreatePortableProjector(projector, level);
+        if (portable == null) return false;
+        portable.applySettings(update.apply(portable.settings()).sanitized());
+        commitPortableProfile(projector, portable, ProjectionSettings.SourceMode.ENTITY, level.registryAccess());
+        return true;
     }
 
     @Override
@@ -870,8 +1000,8 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
                 portableBlockState(Direction.SOUTH)
         );
         portable.loadCustomOnly(profile.copy(), registries);
-        normalizePortableProjector(portable);
         portable.coreItem().setStackInSlot(0, coreStack(projector, registries));
+        normalizePortableProjector(portable);
         portable.setProjectionEnabled(projectionEnabled(projector));
         return portable;
     }
@@ -879,9 +1009,16 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
     private static void normalizePortableProjector(MirageProjectorBlockEntity projector) {
         ProjectionSettings settings = projector.settings().sanitized();
 
-        int scale = Math.min(settings.scalePixels(), PORTABLE_MAX_SCALE_PIXELS);
+        if (settings.sourceMode() == ProjectionSettings.SourceMode.ITEM) {
+            projector.clearProjectionSnapshot();
+            settings = settings.withSourceMode(ProjectionSettings.SourceMode.IMAGE);
+        }
+
+        int scale = Mth.clamp(settings.scalePixels(), PORTABLE_MIN_SCALE_PIXELS,
+                portableMaxScalePixels(projector.coreProfile()));
         int lift = Math.min(settings.liftPixels(), PORTABLE_MAX_LIFT_PIXELS);
         int floatAmplitude = Math.min(settings.floatAmplitudePixels(), Math.min(PORTABLE_MAX_FLOAT_PIXELS, lift));
+        boolean imageSource = settings.sourceMode() == ProjectionSettings.SourceMode.IMAGE;
         settings = settings.withPresentation(
                 scale,
                 lift,
@@ -889,13 +1026,13 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
                 settings.rotationPeriodTicks(),
                 settings.clockwise(),
                 settings.rotationOffsetDegrees(),
-                settings.floatingEnabled(),
+                imageSource ? false : settings.floatingEnabled(),
                 settings.floatMode(),
-                floatAmplitude,
+                imageSource ? 0 : floatAmplitude,
                 settings.floatCycleTicks(),
                 settings.floatIntervalDegrees(),
                 settings.fullbright(),
-                Math.min(settings.opacityPercent(), PORTABLE_MAX_OPACITY_PERCENT),
+                imageSource ? PORTABLE_MAX_OPACITY_PERCENT : Math.min(settings.opacityPercent(), PORTABLE_MAX_OPACITY_PERCENT),
                 settings.tintRgb(),
                 false
         ).sanitized();
@@ -1029,6 +1166,36 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
                 return DIRECTIONAL;
             }
             return BILLBOARD;
+        }
+    }
+
+    /** A Hand Projector image is always a single plane; this only selects its placement. */
+    public enum ImagePresentation {
+        NORMAL("normal", "gui.mirage_projector.portable_device.image_presentation.normal"),
+        BILLBOARD("billboard", "gui.mirage_projector.portable_device.image_presentation.billboard"),
+        SURFACE("surface", "gui.mirage_projector.portable_device.image_presentation.surface");
+
+        private final String serializedName;
+        private final String translationKey;
+
+        ImagePresentation(String serializedName, String translationKey) {
+            this.serializedName = serializedName;
+            this.translationKey = translationKey;
+        }
+
+        public String serializedName() { return serializedName; }
+        public String translationKey() { return translationKey; }
+
+        public ImagePresentation next() {
+            ImagePresentation[] values = values();
+            return values[(ordinal() + 1) % values.length];
+        }
+
+        public static ImagePresentation parse(String value) {
+            for (ImagePresentation presentation : values()) {
+                if (presentation.serializedName.equals(value)) return presentation;
+            }
+            return NORMAL;
         }
     }
 

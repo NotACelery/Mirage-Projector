@@ -9,6 +9,7 @@ import celerbi.mirageprojector.menu.PortableDeviceMenu;
 import celerbi.mirageprojector.network.PortableDeviceActionPayload;
 import celerbi.mirageprojector.network.PortableDeviceDistancePayload;
 import celerbi.mirageprojector.network.PortableDeviceEntityRotationPayload;
+import celerbi.mirageprojector.network.PortableDeviceWarBannerPayload;
 import celerbi.mirageprojector.network.PortableDeviceImagePayload;
 import celerbi.mirageprojector.network.PortableDeviceScalePayload;
 import celerbi.mirageprojector.registry.ModItems;
@@ -60,13 +61,11 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
     private Button bannerModeButton;
     private Button bannerPresentationButton;
     private Button warBannerFacingButton;
-    private Button warSizeDownButton;
-    private Button warSizeUpButton;
-    private Button warHeightDownButton;
-    private Button warHeightUpButton;
     private ScaleSlider scaleSlider;
     private DistanceSlider distanceSlider;
     private EntityRotationSlider entityRotationSlider;
+    private WarBannerSizeSlider warBannerSizeSlider;
+    private WarBannerHeightSlider warBannerHeightSlider;
     private final EntityProjectionPreviewRenderer entityPreview = new EntityProjectionPreviewRenderer();
     private Component status = Component.translatable("gui.mirage_projector.status.ready");
 
@@ -153,23 +152,16 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
                 button -> send(PortableDeviceActionPayload.Action.CYCLE_WAR_BANNER_FACING)
         ).bounds(x, sourceRowY(1), CONTROL_WIDTH, ROW_HEIGHT).build());
 
-        warSizeDownButton = addRenderableWidget(Button.builder(
-                Component.literal("−"),
-                button -> send(PortableDeviceActionPayload.Action.WAR_BANNER_SIZE_DOWN)
-        ).bounds(x, sourceRowY(2), 24, ROW_HEIGHT).build());
-        warSizeUpButton = addRenderableWidget(Button.builder(
-                Component.literal("+"),
-                button -> send(PortableDeviceActionPayload.Action.WAR_BANNER_SIZE_UP)
-        ).bounds(x + CONTROL_WIDTH - 24, sourceRowY(2), 24, ROW_HEIGHT).build());
-
-        warHeightDownButton = addRenderableWidget(Button.builder(
-                Component.literal("−"),
-                button -> send(PortableDeviceActionPayload.Action.WAR_BANNER_HEIGHT_DOWN)
-        ).bounds(x, sourceRowY(3), 24, ROW_HEIGHT).build());
-        warHeightUpButton = addRenderableWidget(Button.builder(
-                Component.literal("+"),
-                button -> send(PortableDeviceActionPayload.Action.WAR_BANNER_HEIGHT_UP)
-        ).bounds(x + CONTROL_WIDTH - 24, sourceRowY(3), 24, ROW_HEIGHT).build());
+        warBannerSizeSlider = addRenderableWidget(new WarBannerSizeSlider(
+                x, sourceRowY(2), CONTROL_WIDTH, ROW_HEIGHT, MirageHandProjectorItem.warBannerSizePercent(device),
+                value -> PacketDistributor.sendToServer(new PortableDeviceWarBannerPayload(
+                        menu.source(), PortableDeviceWarBannerPayload.Parameter.SIZE, value))
+        ));
+        warBannerHeightSlider = addRenderableWidget(new WarBannerHeightSlider(
+                x, sourceRowY(3), CONTROL_WIDTH, ROW_HEIGHT, MirageHandProjectorItem.warBannerHeightPixels(device),
+                value -> PacketDistributor.sendToServer(new PortableDeviceWarBannerPayload(
+                        menu.source(), PortableDeviceWarBannerPayload.Parameter.HEIGHT, value))
+        ));
 
         updateProjectorControls();
     }
@@ -215,8 +207,6 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         ));
 
         if (scaleSlider != null) {
-            // War Banner owns a single, meaningful scale control (Size %). The generic pixel
-            // scale belongs to planar projections and never affected the banner model.
             scaleSlider.visible = projector && !warBanner;
             scaleSlider.active = projector && !warBanner;
             scaleSlider.syncExternal(currentScale(device), currentMaxScale(device));
@@ -279,10 +269,16 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
             ));
         }
 
-        setVisible(warSizeDownButton, warBanner);
-        setVisible(warSizeUpButton, warBanner);
-        setVisible(warHeightDownButton, warBanner);
-        setVisible(warHeightUpButton, warBanner);
+        if (warBannerSizeSlider != null) {
+            warBannerSizeSlider.visible = warBanner;
+            warBannerSizeSlider.active = warBanner;
+            warBannerSizeSlider.syncExternal(MirageHandProjectorItem.warBannerSizePercent(device));
+        }
+        if (warBannerHeightSlider != null) {
+            warBannerHeightSlider.visible = warBanner;
+            warBannerHeightSlider.active = warBanner;
+            warBannerHeightSlider.syncExternal(MirageHandProjectorItem.warBannerHeightPixels(device));
+        }
     }
 
     private static void updateModeButton(Button button, boolean selected) {
@@ -385,15 +381,6 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
         graphics.drawCenteredString(font, Component.translatable("gui.mirage_projector.portable_device.preview"),
                 PREVIEW_X + PREVIEW_WIDTH / 2, 76, 0xFFD7B8F5);
 
-        if (MirageHandProjectorItem.warBannerActive(device)) {
-            int labelCenter = CONTROL_X + CONTROL_WIDTH / 2;
-            graphics.drawCenteredString(font,
-                    Component.translatable("gui.mirage_projector.portable_device.war_banner_size_value", MirageHandProjectorItem.warBannerSizePercent(device)),
-                    labelCenter, SOURCE_CONTROL_Y + 2 * (ROW_HEIGHT + ROW_GAP) + 5, 0xFFD7B8F5);
-            graphics.drawCenteredString(font,
-                    Component.translatable("gui.mirage_projector.portable_device.war_banner_height_value", MirageHandProjectorItem.warBannerHeightPixels(device)),
-                    labelCenter, SOURCE_CONTROL_Y + 3 * (ROW_HEIGHT + ROW_GAP) + 5, 0xFFD7B8F5);
-        }
     }
 
     @Override
@@ -699,6 +686,116 @@ public final class PortableDeviceScreen extends AbstractContainerScreen<Portable
 
         private static int clamp(int degrees) {
             return Math.max(0, Math.min(360, degrees));
+        }
+    }
+
+    private static final class WarBannerSizeSlider extends AbstractSliderButton {
+        private final java.util.function.IntConsumer setter;
+        private int percent;
+        private int lastSent;
+
+        private WarBannerSizeSlider(
+                int x,
+                int y,
+                int width,
+                int height,
+                int percent,
+                java.util.function.IntConsumer setter
+        ) {
+            super(x, y, width, height, Component.empty(), normalize(percent));
+            this.setter = setter;
+            this.percent = clamp(percent);
+            this.lastSent = this.percent;
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(Component.translatable("gui.mirage_projector.portable_device.war_banner_size_value", percent));
+        }
+
+        @Override
+        protected void applyValue() {
+            percent = clamp((int) Math.round(value * 100.0D));
+            if (percent != lastSent) {
+                lastSent = percent;
+                setter.accept(percent);
+            }
+            updateMessage();
+        }
+
+        private void syncExternal(int percent) {
+            int safe = clamp(percent);
+            if (safe == this.percent) {
+                return;
+            }
+            this.percent = safe;
+            this.lastSent = safe;
+            this.value = normalize(safe);
+            updateMessage();
+        }
+
+        private static double normalize(int percent) {
+            return clamp(percent) / 100.0D;
+        }
+
+        private static int clamp(int percent) {
+            return Math.max(0, Math.min(100, percent));
+        }
+    }
+
+    private static final class WarBannerHeightSlider extends AbstractSliderButton {
+        private final java.util.function.IntConsumer setter;
+        private int pixels;
+        private int lastSent;
+
+        private WarBannerHeightSlider(
+                int x,
+                int y,
+                int width,
+                int height,
+                int pixels,
+                java.util.function.IntConsumer setter
+        ) {
+            super(x, y, width, height, Component.empty(), normalize(pixels));
+            this.setter = setter;
+            this.pixels = clamp(pixels);
+            this.lastSent = this.pixels;
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(Component.translatable("gui.mirage_projector.portable_device.war_banner_height_value", pixels));
+        }
+
+        @Override
+        protected void applyValue() {
+            pixels = clamp(-32 + (int) Math.round(value * 64.0D));
+            if (pixels != lastSent) {
+                lastSent = pixels;
+                setter.accept(pixels);
+            }
+            updateMessage();
+        }
+
+        private void syncExternal(int pixels) {
+            int safe = clamp(pixels);
+            if (safe == this.pixels) {
+                return;
+            }
+            this.pixels = safe;
+            this.lastSent = safe;
+            this.value = normalize(safe);
+            updateMessage();
+        }
+
+        private static double normalize(int pixels) {
+            return (clamp(pixels) + 32) / 64.0D;
+        }
+
+        private static int clamp(int pixels) {
+            return Math.max(-32, Math.min(32, pixels));
         }
     }
 }

@@ -60,8 +60,6 @@ public final class MirageEquipmentSlotWidget extends AbstractWidget {
         }
 
         if (isHovered() && !stack.isEmpty()) {
-            // These are real item stacks, so expose their ordinary item tooltip instead of
-            // replacing it with the slot label.
             graphics.renderTooltip(Minecraft.getInstance().font, stack, mouseX, mouseY);
         } else if (isHovered() && !unlocked) {
             graphics.renderTooltip(Minecraft.getInstance().font, tooltip(false), mouseX, mouseY);
@@ -91,27 +89,7 @@ public final class MirageEquipmentSlotWidget extends AbstractWidget {
         } else if (minecraft.player != null && minecraft.player.containerMenu != null) {
             carried = minecraft.player.containerMenu.getCarried().copy();
         }
-        // Preserve the cursor that existed before this click for the server packet.  Creative
-        // explicitly trusts that packet cursor; sending the optimistic pick-up below made the
-        // server interpret an extraction as a swap with the very same stack, duplicating it.
         ItemStack carriedBeforeClick = carried.copy();
-
-        // This panel is external to vanilla's Slot list.  Put a picked-up stack on the local
-        // cursor immediately, then let the authoritative server correction confirm or undo it.
-        // Without this bridge vanilla can process the following outside click as an empty-cursor
-        // click and throw the just-extracted stack onto the ground.
-        if (carried.isEmpty()) {
-            ItemStack displayed = displayedStack();
-            if (!displayed.isEmpty()) {
-                if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen) {
-                    containerScreen.getMenu().setCarried(displayed.copy());
-                }
-                if (minecraft.player != null && minecraft.player.containerMenu != null) {
-                    minecraft.player.containerMenu.setCarried(displayed.copy());
-                }
-                carried = displayed;
-            }
-        }
         PacketDistributor.sendToServer(new ShoulderEquipmentActionPayload(target, carriedBeforeClick));
         return true;
     }
@@ -122,6 +100,22 @@ public final class MirageEquipmentSlotWidget extends AbstractWidget {
     }
 
     private boolean unlocked() {
+        if (target == ShoulderEquipmentActionPayload.Target.STRAP) {
+            return true;
+        }
+        if (!ClientShoulderEquipment.localStrapPresent()) {
+            return false;
+        }
+        if (target.battery()) {
+            return target.batteryIndex() < ClientShoulderEquipment.localActiveBatterySlots();
+        }
+        if (target.upgrade()) {
+            return target.upgradeIndex() < ClientShoulderEquipment.localActiveUpgradeSlots();
+        }
+        return true;
+    }
+
+    public boolean visibleForCurrentState() {
         if (target == ShoulderEquipmentActionPayload.Target.STRAP) {
             return true;
         }

@@ -10,13 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/**
- * Client request to interact with one Mirage Equipment slot.
- *
- * <p>Creative inventory screens keep their cursor stack largely client-side, so the packet also
- * carries the visible cursor snapshot. The server only trusts that snapshot for creative players;
- * survival continues to use the authoritative server container cursor.</p>
- */
+/** Client request to interact with one Mirage Equipment slot. */
 public record ShoulderEquipmentActionPayload(Target target, ItemStack clientCarried) implements CustomPacketPayload {
     public static final Type<ShoulderEquipmentActionPayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(MirageProjector.MOD_ID, "shoulder_equipment_action")
@@ -71,12 +65,15 @@ public record ShoulderEquipmentActionPayload(Target target, ItemStack clientCarr
         BATTERY_6,
         BATTERY_7,
         BATTERY_8,
+        BATTERY_9,
+        BATTERY_10,
+        BATTERY_11,
         UPGRADE_0,
         UPGRADE_1,
         UPGRADE_2;
 
         public boolean battery() {
-            return ordinal() >= BATTERY_0.ordinal() && ordinal() <= BATTERY_8.ordinal();
+            return ordinal() >= BATTERY_0.ordinal() && ordinal() <= BATTERY_11.ordinal();
         }
 
         public int batteryIndex() {
@@ -102,6 +99,9 @@ public record ShoulderEquipmentActionPayload(Target target, ItemStack clientCarr
                 case 6 -> BATTERY_6;
                 case 7 -> BATTERY_7;
                 case 8 -> BATTERY_8;
+                case 9 -> BATTERY_9;
+                case 10 -> BATTERY_10;
+                case 11 -> BATTERY_11;
                 default -> throw new IllegalArgumentException("Invalid battery pouch index: " + index);
             };
         }

@@ -9,6 +9,7 @@ block and obstacle-only detour travel costs 2 internal units per extra block.
 from __future__ import annotations
 
 import heapq
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,19 +82,12 @@ profile = (ROOT / 'src/main/java/celerbi/mirageprojector/light/engine/MirageLigh
 solver = (ROOT / 'src/main/java/celerbi/mirageprojector/light/engine/MirageLightSolver.java').read_text(encoding='utf-8')
 payload = (ROOT / 'src/main/java/celerbi/mirageprojector/network/MirageLightChunkSnapshotPayload.java').read_text(encoding='utf-8')
 main = (ROOT / 'src/main/java/celerbi/mirageprojector/MirageProjector.java').read_text(encoding='utf-8')
-# Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
-main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
-main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
-main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
-# Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
-main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 assert 'detourExtraCostUnits' in profile
 assert 'detourBacktrackPenaltyUnits' in profile
 assert 'nextDirectDistance < currentDirectDistance' in solver
 assert 'PACKED_SECTION_BYTES' in payload and 'revision' in payload
-assert ('NETWORK_PROTOCOL = "27"' in main or 'NETWORK_PROTOCOL = "28"' in main or 'NETWORK_PROTOCOL = "29"' in main or 'NETWORK_PROTOCOL = "30"' in main or 'NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or ('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or ('NETWORK_PROTOCOL = \"36\"' in main or ('NETWORK_PROTOCOL = \"37\"' in main or 'NETWORK_PROTOCOL = \"38\"' in main)))))
+protocol = re.search(r'NETWORK_PROTOCOL\s*=\s*"(\d+)"', main)
+assert protocol and int(protocol.group(1)) >= 27
 
 print('dev.75d Mirage Light detour-penalty verification: PASS')
 print('open probe level:', visible(open_field[probe]), 'wall-routed probe level:', visible(wall_field[probe]))

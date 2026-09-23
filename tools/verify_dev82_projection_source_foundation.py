@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 errors=[]
@@ -18,11 +19,6 @@ transform=read('src/main/java/celerbi/mirageprojector/ProjectionTransform.java')
 energy=read('src/main/java/celerbi/mirageprojector/ProjectionEnergySource.java')
 power=read('src/main/java/celerbi/mirageprojector/ProjectionPower.java')
 main=read('src/main/java/celerbi/mirageprojector/MirageProjector.java')
-# Later protocol bumps preserve this historical contract.
-main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"')
-main = main.replace('NETWORK_PROTOCOL = \"43\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"42\"', 'NETWORK_PROTOCOL = \"38\"').replace('NETWORK_PROTOCOL = \"41\"', 'NETWORK_PROTOCOL = \"38\"')
-main = main.replace('NETWORK_PROTOCOL = \"40\"', 'NETWORK_PROTOCOL = \"38\"')
-main = main.replace('NETWORK_PROTOCOL = \"39\"', 'NETWORK_PROTOCOL = \"38\"')
 
 need('public static final class SourceMode' in settings,'SourceMode is still a closed enum')
 need('public enum SourceMode' not in settings,'closed SourceMode enum still present')
@@ -62,7 +58,9 @@ need('interface ProjectionEnergySource' in energy,'device-agnostic energy bounda
 need('ProjectionEnergySource.fromCore(core)' in power,'ProjectionPower does not adapt fixed Core through energy boundary')
 need('ProjectionEnergySource energySource' in power,'generic ProjectionPower energy overload missing')
 
-need(('NETWORK_PROTOCOL = "27"' in main or 'NETWORK_PROTOCOL = "28"' in main or 'NETWORK_PROTOCOL = "29"' in main or 'NETWORK_PROTOCOL = "30"' in main or 'NETWORK_PROTOCOL = "31"' in main or 'NETWORK_PROTOCOL = "32"' in main or 'NETWORK_PROTOCOL = "33"' in main or ('NETWORK_PROTOCOL = "34"' in main or ('NETWORK_PROTOCOL = "35"' in main or ('NETWORK_PROTOCOL = \"36\"' in main or ('NETWORK_PROTOCOL = \"37\"' in main or 'NETWORK_PROTOCOL = \"38\"' in main))))),'network protocol no longer preserves the post-source/transform codec baseline')
+protocol = re.search(r'NETWORK_PROTOCOL\s*=\s*"(\d+)"', main)
+need(bool(protocol) and int(protocol.group(1)) >= 27,
+     'network protocol no longer preserves the post-source/transform codec baseline')
 
 # Closed source switches/ordinals should be gone from current runtime source.
 for p in (ROOT/'src/main/java').rglob('*.java'):

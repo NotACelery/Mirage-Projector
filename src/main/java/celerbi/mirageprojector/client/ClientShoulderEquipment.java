@@ -19,7 +19,10 @@ import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.player.Player;
@@ -205,41 +208,67 @@ public final class ClientShoulderEquipment {
         }
     }
 
-    public static void renderMountedDevice(
-            Player player,
+    public static void renderMountedDevices(
+            Minecraft minecraft,
             PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            int packedLight
+            Vec3 cameraPosition,
+            float partialTick
     ) {
-        if (player == null || poseStack == null || bufferSource == null) {
+        if (minecraft == null || minecraft.level == null || poseStack == null || cameraPosition == null) {
             return;
         }
-        ItemStack stack = device(player.getUUID());
-        if (stack.isEmpty()) {
-            return;
-        }
+        MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
+        boolean renderedAny = false;
+        for (Player player : minecraft.level.players()) {
+            if (player == minecraft.player && minecraft.options.getCameraType().isFirstPerson()) {
+                continue;
+            }
+            ItemStack stack = device(player.getUUID());
+            if (stack.isEmpty()) {
+                continue;
+            }
 
-        poseStack.pushPose();
-        // RenderPlayerEvent.Post retains the player translation but not the body-local yaw.
-        // Rotate before translating so the shoulder offset follows the torso instead of staying
-        // on a world cardinal axis while the player turns.
-        poseStack.mulPose(Axis.YP.rotationDegrees(-player.yBodyRot));
-        // The item's centre must sit above the shoulder seam, not inside the torso. Keeping a
-        // small forward offset also makes the mounting bracket read clearly from behind.
-        poseStack.translate(-0.40D, 1.55D, 0.12D);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(-12.0F));
-        poseStack.scale(0.42F, 0.42F, 0.42F);
-        Minecraft.getInstance().getItemRenderer().renderStatic(
-                stack,
-                ItemDisplayContext.FIXED,
-                packedLight,
-                OverlayTexture.NO_OVERLAY,
-                poseStack,
-                bufferSource,
-                player.level(),
-                player.getId()
-        );
-        poseStack.popPose();
+            float bodyYaw = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
+            double radians = Math.toRadians(bodyYaw);
+            Vec3 bodyForward = new Vec3(-Math.sin(radians), 0.0D, Math.cos(radians));
+            Vec3 bodyRight = new Vec3(-bodyForward.z, 0.0D, bodyForward.x);
+            Vec3 playerPosition = new Vec3(
+                    Mth.lerp(partialTick, player.xo, player.getX()),
+                    Mth.lerp(partialTick, player.yo, player.getY()),
+                    Mth.lerp(partialTick, player.zo, player.getZ())
+            );
+            Vec3 anchor = playerPosition
+                    .add(bodyRight.scale(-0.34D))
+                    .add(bodyForward.scale(-0.12D))
+                    .add(0.0D, 1.55D, 0.0D);
+            int packedLight = LevelRenderer.getLightColor(
+                    minecraft.level, BlockPos.containing(anchor.x, anchor.y, anchor.z));
+
+            poseStack.pushPose();
+            poseStack.translate(
+                    anchor.x - cameraPosition.x,
+                    anchor.y - cameraPosition.y,
+                    anchor.z - cameraPosition.z
+            );
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-8.0F));
+            poseStack.scale(0.42F, 0.42F, 0.42F);
+            minecraft.getItemRenderer().renderStatic(
+                    stack,
+                    ItemDisplayContext.FIXED,
+                    packedLight,
+                    OverlayTexture.NO_OVERLAY,
+                    poseStack,
+                    bufferSource,
+                    minecraft.level,
+                    player.getId()
+            );
+            poseStack.popPose();
+            renderedAny = true;
+        }
+        if (renderedAny) {
+            bufferSource.endBatch();
+        }
     }
 
     public static void resetSession() {

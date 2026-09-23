@@ -1,6 +1,7 @@
 package celerbi.mirageprojector.network;
 
 import celerbi.mirageprojector.MirageProjector;
+import celerbi.mirageprojector.client.MirageEquipmentClientEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -51,6 +52,7 @@ public record ShoulderEquipmentCursorPayload(ItemStack carried) implements Custo
             if (minecraft.player != null && minecraft.player.containerMenu != null) {
                 minecraft.player.containerMenu.setCarried(corrected);
             }
+            MirageEquipmentClientEvents.onEquipmentCursorSynchronized();
         });
     }
 }

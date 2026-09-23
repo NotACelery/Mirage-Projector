@@ -1,4 +1,4 @@
-# QA Regression Matrix — Mirage Projector 1.0.69
+# QA Regression Matrix — Mirage Projector 1.0.117
 
 Use this matrix after any 1.0.x patch/compatibility change, and as the baseline before integrating the 1.1.0 feature expansion.
 
@@ -276,8 +276,19 @@ python tools/verify_current_line.py
 - Move a Focus/Flood/Ambient Lantern across chunk-section boundaries in darkness. Previously lit terrain must darken again without breaking blocks, and newly reached terrain/walls must illuminate without walking close enough to trigger an unrelated rebuild.
 - Repeat with Sodium enabled and watch broad/tall walls plus floor/ceiling boundaries; no stale rectangular mesh patches should persist.
 - Equip Mirage Flashlight in Shoulder Device and inspect third person from multiple angles. The physical item must sit near the right shoulder rather than below the feet; its light origin should follow the shoulder while Focus/Flood direction follows the player look vector.
-- Copy a valid fixed-projector profile into Mirage Hand Projector, insert a charged cell and enable projection from both RMB and GUI. Non-War-Banner Image/Item/Entity/Banner content must render even though the portable projector has no physical fixed-projector Core.
+- Configure a Mirage Hand Projector, insert a charged cell and enable projection from both RMB and GUI. Non-War-Banner Image/Item/Entity/Banner content must render even though the portable projector has no physical fixed-projector Core.
 - Disable/re-enable and move the active Hand Projector between hand, inventory and Shoulder Device; persistent-state rendering/drain must remain intact.
+
+## 1.0.117 Shoulder Strap and War Banner stabilization
+
+- Open the inventory in Survival and Creative. The same shoulder toggle must appear immediately, and the same panel must open or close without reopening the inventory.
+- Exercise every Shoulder Strap slot with click, release, drag and occupied-slot replacement. The previous stack must remain on the cursor; no stack may drop or duplicate.
+- Close and reopen the inventory with a carried stack after a shoulder-slot action. The server-corrected cursor must remain consistent.
+- Remove a populated Strap and equip it again. Its mounted device, item compartment and upgrades must round-trip unchanged.
+- Verify the base 2×4 item grid accepts rechargeable media, Flashlights, Hand Projectors, Scan Codices and empty or filled Entity Scan Cards. Expansion must add exactly one four-slot row.
+- Inspect shoulder devices and War Banners in first and third person. The owner must not see either attachment in first person; third-person anchors must follow the player body without world-space jumping.
+- Compare War Banner facing modes from multiple clients. Directional must follow body yaw; Always Face Viewer must rotate independently for each viewer without changing its anchor.
+- Sweep War Banner size from 0–100% and height from -32–+32 px, then reopen the GUI and verify the synchronized values persist.
 
 
 ## 1.0.23 Scan Codex + vanilla Lectern duplication

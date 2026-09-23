@@ -1,4 +1,4 @@
-# Entity Projection and Snapshots — 1.0.69
+# Entity Projection and Snapshots — 1.0.117
 
 ## Snapshot model
 

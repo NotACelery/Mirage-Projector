@@ -1,6 +1,6 @@
 # Mirage Projector — Remaining 1.1.0 waves
 
-Baseline after this checkpoint: **1.0.69**
+Baseline after this checkpoint: **1.0.117**
 Network protocol: **44**
 ProjectionSettings format: **4**
 
@@ -15,6 +15,8 @@ This file is the recovery-oriented implementation order. `WAITLIST-1.1.0.md` rem
 - Player scan identity/layers cleanup, Scan Codex library/card/Lectern foundations.
 - End Resonance portal, transfer and runtime QA foundation for Dragon Egg on Field/Prism/Table.
 - Mirage Entity Scanner, persistent Codex capture flow, scanner HUD and scanner inventory safety.
+- Stable Shoulder Strap mini-container, shared Survival/Creative overlay and body-relative mounted-device rendering.
+- War Banner Directional/billboard placement, first-person hiding and continuous size/height controls.
 
 ## Wave 1 — End Resonance transfer — delivered and runtime-tested
 

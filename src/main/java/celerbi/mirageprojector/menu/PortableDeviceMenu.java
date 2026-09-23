@@ -50,21 +50,36 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
     private final int coreY;
     private final int sourceX;
     private final int sourceY;
+    private final boolean projectorLayout;
 
     public PortableDeviceMenu(int containerId, Inventory inventory, RegistryFriendlyByteBuf buffer) {
-        this(containerId, inventory, PortableDeviceSource.byOrdinal(buffer.readVarInt()));
+        this(
+                containerId,
+                inventory,
+                PortableDeviceSource.byOrdinal(buffer.readVarInt()),
+                buffer.readBoolean()
+        );
     }
 
     public PortableDeviceMenu(int containerId, Inventory inventory, PortableDeviceSource source) {
+        this(containerId, inventory, source,
+                source != null && source.resolve(inventory.player).getItem() instanceof MirageHandProjectorItem);
+    }
+
+    private PortableDeviceMenu(
+            int containerId,
+            Inventory inventory,
+            PortableDeviceSource source,
+            boolean projectorLayout
+    ) {
         super(ModMenus.PORTABLE_DEVICE.get(), containerId);
         this.playerInventory = inventory;
         this.source = source == null ? PortableDeviceSource.MAIN_HAND : source;
-        ItemStack device = this.source.resolve(inventory.player);
-        boolean projector = device.getItem() instanceof MirageHandProjectorItem;
-        this.playerInvX = projector ? PROJECTOR_PLAYER_INV_X : PLAYER_INV_X;
-        this.playerInvY = projector ? PROJECTOR_PLAYER_INV_Y : COMPACT_PLAYER_INV_Y;
-        this.batteryX = projector ? PROJECTOR_BATTERY_X : BATTERY_X;
-        this.batteryY = projector ? PROJECTOR_BATTERY_Y : BATTERY_Y;
+        this.projectorLayout = projectorLayout;
+        this.playerInvX = projectorLayout ? PROJECTOR_PLAYER_INV_X : PLAYER_INV_X;
+        this.playerInvY = projectorLayout ? PROJECTOR_PLAYER_INV_Y : COMPACT_PLAYER_INV_Y;
+        this.batteryX = projectorLayout ? PROJECTOR_BATTERY_X : BATTERY_X;
+        this.batteryY = projectorLayout ? PROJECTOR_BATTERY_Y : BATTERY_Y;
         this.coreX = PROJECTOR_CORE_X;
         this.coreY = PROJECTOR_CORE_Y;
         this.sourceX = PROJECTOR_SOURCE_X;
@@ -176,7 +191,7 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
     }
 
     public boolean projectorLayout() {
-        return playerInvY == PROJECTOR_PLAYER_INV_Y;
+        return projectorLayout;
     }
 
     public ItemStack batteryStack() {
@@ -201,7 +216,10 @@ public final class PortableDeviceMenu extends AbstractContainerMenu {
                 (containerId, inventory, ignored) -> new PortableDeviceMenu(containerId, inventory, source),
                 Component.translatable("container.mirage_projector.portable_device")
         );
-        ((IPlayerExtension) player).openMenu(provider, buffer -> buffer.writeVarInt(source.ordinal()));
+        ((IPlayerExtension) player).openMenu(provider, buffer -> {
+            buffer.writeVarInt(source.ordinal());
+            buffer.writeBoolean(source.resolve(player).getItem() instanceof MirageHandProjectorItem);
+        });
     }
 
     private void addPlayerInventory(Inventory inventory) {

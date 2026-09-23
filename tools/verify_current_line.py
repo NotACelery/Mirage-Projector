@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Mirage Projector 1.0.34 cumulative regression/roadmap-cleanup suite."""
+"""Run the cumulative Mirage Projector regression suite."""
 
 from pathlib import Path
 import subprocess
@@ -89,4 +89,4 @@ for name in SUITE:
     if code:
         raise SystemExit(code)
 
-print(f'\nMIRAGE PROJECTOR 1.0.34 VERIFICATION PASS ({len(SUITE)} gates)')
+print(f'\nMIRAGE PROJECTOR CURRENT-LINE VERIFICATION PASS ({len(SUITE)} gates)')

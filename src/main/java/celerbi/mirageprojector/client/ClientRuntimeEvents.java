@@ -41,6 +41,12 @@ public final class ClientRuntimeEvents {
                     event.getCamera().getPosition(),
                     partialTick
             );
+            ClientShoulderEquipment.renderMountedDevices(
+                    Minecraft.getInstance(),
+                    event.getPoseStack(),
+                    event.getCamera().getPosition(),
+                    partialTick
+            );
             MirageProjectorRenderer.flushDeferredEntityProjections(
                     event.getPoseStack(),
                     event.getCamera().getPosition(),

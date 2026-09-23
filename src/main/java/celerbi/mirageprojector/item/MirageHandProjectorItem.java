@@ -41,14 +41,7 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Handheld hologram projector that carries a compact normalized snapshot of a placed Mirage
- * Projector configuration plus one removable rechargeable energy cell.
- *
- * <p>The portable device intentionally keeps a smaller/ghostlier output than full fixed projectors:
- * copied settings are normalized to the compact chassis, clamped to reduced presentation limits,
- * and retains the source image's native alpha without imposing a ghost transparency.</p>
- */
+/** Portable multi-source hologram projector with an internal Core and rechargeable cell. */
 public final class MirageHandProjectorItem extends Item implements ShoulderRechargeableDevice {
     private static final String DEVICE_ID_TAG = "MirageHandProjectorId";
     private static final String PROFILE_TAG = "MirageHandProjectorState";
@@ -69,7 +62,7 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
     private static final String WAR_BANNER_HEIGHT_TAG = "MirageHandProjectorWarBannerHeight";
 
     public static final int WAR_BANNER_DEFAULT_SIZE_PERCENT = 100;
-    public static final int WAR_BANNER_MIN_SIZE_PERCENT = 50;
+    public static final int WAR_BANNER_MIN_SIZE_PERCENT = 0;
     public static final int WAR_BANNER_MAX_SIZE_PERCENT = 100;
     public static final int WAR_BANNER_SIZE_STEP_PERCENT = 5;
     public static final int WAR_BANNER_DEFAULT_HEIGHT_PIXELS = 0;
@@ -141,8 +134,6 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
                 customTag(projector).getString(SOURCE_MODE_TAG),
                 ProjectionSettings.SourceMode.IMAGE
         );
-        // Item was an early Hand Projector experiment. Keep old data but do not expose it as a
-        // portable workspace any longer.
         return mode == ProjectionSettings.SourceMode.ITEM ? ProjectionSettings.SourceMode.IMAGE : mode;
     }
 
@@ -223,12 +214,7 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
         return Math.max(0, customTag(projector).getInt(SOURCE_COUNT_TAG));
     }
 
-    /**
-     * Switch the portable projector to one of the built-in source workspaces without erasing the
-     * other captured sources already stored in its compact profile. This lets the Hand Projector
-     * behave like a real multi-source portable device instead of only mirroring the source mode of
-     * the last fixed projector it copied.
-     */
+    /** Changes the active workspace without deleting stored sources. */
     public static boolean selectSourceMode(ItemStack projector, ProjectionSettings.SourceMode sourceMode, Level level) {
         if (projector == null || projector.isEmpty() || sourceMode == null || level == null
                 || !ProjectionSourceRegistry.isCompatible(sourceMode, ProjectionChassisProfile.COMPACT)) {
@@ -264,10 +250,7 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
         return ItemStack.EMPTY;
     }
 
-    /**
-     * Capture a source into the current portable workspace without consuming the player's item.
-     * The well intentionally mirrors the fixed-projector virtual snapshot contract.
-     */
+    /** Copies a source into the active workspace without consuming it. */
     public static boolean captureSourceSnapshot(ItemStack projector, ItemStack source, Level level) {
         if (projector == null || projector.isEmpty() || source == null || source.isEmpty() || level == null) {
             return false;
@@ -517,26 +500,28 @@ public final class MirageHandProjectorItem extends Item implements ShoulderRecha
     }
 
     public static void adjustWarBannerSize(ItemStack projector, int deltaPercent) {
+        setWarBannerSize(projector, warBannerSizePercent(projector) + deltaPercent);
+    }
+
+    public static void adjustWarBannerHeight(ItemStack projector, int deltaPixels) {
+        setWarBannerHeight(projector, warBannerHeightPixels(projector) + deltaPixels);
+    }
+
+    public static void setWarBannerSize(ItemStack projector, int percent) {
         if (projector == null || projector.isEmpty() || !warBannerActive(projector)) {
             return;
         }
         int value = Mth.clamp(
-                warBannerSizePercent(projector) + deltaPercent,
-                WAR_BANNER_MIN_SIZE_PERCENT,
-                WAR_BANNER_MAX_SIZE_PERCENT
+                percent, WAR_BANNER_MIN_SIZE_PERCENT, WAR_BANNER_MAX_SIZE_PERCENT
         );
         CustomData.update(DataComponents.CUSTOM_DATA, projector, tag -> tag.putInt(WAR_BANNER_SIZE_TAG, value));
     }
 
-    public static void adjustWarBannerHeight(ItemStack projector, int deltaPixels) {
+    public static void setWarBannerHeight(ItemStack projector, int pixels) {
         if (projector == null || projector.isEmpty() || !warBannerActive(projector)) {
             return;
         }
-        int value = Mth.clamp(
-                warBannerHeightPixels(projector) + deltaPixels,
-                WAR_BANNER_MIN_HEIGHT_PIXELS,
-                WAR_BANNER_MAX_HEIGHT_PIXELS
-        );
+        int value = Mth.clamp(pixels, WAR_BANNER_MIN_HEIGHT_PIXELS, WAR_BANNER_MAX_HEIGHT_PIXELS);
         CustomData.update(DataComponents.CUSTOM_DATA, projector, tag -> tag.putInt(WAR_BANNER_HEIGHT_TAG, value));
     }
 

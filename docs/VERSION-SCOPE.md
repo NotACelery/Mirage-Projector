@@ -1,5 +1,9 @@
 # Version Scope
 
+## 1.0.117 — Shoulder equipment and portable projection stabilization
+
+The current implementation is 1.0.117, network protocol 44 and `ProjectionSettings` format 4. Survival and Creative inventories share one Shoulder Strap overlay and server-authoritative external-slot interaction path. Packed Straps retain their mounted device, general item compartment and upgrades. Mounted devices and War Banners use player-relative anchors and remain hidden from their owner's first-person view; War Banner size and height use continuous controls.
+
 ## 1.0.69 — Scanner finalization and 1.1.0 documentation reconciliation
 
 The Scanner now holds the main arm straight forward during an active capture in every view and applies a one-second post-capture quiet cooldown. This preserves the successful-capture feedback before duplicate protection becomes eligible again. Current implementation is 1.0.69, network protocol 44 and `ProjectionSettings` format 4. End Resonance and the Scanner/Codex flow are runtime-tested foundations for the 1.1.0 release candidate.

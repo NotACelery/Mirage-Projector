@@ -31,13 +31,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-/**
- * Client-side renderer/HUD and synchronized-state cache for handheld Mirage projectors.
- *
- * <p>State is synchronized by stable projector UUID, but the image is only rendered while that
- * exact device is equipped in either hand or in the owner's shoulder mount. A projector stored in
- * the inventory is deliberately inert.</p>
- */
+/** Client renderer and synchronized-state cache for Hand Projectors. */
 public final class ClientHeldProjectors {
     private static final double MAX_RENDER_DISTANCE_SQUARED = 96.0D * 96.0D;
     private static final long STALE_STATE_TICKS = 60L;
@@ -112,7 +106,6 @@ public final class ClientHeldProjectors {
                 }
             }
 
-            // Pre-sync/local fallback keeps 1.0.11 held behavior responsive during login or packet latency.
             ItemStack main = player.getMainHandItem();
             if (main.is(ModItems.MIRAGE_HAND_PROJECTOR.get()) && MirageHandProjectorItem.emittingProjection(main)
                     && !renderedDeviceIds.contains(MirageHandProjectorItem.deviceId(main))) {
@@ -226,6 +219,9 @@ public final class ClientHeldProjectors {
             ItemStack stack,
             int ordinal
     ) {
+        if (player == minecraft.player && minecraft.options.getCameraType().isFirstPerson()) {
+            return false;
+        }
         Placement placement = placement(minecraft, player, partialTick, ordinal,
                 MirageHandProjectorItem.projectionDistancePixels(stack));
         BlockPos projectorPos = placement.blockPos();
@@ -253,23 +249,20 @@ public final class ClientHeldProjectors {
         Vec3 bodyForward = horizontalForward(player, partialTick);
         Vec3 bodyRight = new Vec3(-bodyForward.z, 0.0D, bodyForward.x);
         double stackSeparation = Math.max(0, ordinal) * 0.18D;
-        // Use the body rather than the view vector: a War banner rides on the player's back
-        // instead of floating in front of the player.
-        Vec3 anchor = placement.playerPosition()
-                .add(bodyForward.scale(-0.28D))
-                .add(bodyRight.scale(stackSeparation))
-                // The banner model is drawn downward from this anchor. At zero its bottom is
-                // therefore at the waist and its top rises just above the head.
-                .add(0.0D, player.getBbHeight() * 0.5D + bannerHeight + heightOffset, 0.0D);
-
+        boolean billboard = MirageHandProjectorItem.warBannerFacing(stack)
+                == MirageHandProjectorItem.WarBannerFacing.BILLBOARD;
+        Vec3 anchor;
         float yawDegrees;
-        if (MirageHandProjectorItem.warBannerFacing(stack)
-                == MirageHandProjectorItem.WarBannerFacing.BILLBOARD) {
+        anchor = placement.playerPosition()
+                .add(bodyForward.scale(-0.48D))
+                .add(bodyRight.scale(stackSeparation))
+                .add(0.0D, player.getBbHeight() * 0.5D + bannerHeight + heightOffset, 0.0D);
+        if (billboard) {
             double dx = cameraPosition.x - anchor.x;
             double dz = cameraPosition.z - anchor.z;
             yawDegrees = (float) Math.toDegrees(Math.atan2(dx, dz));
         } else {
-            yawDegrees = placement.yawDegrees();
+            yawDegrees = (float) Math.toDegrees(Math.atan2(bodyForward.x, bodyForward.z));
         }
 
         int packedLight = settings.fullbright()
@@ -365,11 +358,7 @@ public final class ClientHeldProjectors {
                 .isFaceSturdy(minecraft.level, blockHit.getBlockPos(), blockHit.getDirection()) ? blockHit : null;
     }
 
-    /**
-     * Validates the actual image footprint rather than only its centre hit. Sampling each logical
-     * image pixel keeps a projection contained within a continuous, full block-face surface: a
-     * single edge, gap, overhang, or partial block rejects the whole Surface projection.
-     */
+    /** Validates the complete projected image footprint against one continuous block face. */
     private static boolean surfaceFullySupportsImage(
             Minecraft minecraft,
             BlockHitResult target,

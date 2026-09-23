@@ -1,4 +1,4 @@
-# Registry Inventory — Mirage Projector 1.0.69
+# Registry Inventory — Mirage Projector 1.0.117
 
 This file distinguishes active gameplay IDs from compatibility-only IDs.
 

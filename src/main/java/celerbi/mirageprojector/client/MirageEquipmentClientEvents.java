@@ -1,154 +1,125 @@
 package celerbi.mirageprojector.client;
 
 import celerbi.mirageprojector.MirageProjector;
+import celerbi.mirageprojector.equipment.ShoulderEquipment;
 import celerbi.mirageprojector.network.ShoulderEquipmentActionPayload;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderPlayerEvent;
+import net.neoforged.neoforge.client.event.ContainerScreenEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
-/** Client inventory-panel and physical shoulder-device hooks. */
+/** Shoulder equipment overlay and input handling. */
 @EventBusSubscriber(modid = MirageProjector.MOD_ID, value = Dist.CLIENT)
 public final class MirageEquipmentClientEvents {
     private static final int SLOT_STEP = MirageEquipmentSlotWidget.SLOT_SIZE;
+    private static final int TOGGLE_SIZE = 14;
     private static boolean equipmentPanelOpen;
     private static Screen equipmentScreen;
     private static MirageEquipmentPanelWidget equipmentPanel;
     private static final List<MirageEquipmentSlotWidget> equipmentSlots = new ArrayList<>();
     private static int capturedEquipmentButton = -1;
+    private static boolean awaitingEquipmentCursor;
     private static int toggleX;
     private static int toggleY;
-    private static boolean toggleReady;
-    private static Button creativeToggleButton;
 
     private MirageEquipmentClientEvents() {
     }
 
     @SubscribeEvent
     public static void onScreenInit(ScreenEvent.Init.Post event) {
-        Screen screen = event.getScreen();
-        if (!(screen instanceof AbstractContainerScreen<?> inventory)
-                || (!(inventory instanceof InventoryScreen) && !(inventory instanceof CreativeModeInventoryScreen))) {
-            if (screen != equipmentScreen) {
-                clearWidgetRefs();
-            }
-            return;
+        if (event.getScreen() instanceof AbstractContainerScreen<?> inventory && equipmentVisible(inventory)) {
+            bindEquipmentScreen(inventory);
         }
+    }
 
-        equipmentScreen = screen;
+    private static void bindEquipmentScreen(AbstractContainerScreen<?> inventory) {
+        equipmentScreen = inventory;
         equipmentSlots.clear();
         equipmentPanel = null;
-        toggleReady = false;
 
         int guiLeft = inventory.getGuiLeft();
         int guiTop = inventory.getGuiTop();
         int rightEdge = guiLeft + inventory.getXSize();
-        boolean creative = inventory instanceof CreativeModeInventoryScreen;
-
-        toggleX = creative ? rightEdge + 4 : rightEdge - 20;
-        toggleY = guiTop + 6;
-        toggleReady = true;
-        if (creative) {
-            creativeToggleButton = Button.builder(
-                    Component.literal(equipmentPanelOpen ? "‹" : "›"),
-                    ignored -> togglePanel(screen)
-            ).bounds(toggleX, toggleY, 14, 18).build();
-            event.addListener(creativeToggleButton);
-        } else {
-            creativeToggleButton = null;
-        }
         int panelX = rightEdge + 5;
         int panelY = guiTop + 3;
+        positionToggle(inventory);
+        equipmentPanel = new MirageEquipmentPanelWidget(panelX, panelY);
+        addEquipmentSlot(new MirageEquipmentSlotWidget(panelX + 6, panelY + 20,
+                ShoulderEquipmentActionPayload.Target.STRAP));
+        addEquipmentSlot(new MirageEquipmentSlotWidget(panelX + 30, panelY + 20,
+                ShoulderEquipmentActionPayload.Target.DEVICE));
+        for (int i = 0; i < ShoulderEquipment.EXPANDED_UPGRADE_SLOTS; i++) {
+            addEquipmentSlot(new MirageEquipmentSlotWidget(panelX + 6 + i * SLOT_STEP, panelY + 55,
+                    ShoulderEquipmentActionPayload.Target.upgrade(i)));
+        }
+        for (int i = 0; i < ShoulderEquipment.EXPANDED_BATTERY_SLOTS; i++) {
+            int column = i % 4;
+            int row = i / 4;
+            addEquipmentSlot(new MirageEquipmentSlotWidget(panelX + 6 + column * SLOT_STEP,
+                    panelY + 90 + row * SLOT_STEP, ShoulderEquipmentActionPayload.Target.battery(i)));
+        }
 
+        applyInventoryTabVisibility(inventory);
+    }
+
+    private static void addEquipmentSlot(MirageEquipmentSlotWidget slot) {
+        equipmentSlots.add(slot);
+    }
+
+    @SubscribeEvent
+    public static void onScreenClosing(ScreenEvent.Closing event) {
+        if (event.getScreen() == equipmentScreen) {
+            clearWidgetRefs();
+        }
+    }
+
+    @SubscribeEvent
+    public static void onContainerForeground(ContainerScreenEvent.Render.Foreground event) {
+        AbstractContainerScreen<?> inventory = event.getContainerScreen();
+        if (!equipmentVisible(inventory)) {
+            return;
+        }
+        if (equipmentScreen != inventory || equipmentPanel == null) {
+            bindEquipmentScreen(inventory);
+        }
+        applyInventoryTabVisibility(inventory);
+        var graphics = event.getGuiGraphics();
+        graphics.pose().pushPose();
+        graphics.pose().translate(-inventory.getGuiLeft(), -inventory.getGuiTop(), 200.0F);
         if (equipmentPanelOpen) {
-            boolean strapPresent = ClientShoulderEquipment.localStrapPresent();
-            boolean expanded = strapPresent && ClientShoulderEquipment.localExpansionInstalled();
-            equipmentPanel = new MirageEquipmentPanelWidget(panelX, panelY, strapPresent, expanded);
-            event.addListener(equipmentPanel);
-
-            addEquipmentSlot(event, new MirageEquipmentSlotWidget(
-                    panelX + 6,
-                    panelY + 20,
-                    ShoulderEquipmentActionPayload.Target.STRAP
-            ));
-            if (strapPresent) {
-                addEquipmentSlot(event, new MirageEquipmentSlotWidget(
-                        panelX + 30,
-                        panelY + 20,
-                        ShoulderEquipmentActionPayload.Target.DEVICE
-                ));
-
-                int activeUpgrades = ClientShoulderEquipment.localActiveUpgradeSlots();
-                for (int i = 0; i < activeUpgrades; i++) {
-                    addEquipmentSlot(event, new MirageEquipmentSlotWidget(
-                            panelX + 6 + i * SLOT_STEP,
-                            panelY + 55,
-                            ShoulderEquipmentActionPayload.Target.upgrade(i)
-                    ));
-                }
-
-                int activeBatteries = ClientShoulderEquipment.localActiveBatterySlots();
-                for (int i = 0; i < activeBatteries; i++) {
-                    int column = i % 3;
-                    int row = i / 3;
-                    addEquipmentSlot(event, new MirageEquipmentSlotWidget(
-                            panelX + 6 + column * SLOT_STEP,
-                            panelY + 90 + row * SLOT_STEP,
-                            ShoulderEquipmentActionPayload.Target.battery(i)
-                    ));
-                }
+            equipmentPanel.render(graphics, event.getMouseX(), event.getMouseY(), 0.0F);
+            for (MirageEquipmentSlotWidget slot : equipmentSlots) {
+                slot.render(graphics, event.getMouseX(), event.getMouseY(), 0.0F);
             }
         }
-
-        applyInventoryTabVisibility(screen);
+        renderToggle(graphics);
+        graphics.pose().popPose();
     }
 
-    private static void addEquipmentSlot(ScreenEvent.Init.Post event, MirageEquipmentSlotWidget slot) {
-        equipmentSlots.add(slot);
-        event.addListener(slot);
-    }
-
-    @SubscribeEvent
-    public static void onScreenRender(ScreenEvent.Render.Post event) {
-        if (event.getScreen() != equipmentScreen) {
-            return;
-        }
-
-        applyInventoryTabVisibility(event.getScreen());
-        if (toggleReady && equipmentVisible(event.getScreen())
-                && !(event.getScreen() instanceof CreativeModeInventoryScreen)) {
-            var graphics = event.getGuiGraphics();
-            boolean hovered = event.getMouseX() >= toggleX && event.getMouseX() < toggleX + 14
-                    && event.getMouseY() >= toggleY && event.getMouseY() < toggleY + 18;
-            graphics.fill(toggleX, toggleY, toggleX + 14, toggleY + 18, 0xFF202020);
-            graphics.fill(toggleX + 1, toggleY + 1, toggleX + 13, toggleY + 17, 0xFFF0F0F0);
-            graphics.fill(toggleX + 2, toggleY + 2, toggleX + 12, toggleY + 16,
-                    hovered ? 0xFFAFAFAF : 0xFF8E8E8E);
-            graphics.drawCenteredString(net.minecraft.client.Minecraft.getInstance().font,
-                    equipmentPanelOpen ? "‹" : "›", toggleX + 7, toggleY + 5, 0xFF202020);
-        }
-    }
-
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onMousePressed(ScreenEvent.MouseButtonPressed.Pre event) {
-        if (event.getScreen() != equipmentScreen || !equipmentVisible(event.getScreen())) {
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?> inventory) || !equipmentVisible(inventory)) {
             return;
         }
-        if (toggleReady && !(event.getScreen() instanceof CreativeModeInventoryScreen) && event.getButton() == 0
-                && event.getMouseX() >= toggleX && event.getMouseX() < toggleX + 14
-                && event.getMouseY() >= toggleY && event.getMouseY() < toggleY + 18) {
+        if (equipmentScreen != inventory || equipmentPanel == null) {
+            bindEquipmentScreen(inventory);
+        }
+        if (awaitingEquipmentCursor) {
+            event.setCanceled(true);
+            return;
+        }
+        if (event.getButton() == 0 && insideToggle(event.getMouseX(), event.getMouseY())) {
             togglePanel(event.getScreen());
-            capturedEquipmentButton = event.getButton();
+            capturedEquipmentButton = 0;
             event.setCanceled(true);
             return;
         }
@@ -157,6 +128,7 @@ public final class MirageEquipmentClientEvents {
         }
         for (MirageEquipmentSlotWidget slot : equipmentSlots) {
             if (slot.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
+                awaitingEquipmentCursor = true;
                 capturedEquipmentButton = event.getButton();
                 event.setCanceled(true);
                 return;
@@ -168,13 +140,31 @@ public final class MirageEquipmentClientEvents {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onMouseReleased(ScreenEvent.MouseButtonReleased.Pre event) {
-        if (event.getScreen() != equipmentScreen || capturedEquipmentButton < 0) {
+        if (event.getScreen() != equipmentScreen) {
             return;
         }
-        if (event.getButton() == capturedEquipmentButton) {
-            capturedEquipmentButton = -1;
+        boolean releasedCapturedButton = event.getButton() == capturedEquipmentButton;
+        boolean releasedOverEquipment = equipmentPanelOpen
+                && insideEquipmentSafeZone(event.getScreen(), event.getMouseX(), event.getMouseY());
+        if (releasedCapturedButton || releasedOverEquipment) {
+            if (releasedCapturedButton) {
+                capturedEquipmentButton = -1;
+            }
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
+        if (event.getScreen() != equipmentScreen) {
+            return;
+        }
+        boolean draggingCapturedButton = event.getMouseButton() == capturedEquipmentButton;
+        boolean draggingOverEquipment = equipmentPanelOpen
+                && insideEquipmentSafeZone(event.getScreen(), event.getMouseX(), event.getMouseY());
+        if (draggingCapturedButton || draggingOverEquipment || awaitingEquipmentCursor) {
             event.setCanceled(true);
         }
     }
@@ -186,7 +176,7 @@ public final class MirageEquipmentClientEvents {
         }
         setVisible(equipmentPanel, visible && equipmentPanelOpen);
         for (MirageEquipmentSlotWidget slot : equipmentSlots) {
-            setVisible(slot, visible && equipmentPanelOpen);
+            setVisible(slot, visible && equipmentPanelOpen && slot.visibleForCurrentState());
         }
     }
 
@@ -207,7 +197,7 @@ public final class MirageEquipmentClientEvents {
         int minX = inventory.getGuiLeft() + inventory.getXSize() - 2;
         int maxX = equipmentPanel.getX() + equipmentPanel.getWidth();
         int minY = Math.min(inventory.getGuiTop(), equipmentPanel.getY());
-        int maxY = Math.max(inventory.getGuiTop() + inventory.getYSize(), equipmentPanel.getY() + equipmentPanel.getHeight());
+        int maxY = Math.max(inventory.getGuiTop() + inventory.getYSize(), equipmentPanel.getY() + visiblePanelHeight());
         return mouseX >= minX && mouseX < maxX && mouseY >= minY && mouseY < maxY;
     }
 
@@ -222,42 +212,57 @@ public final class MirageEquipmentClientEvents {
         equipmentPanel = null;
         equipmentSlots.clear();
         capturedEquipmentButton = -1;
-        toggleReady = false;
-        creativeToggleButton = null;
+        awaitingEquipmentCursor = false;
     }
 
-    private static void togglePanel(Screen screen) {
-        equipmentPanelOpen = !equipmentPanelOpen;
-        MinecraftScreenReinitializer.reinitialize(screen);
+    public static void onEquipmentCursorSynchronized() {
+        awaitingEquipmentCursor = false;
     }
 
     static void refreshIfInventoryOpen() {
         var minecraft = net.minecraft.client.Minecraft.getInstance();
-        if (minecraft.screen instanceof InventoryScreen inventory) {
-            MinecraftScreenReinitializer.reinitialize(inventory);
-        } else if (minecraft.screen instanceof CreativeModeInventoryScreen creative) {
-            MinecraftScreenReinitializer.reinitialize(creative);
+        if (minecraft.screen instanceof AbstractContainerScreen<?> inventory) {
+            positionToggle(inventory);
+            applyInventoryTabVisibility(minecraft.screen);
         }
     }
 
-    @SubscribeEvent
-    public static void onRenderPlayer(RenderPlayerEvent.Post event) {
-        ClientShoulderEquipment.renderMountedDevice(
-                event.getEntity(),
-                event.getPoseStack(),
-                event.getMultiBufferSource(),
-                event.getPackedLight()
-        );
+    private static void positionToggle(AbstractContainerScreen<?> inventory) {
+        int rightEdge = inventory.getGuiLeft() + inventory.getXSize();
+        int panelX = rightEdge + 5;
+        toggleX = equipmentPanelOpen ? panelX + MirageEquipmentPanelWidget.WIDTH + 5
+                : panelX;
+        toggleY = inventory.getGuiTop() + 5;
     }
 
-    /** Keeps the event class free of protected Screen#init access. */
-    private static final class MinecraftScreenReinitializer {
-        private MinecraftScreenReinitializer() {
+    private static void togglePanel(Screen screen) {
+        equipmentPanelOpen = !equipmentPanelOpen;
+        if (screen instanceof AbstractContainerScreen<?> inventory) {
+            positionToggle(inventory);
         }
+        applyInventoryTabVisibility(screen);
+    }
 
-        static void reinitialize(Screen screen) {
-            var minecraft = net.minecraft.client.Minecraft.getInstance();
-            screen.init(minecraft, minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
+    private static boolean insideToggle(double mouseX, double mouseY) {
+        return mouseX >= toggleX && mouseX < toggleX + TOGGLE_SIZE
+                && mouseY >= toggleY && mouseY < toggleY + TOGGLE_SIZE;
+    }
+
+    private static int visiblePanelHeight() {
+        if (!ClientShoulderEquipment.localStrapPresent()) {
+            return MirageEquipmentPanelWidget.EMPTY_HEIGHT;
         }
+        return ClientShoulderEquipment.localExpansionInstalled()
+                ? MirageEquipmentPanelWidget.EXPANDED_HEIGHT
+                : MirageEquipmentPanelWidget.BASE_HEIGHT;
+    }
+
+    private static void renderToggle(net.minecraft.client.gui.GuiGraphics graphics) {
+        int border = 0xFF1B1B1B;
+        int fill = 0xFF8B8B8B;
+        graphics.fill(toggleX, toggleY, toggleX + TOGGLE_SIZE, toggleY + TOGGLE_SIZE, border);
+        graphics.fill(toggleX + 1, toggleY + 1, toggleX + TOGGLE_SIZE - 1, toggleY + TOGGLE_SIZE - 1, fill);
+        graphics.drawCenteredString(net.minecraft.client.Minecraft.getInstance().font,
+                equipmentPanelOpen ? "‹" : "›", toggleX + TOGGLE_SIZE / 2, toggleY + 3, 0xFFFFFFFF);
     }
 }

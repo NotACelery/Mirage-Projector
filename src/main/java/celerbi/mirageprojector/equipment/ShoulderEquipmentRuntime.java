@@ -34,8 +34,6 @@ public final class ShoulderEquipmentRuntime {
         ItemStack device = equipment.device();
         if (!device.isEmpty() && device.getItem() instanceof ShoulderMountableDevice mountable) {
             mountable.serverTickShoulder(device, player);
-            // Device state is nested inside the strap. Rewriting the slot commits any component
-            // mutations performed by the device tick to the strap's container component.
             equipment.setDevice(device);
         }
 
@@ -55,10 +53,6 @@ public final class ShoulderEquipmentRuntime {
             return;
         }
         ShoulderEquipment equipment = get(player);
-        // CreativeModeInventoryScreen owns a client-side picker menu, so its cursor stack is not
-        // guaranteed to exist in the server container. Creative players are already allowed to
-        // create arbitrary stacks; use the visible client cursor snapshot there. Survival keeps
-        // using the authoritative server cursor and ignores the packet snapshot.
         ItemStack carried = player.isCreative()
                 ? (clientCarried == null ? ItemStack.EMPTY : clientCarried.copy())
                 : player.containerMenu.getCarried();
@@ -83,9 +77,6 @@ public final class ShoulderEquipmentRuntime {
             broadcast(player, equipment);
             syncOwnerInventory(player, equipment);
         }
-        // The Mirage Equipment panel sits outside the vanilla container bounds. Always correct
-        // the client cursor explicitly so Creative inventory interaction behaves like a real slot
-        // rather than dropping the carried item outside the GUI.
         PacketDistributor.sendToPlayer(player, new ShoulderEquipmentCursorPayload(
                 player.containerMenu.getCarried().copy()
         ));
@@ -129,12 +120,6 @@ public final class ShoulderEquipmentRuntime {
             if (installed.isEmpty()) {
                 return false;
             }
-            if (installed.is(ModItems.SHOULDER_STRAP.get()) && !equipment.canRemoveStrap()) {
-                player.displayClientMessage(Component.translatable(
-                        "message.mirage_projector.shoulder.strap_device_blocked"
-                ), true);
-                return false;
-            }
             ItemStack removed = equipment.extractItem(ShoulderEquipment.STRAP_SLOT, 1, false);
             player.containerMenu.setCarried(removed);
             return !removed.isEmpty();
@@ -142,8 +127,13 @@ public final class ShoulderEquipmentRuntime {
 
         boolean validBaseSlotItem = carried.is(ModItems.SHOULDER_STRAP.get())
                 || carried.getItem() instanceof ShoulderMountableDevice;
-        if (!validBaseSlotItem || !installed.isEmpty() || carried.getCount() != 1) {
+        if (!validBaseSlotItem || carried.getCount() != 1) {
             return false;
+        }
+        if (!installed.isEmpty()) {
+            equipment.setStackInSlot(ShoulderEquipment.STRAP_SLOT, carried.copyWithCount(1));
+            player.containerMenu.setCarried(installed.copy());
+            return true;
         }
         ItemStack inserted = carried.copyWithCount(1);
         ItemStack remainder = equipment.insertItem(ShoulderEquipment.STRAP_SLOT, inserted, false);
@@ -195,7 +185,6 @@ public final class ShoulderEquipmentRuntime {
         if (installed.isEmpty()) {
             player.containerMenu.setCarried(ItemStack.EMPTY);
         } else {
-            // Preserve vanilla swap semantics: the old device remains on the cursor.
             player.containerMenu.setCarried(installed.copy());
         }
         return true;
@@ -226,7 +215,7 @@ public final class ShoulderEquipmentRuntime {
             player.containerMenu.setCarried(removed);
             return !removed.isEmpty();
         }
-        if (!RechargeableEnergyItem.isRechargeable(carried)) {
+        if (!ShoulderEquipment.isStorableItem(carried)) {
             player.displayClientMessage(Component.translatable(
                     "message.mirage_projector.shoulder.invalid_battery"
             ), true);
@@ -419,11 +408,7 @@ public final class ShoulderEquipmentRuntime {
         return ShoulderUpgradeFamilies.SHOULDER_STRAP_SLOT_EXPANSION.equals(family);
     }
 
-    /**
-     * Legacy safety only: 1.0.18 normally cannot have expansion-only contents without the patch,
-     * because both live inside the same strap ItemStack. If an older/corrupt stack does, return
-     * those hidden items to the player rather than leaving inaccessible data behind.
-     */
+    /** Recovers inaccessible contents from legacy or malformed Straps. */
     private static void sanitize(ServerPlayer player, ShoulderEquipment equipment) {
         if (!equipment.hasStrap() || equipment.hasExpansionPatch()) {
             return;

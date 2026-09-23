@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.117 — Shoulder equipment stabilization
+
+- Uses one shared Shoulder Strap overlay and input path in Survival and Creative inventories, with immediate open/close behavior and explicit cursor synchronization for external slots.
+- Prevents shoulder-panel releases from reaching vanilla's outside-inventory drop target, preserving normal swap semantics without dropped or duplicated items.
+- Makes the Strap a removable mini-container with eight base item slots, one four-slot expansion row and support for rechargeable media, portable devices, Scan Codices and empty or filled Entity Scan Cards.
+- Anchors shoulder devices and War Banners to the player model, hides them from the owner's first-person view and separates Directional body facing from per-viewer billboard facing.
+- Replaces War Banner step buttons with continuous 0–100% size and -32–+32 px height sliders, and preserves large entity projections up to the Netherite Core's 50 px portable limit.
+
 ## 1.0.91 — Empty entity rig isolation
 
 - Restores the blank Entity workspace as an invisible armour-stand-like rig rather than a visible Alex body; its virtual equipment and poses remain usable.

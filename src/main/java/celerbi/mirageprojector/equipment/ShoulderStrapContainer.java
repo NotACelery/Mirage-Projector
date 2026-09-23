@@ -1,6 +1,5 @@
 package celerbi.mirageprojector.equipment;
 
-import celerbi.mirageprojector.item.RechargeableEnergyItem;
 import celerbi.mirageprojector.item.ShoulderMountableDevice;
 import celerbi.mirageprojector.item.ShoulderUpgrade;
 import java.util.List;
@@ -11,21 +10,17 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 
-/**
- * Item-backed inventory physically owned by one Shoulder Strap ItemStack.
- *
- * <p>The strap is the portable container. Removing it from Mirage Equipment therefore carries
- * its pouch cells and upgrades with it, allowing multiple pre-packed straps to coexist in the
- * player's normal inventory. The mounted shoulder device intentionally lives in the same
- * container, but equipment logic blocks strap removal until that device slot is empty.</p>
- */
+/** Item-backed inventory owned by one Shoulder Strap ItemStack. */
 public final class ShoulderStrapContainer extends SimpleContainer {
     public static final int DEVICE_SLOT = 0;
     public static final int BATTERY_START = 1;
-    public static final int BATTERY_SLOTS = 9;
+    public static final int BATTERY_SLOTS = 12;
     public static final int UPGRADE_START = BATTERY_START + BATTERY_SLOTS;
     public static final int UPGRADE_SLOTS = 3;
     public static final int SLOT_COUNT = UPGRADE_START + UPGRADE_SLOTS;
+    private static final int LEGACY_BATTERY_SLOTS = 9;
+    private static final int LEGACY_UPGRADE_START = BATTERY_START + LEGACY_BATTERY_SLOTS;
+    private static final int LEGACY_SLOT_COUNT = LEGACY_UPGRADE_START + UPGRADE_SLOTS;
 
     private final ItemStack strap;
     private boolean loading;
@@ -35,7 +30,17 @@ public final class ShoulderStrapContainer extends SimpleContainer {
         this.strap = strap == null ? ItemStack.EMPTY : strap;
         this.loading = true;
         ItemContainerContents contents = this.strap.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
-        contents.copyInto(getItems());
+        if (contents.getSlots() == LEGACY_SLOT_COUNT) {
+            setItem(DEVICE_SLOT, contents.getStackInSlot(DEVICE_SLOT).copy());
+            for (int i = 0; i < LEGACY_BATTERY_SLOTS; i++) {
+                setItem(BATTERY_START + i, contents.getStackInSlot(BATTERY_START + i).copy());
+            }
+            for (int i = 0; i < UPGRADE_SLOTS; i++) {
+                setItem(UPGRADE_START + i, contents.getStackInSlot(LEGACY_UPGRADE_START + i).copy());
+            }
+        } else {
+            contents.copyInto(getItems());
+        }
         this.loading = false;
     }
 
@@ -54,7 +59,7 @@ public final class ShoulderStrapContainer extends SimpleContainer {
             return stack != null && !stack.isEmpty() && stack.getItem() instanceof ShoulderMountableDevice;
         }
         if (isBatterySlot(slot)) {
-            return RechargeableEnergyItem.isRechargeable(stack);
+            return ShoulderEquipment.isStorableItem(stack);
         }
         if (isUpgradeSlot(slot)) {
             return stack != null && !stack.isEmpty() && stack.getItem() instanceof ShoulderUpgrade;

@@ -1,11 +1,11 @@
-# Current Implementation — Mirage Projector 1.0.91
+# Current Implementation — Mirage Projector 1.0.117
 
-Version: **1.0.91**
+Version: **1.0.117**
 Minecraft: **1.21.1**
 NeoForge: **21.1.244+**
 Network protocol: **44**
 
-This document describes the current implementation behavior of Mirage Projector 1.0.91. Historical development notes are archived under `docs/history/` and are not current authority.
+This document describes the current implementation behavior of Mirage Projector 1.0.117. Historical development notes are archived under `docs/history/` and are not current authority.
 
 ## Entity Scanner
 
@@ -173,17 +173,17 @@ Mirage Equipment provides a dedicated player equipment socket without consuming 
 
 Since 1.0.18 the player attachment itself stores only the currently equipped Shoulder Strap. The Strap ItemStack owns the Shoulder Device, Battery Pouch and upgrade inventory through vanilla `DataComponents.CONTAINER`. This makes a packed strap a portable mini-morral: multiple straps can be prepared with different batteries/upgrades, removed, stored and exchanged without unpacking their contents. Legacy 1.0.13–1.0.17 attachment layouts are folded into the Strap ItemStack automatically on load.
 
-The inventory extension opens on the **right** side of both the normal Survival inventory and the Creative inventory. With no Strap installed, the expanded Mirage panel exposes only one Shoulder Strap socket. Installing a Strap dynamically reveals the Shoulder Device, six base power-cell slots and two base upgrade sockets. Expansion reveals the final three battery slots and third upgrade socket; inactive positions do not exist visually as X/locked slots. The toggle remains inside the vanilla inventory region below the crafting-result area.
+The same inventory extension opens on the **right** side of both Survival and Creative inventories. With no Strap installed, it exposes only the Shoulder Strap socket. Installing a Strap reveals the Shoulder Device, eight base item slots in two rows and two base upgrade sockets. Expansion adds a third four-slot row and a third upgrade socket. One shared overlay owns rendering and input in both inventory modes, including the external-slot no-drop region and explicit server cursor synchronization.
 
-The Shoulder Slot accepts `ShoulderMountableDevice` implementations, currently Mirage Flashlight and Mirage Hand Projector. In 1.0.21 the mounted-item transform uses the corrected positive shoulder-height translation rather than mirroring the device down toward the player feet, and the shoulder Lantern light anchor follows the right-shoulder position while retaining the player look vector for Focus/Flood direction. Right-clicking the occupied Shoulder Device slot opens the same real portable-device GUI used by handheld devices. Device replacement follows normal cursor swap semantics: the previous device stays on the cursor instead of being dropped into the world. The Strap cannot be removed while a device is mounted, but batteries/upgrades travel safely inside it. Shift-hovering a packed Strap in normal inventory exposes a compact contents preview.
+The Shoulder Slot accepts `ShoulderMountableDevice` implementations, currently Mirage Flashlight and Mirage Hand Projector. Mounted devices use a player-relative shoulder anchor, remain hidden from their owner's first-person camera and retain normal runtime behavior. Right-clicking the occupied Shoulder Device slot opens the same portable-device GUI used by handheld devices. Device replacement follows normal cursor swap semantics: the previous device stays on the cursor. The Strap can be removed with all contents intact and behaves as a portable mini-container. Shift-hovering a packed Strap exposes a compact contents preview.
 
 Mounted devices retain their normal runtime. The right shoulder remains reserved against vanilla shoulder riders while occupied; the left shoulder remains available. Normal armor/offhand slots and vanilla F swap-hands behavior remain untouched.
 
 ### Shoulder Strap Battery Pouch / upgrades
 
-The Shoulder Strap exposes **6 base rechargeable-media positions** and **2 base generic upgrade sockets**. `Shoulder Strap Slot Expansion` (historical registry ID `battery_pouch_expansion_patch`) expands the visible/usable inventory to **9 battery positions** and **3 upgrade sockets**. Duplicate upgrade families are rejected and Expansion cannot be removed while its extra positions are occupied.
+The Shoulder Strap exposes **8 base item positions** and **2 base generic upgrade sockets**. Its item compartment accepts rechargeable media of every supported type, Mirage Flashlights, Mirage Hand Projectors, Scan Codices and empty or filled Entity Scan Cards. `Shoulder Strap Slot Expansion` (historical registry ID `battery_pouch_expansion_patch`) expands the compartment to **12 positions** and **3 upgrade sockets**. Duplicate upgrade families are rejected and Expansion cannot be removed while its extra positions are occupied.
 
-`Auto Battery Swap Patch` remains shoulder-only: a depleted mounted-device cell is atomically replaced by the best charged compatible pouch cell only if the depleted cell can be returned safely. Its user-facing tooltip is intentionally omitted because its name already describes the behavior. The expansion patch has one concise tooltip stating that it adds three Shoulder Strap inventory slots.
+`Auto Battery Swap Patch` remains shoulder-only: a depleted mounted-device cell is atomically replaced by the best charged compatible stored cell only if the depleted cell can be returned safely. The expansion patch adds one complete four-slot row.
 
 ## Projector state
 

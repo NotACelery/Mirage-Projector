@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from PIL import Image
+import struct
 
 ROOT = Path(__file__).resolve().parents[1]
 mods_toml = ROOT / 'src/main/templates/META-INF/neoforge.mods.toml'
@@ -19,10 +19,12 @@ if mods_toml.exists():
 
 need(logo.exists(), 'missing src/main/resources/logo.png')
 if logo.exists():
-    img = Image.open(logo)
-    need(img.format == 'PNG', f'logo.png is not PNG: {img.format}')
-    w, h = img.size
-    need((w, h) == (880, 776), f'logo.png unexpected dimensions: {(w, h)}')
+    header = logo.read_bytes()[:24]
+    need(header[:8] == b'\x89PNG\r\n\x1a\n', 'logo.png is not PNG')
+    if len(header) == 24 and header[:8] == b'\x89PNG\r\n\x1a\n':
+        width, height = struct.unpack('>II', header[16:24])
+        need((width, height) == (880, 776),
+             f'logo.png unexpected dimensions: {(width, height)}')
 
 if errors:
     print('dev.82 mod logo integration verification FAILED')

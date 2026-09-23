@@ -1,10 +1,10 @@
-# Documentation Authority — Mirage Projector 1.0.69
+# Documentation Authority — Mirage Projector 1.0.117
 
 This file defines which documents describe the current stable product.
 
 ## Current authority
 
-Use these documents for current 1.0.69 behavior and 1.0.x maintenance:
+Use these documents for current 1.0.117 behavior and 1.0.x maintenance:
 
 1. `README.md` — public overview, requirements and feature summary.
 2. `docs/CURRENT-IMPLEMENTATION.md` — canonical runtime behavior.

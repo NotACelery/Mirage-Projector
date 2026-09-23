@@ -11,28 +11,20 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
-/**
- * Mirage-owned player attachment containing the base Shoulder Slot.
- *
- * <p>Since 1.0.18 the strap ItemStack itself owns its Shoulder Device, battery pouch and upgrades
- * through the vanilla container data component. This means a packed strap can be removed, carried,
- * stored and exchanged without losing its contents. The attachment exists only to provide the
- * dedicated player equipment socket and to migrate the legacy 1.0.13-1.0.17 fourteen-slot format.</p>
- */
+/** Player attachment that owns the Shoulder Strap slot. */
 public final class ShoulderEquipment extends ItemStackHandler {
-    /** Base Shoulder Slot. It accepts a portable device directly or a Shoulder Strap expander. */
     public static final int STRAP_SLOT = 0;
 
-    /** Legacy logical constants retained for migration/tests and network target numbering. */
     public static final int DEVICE_SLOT = 1;
     public static final int BATTERY_START = 2;
-    public static final int BASE_BATTERY_SLOTS = 6;
-    public static final int EXPANDED_BATTERY_SLOTS = 9;
-    public static final int UPGRADE_START = BATTERY_START + EXPANDED_BATTERY_SLOTS;
+    private static final int LEGACY_BATTERY_SLOTS = 9;
+    public static final int BASE_BATTERY_SLOTS = 8;
+    public static final int EXPANDED_BATTERY_SLOTS = 12;
+    private static final int LEGACY_UPGRADE_START = BATTERY_START + LEGACY_BATTERY_SLOTS;
+    public static final int UPGRADE_START = LEGACY_UPGRADE_START;
     public static final int BASE_UPGRADE_SLOTS = 2;
     public static final int EXPANDED_UPGRADE_SLOTS = 3;
-    public static final int LEGACY_SLOT_COUNT = UPGRADE_START + EXPANDED_UPGRADE_SLOTS;
-    /** Kept separate from the legacy numbering: this is only used by a bare mounted device. */
+    public static final int LEGACY_SLOT_COUNT = LEGACY_UPGRADE_START + EXPANDED_UPGRADE_SLOTS;
     private static final int BARE_DEVICE_SLOT = 1;
     public static final int SLOT_COUNT = 2;
 
@@ -139,7 +131,7 @@ public final class ShoulderEquipment extends ItemStackHandler {
 
     public ItemStack insertBattery(int pouchIndex, ItemStack stack, boolean simulate) {
         if (!hasStrap() || pouchIndex < 0 || pouchIndex >= activeBatterySlots()
-                || !RechargeableEnergyItem.isRechargeable(stack)) {
+                || !isStorableItem(stack)) {
             return stack == null ? ItemStack.EMPTY : stack;
         }
         ShoulderStrapContainer container = strapInventory();
@@ -216,9 +208,8 @@ public final class ShoulderEquipment extends ItemStackHandler {
         return hasStrap() && strapInventory().hasUpgradeFamily(family);
     }
 
-    /** Strap can travel with cells/upgrades; only a physically mounted device must be removed first. */
     public boolean canRemoveStrap() {
-        return !hasDevice();
+        return true;
     }
 
     public boolean expansionDependentSlotsEmpty() {
@@ -244,10 +235,7 @@ public final class ShoulderEquipment extends ItemStackHandler {
         return super.extractItem(slot, amount, simulate);
     }
 
-    /**
-     * 1.0.18 migration: legacy attachments serialized Strap/Device/9 cells/3 upgrades directly.
-     * Fold those dependent slots into the Strap ItemStack's container component on first load.
-     */
+    /** Migrates the legacy attachment inventory into the Strap ItemStack. */
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
         CompoundTag source = nbt == null ? new CompoundTag() : nbt.copy();
@@ -276,7 +264,7 @@ public final class ShoulderEquipment extends ItemStackHandler {
         if (strap.is(ModItems.SHOULDER_STRAP.get())) {
             ShoulderStrapContainer container = new ShoulderStrapContainer(strap);
             container.setItem(ShoulderStrapContainer.DEVICE_SLOT, legacy.getStackInSlot(DEVICE_SLOT).copy());
-            for (int i = 0; i < EXPANDED_BATTERY_SLOTS; i++) {
+            for (int i = 0; i < LEGACY_BATTERY_SLOTS; i++) {
                 container.setItem(
                         ShoulderStrapContainer.BATTERY_START + i,
                         legacy.getStackInSlot(BATTERY_START + i).copy()
@@ -313,6 +301,14 @@ public final class ShoulderEquipment extends ItemStackHandler {
 
     private static boolean validBatteryIndex(int index) {
         return index >= 0 && index < EXPANDED_BATTERY_SLOTS;
+    }
+
+    public static boolean isStorableItem(ItemStack stack) {
+        return RechargeableEnergyItem.isRechargeable(stack)
+                || stack.is(ModItems.SCAN_CODEX.get())
+                || stack.is(ModItems.ENTITY_SCAN_CARD.get())
+                || stack.is(ModItems.MIRAGE_FLASHLIGHT.get())
+                || stack.is(ModItems.MIRAGE_HAND_PROJECTOR.get());
     }
 
     private static boolean validUpgradeIndex(int index) {

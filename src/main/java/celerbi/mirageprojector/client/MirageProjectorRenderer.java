@@ -199,11 +199,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
         ));
     }
 
-    /**
-     * Dedicated Table runtime. The Table deliberately does not route through the canonical
-     * fixed-projector dispatcher: it owns its angle/bob/anchor semantics and source dispatch so
-     * future Table rules cannot regress upright chassis behaviour (or vice versa).
-     */
+    /** Renders the Table chassis through its dedicated placement rules. */
     private void renderTableProjectorRuntime(
             MirageProjectorBlockEntity blockEntity,
             ProjectionSettings settings,
@@ -366,16 +362,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                 .setNormal(pose, nx, ny, nz);
     }
 
-    /**
-     * Render only the hologram carried by a Mirage Hand Projector.
-     *
-     * <p>The normal block-entity render path evaluates a physical projector core before it
-     * emits content. Portable projectors intentionally have no core ItemStack: their power
-     * comes from the Hand Projector's embedded rechargeable cell and is validated by the item
-     * runtime. Reusing the fixed-projector power gate therefore made every non-War-Banner
-     * portable projection silently disappear. This path shares the exact source renderer but
-     * skips the fixed chassis/core gate and the physical core/book presentation.</p>
-     */
+    /** Renders only the hologram carried by a Hand Projector. */
     public void renderPortableProjection(
             MirageProjectorBlockEntity blockEntity,
             float partialTick,
@@ -521,7 +508,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
             float modelScale,
             double gameTime
     ) {
-        if (!(banner.getItem() instanceof BannerItem)) {
+        if (!(banner.getItem() instanceof BannerItem) || modelScale <= 0.0F) {
             return;
         }
         MultiBufferSource projectionBuffers = ProjectionRenderBuffers.wrap(bufferSource, settings);
@@ -535,7 +522,7 @@ public final class MirageProjectorRenderer implements BlockEntityRenderer<Mirage
                 gameTime,
                 poseStack,
                 projectionBuffers,
-                Math.max(PIXEL, modelScale),
+                modelScale,
                 projectionLight,
                 null
         );
